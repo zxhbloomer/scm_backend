@@ -1,0 +1,22 @@
+
+logging:
+  config: classpath:logback-spring.xml
+spring:
+  config:
+    use-legacy-processing: true
+  profiles:
+    # jenkins 使用配置
+#    active: ${spring.profiles.active}
+    #本地环境
+    active: dev
+    #演示环境
+#    active: centos-ys
+    #生产环境
+#    active: prod
+  #中林环境
+#    active: zlprod
+# 版本
+project:
+  version: v1.0.39
+  description:
+    版本历史记录：                                                                                                                                                                            

@@ -1,0 +1,27 @@
+package com.xinyirun.scm.bean.app.bo.inventory.warehouse;
+
+import lombok.Data;
+
+import java.io.Serializable;
+
+/**
+ * <p>
+ * 关于仓库三兄弟的大bean
+ * 如果从仓库向下推，1对多关系，需要从warehousebean -> locationbean -> binbean 来推
+ *
+ * 外加库存bean，考虑混放情况，所以是个list
+ * </p>
+ *
+ */
+@Data
+public class AppBLWBo implements Serializable {
+
+
+    private static final long serialVersionUID = -3325531634315881885L;
+    private AppMBinBo bin;
+
+    private AppMLocationBo location;
+
+    private AppMWareHouseBo warehouse;
+}
+

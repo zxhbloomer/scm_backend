@@ -1,0 +1,49 @@
+package com.xinyirun.scm.core.system.service.sys.schedule.v4;
+
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.xinyirun.scm.bean.entity.busniess.inventory.BDailyInventoryEntity;
+
+/**
+ * <p>
+ *  每日库存变化表的service
+ * </p>
+ *
+ * @author zxh
+ * @since 2019-07-04
+ */
+public interface ISBDailyInventoryV4Service extends IService<BDailyInventoryEntity> {
+
+    /**
+     * 重新生成每日库存表，所有仓库
+     *
+     */
+    void reCreateDailyInventoryAll();
+
+    /**
+     * 生成当天库存信息，所有仓库
+     *
+     */
+    void reCreateDailyInventoryToday();
+
+    /**
+     * 重新生成每日库存表
+     * 定时任务，根据条件来生成
+     * 1、仓库、库区、库位id
+     * 2、货主
+     * 3、sku_id
+     * 4、日期
+     *
+     */
+    void reCreateDailyInventoryAll(String parameterClass , String parameter);
+
+    /**
+     * 同步每日库存
+     *
+     */
+    void syncDailyInventoryAll(String parameterClass , String parameter);
+
+    void syncDailyInventoryPriceAll(String parameterClass , String parameter);
+
+    void syncDailyInventoryPriceLatest(String parameterClass , String parameter);
+
+}

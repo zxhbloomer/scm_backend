@@ -1,0 +1,432 @@
+debug: true
+#-----------------------tomcat设置---------------------------
+server:
+  port: 8088
+  servlet:
+    context-path: /wms
+    session:
+      cookie:
+        name: SCM_SESSION
+      timeout: 7200
+  tomcat:
+    max-connections: 10000
+    accept-count: 1000
+    # tomcat的URI编码
+    uri-encoding: UTF-8
+    threads:
+      # tomcat最大线程数，默认为200
+      max: 800
+      # Tomcat启动初始化的线程数，默认值25
+      min-spare: 30
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+
+# ===== knife4jDoc配置 =====#
+#knife4j:
+#  enable: true
+#  setting:
+#    language: zh-CN
+#    enableSwaggerModels: true
+#    enableDocumentManage: true
+#    swaggerModelName: 实体类列表
+#    enableVersion: false
+#    enableReloadCacheParameter: false
+#    enableAfterScript: true
+#    enableFilterMultipartApiMethodType: POST
+#    enableFilterMultipartApis: false
+#    enableRequestCache: true
+#    enableHost: false
+#    enableHostText: 192.168.0.193:8000
+#    enableHomeCustom: true
+#    homeCustomLocation: classpath:markdown/home.md
+#    enableSearch: false
+#    enableFooter: false
+#    enableFooterCustom: true
+#    footerCustomContent: Apache License 2.0 | Copyright  2021-[鑫一润]
+#    enableDynamicParameter: true
+#    enableDebug: true
+#    enableOpenApi: false
+#    enableGroup: true
+#  cors: false
+#  production: false
+#  basic:
+#    enable: false
+#    username: test
+#    password: 12313
+#
+#  documents:
+#    - group: 文件上传说明
+#      name: 文件上传说明----1.0
+#      # 某一个文件夹下所有的.md文件
+#      locations: classpath:custom_doc/*
+
+#-----------------------spring 设置---------------------------
+spring:
+  #  devtools:
+  #    livereload:
+  #      port: 35730
+  #    restart:
+  #      enabled: true
+  rabbitmq:
+    #    addresses: 127.0.0.1:5672
+    #    addresses: 172.21.1.227:5672
+    # 服务器ip
+    host: 172.21.1.249
+    # 端口号
+    port: 5672
+    username: admin
+    password: 123456
+    # 配置虚拟主机
+    virtual-host: /
+    # 连接超时，单位毫秒，0表示无穷大，不超时
+    connection-timeout: 3000
+    # 开启发送确认
+    #    publisher-confirms: true
+    publisher-confirm-type: correlated
+    # 开启发送失败退回
+    publisher-returns: true
+    # 缓存设置
+    cache:
+      channel:
+        # 缓存中保持的channel数量
+        size: 200
+        # 当缓存数量被设置时，从缓存中获取一个channel的超时时间，单位毫秒；如果为0，则总是创建一个新channel
+        checkout-timeout: 1000ms
+      connection:
+        # 缓存的连接数，只有是CONNECTION模式时生效
+        size: 10
+        # 连接工厂缓存模式：CHANNEL 和 CONNECTION
+        mode: CONNECTION
+
+    #回调return,而不是自动删除消息
+    template:
+      mandatory: true
+      retry:
+        # 启用发送重试
+        enabled: true
+        # 最大重试次数
+        max-attempts: 3
+    ## 消费端配置
+    listener:
+      simple:
+        ## 最大并发数
+        concurrency: 5
+        ## manual:手动 ack（确认）
+        acknowledge-mode: manual
+        ##
+        max-concurrency: 10
+        ## 限流
+        prefetch: 1
+    # 自定义
+    custom:
+      # 生产者
+      producer:
+        has-open: true
+        default-exchange: wms-default-exchange
+        default-queue: wms-default-queue
+        default-routing-key: wms-default-routing-key.#
+      # 消费者
+      consumer:
+        has-open: false
+        default-queue: test_queue
+  #  profiles:
+  #    # 数据库设置x`
+  #    active: druid
+
+  session:
+    redis:
+      flush-mode: ON_SAVE
+      namespace: XINYIRUN_SCM_SESSION_REDIS_KEY
+    store-type: redis
+  mvc:
+    dispatch-options-request: true
+  servlet:
+    # multipart 上传配置
+    multipart:
+      enabled: true
+      max-file-size: 1024MB
+      max-request-size: 1024MB
+  data:
+    # REDIS设置
+    redis:
+      # Redis数据库索引（默认为0）
+      database: 13
+      # Redis服务器地址
+      host: 127.0.0.1
+      # 连接超时时间（毫秒）
+      commandtimeout: 10000
+      timeout: 5000
+      lettuce:
+        pool:
+          # 连接池最大连接数（使用负值表示没有限制）
+          max-active: 8
+          # 连接池中的最大空闲连接
+          max-idle: 8
+          # 连接池最大阻塞等待时间（使用负值表示没有限制）
+          max-wait: -1
+          # 连接池中的最小空闲连接
+          min-idle: 0
+      # Redis服务器连接密码
+      password: ''
+      # Redis服务器连接端口
+      port: 6379
+    mongodb:
+      host: 172.21.1.249
+#      host: 47.100.174.228  # 鑫润航大外网
+#      host: 139.196.253.28  # 中林
+      port: 27017
+      database: wms
+      username: wms_db_user
+      password: WmsMongodb%40Shanghai123             # 升级成springboot3后，@符号需要修改成%40
+  datasource:
+    tomcat:
+      # 当从连接池借用连接时，是否测试该连接.
+      test-on-borrow: false
+      # 当连接空闲时，是否执行连接测试
+      test-while-idle: true
+      # 指定空闲连接检查、废弃连接清理、空闲连接池大小调整之间的操作时间间隔
+      time-between-eviction-runs-millis: 18800
+    driverClassName: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.xa.DruidXADataSource
+    druid:
+      # 初始化连接大小
+      initial-size: 30
+      #最大连接池数量
+      max-active: 80
+      # 最小连接池数量
+      min-idle: 20
+      # 配置获取连接等待超时的时间 单位毫秒
+      max-wait: 60000
+      # 连接池中的 minIdle 数据以内的连接，空闲时间超过设置的 最小生存时间时, 会执行 keepAlive 操作。默认 false
+      keep-alive: true
+      # 配置一个连接在池中最小生存的时间，单位是毫秒
+      min-evictable-idle-time-millis: 30000
+      # 配置一个连接在池中最大生存的时间，单位是毫秒
+      max-evictable-idle-time-millis: 30000
+      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+      time-between-eviction-runs-millis: 0
+      # 测试连接
+      validation-query: select 1
+      validation-query-timeout: 10000
+      # 获取连接时执行检测，建议关闭，影响性能
+      test-on-borrow: false
+      # 归还连接时执行检测，建议关闭，影响性能
+      test-on-return: false
+      # 申请连接的时候检测，建议配置为true，不影响性能，并且保证安全性
+      test-while-idle: true
+      # 要启用PSCache，必须配置大于0，当大于0时，poolPreparedStatements自动触发修改为true。
+      max-pool-prepared-statement-per-connection-size: 50
+      # 打开PSCache，并且指定每个连接上PSCache的大小
+      pool-prepared-statements: true
+      max-open-prepared-statements: 100
+        #      配置监控统计拦截器 防火墙 日志配置
+      #      stat监控数据库性能
+      #      wall  用于防火墙
+      #      日志 slf4j logback
+      #      log4j
+      #      log4j2
+      # 配置多个英文逗号分隔
+      filters: stat,wall,log4j
+      share-prepared-statements: true
+      # 通过connectProperties属性来打开mergeSql功能；慢SQL记录 SQL优化
+      # connect-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500
+      # 公司内网
+      master:
+        url: jdbc:mysql://172.21.1.247:3306/wms_ys?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+        username: root
+        password: Abcd@1234
+        type: com.alibaba.druid.pool.xa.DruidXADataSource
+        driverClassName: com.mysql.cj.jdbc.Driver
+        druid:
+  # 中林生产
+#      master:
+#        url: jdbc:mysql://rm-uf69hpg7211j6trh7no.mysql.rds.aliyuncs.com:3306/zlwarehouse?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+#        username: zlwarehouse
+#        password: abcd@1234
+#        type: com.alibaba.druid.pool.xa.DruidXADataSource
+#        driverClassName: com.mysql.cj.jdbc.Driver
+#        druid:
+  # 公司外网映射
+  #      master:
+  #        url: jdbc:mysql://222.72.35.146:48005/wms_ys?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+  #        username: root
+  #        password: Abcd@1234
+  #        type: com.alibaba.druid.pool.xa.DruidXADataSource
+  #        driverClassName: com.mysql.cj.jdbc.Driver
+  #        druid:
+  # 鑫润航达生产
+#      master:
+#        url: jdbc:mysql://rm-uf68ek48x0461832hqo.mysql.rds.aliyuncs.com:3306/xrhdwarehouse?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+#        username: xrhdwarehouse
+#        password: abcd@1234
+#        type: com.alibaba.druid.pool.xa.DruidXADataSource
+#        driverClassName: com.mysql.cj.jdbc.Driver
+#        druid:
+  #   OAuth2 Client/Login配置
+  security:
+    oauth2:
+      client:
+        registration:
+          custom:
+            client-id: b78be10c-6bcf-11ec-90d6-0242ac120003
+            client-secret: 719d19f0-f27a-4e02-b844-1b5a471eb72a
+            provider: custom
+            client-name: 自建OAuth2认证服务
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          custom:
+            # 远程授权、鉴权的接口
+            authorization-uri: http://127.0.0.1:${server.port}${server.servlet.context-path}/api/app/oauth/authorize
+            # 获取远程令牌的接口
+            token-uri: http://127.0.0.1:${server.port}${server.servlet.context-path}/api/app/oauth/token
+            # 获取远程用户信息的接口
+            user-info-uri: http://127.0.0.1:${server.port}${server.servlet.context-path}/api/app/me
+            # 返回的用户信息里面，name属性是用户名（用户标识符）
+            # 由于在授权服务里面返回的收取信息对象中，name属性的值是User对象的id（主键）
+            # 所以，得到的user-name其实是id
+            user-name-attribute: name
+            # 鉴权服务返回的信息是JWT加密的，所以需要通过获取鉴权服务器里面的公钥用于解密
+            # RSA 公钥访问地址
+            jwk-set-uri: http://localhost:9999/.well-known/jwks.json
+      resourceserver:
+        jwt:
+          # 资源服务器的公钥证书的路径
+          jwk-set-uri: http://localhost:9999/.well-known/jwks.json
+
+logging:
+  level:
+    org.springframework.web: Debug
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    org.springframework.boot.autoconfigure: INFO
+
+
+##mybatis:
+##  config-location: classpath:mybatis.xml
+#-----------------------RestTemplateConfiguration---------
+RestTemplate-ConnectTimeout: 150000
+RestTemplate-ReadTimeout: 150000
+
+#-----------------------日志设置---------------------------
+log:
+  path: D:/spring_log/wms/
+  logLevel: DEBUG
+
+#-----------------------mybatis-plus 设置---------
+mybatis-plus:
+  configuration:
+    jdbc-type-for-null: 'NULL'
+    # mybatis sql日志输出
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 关闭驼峰
+    map-underscore-to-camel-case: false
+    # null 也返回
+    call-setters-on-nulls: true
+  global-config:
+    db-config:
+      id-type: AUTO
+      insertStrategy: ignored
+      update-strategy: ignored
+  mapper-locations: 'classpath:/mapper/*Mapper '
+  type-handlers-package: com.xinyirun.wms.core.config.mybatis.typehandlers
+
+
+#-----------------------wms  Configuration---------
+wms:
+  config:
+    log-print: true
+    log-save-db: true
+    # AOP记录用户系统日志，true开启，false关闭
+    sys-log: true
+    # AOP记录用户操作日志，true开启，false关闭
+    operate-log: true
+    # AOP记录用户操作日志: true详细日志，不区分更改前更改后，数据量较大，false简单日志，只记录当前变更过的数据，数据量较小
+    operate-log-all: true
+    # 错误日志输出简单模式
+    simple-model: true
+    # 文件上传url
+    fs-url: http://file.xinyirunscm.com/fs/api/service/v1/upload
+    app_key: 8a90e44e-2a14-5c02-b3a5-95a1ce3a9eb6
+    secret_key: 1d7ee618-2fcb-5ec3-b0b2-d6df9115301d
+    # 文件备份 webclient baseurl 设置
+    fs-webclient-baseurl: http://127.0.0.1:8089
+
+    # redis 缓存过期时间min
+    redis-cache-expired-min: 60
+    # 当前环境
+    env: dev
+    domain_name: http://localhost:19528/
+  security:
+    # 免认证资源路径
+    anon-resources-url: /api/app/v1/wechat/login,/api/v1/staff/avatar/init,/api/v1/user/sso/**,/api/v1/materialconvert/execute,/api/app/v1/notice/get,/api/v1/user/setdnnode,/css/**,/js/**,/fonts/**,/img/**,/api/v1/imagecode,/api/v1/sms/code,/api/v1/signup/mobile,/monitoring/**,/monitoring,/actuator/monitoring,/actuator/monitoring/**,/swagger-ui/**,/v3/api-docs/**,/login/**
+    code:
+      image:
+        # 验证码相关配置，以下资源需要验证图形验证码，生成图形验证码的请求 ，
+        create-url: /api/v1/captcha/captchaImage
+        # 验证码相关配置，图形验证码失效时间
+        expire-in: 60
+        # 验证码相关配置，图形验证码高度，单位 px
+        height: 36
+        # 验证码相关配置，图形验证码由字符位数
+        length: 4
+        # 验证码相关配置，以下资源需要验证图形验证码，对应图形验证码登录页面 form表单的 action属性
+        login-processing-url: /api/v1/user/token/get
+        # 验证码相关配置，以下资源需要验证图形验证码，哪些地址是需要图片验证码进行验证的
+        url:
+        # 验证码相关配置，图形验证码图片长度，单位 px
+        width: 148
+        # 支持字符验证和计算式验证：math，char
+        captcha-type: math
+      sms:
+        # 验证码相关配置，短信验证码相关配置，以下资源需要短信验证码验证，生成短信验证码的请求 url
+        create-url: /api/v1/sms/code/check
+        # 验证码相关配置，短信验证码相关配置，短信验证码的有效时间，单位为秒
+        expire-in: 300
+        # 验证码相关配置，短信验证码相关配置，短信验证码字符位数
+        length: 4
+        # 验证码相关配置，短信验证码相关配置，以下资源需要短信验证码验证，对应短信验证码登录页面 form表单的 action属性
+        login-processing-url: /mobile/login
+        # 验证码相关配置，短信验证码相关配置，以下资源需要短信验证码验证
+        url: /api/v1/sms/code/check
+        # 短信运营商请求参数
+        api-uri: http://222.73.117.158/msg/HttpBatchSendSM
+        account: VIP-yrgyl8
+        pswd: Tch922973
+    # session过期后自动获取
+    create-new-session: false
+    # 开发者模式，可以跳过验证码
+    develop-model: false
+    # 首页路径
+    index-url: /index
+    # 登录路径
+    login-url: /login
+    # 登出路径
+    logout-url: /api/v1/logout
+    # 记住我有效时间，单位为秒
+    remember-me-timeout: 3600
+    session:
+      # 同一个账号最大并发登录数量，超出这个数量后，后者踢掉前者
+      maximum-sessions: 10
+    jwt:
+      header: Authorization
+      # This token must be encoded using Base64 with mininum 88 Bits (you can type `echo 'secret-key'|base64` on your command line)
+      base64-secret: ZmQ0ZGI5NjQ0MDQwY2I4MjMxY2Y3ZmI3MjdhN2ZmMjNhODViOTg1ZGE0NTBjMGM4NDA5NzYxMjdjOWMwYWRmZTBlZjlhNGY3ZTg4Y2U3YTE1ODVkZDU5Y2Y3OGYwZWE1NzUzNWQ2YjFjZDc0NGMxZWU2MmQ3MjY1NzJmNTE0MzI=
+      # token is valid 86400:24 hours，设置为100天
+      token-validity-in-seconds: 8640000000
+      # valid 24 hours 100天够用了
+      #      token-validity-in-seconds-for-remember-me: 86400000
+      route:
+        authentication:
+          path: auth
+          refresh: refresh
+  wx:
+    open:
+      config:
+        # 微信开放平台 AppID
+        appid: wx99f5fcda3705b794
+        # 微信开放平台 AppSecret
+        secret: 645539b5e98e52aeed022f7936d077fe
+        redirectUrl: https://www.xinyirunscm.com
+        csrfKey: xinyirun

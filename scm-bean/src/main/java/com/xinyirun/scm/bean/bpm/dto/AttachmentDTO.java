@@ -1,0 +1,16 @@
+package com.xinyirun.scm.bean.bpm.dto;
+
+import lombok.Data;
+
+/**
+ * @author LoveMyOrange
+ * @create 2022-10-15 17:04
+ */
+@Data
+public class AttachmentDTO {
+    private String id;
+    private String name;
+    private String url;
+    private Boolean isImage;
+    private Integer size;
+}
