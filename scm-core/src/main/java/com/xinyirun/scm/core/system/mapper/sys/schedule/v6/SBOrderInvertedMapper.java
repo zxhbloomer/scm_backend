@@ -66,7 +66,7 @@ public interface SBOrderInvertedMapper extends BaseMapper<BOrderInvertedEntity> 
             +"		TRUE                                                                                                                                        "
             +"			AND tab1.type = '"+DictConstant.DICT_B_IN_PLAN_TYPE_CG+"'                                                                               "
             +"			AND tab2.STATUS IN ('"+DictConstant.DICT_B_IN_PLAN_STATUS_TWO +"','"+DictConstant.DICT_B_IN_PLAN_STATUS_FIVE+"')                    "
-            +"			AND tab3.STATUS = '"+DictConstant.DICT_B_IN_STATUS_PASSED+"'                                                                            "
+            +"			AND tab3.STATUS = '"+DictConstant.DICT_B_IN_STATUS_TWO+"'                                                                            "
             +"			AND tab4.warehouse_type = '"+DictConstant.DICT_M_WAREHOUSE_TYPE_ZX+"'                                                                   "
             +"		GROUP BY                                                                                                                                    "
             +"			tab4.id,                                                                                                                                "

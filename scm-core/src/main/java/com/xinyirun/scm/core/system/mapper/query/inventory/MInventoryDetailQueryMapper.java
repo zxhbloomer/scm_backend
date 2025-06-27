@@ -216,7 +216,7 @@ public interface MInventoryDetailQueryMapper extends BaseMapper<MInventoryEntity
             + "	            	t2.target_sku_id)t14 on t14.sku_id = t1.sku_id                                          "
             + "       left join m_goods_spec_prop t17 on t17.id = t6.prop_id                                            "
             + "  left join(select max(u_time) as u_time,warehouse_id,sku_id,owner_id from b_in where status in          "
-            + "   ("+DictConstant.DICT_B_IN_STATUS_SUBMITTED+","+DictConstant.DICT_B_IN_STATUS_PASSED+")                "
+            + "   ("+DictConstant.DICT_B_IN_STATUS_TWO+","+DictConstant.DICT_B_IN_STATUS_TWO+")                "
             + "     group by warehouse_id,sku_id,owner_id) t18  on  t18.warehouse_id = t1.warehouse_id                  "
             + "       and t18.sku_id =  t1.sku_id and t18.owner_id = t1.owner_id                                        "
             + "  left join(select max(u_time) as u_time,warehouse_id,sku_id,owner_id from b_out where status in         "

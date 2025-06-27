@@ -1,6 +1,7 @@
 package com.xinyirun.scm.bean.system.vo.wms.in;
 
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
+import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -8,6 +9,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serial;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -329,6 +331,11 @@ public class BInVo extends PageCondition {
     private Integer dbversion;
 
     /**
+     * 删除0-未删除，1-已删除
+     */
+    private Boolean is_del;
+
+    /**
      * 校验类型
      */
     private String check_type;
@@ -351,4 +358,10 @@ public class BInVo extends PageCondition {
     private BigDecimal amount_total;
 
 
+    private List<SFileInfoVo> one_file;
+    private List<SFileInfoVo> two_file;
+    private List<SFileInfoVo> three_file;
+    private List<SFileInfoVo> four_file;
+
 }
+

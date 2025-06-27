@@ -24,13 +24,13 @@ public interface ApiInMapper extends BaseMapper<BInEntity> {
      */
     @Update("<script>"
             + " UPDATE                                                                                                  "
-            + " b_in set status = '"+ DictConstant.DICT_B_IN_STATUS_CANCEL + "', inventory_account_id = null            "
+            + " b_in set status = '"+ DictConstant.DICT_B_IN_STATUS_TWO + "', inventory_account_id = null            "
             + " WHERE id in                                                                                             "
             + " <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>                    "
             + "      #{item.id}                                                                                         "
             + " </foreach>                                                                                              "
-            + " AND status NOT IN ('"+ DictConstant.DICT_B_IN_STATUS_PASSED +"', '"+ DictConstant.DICT_B_IN_STATUS_CANCEL_BEING_AUDITED +"',"
-            + "   '"+ DictConstant.DICT_B_IN_STATUS_CANCEL +"')                                                         "
+            + " AND status NOT IN ('"+ DictConstant.DICT_B_IN_STATUS_TWO +"', '"+ DictConstant.DICT_B_IN_STATUS_TWO +"',"
+            + "   '"+ DictConstant.DICT_B_IN_STATUS_TWO +"')                                                         "
             + "</script>                                                                                                "
     )
     void updateStatus2Cancel(@Param("p1") List<BInEntity> inEntities);
@@ -47,8 +47,8 @@ public interface ApiInMapper extends BaseMapper<BInEntity> {
             + "     <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>                "
             + "      #{item.id}                                                                                         "
             + "     </foreach>                                                                                          "
-            + "     AND t1.status NOT IN ('"+ DictConstant.DICT_B_IN_STATUS_PASSED +"', '"+ DictConstant.DICT_B_IN_STATUS_CANCEL_BEING_AUDITED +"',"
-            + "     '"+ DictConstant.DICT_B_IN_STATUS_CANCEL +"')                                                       "
+            + "     AND t1.status NOT IN ('"+ DictConstant.DICT_B_IN_STATUS_TWO +"', '"+ DictConstant.DICT_B_IN_STATUS_TWO +"',"
+            + "     '"+ DictConstant.DICT_B_IN_STATUS_TWO +"')                                                       "
             + "</script>                                                                                                "
             + "      ")
     void updateTodoData(@Param("p1") List<BInEntity> inEntities);

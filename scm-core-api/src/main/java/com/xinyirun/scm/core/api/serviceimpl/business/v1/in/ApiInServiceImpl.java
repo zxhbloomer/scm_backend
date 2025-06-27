@@ -200,7 +200,7 @@ public class ApiInServiceImpl extends ApiBaseServiceImpl<ApiInPlanMapper, BInPla
         // 查询入库计划对应的入库单, 不能是作废审核中的
         if (!CollectionUtils.isEmpty(inEntities)) {
             for (BInEntity inEntity : inEntities) {
-                if (DictConstant.DICT_B_IN_STATUS_CANCEL_BEING_AUDITED.equals(inEntity.getStatus())) {
+                if (DictConstant.DICT_B_IN_STATUS_TWO.equals(inEntity.getStatus())) {
                     throw new ApiBusinessException(String.format("该入库通知向下有审核中的单据：入库单(%s)!", inEntity.getCode()));
                 }
             }

@@ -45,7 +45,7 @@ public interface BInOrderGoodsMapper extends BaseMapper<BInOrderGoodsEntity> {
             + "    from b_in t3                                                                                                             "
             + "    left join b_in_extra t4 ON t3.id = t4.in_id and t4.order_type = 'b_in_order'                                             "
             + "   LEFT JOIN b_in_plan_detail tt1 ON t3.plan_detail_id= tt1.id AND tt1.order_type = 'b_in_order'                             "
-            + "    where t3.status = '" + DictConstant.DICT_B_IN_STATUS_PASSED + "'                                                         "
+            + "    where t3.status = '" + DictConstant.DICT_B_IN_STATUS_TWO + "'                                                         "
             + "        AND t3.type = '"+ DictConstant.DICT_B_IN_TYPE_CG +"'                                                                 "
             + "    group by t3.sku_id, ifnull(tt1.order_id, t4.order_id)                                                                    "
             + "     ) t5 ON t5.sku_id = t1.sku_id and t1.order_id = t5.order_id                                                             "

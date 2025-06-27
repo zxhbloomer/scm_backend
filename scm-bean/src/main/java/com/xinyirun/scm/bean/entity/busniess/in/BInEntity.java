@@ -335,4 +335,10 @@ public class BInEntity implements Serializable {
     @TableField(value = "dbversion")
     private Integer dbversion;
 
+    /**
+     * 删除0-未删除，1-已删除
+     */
+    @TableField("is_del")
+    private Boolean is_del;
+
 }

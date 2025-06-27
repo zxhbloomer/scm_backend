@@ -88,28 +88,17 @@ public class DictConstant {
     public static final String DICT_M_CUSTOMER_MOLD_GF = "2";
 
     /**
-     * 入库单状态：0制单,1已提交,2审核通过,3审核驳回,4作废,5完成,6审核中
+     * 状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
      */
     public static final String DICT_B_IN_STATUS = "b_in_status";
-    public static final String DICT_B_IN_STATUS_SAVED = "0";
-    public static final String DICT_B_IN_STATUS_SUBMITTED = "1";
-    public static final String DICT_B_IN_STATUS_PASSED = "2";
-    public static final String DICT_B_IN_STATUS_RETURN = "3";
-    public static final String DICT_B_IN_STATUS_CANCEL = "4";
-    public static final String DICT_B_IN_STATUS_FINISH = "5";
-    public static final String DICT_B_IN_STATUS_CANCEL_BEING_AUDITED = "6";
+    public static final String DICT_B_IN_STATUS_ZERO = "0";
+    public static final String DICT_B_IN_STATUS_ONE = "1";
+    public static final String DICT_B_IN_STATUS_TWO = "2";
+    public static final String DICT_B_IN_STATUS_THREE = "3";
+    public static final String DICT_B_IN_STATUS_FOUR = "4";
+    public static final String DICT_B_IN_STATUS_FIVE = "5";
+    public static final String DICT_B_IN_STATUS_SIX = "6";
 
-
-    /**
-     * 入库单 审批状态 0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废
-     */
-    public static final String DICT_B_IN_V2_STATUS = "b_in_v2_status";
-    public static final String DICT_B_IN_V2_STATUS_ZERO = "0";
-    public static final String DICT_B_IN_V2_STATUS_ONE = "1";
-    public static final String DICT_B_IN_V2_STATUS_TWO = "2";
-    public static final String DICT_B_IN_V2_STATUS_THREE = "3";
-    public static final String DICT_B_IN_V2_STATUS_FOUR = "4";
-    public static final String DICT_B_IN_V2_STATUS_FIVE = "5";
 
     /**
      *  入库计划状态  0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
@@ -122,19 +111,6 @@ public class DictConstant {
     public static final String DICT_B_IN_PLAN_STATUS_FOUR = "4";
     public static final String DICT_B_IN_PLAN_STATUS_FIVE = "5";
     public static final String DICT_B_IN_PLAN_STATUS_SIX = "6";
-
-    /**
-     * 入库计划 审批状态 0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
-     */
-    public static final String DICT_B_IN_PLAN_V2_STATUS = "b_in_plan_v2_status";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_ZERO = "0";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_ONE = "1";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_TWO = "2";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_THREE = "3";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_FOUR = "4";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_FIVE = "5";
-    public static final String DICT_B_IN_PLAN_V2_STATUS_SIX = "6";
-
 
     /**
      * 调整单状态：0制单,1已提交,2审核通过,3审核驳回

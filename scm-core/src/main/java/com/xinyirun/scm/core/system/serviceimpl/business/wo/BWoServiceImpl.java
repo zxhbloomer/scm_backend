@@ -947,7 +947,7 @@ public class BWoServiceImpl extends ServiceImpl<BWoMapper, BWoEntity> implements
         BInEntity entity = new BInEntity();
         entity.setCode(inAutoService.autoCode().getCode());
         entity.setType(DictConstant.DICT_B_IN_TYPE_SC);
-        entity.setStatus(DictConstant.DICT_B_IN_STATUS_SUBMITTED);
+        entity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO);
 //        entity.setIs_settled(false);
         entity.setOwner_id(in.getOwner_id());
         entity.setPlan_id(in.getId());

@@ -265,7 +265,7 @@ public class ApiBaseServiceImpl<M extends BaseMapper<T>, T> extends ServiceImpl<
         // 赋值返回入库单
         if(inEntityList != null && inEntityList.size() > 0) {
             for(BInEntity inEntity:inEntityList) {
-                if (Objects.equals(inEntity.getStatus(), DictConstant.DICT_B_IN_STATUS_SAVED) || Objects.equals(inEntity.getStatus(), DictConstant.DICT_B_IN_STATUS_RETURN)) {
+                if (Objects.equals(inEntity.getStatus(), DictConstant.DICT_B_IN_STATUS_TWO) || Objects.equals(inEntity.getStatus(), DictConstant.DICT_B_IN_STATUS_TWO)) {
                     continue;
                 }
 
@@ -313,13 +313,13 @@ public class ApiBaseServiceImpl<M extends BaseMapper<T>, T> extends ServiceImpl<
      */
     public void setInStatus(BInEntity inEntity,ApiInResultBo apiInResultVo) {
         // 入库单数据状态：制单、提交是进行中，审核通过是已完成，作废、驳回是作废
-        if( inEntity.getStatus().equals(DictConstant.DICT_B_IN_STATUS_SUBMITTED)) {
+        if( inEntity.getStatus().equals(DictConstant.DICT_B_IN_STATUS_TWO)) {
             apiInResultVo.setStatusCode(SystemConstants.API_STATUS_PROGRESS);
         }
-        if (inEntity.getStatus().equals(DictConstant.DICT_B_IN_STATUS_PASSED)){
+        if (inEntity.getStatus().equals(DictConstant.DICT_B_IN_STATUS_TWO)){
             apiInResultVo.setStatusCode(SystemConstants.API_STATUS_OVER);
         }
-        if(inEntity.getStatus().equals(DictConstant.DICT_B_IN_STATUS_CANCEL)) {
+        if(inEntity.getStatus().equals(DictConstant.DICT_B_IN_STATUS_TWO)) {
             apiInResultVo.setStatusCode(SystemConstants.API_STATUS_CANCEL);
         }
     }

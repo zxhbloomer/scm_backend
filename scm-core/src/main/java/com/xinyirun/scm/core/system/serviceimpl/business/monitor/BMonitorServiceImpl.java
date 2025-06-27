@@ -1245,7 +1245,7 @@ public class BMonitorServiceImpl extends ServiceImpl<BMonitorMapper, BMonitorEnt
         }
         BInEntity entity = (BInEntity) ((BaseMapper)bInMapper).selectById(in_id);
 
-        if (Objects.equals(entity.getStatus(), DictConstant.DICT_B_IN_STATUS_CANCEL)) {
+        if (Objects.equals(entity.getStatus(), DictConstant.DICT_B_IN_STATUS_TWO)) {
             return;
         }
 
@@ -1254,16 +1254,16 @@ public class BMonitorServiceImpl extends ServiceImpl<BMonitorMapper, BMonitorEnt
         inVo.setId(in_id);
         callInCanceledAppCode10Api(List.of(inVo));
 
-        entity.setStatus(DictConstant.DICT_B_IN_STATUS_CANCEL);
+        entity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO);
 //        entity.setInventory_account_id(null);
         bInMapper.updateById(entity);
         // 更新库存
-        if (!Objects.equals(entity.getStatus(), DictConstant.DICT_B_IN_STATUS_SAVED)) {
+        if (!Objects.equals(entity.getStatus(), DictConstant.DICT_B_IN_STATUS_TWO)) {
             iCommonInventoryLogicService.updWmsStockByInBill(entity.getId());
         }
 
         // 查询入库计划明细，更新已处理和待处理数量
-        if(entity.getPlan_detail_id() != null && !DictConstant.DICT_B_IN_STATUS_SAVED.equals(entity.getStatus())) {
+        if(entity.getPlan_detail_id() != null && !DictConstant.DICT_B_IN_STATUS_TWO.equals(entity.getStatus())) {
             BInPlanDetailEntity detail = inPlanDetailMapper.selectById(entity.getPlan_detail_id());
 
 //            BInPlanDetailVo bInPlanDetailVo = inPlanDetailMapper.selectPlanDetailCount(detail.getId());
@@ -1300,7 +1300,7 @@ public class BMonitorServiceImpl extends ServiceImpl<BMonitorMapper, BMonitorEnt
             BMonitorInUnloadVo monitorInVo = monitorInMapper.selectMonitorInUnloadByMonitorId(entity.getId());
             if (monitorInVo != null && monitorInVo.getIn_id() != null) {
                 BInEntity inEntity =  (BInEntity) ((BaseMapper)bInMapper).selectById(monitorInVo.getIn_id());
-                if (DictConstant.DICT_B_IN_STATUS_CANCEL.equals(inEntity.getStatus())) {
+                if (DictConstant.DICT_B_IN_STATUS_TWO.equals(inEntity.getStatus())) {
                     throw new BusinessException("入库单【" + inEntity.getCode() + "】已作废，无法审核");
                 }
             }
@@ -3983,7 +3983,7 @@ public class BMonitorServiceImpl extends ServiceImpl<BMonitorMapper, BMonitorEnt
 
 //        if (monitorInEntity.getIn_id() != null) {
 //            BInEntity inEntity = inMapper.selectById(monitorInEntity.getIn_id());
-//            if (!Objects.equals(inEntity.getStatus(), DictConstant.DICT_B_IN_STATUS_CANCEL)) {
+//            if (!Objects.equals(inEntity.getStatus(), DictConstant.DICT_B_IN_STATUS_TWO)) {
 //                throw new BusinessException("请先作废入库单【" + inEntity.getCode() + "】");
 //            }
 //
@@ -3993,7 +3993,7 @@ public class BMonitorServiceImpl extends ServiceImpl<BMonitorMapper, BMonitorEnt
 //            // 新增入库单逻辑
 //            SUnitVo sUnitVo = isUnitService.selectByCode(SystemConstants.DEFAULT_UNIT.CODE);
 //            BInEntity bInEntity = inMapper.selectByMonitorInId(monitorInEntity.getId());
-//            bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_SAVED);
+//            bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO);
 //            bInEntity.setCode(inCode.autoCode().getCode());
 //            bInEntity.setInbound_time(LocalDateTime.now());
 //            // 车辆
@@ -5022,7 +5022,7 @@ public class BMonitorServiceImpl extends ServiceImpl<BMonitorMapper, BMonitorEnt
                 BMonitorInUnloadVo monitorInVo = monitorInMapper.selectMonitorInUnloadByMonitorId(bMonitorEntity.getId());
                 if (monitorInVo != null && monitorInVo.getIn_id() != null) {
                     BInEntity inEntity =  (BInEntity) ((BaseMapper)bInMapper).selectById(monitorInVo.getIn_id());
-                    if (DictConstant.DICT_B_IN_STATUS_CANCEL.equals(inEntity.getStatus())) {
+                    if (DictConstant.DICT_B_IN_STATUS_TWO.equals(inEntity.getStatus())) {
                         throw new BusinessException("入库单【" + inEntity.getCode() + "】已作废，无法审核");
                     }
                 }

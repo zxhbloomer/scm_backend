@@ -588,7 +588,7 @@ public interface MInventoryV2Mapper extends BaseMapper<MInventoryV2Entity> {
             +  "    	LEFT JOIN m_owner t3 ON t3.id = t1.owner_id                                                                             "
             +  "    	LEFT JOIN m_warehouse t4 ON t1.warehouse_id = t4.id                                                                     "
             +  "    	WHERE                                                                                                                   "
-            +  "    		t1.STATUS IN ( '"+ DictConstant.DICT_B_IN_STATUS_SUBMITTED +"', '"+ DictConstant.DICT_B_IN_STATUS_PASSED +"')       "
+            +  "    		t1.STATUS IN ( '"+ DictConstant.DICT_B_IN_STATUS_TWO +"', '"+ DictConstant.DICT_B_IN_STATUS_TWO +"')       "
             +  "    	GROUP BY                                                                                                                "
             +  "    		t1.warehouse_id,                                                                                                    "
             +  "    		t1.owner_id,                                                                                                        "

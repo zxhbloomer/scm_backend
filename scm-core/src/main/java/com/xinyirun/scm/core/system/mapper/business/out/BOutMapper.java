@@ -1328,7 +1328,7 @@ public interface BOutMapper extends BaseMapper<BOutEntity> {
                     + "		LEFT JOIN m_goods t3 on t2.goods_id = t3.id                                                "
                     + "     LEFT JOIN v_dict_info t5 ON t5.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "' and t1.warehouse_type = t5.dict_value"
                     + "     ,(select @row_num:=0) t6                                                                   "
-                    + "	    WHERE t.`status` = '" + DictConstant.DICT_B_IN_STATUS_PASSED + "'                         "
+                    + "	    WHERE t.`status` = '" + DictConstant.DICT_B_IN_STATUS_TWO + "'                         "
                     + "<if test='p1 != null and p1.size != 0'>                                                         "
                     + "    and concat(t1.id, '_', t3.id) in                                                            "
                     + "    <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>        "
