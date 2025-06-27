@@ -21,6 +21,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.system.vo.wms.in.BInVo;
+import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
@@ -32,6 +33,7 @@ import com.xinyirun.scm.core.system.mapper.wms.in.BInAttachMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInMapper;
 import com.xinyirun.scm.core.system.service.wms.in.IBInService;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BInAutoCodeServiceImpl;
+import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -256,8 +258,12 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
 
     @Override
     public IPage<BInVo> selectPage(BInVo searchCondition) {
-        Page<BInVo> page = new Page<>(searchCondition.getCurrent(), searchCondition.getSize());
-        return mapper.selectPage(page, searchCondition);
+        // 分页条件
+        Page<BInVo> pageCondition = new Page<>(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+
+        return mapper.selectPage(pageCondition, searchCondition);
     }
 
     @Override

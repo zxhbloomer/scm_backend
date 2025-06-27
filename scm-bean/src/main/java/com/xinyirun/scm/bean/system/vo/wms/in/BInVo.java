@@ -357,6 +357,11 @@ public class BInVo extends PageCondition {
     private BigDecimal qty_total;
     private BigDecimal amount_total;
 
+    /**
+     * 换页条件
+     */
+    private PageCondition pageCondition;
+
 
     private List<SFileInfoVo> one_file;
     private List<SFileInfoVo> two_file;
