@@ -60,7 +60,7 @@
         <mysql-connector-java.version>8.0.33</mysql-connector-java.version>
         <!--        <mybatis-spring-boot-starter.version>2.1.1</mybatis-spring-boot-starter.version>-->
         <kaptcha.version>2.3.2</kaptcha.version>
-        <lombok.version>1.18.28</lombok.version>
+        <lombok.version>1.18.38</lombok.version>
         <lettuce.version>6.2.3.RELEASE</lettuce.version>
         <jjwt.version>0.11.5</jjwt.version>
         <springsecurity.version>6.1.1</springsecurity.version>
