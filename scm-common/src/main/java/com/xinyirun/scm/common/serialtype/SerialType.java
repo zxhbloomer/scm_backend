@@ -10,9 +10,6 @@ public class SerialType {
 
     // 入库单
     public static final String BILL_BUSINESS_IN = "b_in";
-
-    // 入库单V2
-    public static final String BILL_BUSINESS_IN_V2 = "b_in_v2";
     // 出库单
     public static final String BILL_BUSINESS_OUT = "b_out";
     // 调整单

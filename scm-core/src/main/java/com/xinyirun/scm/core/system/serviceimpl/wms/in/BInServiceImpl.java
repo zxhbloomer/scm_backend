@@ -21,12 +21,17 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.system.vo.wms.in.BInVo;
+import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
+import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.bpm.service.business.IBpmInstanceSummaryService;
+import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessTemplatesServiceImpl;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInAttachMapper;
@@ -71,11 +76,23 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     
     @Autowired
     private IBpmInstanceSummaryService iBpmInstanceSummaryService;
+    
+    @Autowired
+    private BpmProcessTemplatesServiceImpl bpmProcessTemplatesService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<BInVo> startInsert(BInVo searchCondition) {
-        return insert(searchCondition);
+    public InsertResultAo<BInVo> startInsert(BInVo bInVo) {
+        // 1. 校验业务规则
+        checkInsertLogic(bInVo);
+        
+        // 2.保存入库单
+        InsertResultAo<BInVo> insertResultAo = insert(bInVo);
+
+        // 3.启动审批流程
+        startFlowProcess(bInVo, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN);
+
+        return insertResultAo;
     }
 
     @Override
@@ -112,9 +129,11 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     private BInEntity saveMainEntity(BInVo bInVo) {
         BInEntity bInEntity = new BInEntity();
         BeanUtils.copyProperties(bInVo, bInEntity);
+        bInEntity.setUnit_id(SystemConstants.DEFAULT_VALUE.UNIT);
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_ONE);
         bInEntity.setCode(bInAutoCodeService.autoCode().getCode());
         bInEntity.setIs_del(Boolean.FALSE);
+        bInEntity.setBpm_process_name("新增入库单审批");
         
         int result = mapper.insert(bInEntity);
         if (result == 0) {
@@ -224,8 +243,18 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     }
 
     @Override
-    public UpdateResultAo<BInVo> startUpdate(BInVo searchCondition) {
-        return update(searchCondition);
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<BInVo> startUpdate(BInVo bInVo) {
+        // 1. 校验业务规则
+        checkUpdateLogic(bInVo);
+        
+        // 2.修改入库单
+        UpdateResultAo<BInVo> updateResultAo = update(bInVo);
+
+        // 3.启动审批流程
+        startFlowProcess(bInVo, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN);
+
+        return updateResultAo;
     }
 
     @Override
@@ -328,7 +357,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             }
             
             // 只有待审批或审批拒绝状态的单据才能删除
-            if (!"0".equals(bInEntity.getStatus()) && !"3".equals(bInEntity.getStatus())) {
+            if (!DictConstant.DICT_B_IN_STATUS_ZERO.equals(bInEntity.getStatus()) && !DictConstant.DICT_B_IN_STATUS_THREE.equals(bInEntity.getStatus())) {
                 return CheckResultUtil.NG("只有待审批或审批拒绝状态的单据才能删除");
             }
         }
@@ -345,7 +374,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             }
             
             // 只有审批通过状态的单据才能作废
-            if (!"2".equals(bInEntity.getStatus())) {
+            if (!DictConstant.DICT_B_IN_STATUS_TWO.equals(bInEntity.getStatus())) {
                 return CheckResultUtil.NG("只有审批通过状态的单据才能作废");
             }
         }
@@ -362,7 +391,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             }
             
             // 只有审批通过状态的单据才能完成
-            if (!"2".equals(bInEntity.getStatus())) {
+            if (!DictConstant.DICT_B_IN_STATUS_TWO.equals(bInEntity.getStatus())) {
                 return CheckResultUtil.NG("只有审批通过状态的单据才能完成");
             }
         }
@@ -453,12 +482,15 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         
         BInEntity bInEntity = (BInEntity) ((BaseMapper)mapper).selectById(searchCondition.getId());
         
-        // 设置作废状态
-        bInEntity.setStatus("4"); // 设置为作废待审批状态
+        bInEntity.setBpm_cancel_process_name("作废入库单审批");
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_FOUR); // 设置为作废待审批状态
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
             throw new BusinessException("修改失败");
         }
+
+        // 启动审批流程
+        startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN_CANCEL);
         
         return UpdateResultUtil.OK(result);
     }
@@ -473,7 +505,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         }
         
         BInEntity bInEntity = (BInEntity) ((BaseMapper)mapper).selectById(searchCondition.getId());
-        bInEntity.setStatus("6"); // 设置为完成状态
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_SIX); // 设置为完成状态
         int update = mapper.updateById(bInEntity);
         if (update == 0) {
             throw new BusinessException("修改失败");
@@ -572,7 +604,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         
         bInEntity.setBpm_cancel_instance_id(searchCondition.getBpm_cancel_instance_id());
         bInEntity.setBpm_cancel_instance_code(searchCondition.getBpm_cancel_instance_code());
-        bInEntity.setStatus("5"); // 设置为已作废状态
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_FIVE); // 设置为已作废状态
         
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -590,7 +622,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         BInEntity bInEntity = (BInEntity) ((BaseMapper)mapper).selectById(searchCondition.getId());
         
         // 作废拒绝，恢复到正常状态
-        bInEntity.setStatus("2"); // 恢复到审批通过状态
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO); // 恢复到审批通过状态
         
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -608,7 +640,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         BInEntity bInEntity = (BInEntity) ((BaseMapper)mapper).selectById(searchCondition.getId());
         
         // 作废取消，恢复到正常状态
-        bInEntity.setStatus("2"); // 恢复到审批通过状态
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO); // 恢复到审批通过状态
         
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -634,6 +666,36 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         return UpdateResultUtil.OK(result);
     }
     
+    /**
+     * 启动审批流
+     */
+    public void startFlowProcess(BInVo bean, String type){
+        // 未初始化审批流数据，不启动审批流
+        if (StringUtils.isNotEmpty(bean.getInitial_process())) {
+            // 启动审批流
+            BBpmProcessVo bBpmProcessVo = new BBpmProcessVo();
+            bBpmProcessVo.setCode(bpmProcessTemplatesService.getBpmFLowCodeByType(type));
+            bBpmProcessVo.setSerial_type(type);
+            bBpmProcessVo.setForm_data(bean.getForm_data());
+            bBpmProcessVo.setForm_json(bean);
+            bBpmProcessVo.setForm_class(bean.getClass().getName());
+            bBpmProcessVo.setSerial_id(bean.getId());
+            bBpmProcessVo.setInitial_process(bean.getInitial_process());
+            bBpmProcessVo.setProcess_users(bean.getProcess_users());
+
+            // 组装发起人信息
+            OrgUserVo orgUserVo = new OrgUserVo();
+            orgUserVo.setId(SecurityUtil.getStaff_id().toString());
+            orgUserVo.setName(SecurityUtil.getUserSession().getStaff_info().getName());
+            orgUserVo.setCode(SecurityUtil.getUserSession().getStaff_info().getCode());
+            orgUserVo.setType("user");
+            bBpmProcessVo.setOrgUserVo(orgUserVo);
+
+            // 启动审批流
+            bpmProcessTemplatesService.startProcess(bBpmProcessVo);
+        }
+    }
+    
     // ============ BPM 审批回调方法实现 ============
 
     /**
@@ -647,8 +709,8 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
 
         bInEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
         bInEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
-        bInEntity.setStatus("2"); // 设置为审批通过状态
-        bInEntity.setNext_approve_name("审批完成");
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO); // 设置为审批通过状态
+        bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
 
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -668,8 +730,8 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         log.debug("====》入库单[{}]审批流程拒绝，更新开始《====", searchCondition.getId());
         BInEntity bInEntity = (BInEntity) ((BaseMapper)mapper).selectById(searchCondition.getId());
 
-        bInEntity.setStatus("3"); // 设置为审批拒绝状态
-        bInEntity.setNext_approve_name("审批拒绝");
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_THREE); // 设置为审批拒绝状态
+        bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_REFUSE);
 
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -689,8 +751,8 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         log.debug("====》入库单[{}]审批流程取消，更新开始《====", searchCondition.getId());
         BInEntity bInEntity = (BInEntity) ((BaseMapper)mapper).selectById(searchCondition.getId());
 
-        bInEntity.setStatus("0"); // 设置为待审批状态
-        bInEntity.setNext_approve_name("审批取消");
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_ZERO); // 设置为待审批状态
+        bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_CANCEL);
 
         int result = mapper.updateById(bInEntity);
         if (result == 0) {

@@ -1,5 +1,7 @@
 package com.xinyirun.scm.bean.system.vo.wms.in;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import lombok.Data;
@@ -10,6 +12,7 @@ import java.io.Serial;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -362,6 +365,24 @@ public class BInVo extends PageCondition {
      */
     private PageCondition pageCondition;
 
+    /**
+     * 初始化流程节点key(用于启动流程节点)
+     */
+    private String initial_process;
+    /**
+     * 流程数据
+     */
+    private JSONObject form_data;
+
+    /**
+     * 自选数据
+     */
+    private Map<String, List<OrgUserVo>> process_users;
+
+    /**
+     * 组织用户vo
+     */
+    private OrgUserVo orgUserVo;
 
     private List<SFileInfoVo> one_file;
     private List<SFileInfoVo> two_file;

@@ -1,0 +1,821 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+
+# Service 层开发规范
+
+基于 Controller 层规范，对应的 Service 层也需要遵循标准化的开发模式，确保业务逻辑的一致性和可维护性。
+
+## Service 接口 (IXxxService) 规范
+
+### 接口基本结构
+```java
+public interface IXxxService extends IService<XxxEntity>, 
+        IBpmCommonCallBackService<XxxVo>,
+        IBpmCancelCommonCallBackService<XxxVo> {
+    // 方法声明...
+}
+```
+
+### 这里只是标准的方法结构，如果需要，根据controller这里调用情况，自动生成，除非需求这里要求你来写。
+
+#### 第一个：业务类型获取方法
+```java
+/**
+ * 获取业务类型
+ */
+List<XxxVo> getType();
+```
+
+#### 第二个：新增方法
+```java
+/**
+ * 新增
+ */
+InsertResultAo<XxxVo> startInsert(XxxVo searchCondition);
+```
+
+#### 第三个：更新方法
+```java
+/**
+ * 更新
+ */
+UpdateResultAo<XxxVo> startUpdate(XxxVo searchCondition);
+```
+
+#### 第四个：分页查询方法
+```java
+/**
+ * 分页查询
+ */
+IPage<XxxVo> selectPage(XxxVo searchCondition);
+```
+
+#### 第五个：根据ID查询方法
+```java
+/**
+ * 根据id查询
+ */
+XxxVo selectById(Integer id);
+```
+
+#### 第六个：校验方法
+```java
+/**
+ * 校验
+ */
+CheckResultAo checkLogic(XxxVo searchCondition, String checkType);
+```
+
+#### 第七个：导出查询方法
+```java
+/**
+ * 导出查询
+ */
+List<XxxVo> selectExportList(XxxVo param);
+```
+
+#### 第八个：打印信息获取方法
+```java
+/**
+ * 获取报表系统参数，并组装打印参数
+ */
+XxxVo getPrintInfo(XxxVo searchCondition);
+```
+
+#### 第九个：删除方法
+```java
+/**
+ * 删除
+ */
+DeleteResultAo<Integer> delete(List<XxxVo> searchCondition);
+```
+
+#### 第十个：作废方法
+```java
+/**
+ * 作废
+ */
+UpdateResultAo<XxxVo> cancel(XxxVo searchCondition);
+```
+
+#### 第十一个：汇总查询方法
+```java
+/**
+ * 汇总查询
+ */
+XxxVo querySum(XxxVo searchCondition);
+```
+
+### 接口导入依赖
+```java
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.xinyirun.scm.bean.entity.busniess.xxx.XxxEntity;
+import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
+import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
+import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
+import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
+import com.xinyirun.scm.bean.system.vo.business.xxx.XxxVo;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
+
+import java.util.List;
+```
+
+## Service 实现类 (XxxServiceImpl) 规范
+
+### 类基本结构
+```java
+@Slf4j
+@Service
+public class XxxServiceImpl extends ServiceImpl<XxxMapper, XxxEntity> implements IXxxService {
+
+    @Autowired
+    private XxxMapper mapper;
+    
+    // 其他依赖注入...
+    
+    // 方法实现...
+}
+```
+
+### 这里只是标准的方法结构，如果需要，根据controller这里调用情况，自动生成，除非需求这里要求你来写。
+
+#### 第一个：新增业务方法 (startInsert)
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public InsertResultAo<XxxVo> startInsert(XxxVo searchCondition) {
+    // 1.保存业务数据
+    InsertResultAo<XxxVo> insertResultAo = insert(searchCondition);
+
+    // 2.启动审批流程
+    startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_XXX);
+
+    return insertResultAo;
+}
+```
+
+#### 第二个：更新业务方法 (startUpdate)
+```java
+@Override
+public UpdateResultAo<XxxVo> startUpdate(XxxVo searchCondition) {
+    // 1.执行更新逻辑
+    UpdateResultAo<XxxVo> updateResultAo = update(searchCondition);
+
+    // 2.启动审批流程
+    startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_XXX);
+
+    return updateResultAo;
+}
+```
+
+#### 第三个：分页查询方法 (selectPage)
+```java
+@Override
+public IPage<XxxVo> selectPage(XxxVo searchCondition) {
+    Page<XxxVo> page = PageUtil.getPage(searchCondition);
+    
+    // 执行分页查询
+    IPage<XxxVo> list = mapper.selectPage(page, searchCondition);
+    
+    return list;
+}
+```
+
+#### 第四个：根据ID查询方法 (selectById)
+```java
+@Override
+public XxxVo selectById(Integer id) {
+    XxxVo vo = mapper.selectById(id);
+    
+    // 查询关联数据
+    if (vo != null) {
+        // 加载详细信息、关联数据等
+        // ...
+    }
+    
+    return vo;
+}
+```
+
+#### 第五个：校验方法 (checkLogic)
+```java
+@Override
+public CheckResultAo checkLogic(XxxVo searchCondition, String checkType) {
+    // 根据不同的校验类型执行不同的校验逻辑
+    switch (checkType) {
+        case CheckResultAo.INSERT_CHECK_TYPE:
+            return checkForInsert(searchCondition);
+        case CheckResultAo.UPDATE_CHECK_TYPE:
+            return checkForUpdate(searchCondition);
+        case CheckResultAo.DELETE_CHECK_TYPE:
+            return checkForDelete(searchCondition);
+        default:
+            return CheckResultUtil.OK();
+    }
+}
+```
+
+#### 第六个：导出查询方法 (selectExportList)
+```java
+@Override
+public List<XxxVo> selectExportList(XxxVo param) {
+    return mapper.selectExportList(param);
+}
+```
+
+#### 第七个：打印信息方法 (getPrintInfo)
+```java
+@Override
+public XxxVo getPrintInfo(XxxVo searchCondition) {
+    // 获取打印所需的基础数据
+    XxxVo printInfo = selectById(searchCondition.getId());
+    
+    // 组装打印参数
+    // ...
+    
+    return printInfo;
+}
+```
+
+#### 第八个：删除方法 (delete)
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public DeleteResultAo<Integer> delete(List<XxxVo> searchCondition) {
+    for (XxxVo vo : searchCondition) {
+        // 校验删除条件
+        CheckResultAo checkResult = checkLogic(vo, CheckResultAo.DELETE_CHECK_TYPE);
+        if (!checkResult.isSuccess()) {
+            throw new BusinessException(checkResult.getMessage());
+        }
+        
+        // 执行逻辑删除
+        XxxEntity entity = new XxxEntity();
+        entity.setId(vo.getId());
+        entity.setIs_del(Boolean.TRUE);
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            throw new UpdateErrorException("删除失败");
+        }
+    }
+    
+    return DeleteResultUtil.OK();
+}
+```
+
+#### 第九个：作废方法 (cancel)
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public UpdateResultAo<XxxVo> cancel(XxxVo searchCondition) {
+    // 校验作废条件
+    CheckResultAo checkResult = checkLogic(searchCondition, CheckResultAo.CANCEL_CHECK_TYPE);
+    if (!checkResult.isSuccess()) {
+        throw new BusinessException(checkResult.getMessage());
+    }
+    
+    // 执行作废逻辑
+    XxxEntity entity = new XxxEntity();
+    entity.setId(searchCondition.getId());
+    entity.setStatus(DictConstant.DICT_XXX_STATUS_CANCEL);
+    
+    int result = mapper.updateById(entity);
+    if (result <= 0) {
+        throw new UpdateErrorException("作废失败");
+    }
+    
+    return UpdateResultUtil.OK(searchCondition);
+}
+```
+
+#### 第十个：汇总查询方法 (querySum)
+```java
+@Override
+public XxxVo querySum(XxxVo searchCondition) {
+    return mapper.querySum(searchCondition);
+}
+```
+
+### 核心私有方法
+
+#### insert 方法
+```java
+public InsertResultAo<XxxVo> insert(XxxVo searchCondition) {
+    // 插入前校验
+    CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.INSERT_CHECK_TYPE);
+    if (!cr.isSuccess()) {
+        throw new BusinessException(cr.getMessage());
+    }
+
+    // 1.保存主表信息
+    XxxEntity entity = new XxxEntity();
+    BeanUtils.copyProperties(searchCondition, entity);
+    entity.setCode(xxxAutoCodeService.autoCode().getCode());
+    entity.setStatus(DictConstant.DICT_XXX_STATUS_ONE);
+    entity.setIs_del(Boolean.FALSE);
+    entity.setBpm_process_name("新增模块名审批");
+    entity.setId(null);
+    
+    int result = mapper.insert(entity);
+    if (result <= 0) {
+        throw new UpdateErrorException("新增失败");
+    }
+
+    // 2.保存关联表数据
+    // ...
+
+    // 3.保存附件信息
+    // ...
+
+    searchCondition.setId(entity.getId());
+    return InsertResultUtil.OK(searchCondition);
+}
+```
+
+#### update 方法
+```java
+public UpdateResultAo<XxxVo> update(XxxVo searchCondition) {
+    // 更新前校验
+    CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.UPDATE_CHECK_TYPE);
+    if (!cr.isSuccess()) {
+        throw new BusinessException(cr.getMessage());
+    }
+
+    // 1.更新主表信息
+    XxxEntity entity = (XxxEntity) BeanUtilsSupport.copyProperties(searchCondition, XxxEntity.class);
+    entity.setStatus(DictConstant.DICT_XXX_STATUS_ONE);
+    entity.setIs_del(Boolean.FALSE);
+    entity.setBpm_process_name("修改模块名审批");
+
+    int result = mapper.updateById(entity);
+    if (result <= 0) {
+        throw new UpdateErrorException("更新失败");
+    }
+
+    // 2.更新关联表数据（通常是删除后重新插入）
+    // ...
+
+    return UpdateResultUtil.OK(searchCondition);
+}
+```
+
+### 类注解和依赖注入规范
+
+#### 类注解
+- **必须注解**: `@Slf4j`、`@Service`
+- **继承**: `extends ServiceImpl<XxxMapper, XxxEntity>`
+- **实现接口**: `implements IXxxService`
+
+#### 依赖注入
+```java
+@Autowired
+private XxxMapper mapper;
+
+@Autowired
+private XxxDetailMapper xxxDetailMapper;
+
+@Autowired
+private XxxAutoCodeServiceImpl xxxAutoCodeService;
+
+@Autowired
+private BpmProcessTemplatesServiceImpl bpmProcessTemplatesService;
+
+@Autowired
+private ISConfigService isConfigService;
+```
+
+### 导入依赖
+```java
+import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xinyirun.scm.bean.entity.busniess.xxx.*;
+import com.xinyirun.scm.bean.system.ao.result.*;
+import com.xinyirun.scm.bean.system.result.utils.v1.*;
+import com.xinyirun.scm.bean.system.vo.business.xxx.*;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.common.constant.SystemConstants;
+import com.xinyirun.scm.common.exception.system.BusinessException;
+import com.xinyirun.scm.common.exception.system.UpdateErrorException;
+import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
+import com.xinyirun.scm.common.utils.string.StringUtils;
+import com.xinyirun.scm.core.system.mapper.business.xxx.*;
+import com.xinyirun.scm.core.system.service.business.xxx.IXxxService;
+import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+```
+
+### 通用规范
+
+#### 事务管理
+- **数据修改方法**: 必须添加 `@Transactional(rollbackFor = Exception.class)` 注解
+- **查询方法**: 不需要添加事务注解
+
+#### 异常处理
+- **业务逻辑异常**: 抛出 `BusinessException`
+- **数据更新异常**: 抛出 `UpdateErrorException`
+- **数据插入异常**: 抛出 `InsertErrorException`
+
+#### 返回值规范
+- **新增操作**: 返回 `InsertResultUtil.OK(data)`
+- **更新操作**: 返回 `UpdateResultUtil.OK(data)`
+- **删除操作**: 返回 `DeleteResultUtil.OK()`
+- **校验操作**: 返回 `CheckResultUtil.OK()` 或 `CheckResultUtil.ERROR(message)`
+
+#### 方法命名规范
+- **对外接口方法**: 使用标准方法名（如 `startInsert`、`startUpdate`）
+- **内部私有方法**: 使用简洁方法名（如 `insert`、`update`）
+- **校验方法**: 使用 `checkForXxx` 格式
+- **业务处理方法**: 使用具体业务含义的方法名
+
+这个规范确保了 Service 层的标准化，与 Controller 层规范保持一致，形成完整的开发标准体系。
+
+```java
+public interface IXxxService extends IService<XxxEntity>, 
+        IBpmCommonCallBackService<XxxVo>,
+        IBpmCancelCommonCallBackService<XxxVo> {
+    // 方法声明...
+}
+```
+
+```java
+/**
+ * 获取业务类型
+ */
+List<XxxVo> getType();
+```
+
+```java
+/**
+ * 新增
+ */
+InsertResultAo<XxxVo> startInsert(XxxVo searchCondition);
+```
+
+```java
+/**
+ * 更新
+ */
+UpdateResultAo<XxxVo> startUpdate(XxxVo searchCondition);
+```
+
+```java
+/**
+ * 分页查询
+ */
+IPage<XxxVo> selectPage(XxxVo searchCondition);
+```
+
+```java
+/**
+ * 根据id查询
+ */
+XxxVo selectById(Integer id);
+```
+
+```java
+/**
+ * 校验
+ */
+CheckResultAo checkLogic(XxxVo searchCondition, String checkType);
+```
+
+```java
+/**
+ * 导出查询
+ */
+List<XxxVo> selectExportList(XxxVo param);
+```
+
+```java
+/**
+ * 获取报表系统参数，并组装打印参数
+ */
+XxxVo getPrintInfo(XxxVo searchCondition);
+```
+
+```java
+/**
+ * 删除
+ */
+DeleteResultAo<Integer> delete(List<XxxVo> searchCondition);
+```
+
+```java
+/**
+ * 作废
+ */
+UpdateResultAo<XxxVo> cancel(XxxVo searchCondition);
+```
+
+```java
+/**
+ * 汇总查询
+ */
+XxxVo querySum(XxxVo searchCondition);
+```
+
+```java
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
+import com.xinyirun.scm.bean.entity.busniess.xxx.XxxEntity;
+import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
+import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
+import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
+import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
+import com.xinyirun.scm.bean.system.vo.business.xxx.XxxVo;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
+
+import java.util.List;
+```
+
+```java
+@Slf4j
+@Service
+public class XxxServiceImpl extends ServiceImpl<XxxMapper, XxxEntity> implements IXxxService {
+
+    @Autowired
+    private XxxMapper mapper;
+    
+    // 其他依赖注入...
+    
+    // 方法实现...
+}
+```
+
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public InsertResultAo<XxxVo> startInsert(XxxVo searchCondition) {
+    // 1.保存业务数据
+    InsertResultAo<XxxVo> insertResultAo = insert(searchCondition);
+
+    // 2.启动审批流程
+    startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_XXX);
+
+    return insertResultAo;
+}
+```
+
+```java
+@Override
+public UpdateResultAo<XxxVo> startUpdate(XxxVo searchCondition) {
+    // 1.执行更新逻辑
+    UpdateResultAo<XxxVo> updateResultAo = update(searchCondition);
+
+    // 2.启动审批流程
+    startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_XXX);
+
+    return updateResultAo;
+}
+```
+
+```java
+@Override
+public IPage<XxxVo> selectPage(XxxVo searchCondition) {
+    Page<XxxVo> page = PageUtil.getPage(searchCondition);
+    
+    // 执行分页查询
+    IPage<XxxVo> list = mapper.selectPage(page, searchCondition);
+    
+    return list;
+}
+```
+
+```java
+@Override
+public XxxVo selectById(Integer id) {
+    XxxVo vo = mapper.selectById(id);
+    
+    // 查询关联数据
+    if (vo != null) {
+        // 加载详细信息、关联数据等
+        // ...
+    }
+    
+    return vo;
+}
+```
+
+```java
+@Override
+public CheckResultAo checkLogic(XxxVo searchCondition, String checkType) {
+    // 根据不同的校验类型执行不同的校验逻辑
+    switch (checkType) {
+        case CheckResultAo.INSERT_CHECK_TYPE:
+            return checkForInsert(searchCondition);
+        case CheckResultAo.UPDATE_CHECK_TYPE:
+            return checkForUpdate(searchCondition);
+        case CheckResultAo.DELETE_CHECK_TYPE:
+            return checkForDelete(searchCondition);
+        default:
+            return CheckResultUtil.OK();
+    }
+}
+```
+
+```java
+@Override
+public List<XxxVo> selectExportList(XxxVo param) {
+    return mapper.selectExportList(param);
+}
+```
+
+```java
+@Override
+public XxxVo getPrintInfo(XxxVo searchCondition) {
+    // 获取打印所需的基础数据
+    XxxVo printInfo = selectById(searchCondition.getId());
+    
+    // 组装打印参数
+    // ...
+    
+    return printInfo;
+}
+```
+
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public DeleteResultAo<Integer> delete(List<XxxVo> searchCondition) {
+    for (XxxVo vo : searchCondition) {
+        // 校验删除条件
+        CheckResultAo checkResult = checkLogic(vo, CheckResultAo.DELETE_CHECK_TYPE);
+        if (!checkResult.isSuccess()) {
+            throw new BusinessException(checkResult.getMessage());
+        }
+        
+        // 执行逻辑删除
+        XxxEntity entity = new XxxEntity();
+        entity.setId(vo.getId());
+        entity.setIs_del(Boolean.TRUE);
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            throw new UpdateErrorException("删除失败");
+        }
+    }
+    
+    return DeleteResultUtil.OK();
+}
+```
+
+```java
+@Override
+@Transactional(rollbackFor = Exception.class)
+public UpdateResultAo<XxxVo> cancel(XxxVo searchCondition) {
+    // 校验作废条件
+    CheckResultAo checkResult = checkLogic(searchCondition, CheckResultAo.CANCEL_CHECK_TYPE);
+    if (!checkResult.isSuccess()) {
+        throw new BusinessException(checkResult.getMessage());
+    }
+    
+    // 执行作废逻辑
+    XxxEntity entity = new XxxEntity();
+    entity.setId(searchCondition.getId());
+    entity.setStatus(DictConstant.DICT_XXX_STATUS_CANCEL);
+    
+    int result = mapper.updateById(entity);
+    if (result <= 0) {
+        throw new UpdateErrorException("作废失败");
+    }
+    
+    return UpdateResultUtil.OK(searchCondition);
+}
+```
+
+```java
+@Override
+public XxxVo querySum(XxxVo searchCondition) {
+    return mapper.querySum(searchCondition);
+}
+```
+
+```java
+public InsertResultAo<XxxVo> insert(XxxVo searchCondition) {
+    // 插入前校验
+    CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.INSERT_CHECK_TYPE);
+    if (!cr.isSuccess()) {
+        throw new BusinessException(cr.getMessage());
+    }
+
+    // 1.保存主表信息
+    XxxEntity entity = new XxxEntity();
+    BeanUtils.copyProperties(searchCondition, entity);
+    entity.setCode(xxxAutoCodeService.autoCode().getCode());
+    entity.setStatus(DictConstant.DICT_XXX_STATUS_ONE);
+    entity.setIs_del(Boolean.FALSE);
+    entity.setBpm_process_name("新增模块名审批");
+    entity.setId(null);
+    
+    int result = mapper.insert(entity);
+    if (result <= 0) {
+        throw new UpdateErrorException("新增失败");
+    }
+
+    // 2.保存关联表数据
+    // ...
+
+    // 3.保存附件信息
+    // ...
+
+    searchCondition.setId(entity.getId());
+    return InsertResultUtil.OK(searchCondition);
+}
+```
+
+```java
+public UpdateResultAo<XxxVo> update(XxxVo searchCondition) {
+    // 更新前校验
+    CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.UPDATE_CHECK_TYPE);
+    if (!cr.isSuccess()) {
+        throw new BusinessException(cr.getMessage());
+    }
+
+    // 1.更新主表信息
+    XxxEntity entity = (XxxEntity) BeanUtilsSupport.copyProperties(searchCondition, XxxEntity.class);
+    entity.setStatus(DictConstant.DICT_XXX_STATUS_ONE);
+    entity.setIs_del(Boolean.FALSE);
+    entity.setBpm_process_name("修改模块名审批");
+
+    int result = mapper.updateById(entity);
+    if (result <= 0) {
+        throw new UpdateErrorException("更新失败");
+    }
+
+    // 2.更新关联表数据（通常是删除后重新插入）
+    // ...
+
+    return UpdateResultUtil.OK(searchCondition);
+}
+```
+
+```java
+@Autowired
+private XxxMapper mapper;
+
+@Autowired
+private XxxDetailMapper xxxDetailMapper;
+
+@Autowired
+private XxxAutoCodeServiceImpl xxxAutoCodeService;
+
+@Autowired
+private BpmProcessTemplatesServiceImpl bpmProcessTemplatesService;
+
+@Autowired
+private ISConfigService isConfigService;
+```
+
+```java
+import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xinyirun.scm.bean.entity.busniess.xxx.*;
+import com.xinyirun.scm.bean.system.ao.result.*;
+import com.xinyirun.scm.bean.system.result.utils.v1.*;
+import com.xinyirun.scm.bean.system.vo.business.xxx.*;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.common.constant.SystemConstants;
+import com.xinyirun.scm.common.exception.system.BusinessException;
+import com.xinyirun.scm.common.exception.system.UpdateErrorException;
+import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
+import com.xinyirun.scm.common.utils.string.StringUtils;
+import com.xinyirun.scm.core.system.mapper.business.xxx.*;
+import com.xinyirun.scm.core.system.service.business.xxx.IXxxService;
+import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+```
+

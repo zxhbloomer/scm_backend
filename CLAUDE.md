@@ -181,3 +181,14 @@ Comprehensive Excel handling:
 
 ## Version Information
 Current version: v1.0.39 (as configured in application.yml)
+
+# 项目开发时的规则说明
+- @~/.claude/java-rule-1.md
+- @~/.claude/java-rule-bpm.instructions.md
+- @~/.claude/java-rule-controller.instructions.md
+- @~/.claude/java-rule-db.instructions.md
+- @~/.claude/java-rule-new-table.instructions.md
+- @~/.claude/java-rule-servcie.instructions.md
+- @~/.claude/java-rule.instructions.md
+- @~/.claude/mcp-rule.instructions.md
+
