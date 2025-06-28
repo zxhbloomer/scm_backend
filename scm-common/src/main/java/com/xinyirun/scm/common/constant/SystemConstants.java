@@ -595,8 +595,6 @@ public class SystemConstants  {
         public static final String B_IN_PLAN = "b_in_plan";
         /** 入库单 */
         public static final String B_IN = "b_in";
-        /** 入库单v2 */
-        public static final String B_IN_V2 = "b_in_v2";
         /** 出库计划 */
         public static final String B_OUT_PLAN_DETAIL = "b_out_plan_detail";
         /** 出库单 */
@@ -1140,17 +1138,17 @@ public class SystemConstants  {
         // 退款管理作废流程
         public static final String BPM_INSTANCE_B_AP_REFUND_CANCEL = "b_ap_refund_cancel";
 
-        // 入库计划v2
+        // 入库计划
         public static final String BPM_INSTANCE_B_IN_PLAN = "b_in_plan";
 
-        // 入库计划v2作废流程
+        // 入库计划作废流程
         public static final String BPM_INSTANCE_B_IN_PLAN_CANCEL = "b_in_plan_cancel";
 
-        // 入库单v2
-        public static final String BPM_INSTANCE_B_IN_V2 = "b_in_v2";
+        // 入库单
+        public static final String BPM_INSTANCE_B_IN = "b_in";
 
-        // 入库单v2作废流程
-        public static final String BPM_INSTANCE_B_IN_V2_CANCEL = "b_in_v2_cancel";
+        // 入库单作废流程
+        public static final String BPM_INSTANCE_B_IN_CANCEL = "b_in_cancel";
     }
 
     /**

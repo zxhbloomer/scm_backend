@@ -248,18 +248,6 @@ public class DictConstant {
 
 
     /**
-     * 入库单v2类型：0采购入库,1调拨入库,2退货入库,3监管入库,4普通入库,5生产入库,6提货入库 ,7监管退货
-     */
-    public static final String DICT_B_IN_V2_TYPE = "b_in_v2_type";
-    public static final String DICT_B_IN_V2_TYPE_CG = "0";
-    public static final String DICT_B_IN_V2_TYPE_DB = "1";
-    public static final String DICT_B_IN_V2_TYPE_TH = "2";
-    public static final String DICT_B_IN_V2_TYPE_SC = "5";
-    public static final String DICT_B_IN_V2_TYPE_JG = "3";
-    public static final String DICT_B_IN_V2_TYPE_PT = "4";
-    public static final String DICT_B_IN_V2_TYPE_JG_TH = "7";
-
-    /**
      * 入库计划类型：0采购入库,1调拨入库,2退货入库,3监管入库,4普通入库,5生产入库,6提货入库 ,7监管退货
      */
     public static final String DICT_B_IN_PLAN_TYPE = "b_in_plan_type";
@@ -320,11 +308,6 @@ public class DictConstant {
     public static final String DICT_B_IN_BUSINESS_TYPE_DL = "1";
     public static final String DICT_B_IN_BUSINESS_TYPE_ZX = "2";
     public static final String DICT_B_IN_BUSINESS_TYPE_FG = "3";
-
-    /**
-     * 入库单V2单据类型:新开发采购合同没有单据类型
-     */
-    public static final String DICT_B_IN_V2_BUSINESS_TYPE = "b_in_bill_type";
 
     /**
      * 入库计划单据类型:0供应链业务 1代理业务 2直销业务 3废钢业务 4直采业务
@@ -711,8 +694,6 @@ public class DictConstant {
     public static final String DICT_SYS_CODE_TYPE_B_IN_PLAN_DETAIL_V2  = "b_in_plan_detail_v2";
     /** 入库单编号 */
     public static final String DICT_SYS_CODE_TYPE_B_IN  = "b_in";
-    /** 入库单v2编号 */
-    public static final String DICT_SYS_CODE_TYPE_B_IN_V2  = "b_in_v2";
     /** 项目编号 */
     public static final String DICT_SYS_CODE_TYPE_B_PROJECT  = "b_project";
     /** 调整编号 */
