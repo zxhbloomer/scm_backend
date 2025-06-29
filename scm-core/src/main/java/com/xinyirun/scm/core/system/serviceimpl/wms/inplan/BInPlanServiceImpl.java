@@ -806,6 +806,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         bInPlanEntity.setBpm_cancel_instance_id(searchCondition.getBpm_cancel_instance_id());
         bInPlanEntity.setBpm_cancel_instance_code(searchCondition.getBpm_cancel_instance_code());
         bInPlanEntity.setStatus(DictConstant.DICT_B_IN_PLAN_STATUS_FIVE);
+        bInPlanEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
         
         int result = mapper.updateById(bInPlanEntity);
         if (result == 0) {
@@ -827,6 +828,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
 
         // 作废拒绝，恢复到正常状态
         bInPlanEntity.setStatus(DictConstant.DICT_B_IN_PLAN_STATUS_TWO);
+        bInPlanEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
         
         int result = mapper.updateById(bInPlanEntity);
         if (result == 0) {
@@ -848,6 +850,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
 
         // 作废取消，恢复到正常状态
         bInPlanEntity.setStatus(DictConstant.DICT_B_IN_PLAN_STATUS_TWO);
+        bInPlanEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
         
         int result = mapper.updateById(bInPlanEntity);
         if (result == 0) {

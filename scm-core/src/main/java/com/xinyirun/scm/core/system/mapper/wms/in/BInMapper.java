@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.busniess.in.BInEntity;
 import com.xinyirun.scm.bean.system.vo.wms.in.BInVo;
+import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -50,8 +51,8 @@ public interface BInMapper extends BaseMapper<BInEntity> {
             +"		LEFT JOIN m_goods_spec t6 ON t6.id = tab1.sku_id                                                                          "
             +"		LEFT JOIN m_goods_spec t7 ON t7.code = tab1.sku_code                                                                      "
             +"		LEFT JOIN m_unit t8 ON t8.id = tab1.unit_id                                                                               "
-            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = 'DICT_B_IN_STATUS' AND tab3.dict_value = tab1.status                          "
-            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = 'DICT_B_IN_TYPE' AND tab4.dict_value = tab1.type                              "
+            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = '" + DictConstant.DICT_B_IN_STATUS + "' AND tab3.dict_value = tab1.status                          "
+            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = '" + DictConstant.DICT_B_IN_TYPE + "' AND tab4.dict_value = tab1.type                              "
             +"    LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id                                                                              "
             +"    LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id                                                                              "
             +"		WHERE TRUE                                                                                                                 "
@@ -114,8 +115,8 @@ public interface BInMapper extends BaseMapper<BInEntity> {
             +"		LEFT JOIN m_goods_spec t6 ON t6.id = tab1.sku_id                                                                           "
             +"		LEFT JOIN m_goods_spec t7 ON t7.code = tab1.sku_code                                                                       "
             +"		LEFT JOIN m_unit t8 ON t8.id = tab1.unit_id                                                                                "
-            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = 'DICT_B_IN_STATUS' AND tab3.dict_value = tab1.status                           "
-            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = 'DICT_B_IN_TYPE' AND tab4.dict_value = tab1.type                               "
+            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = '" + DictConstant.DICT_B_IN_STATUS + "' AND tab3.dict_value = tab1.status                           "
+            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = '" + DictConstant.DICT_B_IN_TYPE + "' AND tab4.dict_value = tab1.type                               "
             +"		LEFT JOIN b_in_attach tab5 ON tab5.in_id = tab1.id                                                                         "
             +"    LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id                                                                               "
             +"    LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id                                                                               "
@@ -149,8 +150,8 @@ public interface BInMapper extends BaseMapper<BInEntity> {
             +"		LEFT JOIN m_goods_spec t6 ON t6.id = tab1.sku_id                                                                          "
             +"		LEFT JOIN m_goods_spec t7 ON t7.code = tab1.sku_code                                                                      "
             +"		LEFT JOIN m_unit t8 ON t8.id = tab1.unit_id                                                                               "
-            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = 'DICT_B_IN_STATUS' AND tab3.dict_value = tab1.status                          "
-            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = 'DICT_B_IN_TYPE' AND tab4.dict_value = tab1.type                              "
+            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = '" + DictConstant.DICT_B_IN_STATUS + "' AND tab3.dict_value = tab1.status                          "
+            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = '" + DictConstant.DICT_B_IN_TYPE + "' AND tab4.dict_value = tab1.type                              "
             +"    LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id                                                                              "
             +"    LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id                                                                              "
             +"		WHERE TRUE                                                                                                                 "
@@ -201,8 +202,8 @@ public interface BInMapper extends BaseMapper<BInEntity> {
             +"		LEFT JOIN m_goods_spec t6 ON t6.id = tab1.sku_id                                                                          "
             +"		LEFT JOIN m_goods_spec t7 ON t7.code = tab1.sku_code                                                                      "
             +"		LEFT JOIN m_unit t8 ON t8.id = tab1.unit_id                                                                               "
-            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = 'DICT_B_IN_STATUS' AND tab3.dict_value = tab1.status                          "
-            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = 'DICT_B_IN_TYPE' AND tab4.dict_value = tab1.type                              "
+            +"		LEFT JOIN s_dict_data tab3 ON tab3.code = '" + DictConstant.DICT_B_IN_STATUS + "' AND tab3.dict_value = tab1.status                          "
+            +"		LEFT JOIN s_dict_data tab4 ON tab4.code = '" + DictConstant.DICT_B_IN_TYPE + "' AND tab4.dict_value = tab1.type                              "
             +"    LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id                                                                              "
             +"    LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id                                                                              "
             +"		WHERE TRUE                                                                                                                 "
