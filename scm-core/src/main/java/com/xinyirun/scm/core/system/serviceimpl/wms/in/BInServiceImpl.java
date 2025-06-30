@@ -22,6 +22,8 @@ import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.system.vo.wms.in.BInVo;
+import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
+import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
@@ -34,7 +36,10 @@ import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInAttachMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInMapper;
+import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.service.wms.in.IBInService;
+import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
+import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BInAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -77,6 +82,15 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     
     @Autowired
     private BpmProcessTemplatesServiceImpl bpmProcessTemplatesService;
+
+    @Autowired
+    private ISFileService isFileService;
+
+    @Autowired
+    private MCancelService mCancelService;
+
+    @Autowired
+    private MStaffMapper mStaffMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -240,6 +254,27 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         return extra;
     }
 
+    /**
+     * 作废附件文件处理
+     */
+    public SFileEntity insertCancelFile(SFileEntity fileEntity, BInVo vo) {
+        // 作废附件新增
+        if (vo.getCancel_files() != null && vo.getCancel_files().size() > 0) {
+            // 主表新增
+            fileMapper.insert(fileEntity);
+            // 详情表新增
+            for (SFileInfoVo cancel_file : vo.getCancel_files()) {
+                SFileInfoEntity fileInfoEntity = new SFileInfoEntity();
+                cancel_file.setF_id(fileEntity.getId());
+                BeanUtilsSupport.copyProperties(cancel_file, fileInfoEntity);
+                fileInfoEntity.setFile_name(cancel_file.getFileName());
+                fileInfoEntity.setId(null);
+                fileInfoMapper.insert(fileInfoEntity);
+            }
+        }
+        return fileEntity;
+    }
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<BInVo> startUpdate(BInVo bInVo) {
@@ -293,12 +328,58 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         return mapper.selectPage(pageCondition, searchCondition);
     }
 
+    /**
+     * 获取入库单信息
+     */
     @Override
     public BInVo selectById(Integer id) {
-        if (id == null) {
-            return null;
+        BInVo bInVo = mapper.selectById(id);
+        if (bInVo == null) {
+            throw new BusinessException("入库单不存在");
         }
-        return mapper.selectById(id);
+
+        // 附件信息处理 - 4个附件文件
+        List<SFileInfoVo> one_files = isFileService.selectFileInfo(bInVo.getDoc_one_file());
+        bInVo.setOne_file(one_files);
+        
+        List<SFileInfoVo> two_files = isFileService.selectFileInfo(bInVo.getDoc_two_file());
+        bInVo.setTwo_file(two_files);
+        
+        List<SFileInfoVo> three_files = isFileService.selectFileInfo(bInVo.getDoc_three_file());
+        bInVo.setThree_file(three_files);
+        
+        List<SFileInfoVo> four_files = isFileService.selectFileInfo(bInVo.getDoc_four_file());
+        bInVo.setFour_file(four_files);
+
+        // 查询是否存在作废记录
+        if (DictConstant.DICT_B_IN_STATUS_FIVE.equals(bInVo.getStatus())) {
+            MCancelVo serialIdAndType = new MCancelVo();
+            serialIdAndType.setSerial_id(bInVo.getId());
+            serialIdAndType.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_IN);
+            MCancelVo mCancelVo = mCancelService.selectBySerialIdAndType(serialIdAndType);
+            if (mCancelVo != null) {
+                // 作废理由
+                bInVo.setCancel_reason(mCancelVo.getRemark());
+                // 作废附件信息
+                if (mCancelVo.getFile_id() != null) {
+                    List<SFileInfoVo> cancel_doc_att_files = isFileService.selectFileInfo(mCancelVo.getFile_id());
+                    bInVo.setCancel_doc_att_files(cancel_doc_att_files);
+                }
+
+                // 通过表m_staff获取作废提交人名称
+                MStaffVo searchCondition = new MStaffVo();
+                searchCondition.setId(mCancelVo.getC_id());
+                MStaffVo staffVo = mStaffMapper.selectByid(searchCondition);
+                if (staffVo != null) {
+                    bInVo.setCancel_name(staffVo.getName());
+                }
+
+                // 作废时间
+                bInVo.setCancel_time(mCancelVo.getC_time());
+            }
+        }
+
+        return bInVo;
     }
 
     @Override
@@ -483,10 +564,15 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
-        
         BInVo bInVo = selectById(searchCondition.getId());
         BInEntity bInEntity = new BInEntity();
         BeanUtils.copyProperties(bInVo, bInEntity);
+
+        // 1.保存附件信息
+        SFileEntity fileEntity = new SFileEntity();
+        fileEntity.setSerial_id(bInEntity.getId());
+        fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_IN);
+        fileEntity = insertCancelFile(fileEntity, searchCondition);
 
         bInEntity.setBpm_cancel_process_name("作废入库单审批");
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_FOUR); // 设置为作废待审批状态
@@ -495,7 +581,15 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("修改失败");
         }
 
-        // 启动审批流程
+        // 2.增加作废记录
+        MCancelVo mCancelVo = new MCancelVo();
+        mCancelVo.setSerial_id(bInEntity.getId());
+        mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_IN);
+        mCancelVo.setFile_id(fileEntity.getId());
+        mCancelVo.setRemark(searchCondition.getRemark());
+        mCancelService.insert(mCancelVo);
+
+        // 3.启动审批流程
         startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN_CANCEL);
 
         return UpdateResultUtil.OK(result);
@@ -570,6 +664,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         jsonObject.put("入库单编号：", bInVo.getCode());
         jsonObject.put("入库时间：", bInVo.getInbound_time());
         jsonObject.put("类型：", bInVo.getType_name());
+        jsonObject.put("入库仓库：", bInVo.getWarehouse_name());
+        jsonObject.put("入库商品：", bInVo.getGoods_name());
+        jsonObject.put("入库数量：", bInVo.getQty());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
@@ -614,7 +711,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         BInEntity bInEntity = new BInEntity();
         BeanUtils.copyProperties(bInVo, bInEntity);
 
-        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_FIVE); // 设置为已作废状态
+        bInEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        bInEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_FIVE);  // 使用状态5表示已作废
         bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
         bInEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
         bInEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
@@ -678,8 +777,8 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         BInEntity bInEntity = new BInEntity();
         BeanUtils.copyProperties(bInVo, bInEntity);
 
-        bInEntity.setBpm_cancel_instance_id(searchCondition.getBpm_cancel_instance_id());
-        bInEntity.setBpm_cancel_instance_code(searchCondition.getBpm_cancel_instance_code());
+        bInEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        bInEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
         bInEntity.setNext_approve_name(searchCondition.getNext_approve_name());
 
         int result = mapper.updateById(bInEntity);

@@ -258,6 +258,30 @@ public class BProjectController extends SystemBaseController {
     }
 
     /**
+     * 批量逻辑删除项目管理记录
+     * 将指定的项目记录标记为删除状态，支持批量操作
+     * 
+     * @param searchCondition 要删除的项目列表
+     *                       - 每个项目对象必须包含ID
+     * @return ResponseEntity<JsonResultAo<BProjectVo>> 删除操作结果
+     *         - 成功时返回删除成功信息
+     *         - 失败时抛出相应异常
+     * @throws UpdateErrorException 当数据已被修改或删除失败时抛出
+     * @throws BusinessException 当项目状态不允许删除或其他业务规则不满足时抛出
+     * @apiNote 该操作为逻辑删除，不会物理删除数据
+     *          删除后的项目将无法在正常查询中显示
+     */
+    @SysLogAnnotion("根据查询条件，项目管理逻辑删除")
+    @PostMapping("/delete")
+    public ResponseEntity<JsonResultAo<BProjectVo>> delete(@RequestBody(required = false) List<BProjectVo> searchCondition) {
+        if(ibProjectService.delete(searchCondition).isSuccess()){
+            return ResponseEntity.ok().body(ResultUtil.OK(null,"删除成功"));
+        } else {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新编辑更新。");
+        }
+    }
+
+    /**
      * 获取项目管理打印信息
      * 获取指定项目的打印所需信息，包括报表系统参数配置和打印格式化数据
      * 

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.busniess.project.BProjectEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
+import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
@@ -153,6 +154,22 @@ public interface IBProjectService extends IService<BProjectEntity>,
      *          - 商品明细数据校验
      */
     CheckResultAo checkLogic(BProjectVo bean, String checkType);
+
+    /**
+     * 批量逻辑删除项目管理记录
+     * 将指定的项目记录标记为删除状态，支持批量操作
+     * 
+     * @param searchCondition 要删除的项目列表
+     *                       - 每个项目对象必须包含ID
+     * @return DeleteResultAo<Integer> 删除操作结果
+     *         - 成功时返回删除的记录数
+     *         - 失败时isSuccess()返回false
+     * @throws BusinessException 当项目状态不允许删除或其他业务规则不满足时抛出
+     * @apiNote 该操作为逻辑删除，不会物理删除数据
+     *          删除前会进行业务规则校验
+     *          删除后的项目将无法在正常查询中显示
+     */
+    DeleteResultAo<Integer> delete(List<BProjectVo> searchCondition);
 
     /**
      * 作废项目管理记录

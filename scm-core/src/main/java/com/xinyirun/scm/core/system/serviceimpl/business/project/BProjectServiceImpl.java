@@ -13,8 +13,10 @@ import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
+import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
+import com.xinyirun.scm.bean.system.result.utils.v1.DeleteResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
@@ -712,6 +714,45 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
     }
 
     /**
+     * 批量逻辑删除项目管理记录
+     * 
+     * @param searchCondition 要删除的项目列表
+     * @return DeleteResultAo<Integer> 删除操作结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public DeleteResultAo<Integer> delete(List<BProjectVo> searchCondition) {
+        log.debug("====》批量删除项目管理，开始删除[{}]条记录《====", searchCondition.size());
+        
+        for (BProjectVo bProjectVo : searchCondition) {
+            
+            // 删除前校验
+            CheckResultAo cr = checkLogic(bProjectVo, CheckResultAo.DELETE_CHECK_TYPE);
+            if (!cr.isSuccess()) {
+                throw new BusinessException(cr.getMessage());
+            }
+
+            // 逻辑删除
+            BProjectEntity bProjectEntity = baseMapper.selectById(bProjectVo.getId());
+            if (bProjectEntity == null) {
+                throw new UpdateErrorException("您提交的数据不存在，请查询后重新操作。");
+            }
+            
+            bProjectEntity.setIs_del(Boolean.TRUE);
+
+            int delCount = baseMapper.updateById(bProjectEntity);
+            if(delCount == 0){
+                throw new UpdateErrorException("您提交的数据不存在，请查询后重新操作。");
+            }
+            
+            log.debug("====》项目管理[{}]删除成功《====", bProjectVo.getId());
+        }
+        
+        log.debug("====》批量删除项目管理，删除完成《====");
+        return DeleteResultUtil.OK(1);
+    }
+
+    /**
      * 作废项目管理
      */
     @Override
@@ -842,8 +883,6 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
 
         bProjectEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
         bProjectEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
-
-
         bProjectEntity.setStatus(DictConstant.DICT_B_PROJECT_STATUS_FIVE);  // 使用状态5表示已作废
         bProjectEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
         bProjectEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());

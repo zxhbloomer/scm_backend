@@ -53,6 +53,30 @@ public class BInEntity implements Serializable {
     private String status;
 
     /**
+     * 合同id
+     */
+    @TableField("contract_id")
+    private Integer contract_id;
+
+    /**
+     * 合同编码
+     */
+    @TableField("contract_code")
+    private String contract_code;
+
+    /**
+     * 订单id
+     */
+    @TableField("order_id")
+    private Integer order_id;
+
+    /**
+     * 订单编码
+     */
+    @TableField("order_code")
+    private String order_code;
+
+    /**
      * 货主id
      */
     @TableField("owner_id")

@@ -87,6 +87,16 @@ public class BInVo extends PageCondition {
     private String status_name;
 
     /**
+     * 合同id
+     */
+    private Integer contract_id;
+
+    /**
+     * 订单id
+     */
+    private Integer order_id;
+
+    /**
      * 下一个审批人姓名
      */
     private String next_approve_name;
@@ -121,6 +131,11 @@ public class BInVo extends PageCondition {
      * 委托方编码
      */
     private String consignor_code;
+    
+    /**
+     * 委托方名称
+     */
+    private String consignor_name;
 
     /**
      * 供应商id
@@ -389,5 +404,134 @@ public class BInVo extends PageCondition {
     private List<SFileInfoVo> three_file;
     private List<SFileInfoVo> four_file;
 
+    /**
+     * 创建人
+     */
+    private String c_name;
+
+    /**
+     * 修改人
+     */
+    private String u_name;
+
+    private String unit_name;
+
+    // ============ 采购合同相关字段 ============
+    
+    /**
+     * 采购合同类型
+     */
+    private String po_contract_type;
+    
+    /**
+     * 采购合同类型名称
+     */
+    private String po_contract_type_name;
+    
+    /**
+     * 主体企业（采购方名称）
+     */
+    private String purchaser_name;
+    
+    /**
+     * 采购合同付款方式
+     */
+    private String po_contract_payment_type;
+    
+    /**
+     * 付款方式名称
+     */
+    private String payment_type_name;
+    
+    /**
+     * 采购合同结算方式
+     */
+    private String po_contract_settle_type;
+    
+    /**
+     * 结算方式名称
+     */
+    private String settle_type_name;
+    
+    /**
+     * 交货日期
+     */
+    private LocalDateTime delivery_date;
+    
+    /**
+     * 交货地点
+     */
+    private String delivery_location;
+
+    // ============ 采购订单相关字段 ============
+    
+    /**
+     * 采购订单状态
+     */
+    private String po_order_status;
+    
+    /**
+     * 采购订单状态名称
+     */
+    private String po_order_status_name;
+    
+    /**
+     * 采购订单运输方式
+     */
+    private String po_order_delivery_type;
+    
+    /**
+     * 运输方式名称
+     */
+    private String delivery_type_name;
+
+    // ============ 作废相关字段 ============
+    
+    /**
+     * 作废理由
+     */
+    private String cancel_reason;
+    
+    /**
+     * 作废人姓名
+     */
+    private String cancel_name;
+    
+    /**
+     * 作废时间
+     */
+    private LocalDateTime cancel_time;
+    
+    /**
+     * 作废附件文件列表
+     */
+    private List<SFileInfoVo> cancel_doc_att_files;
+
+    // ============ 附件相关字段 ============
+    
+    /**
+     * 第一个附件文件ID
+     */
+    private Integer doc_one_file;
+
+    /**
+     * 第二个附件文件ID
+     */
+    private Integer doc_two_file;
+
+    /**
+     * 第三个附件文件ID
+     */
+    private Integer doc_three_file;
+
+    /**
+     * 第四个附件文件ID
+     */
+    private Integer doc_four_file;
+
+    /**
+     * 作废附件文件列表
+     */
+    private List<SFileInfoVo> cancel_files;
 }
 
