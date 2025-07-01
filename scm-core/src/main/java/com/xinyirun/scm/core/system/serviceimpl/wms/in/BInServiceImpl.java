@@ -37,6 +37,10 @@ import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInAttachMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
+import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanTotalMapper;
+import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanDetailMapper;
+import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanDetailEntity;
+import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
 import com.xinyirun.scm.core.system.service.wms.in.IBInService;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
 import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
@@ -92,6 +96,12 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     @Autowired
     private MStaffMapper mStaffMapper;
 
+    @Autowired
+    private BInPlanTotalMapper bInPlanTotalMapper;
+    
+    @Autowired
+    private BInPlanDetailMapper bInPlanDetailMapper;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public InsertResultAo<BInVo> startInsert(BInVo bInVo) {
@@ -111,7 +121,7 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     @Transactional(rollbackFor = Exception.class)
     public InsertResultAo<BInVo> insert(BInVo bInVo) {
         // 1. 校验业务逻辑
-        checkInsertLogic(bInVo);
+//        checkInsertLogic(bInVo);
         
         // 2. 保存主表信息
         BInEntity bInEntity = saveMainEntity(bInVo);
@@ -145,6 +155,18 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_ONE);
         bInEntity.setCode(bInAutoCodeService.autoCode().getCode());
         bInEntity.setIs_del(Boolean.FALSE);
+
+        // 保存入库计划的数据时是，查询下，获取计划数量、计划重量、计划体积
+        if (bInVo.getPlan_detail_id() != null) {
+            // 根据入库计划明细ID查询具体的计划数据
+            BInPlanDetailEntity planDetail = bInPlanDetailMapper.selectById(bInVo.getPlan_detail_id());
+            if (planDetail != null) {
+                bInEntity.setPlan_qty(planDetail.getQty());
+                bInEntity.setPlan_weight(planDetail.getWeight());
+                bInEntity.setPlan_volume(planDetail.getVolume());
+            }
+        }
+
         bInEntity.setBpm_process_name("新增入库单审批");
         
         int result = mapper.insert(bInEntity);
@@ -698,8 +720,29 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BInVo searchCondition) {
-        // 作废流程创建逻辑
-        log.debug("===》入库单[{}]作废流程创建成功《===", searchCondition.getId());
+        log.debug("===》入库单[{}]作废流程创建成功，更新开始《===", searchCondition.getId());
+        BInVo bInVo = selectById(searchCondition.getId());
+
+        /**
+         * 1、更新bpm_instance的摘要数据
+         */
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("入库单编号：", bInVo.getCode());
+        jsonObject.put("入库时间：", bInVo.getInbound_time());
+        jsonObject.put("类型：", bInVo.getType_name());
+        jsonObject.put("入库仓库：", bInVo.getWarehouse_name());
+        jsonObject.put("入库商品：", bInVo.getGoods_name());
+        jsonObject.put("入库数量：", bInVo.getQty());
+        jsonObject.put("作废理由：", bInVo.getRemark());
+
+        String json = jsonObject.toString();
+        BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
+        bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
+        bpmInstanceSummaryEntity.setSummary(json);
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(bInVo.getBpm_cancel_process_name());
+        iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
+
+        log.debug("===》入库单[{}]作废流程创建成功，更新结束《===", searchCondition.getId());
         return UpdateResultUtil.OK(0);
     }
 
@@ -744,6 +787,12 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("更新状态失败");
         }
 
+        // 删除作废记录
+        MCancelVo mCancelVo = new MCancelVo();
+        mCancelVo.setSerial_id(bInEntity.getId());
+        mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_IN);
+        mCancelService.delete(mCancelVo);
+
         log.debug("===》入库单[{}]作废审批流程拒绝,更新结束《===", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -764,6 +813,12 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         if (result == 0) {
             throw new BusinessException("更新状态失败");
         }
+
+        // 删除作废记录
+        MCancelVo mCancelVo = new MCancelVo();
+        mCancelVo.setSerial_id(bInEntity.getId());
+        mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_IN);
+        mCancelService.delete(mCancelVo);
 
         log.debug("===》入库单[{}]作废审批流程取消,更新结束《===", searchCondition.getId());
         return UpdateResultUtil.OK(result);
