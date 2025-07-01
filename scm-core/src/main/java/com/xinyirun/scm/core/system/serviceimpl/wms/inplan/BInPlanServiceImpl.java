@@ -152,7 +152,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         
         List<BInPlanDetailVo> detailListData = bInPlanVo.getDetailListData();
         calculatePlanAmounts(detailListData, bInPlanEntity);
-        
+        bInPlanEntity.setId(null); // 确保ID为null，避免插入时使用旧ID
         int result = mapper.insert(bInPlanEntity);
         if (result == 0){
             throw new BusinessException("新增失败");
