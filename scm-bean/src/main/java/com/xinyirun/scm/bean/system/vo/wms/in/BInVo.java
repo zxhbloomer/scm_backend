@@ -249,6 +249,51 @@ public class BInVo extends PageCondition {
     private LocalDateTime inbound_time;
 
     /**
+     * 处理中数量
+     */
+    private BigDecimal processing_qty;
+
+    /**
+     * 处理中重量
+     */
+    private BigDecimal processing_weight;
+
+    /**
+     * 处理中体积
+     */
+    private BigDecimal processing_volume;
+
+    /**
+     * 待处理数量
+     */
+    private BigDecimal unprocessed_qty;
+
+    /**
+     * 待处理重量
+     */
+    private BigDecimal unprocessed_weight;
+
+    /**
+     * 待处理体积
+     */
+    private BigDecimal unprocessed_volume;
+
+    /**
+     * 已处理(出/入)库数量
+     */
+    private BigDecimal processed_qty;
+
+    /**
+     * 已处理(出/入)库重量
+     */
+    private BigDecimal processed_weight;
+
+    /**
+     * 已处理(出/入)库体积
+     */
+    private BigDecimal processed_volume;
+
+    /**
      * 库存流水id
      */
     private Integer inventory_sequence_id;

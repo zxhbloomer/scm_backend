@@ -52,6 +52,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -146,6 +147,66 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     }
     
     /**
+     * 根据状态设置处理相关字段
+     * @param entity 入库单实体
+     * @param status 状态
+     */
+    private void setProcessingFields(BInEntity entity, String status) {
+        // 默认值设置为0
+        BigDecimal zero = BigDecimal.ZERO;
+        
+        // 根据状态设置字段值
+        if (DictConstant.DICT_B_IN_STATUS_ZERO.equals(status) || 
+            DictConstant.DICT_B_IN_STATUS_THREE.equals(status) || 
+            DictConstant.DICT_B_IN_STATUS_FOUR.equals(status)) {
+            // 状态0、3、4：待审批、驳回、作废审批中
+            entity.setProcessing_qty(zero);
+            entity.setProcessing_weight(zero);
+            entity.setProcessing_volume(zero);
+            entity.setUnprocessed_qty(entity.getQty() != null ? entity.getQty() : zero);
+            entity.setUnprocessed_weight(entity.getActual_weight() != null ? entity.getActual_weight() : zero);
+            entity.setUnprocessed_volume(entity.getActual_volume() != null ? entity.getActual_volume() : zero);
+            entity.setProcessed_qty(zero);
+            entity.setProcessed_weight(zero);
+            entity.setProcessed_volume(zero);
+        } else if (DictConstant.DICT_B_IN_STATUS_ONE.equals(status)) {
+            // 状态1：审批中
+            entity.setProcessing_qty(entity.getQty() != null ? entity.getQty() : zero);
+            entity.setProcessing_weight(entity.getActual_weight() != null ? entity.getActual_weight() : zero);
+            entity.setProcessing_volume(entity.getActual_volume() != null ? entity.getActual_volume() : zero);
+            entity.setUnprocessed_qty(zero);
+            entity.setUnprocessed_weight(zero);
+            entity.setUnprocessed_volume(zero);
+            entity.setProcessed_qty(zero);
+            entity.setProcessed_weight(zero);
+            entity.setProcessed_volume(zero);
+        } else if (DictConstant.DICT_B_IN_STATUS_TWO.equals(status) || 
+                   DictConstant.DICT_B_IN_STATUS_SIX.equals(status)) {
+            // 状态2、6：执行中、已完成
+            entity.setProcessing_qty(zero);
+            entity.setProcessing_weight(zero);
+            entity.setProcessing_volume(zero);
+            entity.setUnprocessed_qty(zero);
+            entity.setUnprocessed_weight(zero);
+            entity.setUnprocessed_volume(zero);
+            entity.setProcessed_qty(entity.getQty() != null ? entity.getQty() : zero);
+            entity.setProcessed_weight(entity.getActual_weight() != null ? entity.getActual_weight() : zero);
+            entity.setProcessed_volume(entity.getActual_volume() != null ? entity.getActual_volume() : zero);
+        } else if (DictConstant.DICT_B_IN_STATUS_FIVE.equals(status)) {
+            // 状态5：已作废
+            entity.setProcessing_qty(zero);
+            entity.setProcessing_weight(zero);
+            entity.setProcessing_volume(zero);
+            entity.setUnprocessed_qty(zero);
+            entity.setUnprocessed_weight(zero);
+            entity.setUnprocessed_volume(zero);
+            entity.setProcessed_qty(zero);
+            entity.setProcessed_weight(zero);
+            entity.setProcessed_volume(zero);
+        }
+    }
+    
+    /**
      * 保存主表信息
      */
     private BInEntity saveMainEntity(BInVo bInVo) {
@@ -168,6 +229,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         }
 
         bInEntity.setBpm_process_name("新增入库单审批");
+        
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
         
         int result = mapper.insert(bInEntity);
         if (result == 0) {
@@ -598,6 +662,10 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
 
         bInEntity.setBpm_cancel_process_name("作废入库单审批");
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_FOUR); // 设置为作废待审批状态
+        
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
+        
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
             throw new BusinessException("修改失败");
@@ -630,6 +698,10 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         BInEntity bInEntity = new BInEntity();
         BeanUtils.copyProperties(bInVo, bInEntity);
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_SIX); // 设置为完成状态
+        
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
+        
         int update = mapper.updateById(bInEntity);
         if (update == 0) {
             throw new BusinessException("修改失败");
@@ -761,6 +833,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         bInEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
         bInEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
 
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
+
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
             throw new BusinessException("更新作废状态失败");
@@ -781,6 +856,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         // 作废拒绝，恢复到正常状态
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO); // 恢复到审批通过状态
         bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
+
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
 
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -808,6 +886,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         // 作废取消，恢复到正常状态
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO); // 恢复到审批通过状态
         bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
+
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
 
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
@@ -889,6 +970,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_TWO); // 设置为审批通过状态
         bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
 
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
+
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
             throw new BusinessException("更新审核状态失败");
@@ -912,6 +996,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_THREE); // 设置为审批拒绝状态
         bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_REFUSE);
 
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
+
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
             throw new BusinessException("更新审核状态失败");
@@ -934,6 +1021,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
 
         bInEntity.setStatus(DictConstant.DICT_B_IN_STATUS_ZERO); // 设置为待审批状态
         bInEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_CANCEL);
+
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
 
         int result = mapper.updateById(bInEntity);
         if (result == 0) {

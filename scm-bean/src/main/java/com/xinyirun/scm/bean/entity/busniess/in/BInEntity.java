@@ -233,6 +233,60 @@ public class BInEntity implements Serializable {
     private LocalDateTime inbound_time;
 
     /**
+     * 处理中数量
+     */
+    @TableField("processing_qty")
+    private BigDecimal processing_qty;
+
+    /**
+     * 处理中重量
+     */
+    @TableField("processing_weight")
+    private BigDecimal processing_weight;
+
+    /**
+     * 处理中体积
+     */
+    @TableField("processing_volume")
+    private BigDecimal processing_volume;
+
+    /**
+     * 待处理数量
+     */
+    @TableField("unprocessed_qty")
+    private BigDecimal unprocessed_qty;
+
+    /**
+     * 待处理重量
+     */
+    @TableField("unprocessed_weight")
+    private BigDecimal unprocessed_weight;
+
+    /**
+     * 待处理体积
+     */
+    @TableField("unprocessed_volume")
+    private BigDecimal unprocessed_volume;
+
+    /**
+     * 已处理(出/入)库数量
+     */
+    @TableField("processed_qty")
+    private BigDecimal processed_qty;
+
+    /**
+     * 已处理(出/入)库重量
+     */
+    @TableField("processed_weight")
+    private BigDecimal processed_weight;
+
+    /**
+     * 已处理(出/入)库体积
+     */
+    @TableField("processed_volume")
+    private BigDecimal processed_volume;
+
+    /**
      * 库存流水id
      */
     @TableField("inventory_sequence_id")
