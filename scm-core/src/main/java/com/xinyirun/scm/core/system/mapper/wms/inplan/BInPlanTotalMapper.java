@@ -10,6 +10,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 
 /**
@@ -43,7 +44,7 @@ public interface BInPlanTotalMapper extends BaseMapper<BInPlanTotalEntity> {
      * 更新入库计划汇总数据（优化版）
      * 根据计划ID汇总其下所有明细的数据到计划级别
      * 使用一次JOIN子查询汇总所有字段，避免多次重复查询
-     * @param inPlanId 入库计划ID
+     * @param in_plan_ids 入库计划ID集合
      * @return 更新记录数
      */
     @Update("<script>                                                                                                                                           " +
@@ -61,7 +62,10 @@ public interface BInPlanTotalMapper extends BaseMapper<BInPlanTotalEntity> {
             "            COALESCE(SUM(t2.processed_weight), 0) AS sum_processed_weight_total,                                                                   " +
             "            COALESCE(SUM(t2.processed_volume), 0) AS sum_processed_volume_total                                                                    " +
             "        FROM b_in_plan_detail t2                                                                                                                    " +
-            "        WHERE t2.in_plan_id = #{inPlanId}                                                                                                          " +
+            "        WHERE t2.in_plan_id IN                                                                                                                     " +
+            "            <foreach collection='in_plan_ids' item='id' open='(' separator=',' close=')'>                                                         " +
+            "                #{id}                                                                                                                               " +
+            "            </foreach>                                                                                                                              " +
             "        GROUP BY t2.in_plan_id                                                                                                                      " +
             "    ) AS summary ON t1.in_plan_id = summary.in_plan_id                                                                                             " +
             "    SET                                                                                                                                             " +
@@ -74,8 +78,7 @@ public interface BInPlanTotalMapper extends BaseMapper<BInPlanTotalEntity> {
             "        t1.processed_qty_total = summary.sum_processed_qty_total,                                                                                  " +
             "        t1.processed_weight_total = summary.sum_processed_weight_total,                                                                            " +
             "        t1.processed_volume_total = summary.sum_processed_volume_total                                                                             " +
-            "    WHERE t1.in_plan_id = #{inPlanId}                                                                                                              " +
             "</script>                                                                                                                                           ")
-    int updateInPlanTotalData(@Param("inPlanId") Integer inPlanId);
+    int updateInPlanTotalData(@Param("in_plan_ids") LinkedHashSet<Integer> in_plan_ids);
 
 }

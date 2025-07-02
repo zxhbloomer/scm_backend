@@ -60,7 +60,7 @@ import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.config.dict.SDictDataMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
-import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonTotalService;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.pocontract.IBPoContractService;
 import com.xinyirun.scm.core.system.service.business.pocontract.IBPoContractTotalService;
 import com.xinyirun.scm.core.system.service.business.poorder.IBPoOrderTotalService;
@@ -69,7 +69,7 @@ import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
-import com.xinyirun.scm.core.system.serviceimpl.base.v1.common.total.CommonTotalServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.base.v1.common.total.CommonPoTotalServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BPoContractAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BPoOrderAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
@@ -171,10 +171,10 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     private IBPoOrderTotalService iBPoOrderTotalService;
 
     @Autowired
-    private CommonTotalServiceImpl commonTotalService;
+    private CommonPoTotalServiceImpl commonTotalService;
 
     @Autowired
-    private ICommonTotalService iCommonTotalService;
+    private ICommonPoTotalService iCommonPoTotalService;
 
     /**
      * 采购合同  新增
@@ -191,7 +191,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
         // 4. 设置返回ID
         poContractVo.setId(bPoContractEntity.getId());
         // 5. 更新合同财务数据
-        iCommonTotalService.reCalculateAllTotalDataByPoContractId(bPoContractEntity.getId());
+        iCommonPoTotalService.reCalculateAllTotalDataByPoContractId(bPoContractEntity.getId());
 
         return InsertResultUtil.OK(poContractVo);
     }
@@ -372,7 +372,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
         // 3. 更新附件信息
         updateAttach(poContractVo, bPoContractEntity);
         // 4. 更新合同财务数据
-        iCommonTotalService.reCalculateAllTotalDataByPoContractId(bPoContractEntity.getId());
+        iCommonPoTotalService.reCalculateAllTotalDataByPoContractId(bPoContractEntity.getId());
 
         return UpdateResultUtil.OK(1);
     }
@@ -1128,7 +1128,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             mapper.insert(entity);
 
             // 更新合同财务数据
-            iCommonTotalService.reCalculateAllTotalDataByPoContractId(entity.getId());
+            iCommonPoTotalService.reCalculateAllTotalDataByPoContractId(entity.getId());
 
 
             // 处理从表

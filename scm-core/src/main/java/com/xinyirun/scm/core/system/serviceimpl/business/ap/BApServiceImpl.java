@@ -45,7 +45,7 @@ import com.xinyirun.scm.core.system.mapper.business.appay.BApPayMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
-import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonTotalService;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.ap.IBApService;
 import com.xinyirun.scm.core.system.service.business.ap.IBApTotalService;
 import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
@@ -145,7 +145,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
     private IBApTotalService bApTotalService;
 
     @Autowired
-    private ICommonTotalService commonTotalService;
+    private ICommonPoTotalService commonTotalService;
 
     @Autowired
     private BApPayDetailMapper bApPayDetailMapper;

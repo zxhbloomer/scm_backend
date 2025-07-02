@@ -3,6 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.base.v1.common.total;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.busniess.ap.BApSourceAdvanceEntity;
 import com.xinyirun.scm.bean.entity.busniess.ap.BApTotalEntity;
+import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanDetailEntity;
 import com.xinyirun.scm.bean.entity.busniess.pocontract.BPoContractTotalEntity;
 import com.xinyirun.scm.bean.entity.busniess.poorder.BPoOrderTotalEntity;
 import com.xinyirun.scm.bean.system.bo.fund.total.TotalDataRecalculateBo;
@@ -30,7 +31,12 @@ import com.xinyirun.scm.core.system.mapper.business.pocontract.BPoContractMapper
 import com.xinyirun.scm.core.system.mapper.business.pocontract.BPoContractTotalMapper;
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderMapper;
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderTotalMapper;
-import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonTotalService;
+import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanDetailMapper;
+import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanTotalMapper;
+import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanTotalEntity;
+import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
+import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.ap.IBApTotalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,9 +59,9 @@ import java.util.List;
  * @since 2025-06-11
  */
 @Service
-public class CommonTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper, BPoContractTotalEntity> implements ICommonTotalService {
+public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper, BPoContractTotalEntity> implements ICommonPoTotalService {
 
-    private static final Logger log = LoggerFactory.getLogger(CommonTotalServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(CommonPoTotalServiceImpl.class);
 
     @Autowired
     private BPoContractMapper bPoContractMapper;
@@ -96,6 +102,12 @@ public class CommonTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper, 
     @Autowired
     private BApDetailMapper bApDetailMapper;
 
+    @Autowired
+    private BInPlanDetailMapper bInPlanDetailMapper;
+
+    @Autowired
+    private BInPlanTotalMapper bInPlanTotalMapper;
+
     /**
      * 重新计算所有的财务数据，最终得到合同ID集合 contractIdSet
      * @param bo 查询条件
@@ -118,9 +130,30 @@ public class CommonTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper, 
 
         // 循环contractIdSet，处理每个合同ID
         for (Integer contractId : contractIdSet) {
-            // ===================== 处理预付款（b_ap_source_advance）的total数据 =====================
+            /**
+             * 处理每个合同ID的Total数据
+             * 1. 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total）
+             *    - b_in_plan_detail: 更新processing_qty, processing_weight, processing_volume, unprocessed_qty, unprocessed_weight, unprocessed_volume, processed_qty, processed_weight, processed_volume
+             *    - b_in_plan_total: 汇总计划级别的processing_qty_total, processing_weight_total, processing_volume_total, unprocessed_qty_total, unprocessed_weight_total, unprocessed_volume_total, processed_qty_total, processed_weight_total, processed_volume_total
+             * 2. 处理付款单total数据（b_ap_pay、b_ap_source_advance）
+             *    - b_ap_pay: 更新付款单总金额字段
+             *    - b_ap_source_advance: payable_amount_total, paid_amount_total, paying_amount_total, unpay_amount_total
+             * 3. 处理应付账款total数据（b_ap_total、b_ap_detail、b_ap_source_advance）
+             *    - b_ap_total: payable_amount_total, paid_amount_total, paying_amount_total, stoppay_amount_total, cancelpay_amount_total, unpay_amount_total
+             *    - b_ap_detail: 调用updateTotalData更新总计字段
+             *    - b_ap_source_advance: stoppay_amount_total, cancelpay_amount_total（中止和作废分配）
+             * 4. 处理采购订单total数据（b_po_order_total）
+             *    - updatePoOrderTotalData: 更新采购订单总计数据
+             *    - updateAdvanceAmountTotalData: 更新预付款总计数据
+             *    - updatePaidTotalData: 更新已付款总金额数据
+             * 5. 处理采购合同total数据（b_po_contract_total）
+             *    - updateContractAdvanceTotalData: 汇总合同下所有订单的预付款数据
+             */
+            // ===================== 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total） =====================
+            processInPlanTotalDataByContractId(contractId);
+            // ===================== 处理付款total数据（b_ap_pay、b_ap_source_advance） =====================
             processPayTotalDataByContractId(contractId);
-            // ===================== 处理应付账款total数据（b_ap_total、b_ap_detail）- 预付款 =====================
+            // ===================== 处理应付账款total数据（b_ap_total、b_ap_detail、b_ap_source_advance） =====================
             processApTotalDataByContractId(contractId);
             // ===================== 处理采购订单total数据（b_po_order_total） =====================
             processPoOrderTotalDataByContractId(contractId);
@@ -876,6 +909,10 @@ public class CommonTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper, 
             // 目前：只有预付款，所以源单只考虑b_ap_source_advance
             int updResult3 = bPoOrderTotalMapper.updatePaidTotalData(poOrderIdSet);
             log.debug("更新已付款总金额数据成功，影响行数: {}", updResult3);
+
+            // 2.4 更新入库计划数据
+            int updResult4 =bPoOrderTotalMapper.updateInPlanTotalData(poOrderIdSet);
+            log.debug("更新入库计划数据成功，影响行数: {}", updResult4);
         }
     }
 
@@ -920,6 +957,61 @@ public class CommonTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper, 
             log.debug("SQL汇总更新采购合同总计数据成功，po_contract_id: {}, 更新记录数: {}", contractId, updateResult);
         } else {
             log.warn("SQL汇总更新采购合同总计数据失败，po_contract_id: {}", contractId);
+        }
+    }
+
+    /**
+     * 处理入库计划total数据（b_in_plan_detail、b_in_plan_total）
+     * 步骤：
+     * 1. 通过contractId获取到b_in_plan_detail表的数据，生成对应的LinkedHashSet<Integer> inPlanIdSet
+     * 2. 更新b_in_plan_detail：调用b_in_plan_detail的mapper方法updateProcessingQtyByInPlanId，传入inPlanIdSet，完成更新
+     * 3. 更新或者插入b_in_plan_total：调用b_in_plan_total的mapper方法updateInPlanTotalData，传入inPlanIdSet，完成更新或者插入
+     * 
+     * @param contractId 合同ID
+     */
+    private void processInPlanTotalDataByContractId(Integer contractId) {
+        // 1. 通过contractId获取到b_in_plan_detail表的数据，生成对应的LinkedHashSet<Integer> inPlanIdSet
+        LinkedHashSet<Integer> inPlanIdSet = new LinkedHashSet<>();
+        List<BInPlanDetailEntity> inPlanDetailList = bInPlanDetailMapper.selectByContractId(contractId);
+        if (inPlanDetailList != null && !inPlanDetailList.isEmpty()) {
+            for (BInPlanDetailEntity detail : inPlanDetailList) {
+                if (detail.getIn_plan_id() != null) {
+                    inPlanIdSet.add(detail.getIn_plan_id());
+                }
+            }
+        }
+
+        // 2. 如果有入库计划ID，进行后续处理
+        if (!inPlanIdSet.isEmpty()) {
+            // 2.1 更新b_in_plan_detail：调用updateProcessingQtyByInPlanId方法
+            try {
+                bInPlanDetailMapper.updateProcessingQtyByInPlanId(inPlanIdSet);
+                log.debug("更新入库计划明细处理数量统计成功，入库计划ID集合: {}", inPlanIdSet);
+            } catch (Exception e) {
+                log.error("更新入库计划明细处理数量统计失败，入库计划ID集合: {}, 错误信息: {}", inPlanIdSet, e.getMessage(), e);
+            }
+
+            // 2.2 确保b_in_plan_total记录存在（先插入不存在的记录）
+            for (Integer inPlanId : inPlanIdSet) {
+                BInPlanTotalVo existingRecord = bInPlanTotalMapper.selectByInPlanId(inPlanId);
+                if (existingRecord == null) {
+                    // 如果记录不存在，则新增一条记录，只设置in_plan_id
+                    BInPlanTotalEntity newEntity = new BInPlanTotalEntity();
+                    newEntity.setIn_plan_id(inPlanId);
+                    bInPlanTotalMapper.insert(newEntity);
+                    log.debug("新增入库计划汇总数据记录，in_plan_id: {}", inPlanId);
+                }
+            }
+
+            // 2.3 更新b_in_plan_total：调用updateInPlanTotalData方法
+            try {
+                int updateResult = bInPlanTotalMapper.updateInPlanTotalData(inPlanIdSet);
+                log.debug("更新入库计划汇总数据成功，影响行数: {}, 入库计划ID集合: {}", updateResult, inPlanIdSet);
+            } catch (Exception e) {
+                log.error("更新入库计划汇总数据失败，入库计划ID集合: {}, 错误信息: {}", inPlanIdSet, e.getMessage(), e);
+            }
+        } else {
+            log.debug("合同ID {} 下未找到入库计划明细数据", contractId);
         }
     }
 

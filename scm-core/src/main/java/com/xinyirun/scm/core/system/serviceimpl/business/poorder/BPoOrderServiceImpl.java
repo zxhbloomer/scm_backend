@@ -53,14 +53,13 @@ import com.xinyirun.scm.core.system.mapper.business.project.BProjectMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
-import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonTotalService;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.poorder.IBPoOrderTotalService;
 import com.xinyirun.scm.core.system.service.business.poorder.IBPoOrderService;
 import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
-import com.xinyirun.scm.core.system.serviceimpl.base.v1.common.total.CommonTotalServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BPoOrderAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -69,8 +68,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -142,7 +139,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     private IBPoOrderTotalService iBPoOrderFinService;
 
     @Autowired
-    private ICommonTotalService iCommonTotalService;
+    private ICommonPoTotalService iCommonPoTotalService;
 
     /**
      * 获取采购订单信息
@@ -231,7 +228,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         // 4. 设置返回ID
         poOrderVo.setId(bPoOrderEntity.getId());
         // 5. 更新订单财务数据
-        iCommonTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());
         return InsertResultUtil.OK(poOrderVo);
     }
 
@@ -552,7 +549,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         // 3. 更新附件信息
         updateAttach(poOrderVo, bPoOrderEntity);
         // 4. 更新订单财务数据
-        iCommonTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());
         return UpdateResultUtil.OK(1);
     }
 

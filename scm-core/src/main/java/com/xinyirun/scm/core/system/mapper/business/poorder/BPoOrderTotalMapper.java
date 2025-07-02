@@ -148,4 +148,47 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
             "</script>                                                                                                                                           ")
     int updatePaidTotalData(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
 
+    /**
+     * 更新入库计划相关统计数据
+     * 根据采购订单ID更新入库计划的处理数量、重量、体积统计
+     * @param order_id_ids 采购订单ID集合
+     * @return 更新记录数
+     */
+    @Update("<script>                                                                                                                                           " +
+            "    UPDATE b_po_order_total t1                                                                                                                      " +
+            "    JOIN (                                                                                                                                          " +
+            "        SELECT                                                                                                                                      " +
+            "            t2.order_id,                                                                                                                            " +
+            "            SUM(IFNULL(t2.processing_qty, 0)) AS sum_processing_qty,                                                                               " +
+            "            SUM(IFNULL(t2.processing_weight, 0)) AS sum_processing_weight,                                                                         " +
+            "            SUM(IFNULL(t2.processing_volume, 0)) AS sum_processing_volume,                                                                         " +
+            "            SUM(IFNULL(t2.unprocessed_qty, 0)) AS sum_unprocessed_qty,                                                                             " +
+            "            SUM(IFNULL(t2.unprocessed_weight, 0)) AS sum_unprocessed_weight,                                                                       " +
+            "            SUM(IFNULL(t2.unprocessed_volume, 0)) AS sum_unprocessed_volume,                                                                       " +
+            "            SUM(IFNULL(t2.processed_qty, 0)) AS sum_processed_qty,                                                                                 " +
+            "            SUM(IFNULL(t2.processed_weight, 0)) AS sum_processed_weight,                                                                           " +
+            "            SUM(IFNULL(t2.processed_volume, 0)) AS sum_processed_volume,                                                                             " +
+            "            SUM(IFNULL(t2.qty, 0)) AS sum_plan_qty,                                                                             " +
+            "        FROM b_in_plan_detail t2                                                                                                                    " +
+            "        WHERE t2.order_id IN                                                                                                                        " +
+            "        <foreach collection='order_id_ids' item='id' open='(' separator=',' close=')'>                                                             " +
+            "            #{id}                                                                                                                                   " +
+            "        </foreach>                                                                                                                                  " +
+            "        GROUP BY t2.order_id                                                                                                                        " +
+            "    ) t3 ON t1.po_order_id = t3.order_id                                                                                                           " +
+            "    SET                                                                                                                                             " +
+            "        t1.in_plan_processing_qty_total = t3.sum_processing_qty,                                                                                   " +
+            "        t1.in_plan_processing_weight_total = t3.sum_processing_weight,                                                                             " +
+            "        t1.in_plan_processing_volume_total = t3.sum_processing_volume,                                                                             " +
+            "        t1.in_plan_unprocessed_qty_total = t3.sum_unprocessed_qty,                                                                                 " +
+            "        t1.in_plan_unprocessed_weight_total = t3.sum_unprocessed_weight,                                                                           " +
+            "        t1.in_plan_unprocessed_volume_total = t3.sum_unprocessed_volume,                                                                           " +
+            "        t1.in_plan_processed_qty_total = t3.sum_processed_qty,                                                                                     " +
+            "        t1.in_plan_processed_weight_total = t3.sum_processed_weight,                                                                               " +
+            "        t1.in_plan_processed_volume_total = t3.sum_processed_volume,                                                                                 " +
+            "        t1.inventory_in_total = t3.sum_processed_qty,                                                                                 " +
+            "        t1.inventory_in_plan_total = t3.sum_plan_qty                                                                                 " +
+            "</script>                                                                                                                                           ")
+    int updateInPlanTotalData(@Param("order_id_ids") LinkedHashSet<Integer> order_id_ids);
+
 }

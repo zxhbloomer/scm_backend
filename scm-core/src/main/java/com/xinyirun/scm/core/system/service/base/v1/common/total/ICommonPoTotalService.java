@@ -3,7 +3,6 @@ package com.xinyirun.scm.core.system.service.base.v1.common.total;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.busniess.pocontract.BPoContractTotalEntity;
 import com.xinyirun.scm.bean.system.bo.fund.total.TotalDataRecalculateBo;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApTotalVo;
 
 /**
  * <p>
@@ -13,7 +12,7 @@ import com.xinyirun.scm.bean.system.vo.business.ap.BApTotalVo;
  * @author xinyirun
  * @since 2025-06-11
  */
-public interface ICommonTotalService extends IService<BPoContractTotalEntity> {
+public interface ICommonPoTotalService extends IService<BPoContractTotalEntity> {
 
     /**
      * 重新计算所有的财务数据

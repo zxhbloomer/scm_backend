@@ -41,7 +41,7 @@ import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
-import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonTotalService;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.wms.inplan.IBInPlanService;
 import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
@@ -98,7 +98,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
     private MCancelService mCancelService;
 
     @Autowired
-    private ICommonTotalService iCommonTotalService;
+    private ICommonPoTotalService iCommonPoTotalService;
 
     @Autowired
     private BInPlanAttachMapper bInPlanAttachMapper;
@@ -717,7 +717,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
-    }    /**
+    }
+
+    /**
      * 审批流程回调 - 审批通过
      */
     @Override
