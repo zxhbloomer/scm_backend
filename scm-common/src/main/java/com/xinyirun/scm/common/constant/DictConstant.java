@@ -806,6 +806,9 @@ public class DictConstant {
     /** 采购合同编号 */
     public static final String DICT_SYS_CODE_TYPE_B_PO_CONTRACT  = "b_po_contract";
 
+    /** 采购结算 */
+    public static final String DICT_SYS_CODE_TYPE_B_PO_SETTLEMENT  = "b_po_settlement";
+
     /** 销售合同编号 */
     public static final String DICT_SYS_CODE_TYPE_B_SO_CONTRACT  = "b_so_contract";
 
@@ -1638,4 +1641,37 @@ public class DictConstant {
     public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_TWO = "2";
     public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_THREE = "3";
     public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_STOP = "-1";
+
+    /**
+     * 采购结算类型：0-采购结算
+     */
+    public static final String DICT_B_PO_SETTLEMENT_TYPE = "b_po_settlement_type";
+    public static final String DICT_B_PO_SETTLEMENT_TYPE_ZERO = "0";
+
+    /**
+     * 采购结算审批状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
+     */
+    public static final String DICT_B_PO_SETTLEMENT_STATUS = "b_po_settlement_status";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_ZERO = "0";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_ONE = "1";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_TWO = "2";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_THREE = "3";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_FOUR = "4";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_FIVE = "5";
+    public static final String DICT_B_PO_SETTLEMENT_STATUS_SIX = "6";
+
+    /**
+     * 采购结算结算方式：1-先款后货；2-先货后款；3-货到付款
+     */
+    public static final String DICT_B_PO_SETTLEMENT_SETTLE_TYPE = "b_po_settlement_settle_type";
+    public static final String DICT_B_PO_SETTLEMENT_SETTLE_TYPE_ONE = "1";
+    public static final String DICT_B_PO_SETTLEMENT_SETTLE_TYPE_TWO = "2";
+    public static final String DICT_B_PO_SETTLEMENT_SETTLE_TYPE_THREE = "3";
+
+    /**
+     * 采购结算单据类型：1-实际到货结算；2-货转凭证结算
+     */
+    public static final String DICT_B_PO_SETTLEMENT_BILL_TYPE = "b_po_settlement_bill_type";
+    public static final String DICT_B_PO_SETTLEMENT_BILL_TYPE_ONE = "1";
+    public static final String DICT_B_PO_SETTLEMENT_BILL_TYPE_TWO = "2";
 }

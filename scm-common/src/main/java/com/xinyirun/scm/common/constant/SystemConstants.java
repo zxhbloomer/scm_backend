@@ -1090,6 +1090,9 @@ public class SystemConstants  {
      */
     public class BPM_INSTANCE_TYPE {
 
+        // 采购结算
+        public static final String BPM_INSTANCE_B_PO_SETTLEMENT = "b_po_settlement";
+
         // 出库计划
         public static final String BPM_INSTANCE_B_OUT_PLAN = "b_out_plan";
 
