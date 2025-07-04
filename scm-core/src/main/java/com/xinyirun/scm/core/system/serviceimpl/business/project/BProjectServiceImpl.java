@@ -361,7 +361,9 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
             // 启动审批流
             bpmProcessTemplatesService.startProcess(bBpmProcessVo);
         }
-    }    /**
+    }
+
+    /**
      * 更新项目管理信息
      * 更新现有项目的完整信息，包括基础信息、商品明细、附件等
      * 

@@ -120,4 +120,14 @@ public class PoOrderDetailVo implements Serializable {
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;
+
+    /**
+     * 实际入库汇总
+     */
+    private BigDecimal inventory_in_total;
+
+    /**
+     * 待结算数量
+     */
+    private BigDecimal settle_can_qty_total;
 }

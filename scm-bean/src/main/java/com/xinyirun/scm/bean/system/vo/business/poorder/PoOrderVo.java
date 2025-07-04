@@ -189,6 +189,16 @@ public class PoOrderVo extends BaseVo implements Serializable {
     private BigDecimal qty_total;
 
     /**
+     * 实际入库合计
+     */
+    private BigDecimal inventory_in_total_sum;
+
+    /**
+     * 待结算数量合计
+     */
+    private BigDecimal settle_can_qty_total_sum;
+
+    /**
      * 总税额
      */
     private BigDecimal tax_amount_sum;
@@ -451,4 +461,14 @@ public class PoOrderVo extends BaseVo implements Serializable {
      * 采购合同信息
      */
     private PoContractVo po_contract;
+
+    /**
+     * 实际结算-数量汇总
+     */
+    private BigDecimal settled_qty_total;
+
+    /**
+     * 待结算数量（吨）
+     */
+    private BigDecimal settle_can_qty_total;
 }

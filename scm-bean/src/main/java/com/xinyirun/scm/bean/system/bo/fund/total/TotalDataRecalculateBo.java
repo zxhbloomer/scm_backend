@@ -65,4 +65,16 @@ public class TotalDataRecalculateBo implements Serializable {
     private Integer apPayId;
     private List<Integer> apPayIds;
 
+    /**
+     * 入库计划ID
+     */
+    private Integer inPlanId;
+    private List<Integer> inPlanIds;
+
+    /**
+     * 入库单ID
+     */
+    private Integer inboundId;
+    private List<Integer> inboundIds;
+
 }

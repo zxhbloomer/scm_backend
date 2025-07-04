@@ -2,7 +2,6 @@ package com.xinyirun.scm.bean.system.vo.business.settlement;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
-import com.xinyirun.scm.bean.system.vo.business.pocontract.PoContractDetailVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import lombok.Data;

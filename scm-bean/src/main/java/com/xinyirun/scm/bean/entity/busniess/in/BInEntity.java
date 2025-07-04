@@ -287,6 +287,24 @@ public class BInEntity implements Serializable {
     private BigDecimal processed_volume;
 
     /**
+     * 作废数量
+     */
+    @TableField("cancel_qty")
+    private BigDecimal cancel_qty;
+
+    /**
+     * 作废重量
+     */
+    @TableField("cancel_weight")
+    private BigDecimal cancel_weight;
+
+    /**
+     * 作废体积
+     */
+    @TableField("cancel_volume")
+    private BigDecimal cancel_volume;
+
+    /**
      * 库存流水id
      */
     @TableField("inventory_sequence_id")

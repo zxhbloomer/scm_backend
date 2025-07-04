@@ -60,7 +60,10 @@ public interface BInPlanTotalMapper extends BaseMapper<BInPlanTotalEntity> {
             "            COALESCE(SUM(t2.unprocessed_volume), 0) AS sum_unprocessed_volume_total,                                                               " +
             "            COALESCE(SUM(t2.processed_qty), 0) AS sum_processed_qty_total,                                                                         " +
             "            COALESCE(SUM(t2.processed_weight), 0) AS sum_processed_weight_total,                                                                   " +
-            "            COALESCE(SUM(t2.processed_volume), 0) AS sum_processed_volume_total                                                                    " +
+            "            COALESCE(SUM(t2.processed_volume), 0) AS sum_processed_volume_total,                                                                   " +
+            "            COALESCE(SUM(t2.cancel_qty), 0) AS sum_cancel_qty_total,                                                                               " +
+            "            COALESCE(SUM(t2.cancel_weight), 0) AS sum_cancel_weight_total,                                                                         " +
+            "            COALESCE(SUM(t2.cancel_volume), 0) AS sum_cancel_volume_total                                                                          " +
             "        FROM b_in_plan_detail t2                                                                                                                    " +
             "        WHERE t2.in_plan_id IN                                                                                                                     " +
             "            <foreach collection='in_plan_ids' item='id' open='(' separator=',' close=')'>                                                         " +
@@ -77,7 +80,10 @@ public interface BInPlanTotalMapper extends BaseMapper<BInPlanTotalEntity> {
             "        t1.unprocessed_volume_total = summary.sum_unprocessed_volume_total,                                                                        " +
             "        t1.processed_qty_total = summary.sum_processed_qty_total,                                                                                  " +
             "        t1.processed_weight_total = summary.sum_processed_weight_total,                                                                            " +
-            "        t1.processed_volume_total = summary.sum_processed_volume_total                                                                             " +
+            "        t1.processed_volume_total = summary.sum_processed_volume_total,                                                                            " +
+            "        t1.cancel_qty_total = summary.sum_cancel_qty_total,                                                                                        " +
+            "        t1.cancel_weight_total = summary.sum_cancel_weight_total,                                                                                  " +
+            "        t1.cancel_volume_total = summary.sum_cancel_volume_total                                                                                   " +
             "</script>                                                                                                                                           ")
     int updateInPlanTotalData(@Param("in_plan_ids") LinkedHashSet<Integer> in_plan_ids);
 

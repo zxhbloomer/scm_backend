@@ -1,14 +1,21 @@
 package com.xinyirun.scm.bean.entity.busniess.settlement;
 
-import com.baomidou.mybatisplus.annotation.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.experimental.Accessors;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.Version;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.experimental.Accessors;
 
 /**
  * 采购结算明细-源单-按采购入库结算
@@ -125,10 +132,10 @@ public class BPoSettlementDetailSourceInboundEntity implements Serializable {
     private BigDecimal order_amount;
 
     /**
-     * 结算单价
+     * 应结算结算单价
      */
-    @TableField("price")
-    private BigDecimal price;
+    @TableField("planned_price")
+    private BigDecimal planned_price;
 
     /**
      * 应结-结算数量
@@ -147,6 +154,18 @@ public class BPoSettlementDetailSourceInboundEntity implements Serializable {
      */
     @TableField("planned_volume")
     private BigDecimal planned_volume;
+
+    /**
+     * 应结-结算金额
+     */
+    @TableField("planned_amount")
+    private BigDecimal planned_amount;
+
+    /**
+     * 实结算单价
+     */
+    @TableField("settled_price")
+    private BigDecimal settled_price;
 
     /**
      * 实际结算-结算数量

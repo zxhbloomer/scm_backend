@@ -106,6 +106,12 @@ public class BPoSettlementTotalEntity implements Serializable {
     private BigDecimal planned_volume;
 
     /**
+     * 应结-结算金额
+     */
+    @TableField("planned_amount")
+    private BigDecimal planned_amount;
+
+    /**
      * 实际结算-结算数量
      */
     @TableField("settled_qty")

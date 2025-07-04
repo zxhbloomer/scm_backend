@@ -1,12 +1,12 @@
 package com.xinyirun.scm.bean.system.vo.business.settlement;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * 采购结算明细-源单-按采购入库结算
@@ -99,9 +99,9 @@ public class BPoSettlementDetailSourceInboundVo implements Serializable {
     private BigDecimal order_amount;
 
     /**
-     * 结算单价
+     * 应结算结算单价
      */
-    private BigDecimal price;
+    private BigDecimal planned_price;
 
     /**
      * 应结-结算数量
@@ -117,6 +117,16 @@ public class BPoSettlementDetailSourceInboundVo implements Serializable {
      * 应结-结算体积
      */
     private BigDecimal planned_volume;
+
+    /**
+     * 应结-结算金额
+     */
+    private BigDecimal planned_amount;
+
+    /**
+     * 实结算单价
+     */
+    private BigDecimal settled_price;
 
     /**
      * 实际结算-结算数量

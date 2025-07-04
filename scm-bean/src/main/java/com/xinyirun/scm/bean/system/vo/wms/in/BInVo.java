@@ -294,6 +294,21 @@ public class BInVo extends PageCondition {
     private BigDecimal processed_volume;
 
     /**
+     * 作废数量
+     */
+    private BigDecimal cancel_qty;
+
+    /**
+     * 作废重量
+     */
+    private BigDecimal cancel_weight;
+
+    /**
+     * 作废体积
+     */
+    private BigDecimal cancel_volume;
+
+    /**
      * 库存流水id
      */
     private Integer inventory_sequence_id;

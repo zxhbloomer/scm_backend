@@ -77,4 +77,18 @@ public interface ICommonPoTotalService extends IService<BPoContractTotalEntity> 
      * @return 是否操作成功
      */
     Boolean reCalculateAllTotalDataByApPayCode(String code);
+
+    /**
+     * 按入库计划id重新生成Total数据
+     * @param id 入库计划id
+     * @return 是否操作成功
+     */
+    Boolean reCalculateAllTotalDataByPlanId(Integer id);
+
+    /**
+     * 按入库单id重新生成Total数据
+     * @param id 入库单id
+     * @return 是否操作成功
+     */
+    Boolean reCalculateAllTotalDataByInboundId(Integer id);
 }

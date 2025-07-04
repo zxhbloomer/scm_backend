@@ -88,6 +88,11 @@ public class BPoSettlementTotalVo implements Serializable {
     private BigDecimal planned_volume;
 
     /**
+     * 应结-结算金额
+     */
+    private BigDecimal planned_amount;
+
+    /**
      * 实际结算-结算数量
      */
     private BigDecimal settled_qty;

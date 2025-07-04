@@ -225,6 +225,21 @@ public class BInPlanDetailVo extends PageCondition {
     private BigDecimal processed_volume;
 
     /**
+     * 作废数量
+     */
+    private BigDecimal cancel_qty;
+
+    /**
+     * 作废重量
+     */
+    private BigDecimal cancel_weight;
+
+    /**
+     * 作废体积
+     */
+    private BigDecimal cancel_volume;
+
+    /**
      * 订单金额
      */
     private BigDecimal order_amount;

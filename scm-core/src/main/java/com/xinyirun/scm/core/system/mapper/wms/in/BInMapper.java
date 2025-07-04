@@ -308,4 +308,12 @@ public interface BInMapper extends BaseMapper<BInEntity> {
             + "     for update                   "
             + "                                  ")
     BInEntity setBillInForUpdate(@Param("p1") Integer id);
+
+    /**
+     * 根据入库单ID查询合同ID
+     */
+    @Select(""
+            + " select DISTINCT t.contract_id FROM b_in t where t.id = #{inboundId}            "
+            +"    ")
+    List<Integer> selectContractIdsByInboundId(Integer inboundId);
 }

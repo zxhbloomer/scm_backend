@@ -92,4 +92,22 @@ public class BInPlanTotalEntity implements Serializable {
      */
     @TableField("processed_volume_total")
     private BigDecimal processed_volume_total;
+
+    /**
+     * 作废数量汇总
+     */
+    @TableField("cancel_qty_total")
+    private BigDecimal cancel_qty_total;
+
+    /**
+     * 作废重量汇总
+     */
+    @TableField("cancel_weight_total")
+    private BigDecimal cancel_weight_total;
+
+    /**
+     * 作废体积汇总
+     */
+    @TableField("cancel_volume_total")
+    private BigDecimal cancel_volume_total;
 }

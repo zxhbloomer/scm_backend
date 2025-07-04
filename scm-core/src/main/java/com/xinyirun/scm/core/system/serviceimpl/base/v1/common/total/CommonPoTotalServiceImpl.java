@@ -29,10 +29,12 @@ import com.xinyirun.scm.core.system.mapper.business.appay.BApPaySourceAdvanceMap
 import com.xinyirun.scm.core.system.mapper.business.appay.BApPaySourceMapper;
 import com.xinyirun.scm.core.system.mapper.business.pocontract.BPoContractMapper;
 import com.xinyirun.scm.core.system.mapper.business.pocontract.BPoContractTotalMapper;
+import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderDetailTotalMapper;
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderMapper;
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderTotalMapper;
 import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanDetailMapper;
 import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanTotalMapper;
+import com.xinyirun.scm.core.system.mapper.wms.in.BInMapper;
 import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanTotalEntity;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
@@ -107,6 +109,12 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
 
     @Autowired
     private BInPlanTotalMapper bInPlanTotalMapper;
+
+    @Autowired
+    private BInMapper bInMapper;
+
+    @Autowired
+    private BPoOrderDetailTotalMapper poOrderDetailTotalMapper;
 
     /**
      * 重新计算所有的财务数据，最终得到合同ID集合 contractIdSet
@@ -581,6 +589,10 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
                 || (bo.getApPayCode() != null && !bo.getApPayCode().isBlank())
                 || (bo.getApPayCodes() != null && !bo.getApPayCodes().isEmpty())) {
             return getContractIdsFromApPay(bo);
+        } else if (bo.getInPlanId() != null || (bo.getInPlanIds() != null && !bo.getInPlanIds().isEmpty())) {
+            return getContractIdsFromInPlan(bo);
+        } else if (bo.getInboundId() != null || (bo.getInboundIds() != null && !bo.getInboundIds().isEmpty())) {
+            return getContractIdsFromInbound(bo);
         }
         return new ArrayList<>();
     }
@@ -772,6 +784,50 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     }
 
     /**
+     * 入库计划分支，获取合同ID集合
+     */
+    private List<Integer> getContractIdsFromInPlan(TotalDataRecalculateBo bo) {
+        LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
+        if (bo.getInPlanId() != null) {
+            List<Integer> contractIds = bInPlanDetailMapper.selectContractIdsByInPlanId(bo.getInPlanId());
+            if (contractIds != null) {
+                contractIdSet.addAll(contractIds);
+            }
+        }
+        if (bo.getInPlanIds() != null && !bo.getInPlanIds().isEmpty()) {
+            for (Integer inPlanId : bo.getInPlanIds()) {
+                List<Integer> contractIds = bInPlanDetailMapper.selectContractIdsByInPlanId(inPlanId);
+                if (contractIds != null) {
+                    contractIdSet.addAll(contractIds);
+                }
+            }
+        }
+        return new ArrayList<>(contractIdSet);
+    }
+
+    /**
+     * 入库单分支，获取合同ID集合
+     */
+    private List<Integer> getContractIdsFromInbound(TotalDataRecalculateBo bo) {
+        LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
+        if (bo.getInboundId() != null) {
+            List<Integer> contractIds = bInMapper.selectContractIdsByInboundId(bo.getInboundId());
+            if (contractIds != null) {
+                contractIdSet.addAll(contractIds);
+            }
+        }
+        if (bo.getInboundIds() != null && !bo.getInboundIds().isEmpty()) {
+            for (Integer inboundId : bo.getInboundIds()) {
+                List<Integer> contractIds = bInMapper.selectContractIdsByInboundId(inboundId);
+                if (contractIds != null) {
+                    contractIdSet.addAll(contractIds);
+                }
+            }
+        }
+        return new ArrayList<>(contractIdSet);
+    }
+
+    /**
      * 按采购合同编号重新生成Total数据
      * @param code 采购合同编号
      * @return 是否操作成功
@@ -899,20 +955,48 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
                 }
             }
             
-            // 2.2 更新总计数据
-            int updResult1 = bPoOrderTotalMapper.updatePoOrderTotalData(poOrderIdSet);
-            log.debug("更新采购订单总计数据成功，影响行数: {}", updResult1);
-            // 更新预付款数据
-            int updResult2 = bPoOrderTotalMapper.updateAdvanceAmountTotalData(poOrderIdSet);
-            log.debug("更新预付款数据成功，影响行数: {}", updResult2);
-            // 2.3 更新累计付款
-            // 目前：只有预付款，所以源单只考虑b_ap_source_advance
-            int updResult3 = bPoOrderTotalMapper.updatePaidTotalData(poOrderIdSet);
-            log.debug("更新已付款总金额数据成功，影响行数: {}", updResult3);
+            // 2.2 更新采购订单基础汇总数据 (b_po_order_total)
+            log.debug("开始更新采购订单总计数据，订单数量: {}", poOrderIdSet.size());
+            
+            // 2.2.1 更新订单基础总计数据（金额、税额、数量）
+            int orderTotalResult = bPoOrderTotalMapper.updatePoOrderTotalData(poOrderIdSet);
+            log.debug("更新采购订单基础总计数据完成，影响行数: {}", orderTotalResult);
+            
+            // 2.2.2 更新预付款相关数据
+            int advanceResult = bPoOrderTotalMapper.updateAdvanceAmountTotalData(poOrderIdSet);
+            log.debug("更新预付款数据完成，影响行数: {}", advanceResult);
+            
+            // 2.2.3 更新已付款总金额数据（目前仅考虑预付款来源：b_ap_source_advance）
+            int paidResult = bPoOrderTotalMapper.updatePaidTotalData(poOrderIdSet);
+            log.debug("更新已付款总金额数据完成，影响行数: {}", paidResult);
 
-            // 2.4 更新入库计划数据
-            int updResult4 =bPoOrderTotalMapper.updateInPlanTotalData(poOrderIdSet);
-            log.debug("更新入库计划数据成功，影响行数: {}", updResult4);
+            // 2.3 更新采购订单明细汇总数据 (b_po_order_detail_total)
+            log.debug("开始更新采购订单明细汇总数据");
+            
+            // 2.3.0 确保明细汇总记录存在
+            int insertResult = poOrderDetailTotalMapper.insertMissingRecords(poOrderIdSet);
+            log.debug("插入缺失的明细汇总记录数: {}", insertResult);
+            
+            // 2.3.1 更新入库相关汇总数据（处理中、未处理、已处理、取消等数据）
+            int detailInboundResult = poOrderDetailTotalMapper.updateInboundTotalByPoOrderIds(poOrderIdSet);
+            log.debug("更新明细入库汇总数据完成，影响行数: {}", detailInboundResult);
+            
+            // 2.3.2 更新明细级别待结算数量汇总
+            int detailSettleResult = poOrderDetailTotalMapper.updateSettleCanQtyTotal(poOrderIdSet);
+            log.debug("更新明细待结算数量汇总完成，影响行数: {}", detailSettleResult);
+
+            // 2.4 回写订单级别汇总数据 (b_po_order_total)
+            log.debug("开始回写订单级别汇总数据");
+            
+            // 2.4.1 从明细汇总表回写入库计划相关数据到订单总计表
+            int inPlanResult = bPoOrderTotalMapper.updateInPlanTotalData(poOrderIdSet);
+            log.debug("回写入库计划数据完成，影响行数: {}", inPlanResult);
+            
+            // 2.4.2 更新订单级别待结算数量汇总
+            int orderSettleResult = bPoOrderTotalMapper.updateSettleCanQtyTotal(poOrderIdSet);
+            log.debug("更新订单待结算数量汇总完成，影响行数: {}", orderSettleResult);
+            
+            log.debug("采购订单总计数据更新完成，订单ID集合: {}", poOrderIdSet);
         }
     }
 
@@ -1013,6 +1097,30 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         } else {
             log.debug("合同ID {} 下未找到入库计划明细数据", contractId);
         }
+    }
+
+    /**
+     * 按入库计划id重新生成Total数据
+     * @param id 入库计划id
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByPlanId(Integer id) {
+        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        bo.setInPlanId(id);
+        return reCalculateAllTotalData(bo);
+    }
+
+    /**
+     * 按入库单id重新生成Total数据
+     * @param id 入库单id
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByInboundId(Integer id) {
+        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        bo.setInboundId(id);
+        return reCalculateAllTotalData(bo);
     }
 
 }

@@ -92,6 +92,21 @@ public class BPoOrderController {
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 
+    @SysLogAnnotion("根据查询条件，获取采购订单集合信息-结算信息")
+    @PostMapping("/settle/pagelist")
+    public ResponseEntity<JsonResultAo<IPage<PoOrderVo>>> selectOrderListWithSettlePage(@RequestBody(required = false) PoOrderVo searchCondition) {
+        IPage<PoOrderVo> list = service.selectOrderListWithSettlePage(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(list));
+    }
+
+    @SysLogAnnotion("按采购订单合计-结算信息")
+    @PostMapping("/settle/sum")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<PoOrderVo>> queryOrderListWithSettlePageSum(@RequestBody(required = false) PoOrderVo searchCondition) {
+        PoOrderVo result = service.queryOrderListWithSettlePageSum(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(result));
+    }
+
     @SysLogAnnotion("根据查询条件，获取采购订单信息")
     @PostMapping("/get")
     public ResponseEntity<JsonResultAo<PoOrderVo>> get(@RequestBody(required = false) PoOrderVo searchCondition) {

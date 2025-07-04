@@ -109,6 +109,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
     @Autowired
     private MStaffMapper mStaffMapper;
 
+    @Autowired
+    private ICommonPoTotalService commonTotalService;
+
     /**
      * 入库计划新增
      */
@@ -123,8 +126,8 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         saveAttach(bInPlanVo, bInPlanEntity);
         // 5. 设置返回ID
         bInPlanVo.setId(bInPlanEntity.getId());
-        // 6. 更新入库计划财务数据
-//        iCommonTotalService.reCalculateAllTotalDataByInPlanId(bInPlanEntity.getId());
+        // 6. 更新入库计划汇总数据
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
 
         return InsertResultUtil.OK(bInPlanVo);
     }
@@ -299,6 +302,8 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         
         List<BInPlanDetailVo> detailListData = bInPlanVo.getDetailListData();
         calculatePlanAmounts(detailListData, bInPlanEntity);
+
+        bInPlanEntity.setStatus(DictConstant.DICT_B_PROJECT_STATUS_ONE);
         
         int result = mapper.updateById(bInPlanEntity);
         if (result == 0) {
@@ -314,7 +319,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         // 5. 更新附件信息
         updateAttach(bInPlanVo, bInPlanEntity);
 
-        // 6. 更新入库计划财务数据
+        // 6. 更新入库计划汇总数据
 //        iCommonTotalService.reCalculateAllTotalDataByInPlanId(bInPlanEntity.getId());
 
         return UpdateResultUtil.OK(bInPlanVo);
@@ -551,6 +556,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         mCancelVo.setRemark(searchCondition.getRemark());
         mCancelService.insert(mCancelVo);
 
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
+
         // 3.启动审批流程
         startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN_PLAN_CANCEL);
 
@@ -738,6 +746,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
+
         log.debug("====》入库计划[{}]审批流程通过,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -759,6 +770,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
+
         log.debug("====》入库计划[{}]审批流程拒绝,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -779,6 +793,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         if (result == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
+
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
 
         log.debug("====》入库计划[{}]审批流程取消,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
@@ -815,6 +832,9 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
             throw new UpdateErrorException("更新作废状态失败");
         }
 
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
+
         log.debug("====》入库计划[{}]作废审批流程通过,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -836,6 +856,16 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
         if (result == 0) {
             throw new UpdateErrorException("更新状态失败");
         }
+
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
+
+        // 删除作废记录
+        MCancelVo mCancelVo = new MCancelVo();
+        mCancelVo.setSerial_id(bInPlanEntity.getId());
+        mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_IN_PLAN);
+        mCancelService.delete(mCancelVo);
+
 
         log.debug("====》入库计划[{}]作废审批流程拒绝,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
@@ -859,9 +889,20 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
             throw new UpdateErrorException("更新状态失败");
         }
 
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByPlanId(bInPlanEntity.getId());
+
+        // 删除作废记录
+        MCancelVo mCancelVo = new MCancelVo();
+        mCancelVo.setSerial_id(bInPlanEntity.getId());
+        mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_IN_PLAN);
+        mCancelService.delete(mCancelVo);
+
         log.debug("====》入库计划[{}]作废审批流程取消,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
-    }    /**
+    }
+
+    /**
      * 作废审批流程回调 - 保存
      */
     @Override

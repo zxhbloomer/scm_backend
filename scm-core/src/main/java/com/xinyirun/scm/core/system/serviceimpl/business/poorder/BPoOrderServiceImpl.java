@@ -1055,4 +1055,30 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         }
         return fileEntity;
     }
+
+    /**
+     * 分页查询包含结算信息
+     *
+     * @param searchCondition
+     */
+    @Override
+    public IPage<PoOrderVo> selectOrderListWithSettlePage(PoOrderVo searchCondition) {
+        // 分页条件
+        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+
+        // 查询入库计划page
+        return mapper.selectOrderListWithSettlePage(pageCondition, searchCondition);
+    }
+
+    /**
+     * 采购订单结算信息统计
+     *
+     * @param searchCondition
+     */
+    @Override
+    public PoOrderVo queryOrderListWithSettlePageSum(PoOrderVo searchCondition) {
+        return mapper.queryOrderListWithSettlePageSum(searchCondition);
+    }
 }

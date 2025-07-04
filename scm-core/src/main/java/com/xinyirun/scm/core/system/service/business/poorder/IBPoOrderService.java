@@ -128,4 +128,14 @@ public interface IBPoOrderService extends IService<BPoOrderEntity> {
      * 完成
      */
     UpdateResultAo<Integer> finish(PoOrderVo searchCondition);
+
+    /**
+     * 分页查询包含结算信息
+     */
+    IPage<PoOrderVo> selectOrderListWithSettlePage(PoOrderVo searchCondition);
+
+    /**
+     * 采购订单结算信息统计
+     */
+    PoOrderVo queryOrderListWithSettlePageSum(PoOrderVo searchCondition);
 }

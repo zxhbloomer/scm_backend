@@ -4,7 +4,7 @@ globs:
 alwaysApply: true
 ---
 在使用mcp数据库查询mysql时，使用的配置如下：
-主机：192.168.1.8
+主机：127.0.0.1
 端口：3306
 数据库：scm_tenant_20250519_001
 用户名：root

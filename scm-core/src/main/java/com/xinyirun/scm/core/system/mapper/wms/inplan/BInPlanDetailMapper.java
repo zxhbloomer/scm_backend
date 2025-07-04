@@ -46,6 +46,14 @@ public interface BInPlanDetailMapper extends BaseMapper<BInPlanDetailEntity> {
     List<BInPlanDetailEntity> selectByContractId(Integer contractId);
 
     /**
+     * 根据入库计划ID查询合同ID
+     */
+    @Select(""
+            + " select DISTINCT t.contract_id FROM b_in_plan_detail t where t.in_plan_id = #{inPlanId}            "
+            +"    ")
+    List<Integer> selectContractIdsByInPlanId(Integer inPlanId);
+
+    /**
      * 根据入库计划ID更新处理数量统计
      */
     @Update(""
@@ -62,7 +70,10 @@ public interface BInPlanDetailMapper extends BaseMapper<BInPlanDetailEntity> {
             + "         SUM(IFNULL(t2.actual_volume, 0)) AS sum_unprocessed_volume,                               "
             + "         SUM(IFNULL(t2.qty, 0)) AS sum_processed_qty,                                              "
             + "         SUM(IFNULL(t2.actual_weight, 0)) AS sum_processed_weight,                                 "
-            + "         SUM(IFNULL(t2.actual_volume, 0)) AS sum_processed_volume                                  "
+            + "         SUM(IFNULL(t2.actual_volume, 0)) AS sum_processed_volume,                                 "
+            + "         SUM(IFNULL(t2.cancel_qty, 0)) AS sum_cancel_qty,                                          "
+            + "         SUM(IFNULL(t2.cancel_weight, 0)) AS sum_cancel_weight,                                    "
+            + "         SUM(IFNULL(t2.cancel_volume, 0)) AS sum_cancel_volume                                     "
             + "     FROM b_in t2                                                                                   "
             + "     WHERE t2.is_del = 0                                                                           "
             + "     GROUP BY t2.plan_detail_id                                                                     "
@@ -77,13 +88,9 @@ public interface BInPlanDetailMapper extends BaseMapper<BInPlanDetailEntity> {
             + "     t1.processed_qty = t3.sum_processed_qty,                                                      "
             + "     t1.processed_weight = t3.sum_processed_weight,                                                "
             + "     t1.processed_volume = t3.sum_processed_volume,                                                "
-            + "     t1.u_time = '2025-07-02 13:57:01',                                                           "
-            + "     t1.u_id = (SELECT id FROM sys_user WHERE login = 'zxhbloomer'),                              "
-            + "     t1.dbversion = t1.dbversion + 1                                                               "
-            + " WHERE t1.in_plan_id IN                                                                           "
-            + "     <foreach collection='in_plan_ids' item='id' open='(' separator=',' close=')'>             "
-            + "         #{id}                                                                                     "
-            + "     </foreach>                                                                                    "
+            + "     t1.cancel_qty = t3.sum_cancel_qty,                                                            "
+            + "     t1.cancel_weight = t3.sum_cancel_weight,                                                      "
+            + "     t1.cancel_volume = t3.sum_cancel_volume                                                       "
             + " </script>                                                                                          "
             + "    ")
     void updateProcessingQtyByInPlanId(LinkedHashSet<Integer> in_plan_ids);

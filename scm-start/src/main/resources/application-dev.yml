@@ -72,7 +72,7 @@ spring:
   #      enabled: true
   rabbitmq:
     # 服务器ip
-    host: 192.168.1.8
+    host: 127.0.0.1
     # 端口号
     port: 5672
     username: admin
@@ -153,7 +153,7 @@ spring:
       # Redis数据库索引（默认为0）
       database: 13
       # Redis服务器地址
-      host: 192.168.1.8
+      host: 127.0.0.1
       # 连接超时时间（毫秒）
       commandtimeout: 10000
       timeout: 5000ms
@@ -172,7 +172,7 @@ spring:
       # Redis服务器连接端口
       port: 6379
     mongodb:
-      host: 192.168.1.8
+      host: 127.0.0.1
 #      host: 47.100.174.228  # 鑫润航大外网
 #      host: 139.196.253.28  # 中林
       port: 27017
@@ -190,7 +190,7 @@ spring:
       # 指定空闲连接检查、废弃连接清理、空闲连接池大小调整之间的操作时间间隔
       time-between-eviction-runs-millis: 18800
     driverClassName: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.1.8:3306/scm_manager?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
+    url: jdbc:mysql://127.0.0.1:3306/scm_manager?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
     username: root
     password: 123456
     type: com.alibaba.druid.pool.xa.DruidXADataSource

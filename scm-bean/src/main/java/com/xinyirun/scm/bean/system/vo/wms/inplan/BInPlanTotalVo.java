@@ -79,4 +79,19 @@ public class BInPlanTotalVo extends PageCondition {
      * 已处理体积汇总
      */
     private BigDecimal processed_volume_total;
+
+    /**
+     * 作废数量汇总
+     */
+    private BigDecimal cancel_qty_total;
+
+    /**
+     * 作废重量汇总
+     */
+    private BigDecimal cancel_weight_total;
+
+    /**
+     * 作废体积汇总
+     */
+    private BigDecimal cancel_volume_total;
 }

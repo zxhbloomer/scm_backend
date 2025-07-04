@@ -41,6 +41,7 @@ import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanTotalMapper;
 import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanDetailMapper;
 import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanDetailEntity;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.wms.in.IBInService;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
 import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
@@ -103,6 +104,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     @Autowired
     private BInPlanDetailMapper bInPlanDetailMapper;
 
+    @Autowired
+    private ICommonPoTotalService commonTotalService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public InsertResultAo<BInVo> startInsert(BInVo bInVo) {
@@ -123,16 +127,15 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
     public InsertResultAo<BInVo> insert(BInVo bInVo) {
         // 1. 校验业务逻辑
 //        checkInsertLogic(bInVo);
-        
         // 2. 保存主表信息
         BInEntity bInEntity = saveMainEntity(bInVo);
-        
         // 3. 保存附件信息
         saveAttach(bInVo, bInEntity);
-        
         // 4. 设置返回ID
         bInVo.setId(bInEntity.getId());
-        
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         return InsertResultUtil.OK(bInVo);
     }
     
@@ -169,6 +172,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             entity.setProcessed_qty(zero);
             entity.setProcessed_weight(zero);
             entity.setProcessed_volume(zero);
+            entity.setCancel_qty(zero);
+            entity.setCancel_volume(zero);
+            entity.setCancel_weight(zero);
         } else if (DictConstant.DICT_B_IN_STATUS_ONE.equals(status)) {
             // 状态1：审批中
             entity.setProcessing_qty(entity.getQty() != null ? entity.getQty() : zero);
@@ -180,6 +186,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             entity.setProcessed_qty(zero);
             entity.setProcessed_weight(zero);
             entity.setProcessed_volume(zero);
+            entity.setCancel_qty(zero);
+            entity.setCancel_volume(zero);
+            entity.setCancel_weight(zero);
         } else if (DictConstant.DICT_B_IN_STATUS_TWO.equals(status) || 
                    DictConstant.DICT_B_IN_STATUS_SIX.equals(status)) {
             // 状态2、6：执行中、已完成
@@ -192,6 +201,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             entity.setProcessed_qty(entity.getQty() != null ? entity.getQty() : zero);
             entity.setProcessed_weight(entity.getActual_weight() != null ? entity.getActual_weight() : zero);
             entity.setProcessed_volume(entity.getActual_volume() != null ? entity.getActual_volume() : zero);
+            entity.setCancel_qty(zero);
+            entity.setCancel_volume(zero);
+            entity.setCancel_weight(zero);
         } else if (DictConstant.DICT_B_IN_STATUS_FIVE.equals(status)) {
             // 状态5：已作废
             entity.setProcessing_qty(zero);
@@ -203,6 +215,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             entity.setProcessed_qty(zero);
             entity.setProcessed_weight(zero);
             entity.setProcessed_volume(zero);
+            entity.setCancel_qty(entity.getQty() != null ? entity.getQty() : zero);
+            entity.setCancel_volume(entity.getActual_volume() != null ? entity.getActual_volume() : zero);
+            entity.setCancel_weight(entity.getActual_weight() != null ? entity.getActual_weight() : zero);
         }
     }
     
@@ -385,12 +400,19 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         // 2. 更新主表信息
         BInEntity bInEntity = new BInEntity();
         BeanUtils.copyProperties(bInVo, bInEntity);
-        
+
+        bInEntity.setStatus(DictConstant.DICT_B_PROJECT_STATUS_ONE);
+        // 根据状态设置处理相关字段
+        setProcessingFields(bInEntity, bInEntity.getStatus());
+
         int result = mapper.updateById(bInEntity);
         if (result == 0) {
             throw new BusinessException("修改失败");
         }
-        
+
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         return UpdateResultUtil.OK(bInVo);
     }
     
@@ -477,26 +499,10 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
 
         // 新增校验
         if (CheckResultAo.INSERT_CHECK_TYPE.equals(checkType)) {
-            if (StringUtils.isEmpty(bean.getType())) {
-                return CheckResultUtil.NG("入库类型不能为空");  
-            }
-            if (bean.getOwner_id() == null) {
-                return CheckResultUtil.NG("货主不能为空");
-            }
-            if (bean.getSku_id() == null) {
-                return CheckResultUtil.NG("商品规格编号不能为空");
-            }
-            if (bean.getWarehouse_id() == null) {
-                return CheckResultUtil.NG("仓库不能为空");
-            }
-            if (bean.getQty() == null) {
-                return CheckResultUtil.NG("入库数量不能为空");
-            }
-            if (bean.getInbound_time() == null) {
-                return CheckResultUtil.NG("入库时间不能为空");
-            }
-            if (bean.getPrice() == null) {
-                return CheckResultUtil.NG("入库单价不能为空");
+            // 业务字段校验
+            CheckResultAo businessCheckResult = checkBusinessLogic(bean);
+            if (!businessCheckResult.isSuccess()) {
+                return businessCheckResult;
             }
         }
 
@@ -507,6 +513,11 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             }
             if (bean.getDbversion() == null) {
                 return CheckResultUtil.NG("数据版本不能为空");
+            }
+            // 业务字段校验
+            CheckResultAo businessCheckResult = checkBusinessLogic(bean);
+            if (!businessCheckResult.isSuccess()) {
+                return businessCheckResult;
             }
         }
         
@@ -567,6 +578,34 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             }
         }
 
+        return CheckResultUtil.OK();
+    }
+
+    /**
+     * 业务字段校验
+     */
+    private CheckResultAo checkBusinessLogic(BInVo bean) {
+        if (StringUtils.isEmpty(bean.getType())) {
+            return CheckResultUtil.NG("入库类型不能为空");  
+        }
+        if (bean.getOwner_id() == null) {
+            return CheckResultUtil.NG("货主不能为空");
+        }
+        if (bean.getSku_id() == null) {
+            return CheckResultUtil.NG("商品规格编号不能为空");
+        }
+        if (bean.getWarehouse_id() == null) {
+            return CheckResultUtil.NG("仓库不能为空");
+        }
+        if (bean.getQty() == null) {
+            return CheckResultUtil.NG("入库数量不能为空");
+        }
+        if (bean.getInbound_time() == null) {
+            return CheckResultUtil.NG("入库时间不能为空");
+        }
+        if (bean.getPrice() == null) {
+            return CheckResultUtil.NG("入库单价不能为空");
+        }
         return CheckResultUtil.OK();
     }
 
@@ -678,6 +717,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         mCancelVo.setFile_id(fileEntity.getId());
         mCancelVo.setRemark(searchCondition.getRemark());
         mCancelService.insert(mCancelVo);
+
+        // 调用共通，更新total
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
 
         // 3.启动审批流程
         startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN_CANCEL);
@@ -841,6 +883,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("更新作废状态失败");
         }
 
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         log.debug("===》入库单[{}]作废审批流程通过,更新结束《===", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -865,6 +910,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("更新状态失败");
         }
 
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         // 删除作废记录
         MCancelVo mCancelVo = new MCancelVo();
         mCancelVo.setSerial_id(bInEntity.getId());
@@ -875,6 +923,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         return UpdateResultUtil.OK(result);
     }
 
+    /**
+     * 作废审批流程回调 - 审批取消
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackCancel(BInVo searchCondition) {
@@ -895,6 +946,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("更新状态失败");
         }
 
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         // 删除作废记录
         MCancelVo mCancelVo = new MCancelVo();
         mCancelVo.setSerial_id(bInEntity.getId());
@@ -905,6 +959,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         return UpdateResultUtil.OK(result);
     }
 
+    /**
+     * 作废审批流程回调 - 保存
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackSave(BInVo searchCondition) {
@@ -978,6 +1035,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("更新审核状态失败");
         }
 
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         log.debug("====》入库单[{}]审批流程通过,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -1004,6 +1064,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
             throw new BusinessException("更新审核状态失败");
         }
 
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
+
         log.debug("====》入库单[{}]审批流程拒绝,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
     }
@@ -1029,6 +1092,9 @@ public class BInServiceImpl extends ServiceImpl<BInMapper, BInEntity> implements
         if (result == 0) {
             throw new BusinessException("更新审核状态失败");
         }
+
+        // 更新入库单汇总数据
+        commonTotalService.reCalculateAllTotalDataByInboundId(bInEntity.getId());
 
         log.debug("====》入库单[{}]审批流程取消,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(result);
