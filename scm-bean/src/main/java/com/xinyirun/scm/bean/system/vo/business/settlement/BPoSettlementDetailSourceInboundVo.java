@@ -217,4 +217,8 @@ public class BPoSettlementDetailSourceInboundVo implements Serializable {
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;
+    /**
+     * 明细表主键id
+     */
+    private Integer po_order_detail_id;
 } 

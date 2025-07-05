@@ -112,4 +112,9 @@ public interface ISDictDataService extends IService<SDictDataEntity> {
      * 获取字典数据
      */
     List<SDictDataVo> selectData(SDictDataVo searchCondition);
+
+    /**
+     * 根据code和dict_value获取字典数据表信息
+     */
+    SDictDataVo get(SDictDataVo bean);
 }

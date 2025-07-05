@@ -156,4 +156,12 @@ public class DictDataController extends SystemBaseController {
         List<SDictDataVo> vo = service.selectData(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(vo));
     }
+
+    @SysLogAnnotion("根据code和dict_value获取字典数据表信息")
+    @PostMapping("/get")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<SDictDataVo>> get(@RequestBody(required = false) SDictDataVo bean) {
+        SDictDataVo vo = service.get(bean);
+        return ResponseEntity.ok().body(ResultUtil.OK(vo));
+    }
 }

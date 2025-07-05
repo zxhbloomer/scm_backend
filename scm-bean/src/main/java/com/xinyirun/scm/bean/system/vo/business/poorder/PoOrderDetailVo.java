@@ -27,6 +27,11 @@ public class PoOrderDetailVo implements Serializable {
     private static final long serialVersionUID = 3918334457021973928L;
 
     /**
+     * 明细表主键id
+     */
+    private Integer po_order_detail_id;
+
+    /**
      * 商品id
      */
     private Integer goods_id;

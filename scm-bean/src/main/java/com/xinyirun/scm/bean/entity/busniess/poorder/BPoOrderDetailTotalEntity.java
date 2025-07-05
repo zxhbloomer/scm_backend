@@ -35,6 +35,12 @@ public class BPoOrderDetailTotalEntity implements Serializable {
     private Integer po_order_id;
 
     /**
+     * 采购订单明细ID
+     */
+    @TableField("po_order_detail_id")
+    private Integer po_order_detail_id;
+
+    /**
      * 实际入库汇总
      */
     @TableField("inventory_in_total")

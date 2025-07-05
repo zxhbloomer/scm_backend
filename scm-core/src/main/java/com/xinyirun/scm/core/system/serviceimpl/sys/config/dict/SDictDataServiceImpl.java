@@ -389,4 +389,17 @@ public class SDictDataServiceImpl extends BaseServiceImpl<SDictDataMapper, SDict
     public List<SDictDataVo> selectData(SDictDataVo searchCondition){
         return mapper.select(searchCondition);
     }
+
+    /**
+     * 根据code和dict_value获取字典数据表信息
+     * @param bean
+     * @return
+     */
+    @Override
+    public SDictDataVo get(SDictDataVo bean) {
+        if (bean == null || bean.getCode() == null || bean.getDict_value() == null) {
+            return null;
+        }
+        return mapper.getDetailByCodeAndDictValue(bean.getCode(), bean.getDict_value());
+    }
 }

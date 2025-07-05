@@ -1,11 +1,10 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.settlement;
 
-import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.pocontract.BPoContractAttachEntity;
+import com.xinyirun.scm.bean.entity.busniess.pocontract.BPoContractEntity;
 import com.xinyirun.scm.bean.entity.busniess.settlement.BPoSettlementAttachEntity;
 import com.xinyirun.scm.bean.entity.busniess.settlement.BPoSettlementDetailSourceEntity;
 import com.xinyirun.scm.bean.entity.busniess.settlement.BPoSettlementDetailSourceInboundEntity;
@@ -22,8 +21,8 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
+import com.xinyirun.scm.bean.system.vo.business.pocontract.PoContractVo;
 import com.xinyirun.scm.bean.system.vo.business.settlement.BPoSettlementDetailSourceInboundVo;
-import com.xinyirun.scm.bean.system.vo.business.settlement.BPoSettlementDetailSourceVo;
 import com.xinyirun.scm.bean.system.vo.business.settlement.BPoSettlementVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
@@ -41,6 +40,7 @@ import com.xinyirun.scm.core.system.mapper.business.settlement.BPoSettlementAtta
 import com.xinyirun.scm.core.system.mapper.business.settlement.BPoSettlementDetailSourceInboundMapper;
 import com.xinyirun.scm.core.system.mapper.business.settlement.BPoSettlementDetailSourceMapper;
 import com.xinyirun.scm.core.system.mapper.business.settlement.BPoSettlementMapper;
+import com.xinyirun.scm.core.system.mapper.business.pocontract.BPoContractMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
@@ -50,6 +50,7 @@ import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BPoSettlementAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -107,6 +108,12 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
 
     @Autowired
     private MStaffMapper mStaffMapper;
+    
+    @Autowired
+    private BPoContractMapper bPoContractMapper;
+    
+    @Autowired
+    private BPoSettlementAutoCodeServiceImpl bPoSettlementAutoCodeService;
 
     /**
      * 获取业务类型
@@ -170,9 +177,20 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     private BPoSettlementEntity saveMainEntity(BPoSettlementVo searchCondition) {
         BPoSettlementEntity entity = new BPoSettlementEntity();
         BeanUtils.copyProperties(searchCondition, entity);
-        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_ONE);
+        
+        // 设置状态为待审批
+        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_ZERO);
+        
+        // 生成自动编码
+        entity.setCode(bPoSettlementAutoCodeService.autoCode().getCode());
+        
+        // 设置删除标识
         entity.setIs_del(Boolean.FALSE);
+        
+        // 设置流程名称
         entity.setBpm_process_name("新增采购结算审批");
+        
+        // 确保ID为null，避免插入时使用旧ID
         entity.setId(null);
         
         int result = mapper.insert(entity);
@@ -185,8 +203,47 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     /**
      * 保存详情信息
      */
-    private void saveDetailList(BPoSettlementVo searchCondition, BPoSettlementEntity entity) {
-
+    private void saveDetailList(BPoSettlementVo vo, BPoSettlementEntity entity) {
+        List<BPoSettlementDetailSourceInboundVo> detailListData = vo.getDetailListData();
+        if (detailListData != null && !detailListData.isEmpty()) {
+            for (BPoSettlementDetailSourceInboundVo detailVo : detailListData) {
+                // 1. 保存到 b_po_settlement_detail_source 表
+                BPoSettlementDetailSourceEntity sourceEntity = new BPoSettlementDetailSourceEntity();
+                sourceEntity.setPo_settlement_id(entity.getId());
+                sourceEntity.setPo_settlement_code(entity.getCode());
+                sourceEntity.setSettle_type(vo.getSettle_type());
+                sourceEntity.setBill_type(vo.getBill_type());
+                sourceEntity.setPo_order_detail_id(detailVo.getPo_order_detail_id());
+                        
+                // 通过合同ID查询合同信息获取project_code
+                if (detailVo.getPo_contract_id() != null) {
+                    BPoContractEntity contractEntity = bPoContractMapper.selectById(detailVo.getPo_contract_id());
+                    if (contractEntity != null) {
+                        sourceEntity.setProject_code(contractEntity.getProject_code());
+                    }
+                }
+                sourceEntity.setPo_contract_id(detailVo.getPo_contract_id());
+                sourceEntity.setPo_contract_code(detailVo.getPo_contract_code());
+                sourceEntity.setPo_order_id(detailVo.getPo_order_id());
+                sourceEntity.setPo_order_code(detailVo.getPo_order_code());
+                
+                int sourceResult = bPoSettlementDetailSourceMapper.insert(sourceEntity);
+                if (sourceResult == 0) {
+                    throw new BusinessException("结算明细源单新增失败");
+                }
+                
+                // 2. 保存到 b_po_settlement_detail_source_inbound 表
+                BPoSettlementDetailSourceInboundEntity inboundEntity = new BPoSettlementDetailSourceInboundEntity();
+                BeanUtils.copyProperties(detailVo, inboundEntity);
+                inboundEntity.setPo_settlement_id(entity.getId());
+                inboundEntity.setPo_settlement_code(entity.getCode());
+                
+                int inboundResult = bPoSettlementDetailSourceInboundMapper.insert(inboundEntity);
+                if (inboundResult == 0) {
+                    throw new BusinessException("结算明细入库单新增失败");
+                }
+            }
+        }
     }
 
     /**
@@ -512,6 +569,91 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     }
 
     /**
+     * 根据状态设置处理相关字段
+     * @param vo 结算VO对象
+     * @param status 状态
+     */
+    private void setProcessingFields(BPoSettlementVo vo, String status) {
+        if (vo.getDetailListData() != null && !vo.getDetailListData().isEmpty()) {
+            BigDecimal zero = BigDecimal.ZERO;
+            
+            for (BPoSettlementDetailSourceInboundVo detail : vo.getDetailListData()) {
+                // 根据状态设置字段值
+                if (DictConstant.DICT_B_PO_SETTLEMENT_STATUS_ZERO.equals(status) || 
+                    DictConstant.DICT_B_PO_SETTLEMENT_STATUS_THREE.equals(status) || 
+                    DictConstant.DICT_B_PO_SETTLEMENT_STATUS_FOUR.equals(status)) {
+                    // 状态0、3、4：待审批、驳回、作废审批中
+                    detail.setProcessing_qty(zero);
+                    detail.setProcessing_weight(zero);
+                    detail.setProcessing_volume(zero);
+                    detail.setUnprocessed_qty(detail.getPlanned_qty() != null ? detail.getPlanned_qty() : zero);
+                    detail.setUnprocessed_weight(detail.getPlanned_weight() != null ? detail.getPlanned_weight() : zero);
+                    detail.setUnprocessed_volume(detail.getPlanned_volume() != null ? detail.getPlanned_volume() : zero);
+                    detail.setProcessed_qty(zero);
+                    detail.setProcessed_weight(zero);
+                    detail.setProcessed_volume(zero);
+                    
+                } else if (DictConstant.DICT_B_PO_SETTLEMENT_STATUS_ONE.equals(status)) {
+                    // 状态1：审批中
+                    detail.setProcessing_qty(detail.getPlanned_qty() != null ? detail.getPlanned_qty() : zero);
+                    detail.setProcessing_weight(detail.getPlanned_weight() != null ? detail.getPlanned_weight() : zero);
+                    detail.setProcessing_volume(detail.getPlanned_volume() != null ? detail.getPlanned_volume() : zero);
+                    detail.setUnprocessed_qty(zero);
+                    detail.setUnprocessed_weight(zero);
+                    detail.setUnprocessed_volume(zero);
+                    detail.setProcessed_qty(zero);
+                    detail.setProcessed_weight(zero);
+                    detail.setProcessed_volume(zero);
+                    
+                } else if (DictConstant.DICT_B_PO_SETTLEMENT_STATUS_TWO.equals(status) || 
+                           DictConstant.DICT_B_PO_SETTLEMENT_STATUS_SIX.equals(status)) {
+                    // 状态2、6：执行中、已完成
+                    detail.setProcessing_qty(zero);
+                    detail.setProcessing_weight(zero);
+                    detail.setProcessing_volume(zero);
+                    detail.setUnprocessed_qty(zero);
+                    detail.setUnprocessed_weight(zero);
+                    detail.setUnprocessed_volume(zero);
+                    detail.setProcessed_qty(detail.getPlanned_qty() != null ? detail.getPlanned_qty() : zero);
+                    detail.setProcessed_weight(detail.getPlanned_weight() != null ? detail.getPlanned_weight() : zero);
+                    detail.setProcessed_volume(detail.getPlanned_volume() != null ? detail.getPlanned_volume() : zero);
+                    
+                } else if (DictConstant.DICT_B_PO_SETTLEMENT_STATUS_FIVE.equals(status)) {
+                    // 状态5：已作废
+                    detail.setProcessing_qty(zero);
+                    detail.setProcessing_weight(zero);
+                    detail.setProcessing_volume(zero);
+                    detail.setUnprocessed_qty(zero);
+                    detail.setUnprocessed_weight(zero);
+                    detail.setUnprocessed_volume(zero);
+                    detail.setProcessed_qty(zero);
+                    detail.setProcessed_weight(zero);
+                    detail.setProcessed_volume(zero);
+                }
+                
+                // 更新结算明细入库单记录
+                BPoSettlementDetailSourceInboundEntity detailEntity = new BPoSettlementDetailSourceInboundEntity();
+                detailEntity.setId(detail.getId());
+                detailEntity.setProcessing_qty(detail.getProcessing_qty());
+                detailEntity.setProcessing_weight(detail.getProcessing_weight());
+                detailEntity.setProcessing_volume(detail.getProcessing_volume());
+                detailEntity.setUnprocessed_qty(detail.getUnprocessed_qty());
+                detailEntity.setUnprocessed_weight(detail.getUnprocessed_weight());
+                detailEntity.setUnprocessed_volume(detail.getUnprocessed_volume());
+                detailEntity.setProcessed_qty(detail.getProcessed_qty());
+                detailEntity.setProcessed_weight(detail.getProcessed_weight());
+                detailEntity.setProcessed_volume(detail.getProcessed_volume());
+                
+                int updateResult = bPoSettlementDetailSourceInboundMapper.updateById(detailEntity);
+                if (updateResult <= 0) {
+                    log.error("更新结算明细处理字段失败，明细ID: {}", detail.getId());
+                    throw new BusinessException("更新结算明细处理字段失败");
+                }
+            }
+        }
+    }
+
+    /**
      * 附件处理
      */
     public BPoSettlementAttachEntity insertFile(SFileEntity fileEntity, BPoSettlementVo vo, BPoSettlementAttachEntity extra) {
@@ -572,11 +714,27 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCallBackApprove(BPoSettlementVo searchCondition) {
+        log.debug("====》采购结算审批通过回调开始《====");
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
         BPoSettlementEntity entity = new BPoSettlementEntity();
         entity.setId(searchCondition.getId());
         entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_TWO);
-        mapper.updateById(entity);
-        return UpdateResultUtil.OK(0);
+        entity.setBpm_instance_id(searchCondition.getBpm_instance_id());
+        entity.setBpm_instance_code(searchCondition.getBpm_instance_code());
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        // 设置处理相关字段
+        setProcessingFields(vo, entity.getStatus());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算审批通过更新失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算审批通过更新失败");
+        }
+        
+        log.debug("====》采购结算审批通过回调结束《====");
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -585,11 +743,26 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCallBackRefuse(BPoSettlementVo searchCondition) {
+        log.debug("====》采购结算[{}]审批流程拒绝，更新开始《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
         BPoSettlementEntity entity = new BPoSettlementEntity();
+        BeanUtils.copyProperties(vo, entity);
         entity.setId(searchCondition.getId());
         entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_THREE);
-        mapper.updateById(entity);
-        return UpdateResultUtil.OK(0);
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        // 设置处理相关字段
+        setProcessingFields(vo, entity.getStatus());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算审批拒绝更新失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算审批拒绝更新失败");
+        }
+        
+        log.debug("====》采购结算[{}]审批流程拒绝,更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -598,11 +771,26 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCallBackCancel(BPoSettlementVo searchCondition) {
+        log.debug("====》采购结算[{}]审批流程取消，更新开始《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
         BPoSettlementEntity entity = new BPoSettlementEntity();
+        BeanUtils.copyProperties(vo, entity);
         entity.setId(searchCondition.getId());
         entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_ZERO);
-        mapper.updateById(entity);
-        return UpdateResultUtil.OK(0);
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        // 设置处理相关字段
+        setProcessingFields(vo, entity.getStatus());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算审批取消更新失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算审批取消更新失败");
+        }
+        
+        log.debug("====》采购结算[{}]审批流程取消,更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -611,7 +799,23 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCallBackSave(BPoSettlementVo searchCondition) {
-        return UpdateResultUtil.OK(0);
+        log.debug("====》采购结算[{}]审批流程更新最新审批人，更新开始《====", searchCondition.getId());
+        
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        BPoSettlementEntity entity = new BPoSettlementEntity();
+        BeanUtils.copyProperties(vo, entity);
+        entity.setBpm_instance_id(searchCondition.getBpm_instance_id());
+        entity.setBpm_instance_code(searchCondition.getBpm_instance_code());
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算更新最新审批人失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算更新最新审批人失败");
+        }
+        
+        log.debug("====》采购结算[{}]审批流程更新最新审批人,更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -620,6 +824,28 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BPoSettlementVo searchCondition) {
+        log.debug("====》采购结算[{}]作废流程创建成功，更新开始《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
+        /**
+         * 更新bpm_instance的摘要数据
+         */
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("结算单编号：", vo.getCode());
+        jsonObject.put("供应商：", vo.getSupplier_name());
+        jsonObject.put("主体企业：", vo.getPurchaser_name());
+        jsonObject.put("结算日期：", vo.getSettlement_date());
+        jsonObject.put("结算类型：", vo.getType_name());
+        jsonObject.put("作废理由：", vo.getCancel_reason());
+        
+        String json = jsonObject.toString();
+        BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
+        bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
+        bpmInstanceSummaryEntity.setSummary(json);
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(vo.getBpm_cancel_process_name());
+        iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
+        
+        log.debug("====》采购结算[{}]作废流程创建成功，更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(0);
     }
 
@@ -629,11 +855,29 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackApprove(BPoSettlementVo searchCondition) {
+        log.debug("====》采购结算[{}]作废审批流程通过，更新开始《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
         BPoSettlementEntity entity = new BPoSettlementEntity();
-        entity.setId(searchCondition.getId());
-        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_FOUR);
-        mapper.updateById(entity);
-        return UpdateResultUtil.OK(0);
+        BeanUtils.copyProperties(vo, entity);
+        entity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        entity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_FIVE); // 使用状态5表示已作废
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        entity.setBpm_instance_id(searchCondition.getBpm_instance_id());
+        entity.setBpm_instance_code(searchCondition.getBpm_instance_code());
+        
+        // 设置处理相关字段
+        setProcessingFields(vo, entity.getStatus());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算作废审批通过更新失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算作废审批通过更新失败");
+        }
+        
+        log.debug("====》采购结算[{}]作废审批流程通过,更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -642,11 +886,26 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BPoSettlementVo searchCondition) {
+        log.debug("====》采购结算[{}]作废审批流程拒绝，更新开始《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
         BPoSettlementEntity entity = new BPoSettlementEntity();
-        entity.setId(searchCondition.getId());
-        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_TWO);
-        mapper.updateById(entity);
-        return UpdateResultUtil.OK(0);
+        BeanUtils.copyProperties(vo, entity);
+        // 作废拒绝，恢复到正常状态
+        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_TWO); // 恢复到审批通过状态
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        // 设置处理相关字段
+        setProcessingFields(vo, entity.getStatus());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算作废审批拒绝更新失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算作废审批拒绝更新失败");
+        }
+        
+        log.debug("====》采购结算[{}]作废审批流程拒绝,更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -655,7 +914,26 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackCancel(BPoSettlementVo searchCondition) {
-        return UpdateResultUtil.OK(0);
+        log.debug("====》采购结算[{}]作废审批流程取消，更新开始《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
+        BPoSettlementEntity entity = new BPoSettlementEntity();
+        BeanUtils.copyProperties(vo, entity);
+        // 作废取消，恢复到正常状态
+        entity.setStatus(DictConstant.DICT_B_PO_SETTLEMENT_STATUS_TWO); // 恢复到审批通过状态
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        // 设置处理相关字段
+        setProcessingFields(vo, entity.getStatus());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算作废审批取消更新失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算作废审批取消更新失败");
+        }
+        
+        log.debug("====》采购结算[{}]作废审批流程取消,更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 
     /**
@@ -664,6 +942,22 @@ public class BPoSettlementServiceImpl extends BaseServiceImpl<BPoSettlementMappe
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UpdateResultAo<Integer> bpmCancelCallBackSave(BPoSettlementVo searchCondition) {
-        return UpdateResultUtil.OK(0);
+        log.debug("====》采购结算[{}]作废流程保存最新审批人《====", searchCondition.getId());
+        BPoSettlementVo vo = selectById(searchCondition.getId());
+        
+        BPoSettlementEntity entity = new BPoSettlementEntity();
+        BeanUtils.copyProperties(vo, entity);
+        entity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        entity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        entity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        int result = mapper.updateById(entity);
+        if (result <= 0) {
+            log.error("采购结算作废流程保存最新审批人失败，ID: {}", searchCondition.getId());
+            throw new BusinessException("采购结算作废流程保存最新审批人失败");
+        }
+        
+        log.debug("====》采购结算[{}]作废流程保存最新审批人结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(result);
     }
 } 

@@ -70,35 +70,6 @@ public class BPoSettlementEntity implements Serializable {
     @TableField("payment_type")
     private String payment_type;
 
-    /**
-     * 合同ID
-     */
-    @TableField("po_contract_id")
-    private Integer po_contract_id;
-
-    /**
-     * 合同编码
-     */
-    @TableField("po_contract_code")
-    private String po_contract_code;
-
-    /**
-     * 订单ID
-     */
-    @TableField("po_order_id")
-    private Integer po_order_id;
-
-    /**
-     * 订单编码
-     */
-    @TableField("po_order_code")
-    private String po_order_code;
-
-    /**
-     * 项目编号
-     */
-    @TableField("project_code")
-    private String project_code;
 
     /**
      * 供应商ID

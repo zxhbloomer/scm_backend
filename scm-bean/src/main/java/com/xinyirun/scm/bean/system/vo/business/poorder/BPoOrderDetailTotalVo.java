@@ -29,6 +29,11 @@ public class BPoOrderDetailTotalVo implements Serializable {
     private Integer po_order_id;
 
     /**
+     * 采购订单明细ID
+     */
+    private Integer po_order_detail_id;
+
+    /**
      * 实际入库汇总
      */
     private BigDecimal inventory_in_total;

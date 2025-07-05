@@ -65,30 +65,6 @@ public class BPoSettlementVo implements Serializable {
      */
     private String payment_type;
 
-    /**
-     * 合同ID
-     */
-    private Integer po_contract_id;
-
-    /**
-     * 合同编码
-     */
-    private String po_contract_code;
-
-    /**
-     * 订单ID
-     */
-    private Integer po_order_id;
-
-    /**
-     * 订单编码
-     */
-    private String po_order_code;
-
-    /**
-     * 项目编号
-     */
-    private String project_code;
 
     /**
      * 供应商ID

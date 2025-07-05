@@ -66,4 +66,9 @@ public class BPoSettlementDetailSourceVo implements Serializable {
      * 订单编码
      */
     private String po_order_code;
+
+    /**
+     * 订单明细ID
+     */
+    private Integer po_order_detail_id;
 } 

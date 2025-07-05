@@ -3,9 +3,9 @@ description:
 globs: 
 alwaysApply: true
 ---
-在使用mcp数据库查询mysql时，使用的配置如下：
-主机：127.0.0.1
-端口：3306
-数据库：scm_tenant_20250519_001
-用户名：root
-密码：123456
+## mysql数据库mcp链接定义
+ip：127.0.0.1
+port：3306
+db:scm_tenant_20250519_001
+username:root
+password:123456

@@ -51,7 +51,7 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
                 </foreach>
             )
             GROUP BY t2.order_detail_id
-        ) t3 ON t1.id = t3.order_detail_id
+        ) t3 ON t1.po_order_detail_id = t3.order_detail_id
         SET
             t1.inbound_processing_qty_total = t3.sum_processing_qty,
             t1.inbound_processing_weight_total = t3.sum_processing_weight,
@@ -100,13 +100,15 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
      */
     @Insert("""
         <script>
-        INSERT IGNORE INTO b_po_order_detail_total (id, po_order_id)
-        SELECT pod.id, pod.po_order_id
-        FROM b_po_order_detail pod
-        WHERE pod.po_order_id IN
+        INSERT INTO b_po_order_detail_total (po_order_id, po_order_detail_id)
+        SELECT t2.po_order_id, t2.id
+        FROM b_po_order_detail t2
+        LEFT JOIN b_po_order_detail_total t3 ON t2.id = t3.po_order_detail_id
+        WHERE t2.po_order_id IN
         <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
             #{id}
         </foreach>
+        AND t3.po_order_detail_id IS NULL
         </script>
         """)
     int insertMissingRecords(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);

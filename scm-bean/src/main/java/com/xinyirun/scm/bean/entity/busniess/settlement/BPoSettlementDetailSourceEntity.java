@@ -80,4 +80,10 @@ public class BPoSettlementDetailSourceEntity implements Serializable {
      */
     @TableField("po_order_code")
     private String po_order_code;
+
+    /**
+     * 订单明细ID
+     */
+    @TableField("po_order_detail_id")
+    private Integer po_order_detail_id;
 } 
