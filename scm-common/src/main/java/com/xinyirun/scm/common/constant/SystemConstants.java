@@ -670,6 +670,9 @@ public class SystemConstants  {
 
         /** 项目管理 */
         public static final String B_PROJECT = "b_project";
+
+        /** 采购结算 */
+        public static final String B_PO_SETTLEMENT = "b_po_settlement";
     }
 
     /**
@@ -1092,6 +1095,9 @@ public class SystemConstants  {
 
         // 采购结算
         public static final String BPM_INSTANCE_B_PO_SETTLEMENT = "b_po_settlement";
+
+        // 作废 采购结算
+        public static final String BPM_INSTANCE_B_PO_SETTLEMENT_CANCEL = "b_po_settlement_cancel";
 
         // 出库计划
         public static final String BPM_INSTANCE_B_OUT_PLAN = "b_out_plan";

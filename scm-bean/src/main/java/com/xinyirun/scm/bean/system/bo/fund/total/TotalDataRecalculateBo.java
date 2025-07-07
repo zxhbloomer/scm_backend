@@ -77,4 +77,9 @@ public class TotalDataRecalculateBo implements Serializable {
     private Integer inboundId;
     private List<Integer> inboundIds;
 
+    /**
+     * 结算ID
+     */
+    private Integer poSettlementId;
+    private List<Integer> poSettlementIds;
 }

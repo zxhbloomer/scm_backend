@@ -251,6 +251,10 @@ public class BPoSettlementVo implements Serializable {
      * 自选数据
      */
     private Map<String, List<OrgUserVo>> process_users;
+    /**
+     * 组织用户vo
+     */
+    private OrgUserVo orgUserVo;
 
     /**
      * 校验类型
@@ -266,4 +270,24 @@ public class BPoSettlementVo implements Serializable {
      * 商品名称
      */
     private String goods_name;
+
+    /**
+     * 创建人
+     */
+    private String c_name;
+
+    /**
+     * 更新人
+     */
+    private String u_name;
+
+    /**
+     * 实际结算-结算数量
+     */
+    private BigDecimal settled_qty;
+
+    /**
+     * 实际结算-结算金额
+     */
+    private BigDecimal settled_amount;
 } 

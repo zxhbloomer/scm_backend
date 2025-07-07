@@ -91,4 +91,12 @@ public interface ICommonPoTotalService extends IService<BPoContractTotalEntity> 
      * @return 是否操作成功
      */
     Boolean reCalculateAllTotalDataByInboundId(Integer id);
+
+    /**
+     * 按采购结算id重新生成Total数据
+     * @param id 采购结算id
+     * @return 是否操作成功
+     */
+    Boolean reCalculateAllTotalDataByPoSettlementId(Integer id);
+
 }

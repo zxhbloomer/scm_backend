@@ -8,6 +8,7 @@ import com.xinyirun.scm.bean.system.vo.business.settlement.BPoSettlementVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoSettlementDetailListTypeHandler;
 import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Repository;
 
@@ -28,14 +29,27 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		tab1.*,
             		tab3.label as status_name,
             		tab4.label as type_name,
+            		tab5.label as settle_type_name,
+            		tab6.label as bill_type_name,
+            		tab7.label as payment_type_name,
             		tab2.detailListData ,
             		tab11.process_code as process_code,
             		tab13.name as c_name,
-            		tab14.name as u_name
+            		tab14.name as u_name,
+            		tab15.settled_qty,
+            		tab15.settled_amount
             	FROM
             		b_po_settlement tab1
             	    LEFT JOIN (select po_settlement_id,JSON_ARRAYAGG(
-            	    JSON_OBJECT( 'sku_code', sku_code,
+            	    JSON_OBJECT( 'id', id,
+            	    'po_settlement_id', po_settlement_id,
+            	    'po_settlement_code', po_settlement_code,
+            	    'po_contract_id', po_contract_id,
+            	    'po_contract_code', po_contract_code,
+            	    'po_order_id', po_order_id,
+            	    'po_order_code', po_order_code,
+            	    'po_order_detail_id', po_order_detail_id,
+            	    'sku_code', sku_code,
             	    'sku_name',sku_name,
             	    'goods_id', goods_id,
             	    'goods_code', goods_code,
@@ -47,14 +61,20 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             	    'settled_amount', settled_amount,
             	    'processing_qty', processing_qty,
             	    'unprocessed_qty', unprocessed_qty,
-            	    'processed_qty', processed_qty )) as detailListData
+            	    'processed_qty', processed_qty,
+            	    'planned_qty', planned_qty,
+            	    'planned_amount', planned_amount )) as detailListData
             	     from b_po_settlement_detail_source_inbound GROUP BY po_settlement_id) tab2 ON tab1.id = tab2.po_settlement_id
             		LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_po_settlement_status' AND tab3.dict_value = tab1.status
             		LEFT JOIN s_dict_data  tab4 ON tab4.code = 'b_po_settlement_type' AND tab4.dict_value = tab1.type
+            		LEFT JOIN s_dict_data  tab5 ON tab5.code = 'b_po_settlement_settle_type' AND tab5.dict_value = tab1.settle_type
+            		LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_settlement_bill_type' AND tab6.dict_value = tab1.bill_type
+            		LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_settlement_payment_type' AND tab7.dict_value = tab1.payment_type
             	    LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = 'b_po_settlement'
                     ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id
                 LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
                 LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
+                LEFT JOIN b_po_settlement_total tab15 ON tab15.po_settlement_id = tab1.id
             		WHERE TRUE
             		 AND tab1.is_del = false
             		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
@@ -92,7 +112,7 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             </script>
             """)
     @Results({
-            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoSettlementDetailListTypeHandler.class),
     })
     IPage<BPoSettlementVo> selectPage(Page<BPoSettlementVo> page, @Param("p1") BPoSettlementVo searchCondition);
 
@@ -105,11 +125,24 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		tab2.detailListData,
             		tab3.one_file as doc_att_file,
             		tab6.label as status_name,
-            		tab7.label as type_name
+            		tab7.label as type_name,
+            		tab8.label as settle_type_name,
+            		tab9.label as bill_type_name,
+            		tab10.label as payment_type_name,
+            		tab11.settled_qty,
+            		tab11.settled_amount
             	FROM
             		b_po_settlement tab1
             	    LEFT JOIN (select po_settlement_id,JSON_ARRAYAGG(
-            	    JSON_OBJECT( 'sku_code', sku_code,
+            	    JSON_OBJECT( 'id', id,
+            	    'po_settlement_id', po_settlement_id,
+            	    'po_settlement_code', po_settlement_code,
+            	    'po_contract_id', po_contract_id,
+            	    'po_contract_code', po_contract_code,
+            	    'po_order_id', po_order_id,
+            	    'po_order_code', po_order_code,
+            	    'po_order_detail_id', po_order_detail_id,
+            	    'sku_code', sku_code,
             	    'sku_name',sku_name,
             	    'goods_id', goods_id,
             	    'goods_code', goods_code,
@@ -121,18 +154,24 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             	    'settled_amount', settled_amount,
             	    'processing_qty', processing_qty,
             	    'unprocessed_qty', unprocessed_qty,
-            	    'processed_qty', processed_qty )) as detailListData
+            	    'processed_qty', processed_qty,
+            	    'planned_qty', planned_qty,
+            	    'planned_amount', planned_amount )) as detailListData
             	     from b_po_settlement_detail_source_inbound GROUP BY po_settlement_id) tab2 ON tab1.id = tab2.po_settlement_id
             		LEFT JOIN b_po_settlement_attach tab3 on tab1.id = tab3.po_settlement_id
             		LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_settlement_status' AND tab6.dict_value = tab1.status
             		LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_settlement_type' AND tab7.dict_value = tab1.type
+            		LEFT JOIN s_dict_data  tab8 ON tab8.code = 'b_po_settlement_settle_type' AND tab8.dict_value = tab1.settle_type
+            		LEFT JOIN s_dict_data  tab9 ON tab9.code = 'b_po_settlement_bill_type' AND tab9.dict_value = tab1.bill_type
+            		LEFT JOIN s_dict_data  tab10 ON tab10.code = 'b_po_settlement_payment_type' AND tab10.dict_value = tab1.payment_type
+            		LEFT JOIN b_po_settlement_total tab11 ON tab11.po_settlement_id = tab1.id
             		WHERE TRUE AND tab1.id = #{p1}
             		 AND tab1.is_del = false
             	GROUP BY
             		tab2.po_settlement_id
             """)
     @Results({
-            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoSettlementDetailListTypeHandler.class),
     })
     BPoSettlementVo selectById(@Param("p1") Integer id);
 
@@ -201,14 +240,27 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		tab1.*,
             		tab3.label as status_name,
             		tab4.label as type_name,
+            		tab5.label as settle_type_name,
+            		tab6.label as bill_type_name,
+            		tab7.label as payment_type_name,
             		tab2.detailListData ,
             		tab11.process_code as process_code,
             		tab13.name as c_name,
-            		tab14.name as u_name
+            		tab14.name as u_name,
+            		tab15.settled_qty,
+            		tab15.settled_amount
             	FROM
             		b_po_settlement tab1
             	    LEFT JOIN (select po_settlement_id,JSON_ARRAYAGG(
-            	    JSON_OBJECT( 'sku_code', sku_code,
+            	    JSON_OBJECT( 'id', id,
+            	    'po_settlement_id', po_settlement_id,
+            	    'po_settlement_code', po_settlement_code,
+            	    'po_contract_id', po_contract_id,
+            	    'po_contract_code', po_contract_code,
+            	    'po_order_id', po_order_id,
+            	    'po_order_code', po_order_code,
+            	    'po_order_detail_id', po_order_detail_id,
+            	    'sku_code', sku_code,
             	    'sku_name',sku_name,
             	    'goods_id', goods_id,
             	    'goods_code', goods_code,
@@ -220,14 +272,20 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             	    'settled_amount', settled_amount,
             	    'processing_qty', processing_qty,
             	    'unprocessed_qty', unprocessed_qty,
-            	    'processed_qty', processed_qty )) as detailListData
+            	    'processed_qty', processed_qty,
+            	    'planned_qty', planned_qty,
+            	    'planned_amount', planned_amount )) as detailListData
             	     from b_po_settlement_detail_source_inbound GROUP BY po_settlement_id) tab2 ON tab1.id = tab2.po_settlement_id
             		LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_po_settlement_status' AND tab3.dict_value = tab1.status
             		LEFT JOIN s_dict_data  tab4 ON tab4.code = 'b_po_settlement_type' AND tab4.dict_value = tab1.type
+            		LEFT JOIN s_dict_data  tab5 ON tab5.code = 'b_po_settlement_settle_type' AND tab5.dict_value = tab1.settle_type
+            		LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_settlement_bill_type' AND tab6.dict_value = tab1.bill_type
+            		LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_settlement_payment_type' AND tab7.dict_value = tab1.payment_type
             	    LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = 'b_po_settlement'
                     ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id
                 LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
                 LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
+                LEFT JOIN b_po_settlement_total tab15 ON tab15.po_settlement_id = tab1.id
             		WHERE TRUE
             		 AND tab1.is_del = false
             		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
@@ -243,7 +301,7 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		  </script>
             """)
     @Results({
-            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoSettlementDetailListTypeHandler.class),
     })
     List<BPoSettlementVo> selectExportList(@Param("p1")BPoSettlementVo param);
 
@@ -262,4 +320,10 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
      */
     @Select("select * from b_po_settlement where code = #{code} and is_del = false")
     BPoSettlementVo selectByCode(@Param("code") String code);
+
+    /**
+     * 根据结算ID获取相关的采购合同ID列表
+     */
+    @Select("select po_contract_id from b_po_settlement_detail_source_inbound where po_settlement_id = #{po_settlement_id}")
+    List<Integer> selectContractIdsBySettlementId(@Param("po_settlement_id") Integer poSettlementId);
 } 

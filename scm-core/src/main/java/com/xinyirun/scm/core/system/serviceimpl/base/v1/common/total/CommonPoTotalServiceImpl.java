@@ -32,9 +32,11 @@ import com.xinyirun.scm.core.system.mapper.business.pocontract.BPoContractTotalM
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderDetailTotalMapper;
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderMapper;
 import com.xinyirun.scm.core.system.mapper.business.poorder.BPoOrderTotalMapper;
+import com.xinyirun.scm.core.system.mapper.business.settlement.BPoSettlementTotalMapper;
 import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanDetailMapper;
 import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanTotalMapper;
 import com.xinyirun.scm.core.system.mapper.wms.in.BInMapper;
+import com.xinyirun.scm.core.system.mapper.business.settlement.BPoSettlementMapper;
 import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanTotalEntity;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
@@ -116,6 +118,12 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     @Autowired
     private BPoOrderDetailTotalMapper poOrderDetailTotalMapper;
 
+    @Autowired
+    private BPoSettlementMapper bPoSettlementMapper;
+
+    @Autowired
+    private BPoSettlementTotalMapper bPoSettlementTotalMapper;
+
     /**
      * 重新计算所有的财务数据，最终得到合同ID集合 contractIdSet
      * @param bo 查询条件
@@ -140,23 +148,28 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         for (Integer contractId : contractIdSet) {
             /**
              * 处理每个合同ID的Total数据
-             * 1. 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total）
+             * 1. 处理采购结算汇总数据（b_po_settlement_total）
+             *    - 通过合同ID查询b_po_settlement_detail_source_inbound表获取结算ID集合
+             *    - 批量更新b_po_settlement_total表的汇总数据：processing_qty, processing_weight, processing_volume, unprocessed_qty, unprocessed_weight, unprocessed_volume, processed_qty, processed_weight, processed_volume, planned_qty, planned_weight, planned_volume, planned_amount, settled_qty, settled_weight, settled_volume, settled_amount
+             * 2. 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total）
              *    - b_in_plan_detail: 更新processing_qty, processing_weight, processing_volume, unprocessed_qty, unprocessed_weight, unprocessed_volume, processed_qty, processed_weight, processed_volume
              *    - b_in_plan_total: 汇总计划级别的processing_qty_total, processing_weight_total, processing_volume_total, unprocessed_qty_total, unprocessed_weight_total, unprocessed_volume_total, processed_qty_total, processed_weight_total, processed_volume_total
-             * 2. 处理付款单total数据（b_ap_pay、b_ap_source_advance）
+             * 3. 处理付款单total数据（b_ap_pay、b_ap_source_advance）
              *    - b_ap_pay: 更新付款单总金额字段
              *    - b_ap_source_advance: payable_amount_total, paid_amount_total, paying_amount_total, unpay_amount_total
-             * 3. 处理应付账款total数据（b_ap_total、b_ap_detail、b_ap_source_advance）
+             * 4. 处理应付账款total数据（b_ap_total、b_ap_detail、b_ap_source_advance）
              *    - b_ap_total: payable_amount_total, paid_amount_total, paying_amount_total, stoppay_amount_total, cancelpay_amount_total, unpay_amount_total
              *    - b_ap_detail: 调用updateTotalData更新总计字段
              *    - b_ap_source_advance: stoppay_amount_total, cancelpay_amount_total（中止和作废分配）
-             * 4. 处理采购订单total数据（b_po_order_total）
+             * 5. 处理采购订单total数据（b_po_order_total）
              *    - updatePoOrderTotalData: 更新采购订单总计数据
              *    - updateAdvanceAmountTotalData: 更新预付款总计数据
              *    - updatePaidTotalData: 更新已付款总金额数据
-             * 5. 处理采购合同total数据（b_po_contract_total）
+             * 6. 处理采购合同total数据（b_po_contract_total）
              *    - updateContractAdvanceTotalData: 汇总合同下所有订单的预付款数据
              */
+            // ===================== 处理采购结算汇总数据（b_po_settlement_total） =====================
+            processPoSettlementTotalDataByContractId(contractId);
             // ===================== 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total） =====================
             processInPlanTotalDataByContractId(contractId);
             // ===================== 处理付款total数据（b_ap_pay、b_ap_source_advance） =====================
@@ -593,6 +606,8 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             return getContractIdsFromInPlan(bo);
         } else if (bo.getInboundId() != null || (bo.getInboundIds() != null && !bo.getInboundIds().isEmpty())) {
             return getContractIdsFromInbound(bo);
+        } else if (bo.getPoSettlementId() != null || (bo.getPoSettlementIds() != null && !bo.getPoSettlementIds().isEmpty())) {
+            return getContractIdsFromPoSettlement(bo);
         }
         return new ArrayList<>();
     }
@@ -828,6 +843,28 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     }
 
     /**
+     * 采购结算分支，获取合同ID集合
+     */
+    private List<Integer> getContractIdsFromPoSettlement(TotalDataRecalculateBo bo) {
+        LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
+        if (bo.getPoSettlementId() != null) {
+            List<Integer> contractIds = bPoSettlementMapper.selectContractIdsBySettlementId(bo.getPoSettlementId());
+            if (contractIds != null) {
+                contractIdSet.addAll(contractIds);
+            }
+        }
+        if (bo.getPoSettlementIds() != null && !bo.getPoSettlementIds().isEmpty()) {
+            for (Integer settlementId : bo.getPoSettlementIds()) {
+                List<Integer> contractIds = bPoSettlementMapper.selectContractIdsBySettlementId(settlementId);
+                if (contractIds != null) {
+                    contractIdSet.addAll(contractIds);
+                }
+            }
+        }
+        return new ArrayList<>(contractIdSet);
+    }
+
+    /**
      * 按采购合同编号重新生成Total数据
      * @param code 采购合同编号
      * @return 是否操作成功
@@ -1045,6 +1082,43 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     }
 
     /**
+     * 处理采购结算汇总数据（b_po_settlement_total）
+     * 步骤：
+     * 1. 通过contractId从b_po_settlement_detail_source_inbound表获取结算ID集合
+     * 2. 使用结算ID集合批量更新b_po_settlement_total表的汇总数据
+     * 
+     * @param contractId 合同ID
+     */
+    private void processPoSettlementTotalDataByContractId(Integer contractId) {
+        // 1. 通过contractId获取到b_po_settlement_detail_source_inbound表的数据，生成对应的LinkedHashSet<Integer> poSettlementIdSet
+        LinkedHashSet<Integer> poSettlementIdSet = new LinkedHashSet<>();
+        List<Integer> settlementIdList = bPoSettlementTotalMapper.selectSettlementIdsByContractId(contractId);
+        if (settlementIdList != null && !settlementIdList.isEmpty()) {
+            poSettlementIdSet.addAll(settlementIdList);
+        }
+
+        // 2. 如果有结算ID，先插入缺失的数据，再进行批量更新
+        if (!poSettlementIdSet.isEmpty()) {
+            try {
+                // 先插入缺失的结算汇总记录
+                int insertResult = bPoSettlementTotalMapper.insertMissingSettlementTotal(poSettlementIdSet);
+                if (insertResult > 0) {
+                    log.debug("插入缺失的采购结算汇总数据成功，插入行数: {}, 结算ID集合: {}", insertResult, poSettlementIdSet);
+                }
+                
+                // 然后批量更新汇总数据
+                int updateResult = bPoSettlementTotalMapper.batchUpdateSettlementTotal(poSettlementIdSet);
+                log.debug("批量更新采购结算汇总数据成功，影响行数: {}, 结算ID集合: {}", updateResult, poSettlementIdSet);
+            } catch (Exception e) {
+                log.error("处理采购结算汇总数据失败，结算ID集合: {}, 错误信息: {}", poSettlementIdSet, e.getMessage(), e);
+                throw new BusinessException(e);
+            }
+        } else {
+            log.debug("合同ID {} 下未找到采购结算数据", contractId);
+        }
+    }
+
+    /**
      * 处理入库计划total数据（b_in_plan_detail、b_in_plan_total）
      * 步骤：
      * 1. 通过contractId获取到b_in_plan_detail表的数据，生成对应的LinkedHashSet<Integer> inPlanIdSet
@@ -1120,6 +1194,18 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     public Boolean reCalculateAllTotalDataByInboundId(Integer id) {
         TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
         bo.setInboundId(id);
+        return reCalculateAllTotalData(bo);
+    }
+
+    /**
+     * 按采购结算id重新生成Total数据
+     * @param id 采购结算id
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByPoSettlementId(Integer id) {
+        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        bo.setPoSettlementId(id);
         return reCalculateAllTotalData(bo);
     }
 
