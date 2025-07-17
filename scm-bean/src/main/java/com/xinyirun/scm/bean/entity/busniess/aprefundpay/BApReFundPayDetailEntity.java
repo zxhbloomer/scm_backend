@@ -49,11 +49,6 @@ public class BApReFundPayDetailEntity implements Serializable {
     @TableField("po_contract_code")
     private String po_contract_code;
 
-    /**
-     * 采购订单编号
-     */
-    @TableField("po_code")
-    private String po_code;
 
     /**
      * 应付账款单id

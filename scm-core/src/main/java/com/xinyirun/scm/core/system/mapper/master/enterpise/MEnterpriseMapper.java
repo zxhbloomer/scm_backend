@@ -29,7 +29,7 @@ public interface MEnterpriseMapper extends BaseMapper<MEnterpriseEntity> {
             +"	t4.name as u_name,                                                                                                                   "
             +"	t5.label as status_name,                                                                                                             "
             +"	t6.type_names as type_names,                                                                                                         "
-            +"	t7.process_code as process_code                                                                                                      "
+            +"	t1.bpm_instance_code as process_code                                                                                                      "
             +"FROM                                                                                                                                   "
             +"	m_enterprise t1                                                                                                                      "
             +"	LEFT JOIN m_enterprise_attach t2 ON t1.id = t2.enterprise_id                                                                         "
@@ -39,8 +39,6 @@ public interface MEnterpriseMapper extends BaseMapper<MEnterpriseEntity> {
             +"	LEFT JOIN (select t1.enterprise_id, GROUP_CONCAT(t2.label ORDER BY t1.enterprise_id SEPARATOR ', ') as type_names                    "
             +"				from m_enterprise_types t1 left join s_dict_data t2 on t2.code = '" + DictConstant.DICT_M_ENTERPRISE_TYPE +"'            "
             +"                  AND t2.dict_value = t1.type GROUP BY t1.enterprise_id ) 	AS t6 on t1.id = t6.enterprise_id                        "
-            +"	LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = '" + SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_M_ENTERPRISE +"'       "
-            +"         ORDER BY c_time DESC limit 1) as t7  on t7.serial_id = t1.id                                                                  "
             ;
 
     String common_select_export = "  "

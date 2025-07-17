@@ -25,9 +25,9 @@ public interface BApSourceAdvanceMapper extends BaseMapper<BApSourceAdvanceEntit
     /**
      * 根据应付账款ID删除预收款数据
      */
-    @Delete(""
-            + " DELETE FROM b_ap_source_advance t where t.ap_id = #{ap_id}            "
-            + "    ")
+    @Delete("""
+            DELETE FROM b_ap_source_advance t where t.ap_id = #{ap_id}
+            """)
     void deleteByApId(Integer ap_id);
 
     /**

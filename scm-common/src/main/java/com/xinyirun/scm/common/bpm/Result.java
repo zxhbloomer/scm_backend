@@ -5,14 +5,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 //import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 @Data
 //@ApiModel(value="接口返回对象", description="接口返回对象")
 public class Result<T> implements Serializable {
 
-	private static final long serialVersionUID = 1L;
 
+	@Serial
+	private static final long serialVersionUID = 7209629906909471914L;
 	/**
 	 * 成功标志
 	 */

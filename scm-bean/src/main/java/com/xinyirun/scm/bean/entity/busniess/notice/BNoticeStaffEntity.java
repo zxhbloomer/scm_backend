@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -22,7 +23,9 @@ import java.time.LocalDateTime;
 @TableName("b_notice_staff")
 public class BNoticeStaffEntity implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = -7998517485229287251L;
 
     /**
      * 主键id

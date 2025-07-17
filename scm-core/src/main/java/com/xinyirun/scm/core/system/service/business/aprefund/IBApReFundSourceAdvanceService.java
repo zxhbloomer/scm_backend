@@ -1,7 +1,6 @@
 package com.xinyirun.scm.core.system.service.business.aprefund;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.ap.BApSourceAdvanceEntity;
 import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundSourceAdvanceEntity;
 
 /**

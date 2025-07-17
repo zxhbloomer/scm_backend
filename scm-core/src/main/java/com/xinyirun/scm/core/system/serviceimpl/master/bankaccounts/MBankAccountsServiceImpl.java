@@ -2,12 +2,14 @@ package com.xinyirun.scm.core.system.serviceimpl.master.bankaccounts;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.bank.MBankAccountsEntity;
 import com.xinyirun.scm.bean.entity.master.bank.MBankAccountsPurposeEntity;
 import com.xinyirun.scm.bean.entity.master.bank.MBankAccountsTypeEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
+import com.xinyirun.scm.bean.entity.sys.config.dict.SDictDataEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
@@ -20,6 +22,7 @@ import com.xinyirun.scm.bean.system.vo.master.bankaccounts.MBankAccountsExportVo
 import com.xinyirun.scm.bean.system.vo.master.bankaccounts.MBankAccountsTypeVo;
 import com.xinyirun.scm.bean.system.vo.master.bankaccounts.MBankAccountsVo;
 import com.xinyirun.scm.bean.system.vo.sys.config.dict.SDictDataExportVo;
+import com.xinyirun.scm.bean.system.vo.sys.config.dict.SDictDataVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
@@ -85,29 +88,47 @@ public class MBankAccountsServiceImpl extends BaseServiceImpl<MBankAccountsMappe
      */
     @Override
     public MBankAccountsVo selectById(Integer id) {
-        return mapper.selById(id);
+        MBankAccountsVo vo = mapper.selById(id);
+        // 查询账户类型
+        List<MBankAccountsTypeVo> bankTypes = mBankAccountsTypeMapper.getBankType(id);
+        if (CollectionUtil.isNotEmpty(bankTypes)) {
+            String[] bankTypeCodes = bankTypes.stream().map(MBankAccountsTypeVo::getCode).toArray(String[]::new);
+            vo.setBank_type(bankTypeCodes);
+        }
+        return vo;
     }
 
     /**
      * 企业银行账户，校验数据
-     * @param searchCondition
+     * @param vo
      * @param checkType
      */
     @Override
-    public CheckResultAo checkLogic(MBankAccountsVo searchCondition, String checkType) {
-        List<MBankAccountsVo> mBankAccountsVos = mapper.validateDuplicateCode(searchCondition);
+    public CheckResultAo checkLogic(MBankAccountsVo vo, String checkType) {
+        List<MBankAccountsVo> mBankAccountsVos = mapper.validateDuplicateCode(vo);
 
         switch (checkType) {
             case CheckResultAo.INSERT_CHECK_TYPE:
                 if (CollectionUtil.isNotEmpty(mBankAccountsVos)) {
-                    return CheckResultUtil.NG("已存在编码", mBankAccountsVos);
+                    return CheckResultUtil.NG("校验出错：您输入的编码[" + vo.getCode() + "]已存在，请重新输入。", mBankAccountsVos);
+                }
+                
+                // 校验bank_type是否为空
+                if (ObjectUtil.isEmpty(vo.getBank_type()) || vo.getBank_type().length == 0) {
+                    return CheckResultUtil.NG("请至少选择一个账户类型");
                 }
 
                 break;
             case CheckResultAo.UPDATE_CHECK_TYPE:
                 if (CollectionUtil.isNotEmpty(mBankAccountsVos)) {
-                    return CheckResultUtil.NG("已存在编码", mBankAccountsVos);
+                    return CheckResultUtil.NG("校验出错：您输入的编码[" + vo.getCode() + "]已存在，请重新输入。", mBankAccountsVos);
                 }
+                
+                // 校验bank_type是否为空
+                if (ObjectUtil.isEmpty(vo.getBank_type()) || vo.getBank_type().length == 0) {
+                    return CheckResultUtil.NG("请至少选择一个账户类型");
+                }
+                
                 break;
             case CheckResultAo.DELETE_CHECK_TYPE:
 
@@ -149,18 +170,23 @@ public class MBankAccountsServiceImpl extends BaseServiceImpl<MBankAccountsMappe
             throw new UpdateErrorException("新增失败");
         }
 
-//        // 3.增加附表数据
-//        List<SDictDataExportVo> sDictDataExportVos = sDictDataMapper.selectByCode(DictConstant.DICT_B_AP_TYPE);
-//        if (CollectionUtil.isNotEmpty(sDictDataExportVos)){
-//            for (SDictDataExportVo sDictDataExportVo : sDictDataExportVos) {
-//                MBankAccountsPurposeEntity mBankAccountsPurposeEntity = new MBankAccountsPurposeEntity();
-//                mBankAccountsPurposeEntity.setBank_accounts_id(mBankAccountsEntity.getId());
-//                mBankAccountsPurposeEntity.setBank_accounts_code(mBankAccountsEntity.getCode());
-//                mBankAccountsPurposeEntity.setType(sDictDataExportVo.getDict_value());
-//                mBankAccountsPurposeEntity.setName(sDictDataExportVo.getLabel());
-//                mBankAccountsPurposeMapper.insert(mBankAccountsPurposeEntity);
-//            }
-//        }
+        // 3.增加账户类型数据到m_bank_accounts_type表
+        if (ObjectUtil.isNotEmpty(searchCondition.getBank_type())) {
+            for (String bankType : searchCondition.getBank_type()) {
+                // 根据bank_type查询字典数据获取name
+                SDictDataVo dictData = sDictDataMapper.getDetailByCodeAndDictValue(DictConstant.DICT_M_BANK_TYPE, bankType);
+                String typeName = ObjectUtil.isNotEmpty(dictData) ? dictData.getLabel() : bankType;
+                
+                // 插入m_bank_accounts_type记录
+                MBankAccountsTypeEntity typeEntity = new MBankAccountsTypeEntity();
+                typeEntity.setBank_id(mBankAccountsEntity.getId());
+                typeEntity.setCode(bankType);
+                typeEntity.setName(typeName);
+                typeEntity.setStatus("1");
+                
+                mBankAccountsTypeMapper.insert(typeEntity);
+            }
+        }
 
         searchCondition.setId(mBankAccountsEntity.getId());
         return InsertResultUtil.OK(searchCondition);
@@ -197,6 +223,29 @@ public class MBankAccountsServiceImpl extends BaseServiceImpl<MBankAccountsMappe
         int insert =  mapper.updateById(mBankAccountsEntity);
         if (insert == 0) {
             throw new UpdateErrorException("新增失败");
+        }
+
+        // 3.更新账户类型数据到m_bank_accounts_type表
+        if (ObjectUtil.isNotEmpty(searchCondition.getBank_type())) {
+            // 先删除已有的账户类型记录
+            mBankAccountsTypeMapper.delete(new QueryWrapper<MBankAccountsTypeEntity>()
+                    .eq("bank_id", mBankAccountsEntity.getId()));
+            
+            // 重新插入账户类型记录
+            for (String bankType : searchCondition.getBank_type()) {
+                // 根据bank_type查询字典数据获取name
+                SDictDataVo dictData = sDictDataMapper.getDetailByCodeAndDictValue(DictConstant.DICT_M_BANK_TYPE, bankType);
+                String typeName = ObjectUtil.isNotEmpty(dictData) ? dictData.getLabel() : bankType;
+                
+                // 插入m_bank_accounts_type记录
+                MBankAccountsTypeEntity typeEntity = new MBankAccountsTypeEntity();
+                typeEntity.setBank_id(mBankAccountsEntity.getId());
+                typeEntity.setCode(bankType);
+                typeEntity.setName(typeName);
+                typeEntity.setStatus("1");
+                
+                mBankAccountsTypeMapper.insert(typeEntity);
+            }
         }
 
         searchCondition.setId(mBankAccountsEntity.getId());
@@ -292,7 +341,7 @@ public class MBankAccountsServiceImpl extends BaseServiceImpl<MBankAccountsMappe
      */
     @Override
     public List<MBankAccountsTypeVo> getBankType(MBankAccountsTypeVo searchCondition) {
-        return mBankAccountsTypeMapper.getBankType();
+        return mBankAccountsTypeMapper.getBankType(searchCondition.getBank_id());
     }
 
     /**

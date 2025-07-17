@@ -160,24 +160,16 @@ public class BApVo implements Serializable {
     private BigDecimal unpay_amount;
 
     /**
-     * 可退款金额
+     * 未付款款总金额
      */
-    private BigDecimal can_refunded_amount;
+    private BigDecimal stoppay_amount;
+
+
 
     /**
      * 实付总金额
      */
     private BigDecimal paid_amount;
-
-    /**
-     * 已退款金额
-     */
-    private BigDecimal refunded_amount;
-
-    /**
-     * 退款中金额
-     */
-    private BigDecimal refunding_amount;
 
     // ========== 汇总字段 ==========
     
@@ -200,11 +192,6 @@ public class BApVo implements Serializable {
      * 未付款总金额
      */
     private BigDecimal unpay_amount_total;
-
-    /**
-     * 退款总金额
-     */
-    private BigDecimal refunded_amount_total;
 
     /**
      * 中止付款总金额
@@ -256,6 +243,11 @@ public class BApVo implements Serializable {
      * 业务单据信息 采购订单
      */
     private List<BApSourceAdvanceVo> poOrderListData;
+
+    /**
+     * 业务单据信息 aplist
+     */
+    private List<BApSourceAdvanceVo> apListData;
 
     /**
      * 付款信息 银行账户

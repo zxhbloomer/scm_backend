@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
@@ -25,7 +26,9 @@ import java.math.BigDecimal;
 @TableName("b_so_order_detail")
 public class BSoOrderDetailEntity implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = 898486526061329867L;
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

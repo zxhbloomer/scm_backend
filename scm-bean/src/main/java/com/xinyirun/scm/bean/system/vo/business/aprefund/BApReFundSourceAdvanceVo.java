@@ -8,6 +8,7 @@ import lombok.experimental.Accessors;
 import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -33,39 +34,24 @@ public class BApReFundSourceAdvanceVo implements Serializable {
     private String code;
 
     /**
-     * 应付账款主表id
-     */
-    private Integer ap_pay_id;
-
-    /**
-     * 应付账款主表code
-     */
-    private String ap_pay_code;
-
-    /**
-     * 应付账单id
-     */
-    private Integer ap_id;
-
-    /**
-     * 应付账单code
-     */
-    private String ap_code;
-
-    /**
-     * 应付账款id
+     * 应付退款主表id
      */
     private Integer ap_refund_id;
 
     /**
-     * 应付账款code
+     * 应付退款主表code
      */
     private String ap_refund_code;
 
     /**
-     *
+     * 1-应付退款、2-预付退款、3-其他支出退款
      */
     private String type;
+
+    /**
+     * 采购合同id
+     */
+    private Integer po_contract_id;
 
     /**
      * 采购合同编号
@@ -75,7 +61,12 @@ public class BApReFundSourceAdvanceVo implements Serializable {
     /**
      * 采购订单编号
      */
-    private String po_code;
+    private String po_order_code;
+
+    /**
+     * 采购订单id
+     */
+    private Integer po_order_id;
 
     /**
      * 商品GROUP_CONCAT
@@ -83,32 +74,69 @@ public class BApReFundSourceAdvanceVo implements Serializable {
     private String po_goods;
 
     /**
-     * 预付款总金额
+     * 申请退款总金额
      */
-    private BigDecimal advance_pay_amount;
+    private BigDecimal refundable_amount_total;
 
     /**
-     * 已退金额
+     * 已退款总金额
      */
-    private BigDecimal refunded_amount;
+    private BigDecimal refunded_amount_total;
+
+    /**
+     * 退款中总金额
+     */
+    private BigDecimal refunding_amount_total;
+
+    /**
+     * 未退款总金额
+     */
+    private BigDecimal unrefund_amount_total;
+
+    /**
+     * 取消退款总金额
+     */
+    private BigDecimal cancelrefund_amount_total;
+
+    /**
+     * 预付款已付金额
+     */
+    private BigDecimal advance_paid_total;
 
     /**
      * 可退金额
      */
-    private BigDecimal can_refunded_amount;
+    private BigDecimal advance_refund_amount_total;
 
     /**
-     * 退款中金额
+     * 创建人id
      */
-    private BigDecimal refunding_amount;
+    private Long c_id;
 
     /**
-     * 本次申请退款金额
+     * 创建时间
      */
-    private BigDecimal refund_amount;
+    private LocalDateTime c_time;
 
     /**
-     * 备注
+     * 修改时间
      */
-    private String remark;
+    private LocalDateTime u_time;
+
+    /**
+     * 修改人id
+     */
+    private Long u_id;
+
+    /**
+     * 数据版本，乐观锁使用
+     */
+    private Integer dbversion;
+
+    /**
+     * 本次申请金额
+     */
+    private BigDecimal order_amount;
+
+
 }

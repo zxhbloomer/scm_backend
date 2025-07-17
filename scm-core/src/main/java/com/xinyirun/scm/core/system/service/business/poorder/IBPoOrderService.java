@@ -42,9 +42,19 @@ public interface IBPoOrderService extends IService<BPoOrderEntity> {
     IPage<PoOrderVo> selectPage(PoOrderVo searchCondition);
 
     /**
+     * 按退款条件分页查询
+     */
+    IPage<PoOrderVo> selectPageByAprefund(PoOrderVo searchCondition);
+
+    /**
      * 采购订单 统计
      */
     PoOrderVo querySum(PoOrderVo searchCondition);
+
+    /**
+     * 按退款条件汇总查询
+     */
+    PoOrderVo querySumByAprefund(PoOrderVo searchCondition);
 
     /**
      * 更新采购合同信息

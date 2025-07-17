@@ -244,6 +244,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
         return mapper.selectPage(pageCondition, searchCondition);
     }
 
+
     /**
      * 根据id查询应付账款详细信息
      * 
@@ -579,25 +580,25 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
      * 新增应付账款主流程，分步骤调用各业务方法，便于维护和扩展
      */
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<BApVo> insert(BApVo searchCondition) {
+    public InsertResultAo<BApVo> insert(BApVo vo) {
         // 1. 计算汇总数据
-        calculateSummaryData(searchCondition);
+        calculateSummaryData(vo);
         // 3. 保存主表信息
-        BApEntity bApEntity = saveMainEntity(searchCondition);
+        BApEntity bApEntity = saveMainEntity(vo);
         // 4. 保存源单信息
-        saveSourceEntity(searchCondition, bApEntity);
+        saveSourceEntity(vo, bApEntity);
         // 5. 保存源单-预收款信息
-        saveSourceAdvanceEntity(searchCondition, bApEntity);
+        saveSourceAdvanceEntity(vo, bApEntity);
         // 6. 保存银行账户明细
-        saveDetailList(searchCondition, bApEntity);
+        saveDetailList(vo, bApEntity);
         // 7. 保存附件信息
-        saveAttach(searchCondition, bApEntity);
+        saveAttach(vo, bApEntity);
         // 8. 汇总合计数据生成
         commonTotalService.reCalculateAllTotalDataByApId(bApEntity.getId());
 //        bApTotalService.calcNewApAmount(bApEntity.getId());
         // 9. 设置返回ID
-        searchCondition.setId(bApEntity.getId());
-        return InsertResultUtil.OK(searchCondition);
+        vo.setId(bApEntity.getId());
+        return InsertResultUtil.OK(vo);
     }
 
     /**
@@ -935,12 +936,12 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BApVo searchCondition) {
-        log.debug("====》付款管理[{}]作废审批流程通过，更新开始《====",searchCondition.getId());
-        BApEntity bApEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BApVo vo) {
+        log.debug("====》付款管理[{}]作废审批流程通过，更新开始《====",vo.getId());
+        BApEntity bApEntity = mapper.selectById(vo.getId());
 
-        bApEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
-        bApEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        bApEntity.setBpm_cancel_instance_id(vo.getBpm_instance_id());
+        bApEntity.setBpm_cancel_instance_code(vo.getBpm_instance_code());
 
         bApEntity.setStatus(DictConstant.DICT_B_AP_STATUS_FIVE);
         bApEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -950,12 +951,12 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
         }
 
         // 更新b_ap_source_advance表的作废金额
-        updateSourceAdvanceCancelAmount(searchCondition.getId());
+        updateSourceAdvanceCancelAmount(vo.getId());
 
         // 调用共通，更新total
         commonTotalService.reCalculateAllTotalDataByApId(bApEntity.getId());
 
-        log.debug("====》付款管理[{}]作废审批流程通过,更新结束《====",searchCondition.getId());
+        log.debug("====》付款管理[{}]作废审批流程通过,更新结束《====",vo.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -1069,15 +1070,6 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
 
         log.debug("====》付款管理[{}]作废审批流程更新最新审批人，更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
-    }
-
-    /**
-     * 获取下推预付退款款数据
-     * @param searchCondition
-     */
-    @Override
-    public BApVo getApRefund(BApVo searchCondition) {
-        return mapper.getApRefund(searchCondition);
     }
 
     /**

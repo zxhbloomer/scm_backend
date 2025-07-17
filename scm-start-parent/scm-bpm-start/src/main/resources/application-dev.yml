@@ -195,30 +195,6 @@ spring:
         type: com.alibaba.druid.pool.xa.DruidXADataSource
         driverClassName: com.mysql.cj.jdbc.Driver
         druid:
-  # 中林生产
-#      master:
-#        url: jdbc:mysql://rm-uf69hpg7211j6trh7no.mysql.rds.aliyuncs.com:3306/zlwarehouse?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
-#        username: zlwarehouse
-#        password: abcd@1234
-#        type: com.alibaba.druid.pool.xa.DruidXADataSource
-#        driverClassName: com.mysql.cj.jdbc.Driver
-#        druid:
-  # 公司外网映射
-  #      master:
-  #        url: jdbc:mysql://222.72.35.146:48005/wms_ys?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
-  #        username: root
-  #        password: Abcd@1234
-  #        type: com.alibaba.druid.pool.xa.DruidXADataSource
-  #        driverClassName: com.mysql.cj.jdbc.Driver
-  #        druid:
-  # 鑫润航达生产
-#      master:
-#        url: jdbc:mysql://rm-uf68ek48x0461832hqo.mysql.rds.aliyuncs.com:3306/xrhdwarehouse?tinyInt1isBit=true&useUnicode=true&characterEncoding=utf-8&autoReconnect=true&useSSL=false&&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
-#        username: xrhdwarehouse
-#        password: abcd@1234
-#        type: com.alibaba.druid.pool.xa.DruidXADataSource
-#        driverClassName: com.mysql.cj.jdbc.Driver
-#        druid:
   #   OAuth2 Client/Login配置
   security:
     oauth2:

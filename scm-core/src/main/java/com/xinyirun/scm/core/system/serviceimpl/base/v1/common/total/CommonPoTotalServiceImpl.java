@@ -3,6 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.base.v1.common.total;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.busniess.ap.BApSourceAdvanceEntity;
 import com.xinyirun.scm.bean.entity.busniess.ap.BApTotalEntity;
+import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundTotalEntity;
 import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanDetailEntity;
 import com.xinyirun.scm.bean.entity.busniess.pocontract.BPoContractTotalEntity;
 import com.xinyirun.scm.bean.entity.busniess.poorder.BPoOrderTotalEntity;
@@ -10,6 +11,8 @@ import com.xinyirun.scm.bean.system.bo.fund.total.TotalDataRecalculateBo;
 import com.xinyirun.scm.bean.system.vo.business.ap.BApSourceAdvanceVo;
 import com.xinyirun.scm.bean.system.vo.business.ap.BApTotalVo;
 import com.xinyirun.scm.bean.system.vo.business.ap.BApVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundTotalVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundVo;
 import com.xinyirun.scm.bean.system.vo.business.appay.BApPaySourceAdvanceVo;
 import com.xinyirun.scm.bean.system.vo.business.appay.BApPaySourceVo;
 import com.xinyirun.scm.bean.system.vo.business.appay.BApPayVo;
@@ -23,6 +26,8 @@ import com.xinyirun.scm.core.system.mapper.business.ap.BApDetailMapper;
 import com.xinyirun.scm.core.system.mapper.business.ap.BApMapper;
 import com.xinyirun.scm.core.system.mapper.business.ap.BApSourceAdvanceMapper;
 import com.xinyirun.scm.core.system.mapper.business.ap.BApTotalMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefund.BApReFundMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefund.BApReFundTotalMapper;
 import com.xinyirun.scm.core.system.mapper.business.appay.BApPayDetailMapper;
 import com.xinyirun.scm.core.system.mapper.business.appay.BApPayMapper;
 import com.xinyirun.scm.core.system.mapper.business.appay.BApPaySourceAdvanceMapper;
@@ -42,6 +47,7 @@ import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
 import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
 import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.ap.IBApTotalService;
+import com.xinyirun.scm.core.system.service.business.aprefund.IBApReFundTotalService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -104,6 +110,15 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     private IBApTotalService bApTotalService;
 
     @Autowired
+    private BApReFundMapper bApReFundMapper;
+
+    @Autowired
+    private BApReFundTotalMapper bApReFundTotalMapper;
+
+    @Autowired
+    private IBApReFundTotalService bApReFundTotalService;
+
+    @Autowired
     private BApDetailMapper bApDetailMapper;
 
     @Autowired
@@ -148,26 +163,29 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         for (Integer contractId : contractIdSet) {
             /**
              * 处理每个合同ID的Total数据
-             * 1. 处理采购结算汇总数据（b_po_settlement_total）
+             * 1. 处理应付退款total数据（b_ap_refund_total） - 优先处理
+             * 2. 处理采购结算汇总数据（b_po_settlement_total）
              *    - 通过合同ID查询b_po_settlement_detail_source_inbound表获取结算ID集合
              *    - 批量更新b_po_settlement_total表的汇总数据：processing_qty, processing_weight, processing_volume, unprocessed_qty, unprocessed_weight, unprocessed_volume, processed_qty, processed_weight, processed_volume, planned_qty, planned_weight, planned_volume, planned_amount, settled_qty, settled_weight, settled_volume, settled_amount
-             * 2. 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total）
+             * 3. 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total）
              *    - b_in_plan_detail: 更新processing_qty, processing_weight, processing_volume, unprocessed_qty, unprocessed_weight, unprocessed_volume, processed_qty, processed_weight, processed_volume
              *    - b_in_plan_total: 汇总计划级别的processing_qty_total, processing_weight_total, processing_volume_total, unprocessed_qty_total, unprocessed_weight_total, unprocessed_volume_total, processed_qty_total, processed_weight_total, processed_volume_total
-             * 3. 处理付款单total数据（b_ap_pay、b_ap_source_advance）
+             * 4. 处理付款单total数据（b_ap_pay、b_ap_source_advance）
              *    - b_ap_pay: 更新付款单总金额字段
              *    - b_ap_source_advance: payable_amount_total, paid_amount_total, paying_amount_total, unpay_amount_total
-             * 4. 处理应付账款total数据（b_ap_total、b_ap_detail、b_ap_source_advance）
+             * 5. 处理应付账款total数据（b_ap_total、b_ap_detail、b_ap_source_advance）
              *    - b_ap_total: payable_amount_total, paid_amount_total, paying_amount_total, stoppay_amount_total, cancelpay_amount_total, unpay_amount_total
              *    - b_ap_detail: 调用updateTotalData更新总计字段
              *    - b_ap_source_advance: stoppay_amount_total, cancelpay_amount_total（中止和作废分配）
-             * 5. 处理采购订单total数据（b_po_order_total）
+             * 6. 处理采购订单total数据（b_po_order_total）
              *    - updatePoOrderTotalData: 更新采购订单总计数据
              *    - updateAdvanceAmountTotalData: 更新预付款总计数据
              *    - updatePaidTotalData: 更新已付款总金额数据
-             * 6. 处理采购合同total数据（b_po_contract_total）
+             * 7. 处理采购合同total数据（b_po_contract_total）
              *    - updateContractAdvanceTotalData: 汇总合同下所有订单的预付款数据
              */
+            // ===================== 处理应付退款total数据（b_ap_refund_total） - 优先处理 =====================
+            processApRefundTotalDataByContractId(contractId);
             // ===================== 处理采购结算汇总数据（b_po_settlement_total） =====================
             processPoSettlementTotalDataByContractId(contractId);
             // ===================== 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total） =====================
@@ -393,6 +411,39 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     }
 
     /**
+     * 处理应付退款total数据（b_ap_refund_total）
+     * @param contractId 合同ID
+     */
+    private void processApRefundTotalDataByContractId(Integer contractId) {
+        // 1. 通过contractId获取相关的退款ID集合
+        LinkedHashSet<Integer> apRefundIdSet = new LinkedHashSet<>();
+        List<Integer> refundIdList = bApReFundTotalMapper.selectRefundIdsByContractId(contractId);
+        if (refundIdList != null && !refundIdList.isEmpty()) {
+            apRefundIdSet.addAll(refundIdList);
+        }
+
+        // 2. 如果有退款ID，先插入缺失的Total记录，再进行批量更新
+        if (!apRefundIdSet.isEmpty()) {
+            try {
+                // 2.1 插入缺失的Total记录（处理历史数据）
+                int insertResult = bApReFundTotalMapper.insertMissingRefundTotal(apRefundIdSet);
+                if (insertResult > 0) {
+                    log.debug("插入缺失的应付退款总计数据成功，插入行数: {}, 退款ID集合: {}", insertResult, apRefundIdSet);
+                }
+                
+                // 2.2 批量更新退款总计数据，从退款源单表同步数据
+                int updateResult = bApReFundTotalMapper.batchUpdateRefundTotalFromSource(apRefundIdSet);
+                log.debug("批量更新应付退款总计数据成功，影响行数: {}, 退款ID集合: {}", updateResult, apRefundIdSet);
+            } catch (Exception e) {
+                log.error("处理应付退款总计数据失败，退款ID集合: {}, 错误信息: {}", apRefundIdSet, e.getMessage(), e);
+                throw new BusinessException(e);
+            }
+        } else {
+            log.debug("合同ID {} 下未找到应付退款数据", contractId);
+        }
+    }
+
+    /**
      * 处理应付账款作废时的预付款作废金额分配
      * 当应付账款状态为作废时，将该ap下所有预付款源单的cancelpay_amount_total设置为order_amount
      * 
@@ -608,6 +659,8 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             return getContractIdsFromInbound(bo);
         } else if (bo.getPoSettlementId() != null || (bo.getPoSettlementIds() != null && !bo.getPoSettlementIds().isEmpty())) {
             return getContractIdsFromPoSettlement(bo);
+        } else if (bo.getPoRefundId() != null || (bo.getPoRefundIds() != null && !bo.getPoRefundIds().isEmpty())) {
+            return getContractIdsFromPoRefund(bo);
         }
         return new ArrayList<>();
     }
@@ -865,6 +918,54 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     }
 
     /**
+     * 退款分支，获取合同ID集合
+     */
+    private List<Integer> getContractIdsFromPoRefund(TotalDataRecalculateBo bo) {
+        LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
+        LinkedHashSet<String> contractCodeSet = new LinkedHashSet<>();
+        
+        if (bo.getPoRefundId() != null) {
+            try {
+                // 使用现有的selectId方法查询退款信息，获取合同编号
+                BApReFundVo refundVo = bApReFundMapper.selectId(bo.getPoRefundId());
+                if (refundVo != null && refundVo.getPo_contract_code() != null && !refundVo.getPo_contract_code().isBlank()) {
+                    contractCodeSet.add(refundVo.getPo_contract_code());
+                }
+                log.debug("处理退款ID: {} 的合同关联查询，找到合同编号: {}", bo.getPoRefundId(), refundVo != null ? refundVo.getPo_contract_code() : "null");
+            } catch (Exception e) {
+                log.warn("查询退款ID {} 的合同关联时出现异常: {}", bo.getPoRefundId(), e.getMessage());
+            }
+        }
+        
+        if (bo.getPoRefundIds() != null && !bo.getPoRefundIds().isEmpty()) {
+            for (Integer refundId : bo.getPoRefundIds()) {
+                try {
+                    // 使用现有的selectId方法查询退款信息，获取合同编号
+                    BApReFundVo refundVo = bApReFundMapper.selectId(refundId);
+                    if (refundVo != null && refundVo.getPo_contract_code() != null && !refundVo.getPo_contract_code().isBlank()) {
+                        contractCodeSet.add(refundVo.getPo_contract_code());
+                    }
+                    log.debug("处理退款ID: {} 的合同关联查询，找到合同编号: {}", refundId, refundVo != null ? refundVo.getPo_contract_code() : "null");
+                } catch (Exception e) {
+                    log.warn("查询退款ID {} 的合同关联时出现异常: {}", refundId, e.getMessage());
+                }
+            }
+        }
+        
+        // 合同编号转合同ID
+        for (String contractCode : contractCodeSet) {
+            if (contractCode != null && !contractCode.isBlank()) {
+                PoContractVo contractVo = bPoContractMapper.selectByContractCode(contractCode);
+                if (contractVo != null && contractVo.getId() != null) {
+                    contractIdSet.add(contractVo.getId());
+                }
+            }
+        }
+        
+        return new ArrayList<>(contractIdSet);
+    }
+
+    /**
      * 按采购合同编号重新生成Total数据
      * @param code 采购合同编号
      * @return 是否操作成功
@@ -1006,6 +1107,10 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             // 2.2.3 更新已付款总金额数据（目前仅考虑预付款来源：b_ap_source_advance）
             int paidResult = bPoOrderTotalMapper.updatePaidTotalData(poOrderIdSet);
             log.debug("更新已付款总金额数据完成，影响行数: {}", paidResult);
+            
+            // 2.2.4 更新退款数据（从b_ap_refund_total汇总到采购订单总计表）
+            int refundResult = bPoOrderTotalMapper.updateRefundAmountTotalData(poOrderIdSet);
+            log.debug("更新退款数据完成，影响行数: {}", refundResult);
 
             // 2.3 更新采购订单明细汇总数据 (b_po_order_detail_total)
             log.debug("开始更新采购订单明细汇总数据");
@@ -1207,6 +1312,50 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
         bo.setPoSettlementId(id);
         return reCalculateAllTotalData(bo);
+    }
+
+    /**
+     * 按退款id重新生成Total数据
+     * @param id 退款id
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByPoRefundId(Integer id) {
+        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        bo.setPoRefundId(id);
+        return reCalculateAllTotalData(bo);
+    }
+
+    /**
+     * 按退款编号重新生成Total数据
+     * @param code 退款编号
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByPoRefundCode(String code) {
+        if (code == null || code.isBlank()) {
+            log.warn("退款编号不能为空");
+            return false;
+        }
+        
+        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        
+        try {
+            // 使用新添加的selectIdByCode方法查询退款ID
+            Integer refundId = bApReFundMapper.selectIdByCode(code);
+            if (refundId != null) {
+                bo.setPoRefundId(refundId);
+                log.info("根据退款编号 {} 查询到退款ID: {}", code, refundId);
+                return reCalculateAllTotalData(bo);
+            } else {
+                log.warn("未找到退款编号为 {} 的退款记录", code);
+                return false;
+            }
+            
+        } catch (Exception e) {
+            log.error("根据退款编号 {} 处理Total数据重计算时出现异常: {}", code, e.getMessage(), e);
+            return false;
+        }
     }
 
 }

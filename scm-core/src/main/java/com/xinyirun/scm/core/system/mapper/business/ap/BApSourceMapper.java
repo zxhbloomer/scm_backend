@@ -24,9 +24,9 @@ public interface BApSourceMapper extends BaseMapper<BApSourceEntity> {
     /**
      * 根据应付账款ID删除源单数据
      */
-    @Delete(""
-            + " DELETE FROM b_ap_source t where t.ap_id = #{ap_id}            "
-            + "    ")
+    @Delete("""
+            DELETE FROM b_ap_source t where t.ap_id = #{ap_id}
+            """)
     void deleteByApId(Integer ap_id);
 
     /**

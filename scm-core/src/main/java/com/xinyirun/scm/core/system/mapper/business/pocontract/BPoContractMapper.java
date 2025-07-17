@@ -44,7 +44,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	tab8.label as payment_type_name,
             	iF(tab1.auto_create_order,'是','否') auto_create_name,
             	tab2.detailListData ,
-            	tab11.process_code as process_code,
+            	tab1.bpm_instance_code as process_code,
             	iF(tab12.id,false,true) existence_order,
             	tab13.name as c_name,
             	tab14.name as u_name
@@ -68,9 +68,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_contract_settle_type' AND tab6.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_contract_bill_type' AND tab7.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab8 ON tab8.code = 'b_po_contract_payment_type' AND tab8.dict_value = tab1.payment_type
-                LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = 'b_po_contract'
-                  ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id
-                LEFT JOIN b_po_order tab12 on tab12.po_contract_id = tab1.id
+                    LEFT JOIN b_po_order tab12 on tab12.po_contract_id = tab1.id
                    and tab12.is_del = false and tab1.type = '0'
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
               LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
@@ -270,7 +268,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	tab8.label as payment_type_name,
             	iF(tab1.auto_create_order,'是','否') auto_create_name,
             	tab2.detailListData ,
-            	tab11.process_code as process_code,
+            	tab1.bpm_instance_code as process_code,
             	iF(tab12.id,false,true) existence_order,
             	tab13.name as c_name,
             	tab14.name as u_name
@@ -298,9 +296,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_contract_settle_type' AND tab6.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_contract_bill_type' AND tab7.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab8 ON tab8.code = 'b_po_contract_payment_type' AND tab8.dict_value = tab1.payment_type
-                LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = 'b_po_contract'
-                  ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id
-                LEFT JOIN b_po_order tab12 on tab12.po_contract_id = tab1.id
+                    LEFT JOIN b_po_order tab12 on tab12.po_contract_id = tab1.id
                    and tab12.is_del = false and tab1.type = '0'
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
               LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id

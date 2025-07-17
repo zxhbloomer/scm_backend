@@ -21,6 +21,7 @@ import org.flowable.engine.impl.util.CommandContextUtil;
 import org.flowable.engine.impl.util.ProcessDefinitionUtil;
 import org.flowable.task.service.impl.persistence.entity.TaskEntity;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BackUserTaskCmd implements Command<String>, Serializable {
 
-    public static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = -8517632138380247679L;
 
     protected RuntimeService runtimeService;
     protected String taskId;

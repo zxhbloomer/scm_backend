@@ -3,6 +3,8 @@ package com.xinyirun.scm.bean.entity.bpm;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+
+import java.io.Serial;
 import java.time.LocalDateTime;
 import com.baomidou.mybatisplus.annotation.TableField;
 import java.io.Serializable;
@@ -24,7 +26,9 @@ import lombok.experimental.Accessors;
 @TableName("bpm_user_roles")
 public class BpmUserRolesEntity implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = -2697148648141021563L;
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

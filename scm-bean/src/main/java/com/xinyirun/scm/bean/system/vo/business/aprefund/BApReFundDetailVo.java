@@ -56,29 +56,40 @@ public class BApReFundDetailVo implements Serializable {
     private String bank_accounts_code;
 
     /**
-     * 企业银行账户分类表id
+     * 采购商品信息
      */
-    private Integer bank_accounts_type_id;
+    private String po_goods;
 
     /**
-     * 企业银行账户分类表编号
+     * 可退款金额
      */
-    private String bank_accounts_type_code;
+    private BigDecimal refundable_amount;
 
     /**
-     * 计划退款金额
-     */
-    private BigDecimal refund_amount;
-
-    /**
-     * 实付金额
+     * 已退款金额
      */
     private BigDecimal refunded_amount;
 
     /**
-     * 备注
+     * 退款中金额
      */
-    private String remark;
+    private BigDecimal refunding_amount;
+
+    /**
+     * 未退款金额
+     */
+    private BigDecimal unrefund_amount;
+
+    /**
+     * 取消金额
+     */
+    private BigDecimal cancel_amount;
+
+    /**
+     * 本次申请金额
+     */
+    private BigDecimal order_amount;
+
 
     /**
      * 创建人id
@@ -126,5 +137,9 @@ public class BApReFundDetailVo implements Serializable {
      */
     private String accounts_purpose_type_name;
 
+    /**
+     * 银行账户类型名称
+     */
+    private String bank_type_name;
 
 }

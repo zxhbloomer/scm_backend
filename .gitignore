@@ -37,3 +37,18 @@ logPath_IS_UNDEFINED
 rebel.xml
 
 *.iml
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Claude Code configuration
+.claude/settings.json
+.claude/settings.local.json
+.claude/commands/
+.claude/fix_claude_session.py

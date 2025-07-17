@@ -62,34 +62,47 @@ public class BApReFundDetailEntity implements Serializable {
     private String bank_accounts_code;
 
     /**
-     * 企业银行账户分类表id
+     * 采购商品信息
      */
-    @TableField("bank_accounts_type_id")
-    private Integer bank_accounts_type_id;
+    @TableField("po_goods")
+    private String po_goods;
 
     /**
-     * 企业银行账户分类表编号
+     * 可退款金额
      */
-    @TableField("bank_accounts_type_code")
-    private String bank_accounts_type_code;
+    @TableField("refundable_amount")
+    private BigDecimal refundable_amount;
 
     /**
-     * 计划退款金额
-     */
-    @TableField("refund_amount")
-    private BigDecimal refund_amount;
-
-    /**
-     * 实付金额
+     * 已退款金额
      */
     @TableField("refunded_amount")
     private BigDecimal refunded_amount;
 
     /**
-     * 备注
+     * 退款中金额
      */
-    @TableField("remark")
-    private String remark;
+    @TableField("refunding_amount")
+    private BigDecimal refunding_amount;
+
+    /**
+     * 未退款金额
+     */
+    @TableField("unrefund_amount")
+    private BigDecimal unrefund_amount;
+
+    /**
+     * 取消金额
+     */
+    @TableField("cancel_amount")
+    private BigDecimal cancel_amount;
+
+    /**
+     * 本次申请金额
+     */
+    @TableField("order_amount")
+    private BigDecimal order_amount;
+
 
     /**
      * 创建人id

@@ -33,7 +33,7 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		tab6.label as bill_type_name,
             		tab7.label as payment_type_name,
             		tab2.detailListData ,
-            		tab11.process_code as process_code,
+            		tab1.bpm_instance_code as process_code,
             		tab13.name as c_name,
             		tab14.name as u_name,
             		tab15.settled_qty,
@@ -70,17 +70,18 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		LEFT JOIN s_dict_data  tab5 ON tab5.code = 'b_po_settlement_settle_type' AND tab5.dict_value = tab1.settle_type
             		LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_settlement_bill_type' AND tab6.dict_value = tab1.bill_type
             		LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_settlement_payment_type' AND tab7.dict_value = tab1.payment_type
-            	    LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = 'b_po_settlement'
-                    ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id
                 LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
                 LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
                 LEFT JOIN b_po_settlement_total tab15 ON tab15.po_settlement_id = tab1.id
             		WHERE TRUE
             		 AND tab1.is_del = false
             		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
-            		 AND (tab1.code = #{p1.code} or #{p1.code} is null or #{p1.code} = '')
+            		 <if test='p1.code != null and p1.code != ""'>
+            		 AND tab1.code like CONCAT('%', #{p1.code}, '%')
+            		 </if>
             		 AND (tab1.supplier_id = #{p1.supplier_id}  or #{p1.supplier_id} is null   )
             		 AND (tab1.purchaser_id = #{p1.purchaser_id}  or #{p1.purchaser_id} is null   )
+            		 AND (tab1.bill_type = #{p1.bill_type} or #{p1.bill_type} is null or #{p1.bill_type} = '')
             
                <if test='p1.status_list != null and p1.status_list.length!=0' >
                 and tab1.status in
@@ -104,6 +105,30 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
                         b_po_settlement_detail_source_inbound subt1
                         INNER JOIN b_po_settlement subt2 ON subt1.po_settlement_id = subt2.id
                       where subt1.goods_name like CONCAT('%', #{p1.goods_name}, '%')
+                        and subt2.id = tab1.id
+                     )
+               </if>
+               
+               <if test='p1.po_contract_code != null and p1.po_contract_code != ""'>
+               and exists(
+                      select
+                        1
+                      from
+                        b_po_settlement_detail_source_inbound subt1
+                        INNER JOIN b_po_settlement subt2 ON subt1.po_settlement_id = subt2.id
+                      where subt1.po_contract_code like CONCAT('%', #{p1.po_contract_code}, '%')
+                        and subt2.id = tab1.id
+                     )
+               </if>
+               
+               <if test='p1.po_order_code != null and p1.po_order_code != ""'>
+               and exists(
+                      select
+                        1
+                      from
+                        b_po_settlement_detail_source_inbound subt1
+                        INNER JOIN b_po_settlement subt2 ON subt1.po_settlement_id = subt2.id
+                      where subt1.po_order_code like CONCAT('%', #{p1.po_order_code}, '%')
                         and subt2.id = tab1.id
                      )
                </if>
@@ -196,9 +221,12 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		WHERE TRUE
             		 AND tab1.is_del = false
             		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
-            		 AND (tab1.code = #{p1.code} or #{p1.code} is null or #{p1.code} = '')
+            		 <if test='p1.code != null and p1.code != ""'>
+            		 AND tab1.code like CONCAT('%', #{p1.code}, '%')
+            		 </if>
             		 AND (tab1.supplier_id = #{p1.supplier_id}  or #{p1.supplier_id} is null   )
             		 AND (tab1.purchaser_id = #{p1.purchaser_id}  or #{p1.purchaser_id} is null   )
+            		 AND (tab1.bill_type = #{p1.bill_type} or #{p1.bill_type} is null or #{p1.bill_type} = '')
             
                <if test='p1.status_list != null and p1.status_list.length!=0' >
                 and tab1.status in
@@ -225,6 +253,30 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
                         and subt2.id = tab1.id
                      )
                </if>
+               
+               <if test='p1.po_contract_code != null and p1.po_contract_code != ""'>
+               and exists(
+                      select
+                        1
+                      from
+                        b_po_settlement_detail_source_inbound subt1
+                        INNER JOIN b_po_settlement subt2 ON subt1.po_settlement_id = subt2.id
+                      where subt1.po_contract_code like CONCAT('%', #{p1.po_contract_code}, '%')
+                        and subt2.id = tab1.id
+                     )
+               </if>
+               
+               <if test='p1.po_order_code != null and p1.po_order_code != ""'>
+               and exists(
+                      select
+                        1
+                      from
+                        b_po_settlement_detail_source_inbound subt1
+                        INNER JOIN b_po_settlement subt2 ON subt1.po_settlement_id = subt2.id
+                      where subt1.po_order_code like CONCAT('%', #{p1.po_order_code}, '%')
+                        and subt2.id = tab1.id
+                     )
+               </if>
             
               </script>
             """)
@@ -244,7 +296,7 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		tab6.label as bill_type_name,
             		tab7.label as payment_type_name,
             		tab2.detailListData ,
-            		tab11.process_code as process_code,
+            		tab1.bpm_instance_code as process_code,
             		tab13.name as c_name,
             		tab14.name as u_name,
             		tab15.settled_qty,
@@ -281,15 +333,16 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
             		LEFT JOIN s_dict_data  tab5 ON tab5.code = 'b_po_settlement_settle_type' AND tab5.dict_value = tab1.settle_type
             		LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_settlement_bill_type' AND tab6.dict_value = tab1.bill_type
             		LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_settlement_payment_type' AND tab7.dict_value = tab1.payment_type
-            	    LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = 'b_po_settlement'
-                    ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id
                 LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
                 LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
                 LEFT JOIN b_po_settlement_total tab15 ON tab15.po_settlement_id = tab1.id
             		WHERE TRUE
             		 AND tab1.is_del = false
             		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
-            		 AND (tab1.code = #{p1.code} or #{p1.code} is null or #{p1.code} = '')
+            		 <if test='p1.code != null and p1.code != ""'>
+            		 AND tab1.code like CONCAT('%', #{p1.code}, '%')
+            		 </if>
+            		 AND (tab1.bill_type = #{p1.bill_type} or #{p1.bill_type} is null or #{p1.bill_type} = '')
                <if test='p1.ids != null and p1.ids.length != 0' >
                 and tab1.id in
                     <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>

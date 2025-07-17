@@ -90,6 +90,7 @@ public class BApController {
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
+
     @SysLogAnnotion("应付账款管理，获取单条数据")
     @PostMapping("/get")
     public ResponseEntity<JsonResultAo<BApVo>> get(@RequestBody(required = false) BApVo searchCondition) {
@@ -150,14 +151,6 @@ public class BApController {
         }
     }
 
-    @SysLogAnnotion("应付账款管理，获取下推预付退款款数据")
-    @PostMapping("/get_ap_refund")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<BApVo>> getApRefund(@RequestBody(required = false) BApVo searchCondition) {
-        BApVo vo = service.getApRefund(searchCondition);
-        return ResponseEntity.ok().body(ResultUtil.OK(vo));
-    }
-
     @SysLogAnnotion("应付账款管理，汇总查询")
     @PostMapping("/sum")
     @ResponseBody
@@ -187,7 +180,6 @@ public class BApController {
                 poOrderExportVo.setTotal_payable_amount(poContractVo.getPayable_amount());
                 poOrderExportVo.setTotal_paying_amount(poContractVo.getPaying_amount());
                 poOrderExportVo.setTotal_unpay_amount(poContractVo.getUnpay_amount());
-                poOrderExportVo.setTotal_return_pay_amount(poContractVo.getRefunded_amount());
                 poOrderExportVo.setRemarks(poContractVo.getRemark());
 
                 poOrderExportVo.setAccount_number(bApDetailVos.getAccount_number());

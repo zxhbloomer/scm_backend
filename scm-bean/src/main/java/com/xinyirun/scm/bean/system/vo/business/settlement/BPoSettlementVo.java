@@ -290,4 +290,7 @@ public class BPoSettlementVo implements Serializable {
      * 实际结算-结算金额
      */
     private BigDecimal settled_amount;
+
+    private String po_contract_code;
+    private String po_order_code ;
 } 

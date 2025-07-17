@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPayEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundPayVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayVo;
 
 /**
  * <p>

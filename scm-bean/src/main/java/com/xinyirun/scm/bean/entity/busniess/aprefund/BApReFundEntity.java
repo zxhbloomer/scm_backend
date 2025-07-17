@@ -49,10 +49,10 @@ public class BApReFundEntity implements Serializable {
     private String status;
 
     /**
-     * 付款状态：0-未付款、1-部分付款、2-已付款、-1-中止付款
+     * 退款状态：0-未退款、1-部分退款、2-已退款、-1-中止退款
      */
-    @TableField("pay_status")
-    private String pay_status;
+    @TableField("refund_status")
+    private String refund_status;
 
     /**
      * 关联项目编号
@@ -61,70 +61,66 @@ public class BApReFundEntity implements Serializable {
     private String project_code;
 
     /**
+     * 采购合同ID
+     */
+    @TableField("po_contract_id")
+    private Integer po_contract_id;
+
+    /**
      * 采购合同编号
      */
     @TableField("po_contract_code")
     private String po_contract_code;
 
     /**
+     * 采购订单ID
+     */
+    @TableField("po_order_id")
+    private Integer po_order_id;
+
+    /**
      * 采购订单编号
      */
-    @TableField("po_code")
-    private String po_code;
+    @TableField("po_order_code")
+    private String po_order_code;
+
 
     /**
-     * 供应商企业编号
+     * 供应商ID
      */
-    @TableField("supplier_enterprise_code")
-    private String supplier_enterprise_code;
+    @TableField("supplier_id")
+    private Integer supplier_id;
+
 
     /**
-     * 供应商企业版本号
+     * 供应商编号
      */
-    @TableField("supplier_enterprise_version")
-    private Integer supplier_enterprise_version;
+    @TableField("supplier_code")
+    private String supplier_code;
 
     /**
-     * 供应商企业名称
+     * 供应商名称
      */
-    @TableField("supplier_enterprise_name")
-    private String supplier_enterprise_name;
+    @TableField("supplier_name")
+    private String supplier_name;
 
     /**
-     * 主体企业买家企业编号
+     * 采购方ID
      */
-    @TableField("buyer_enterprise_code")
-    private String buyer_enterprise_code;
+    @TableField("purchaser_id")
+    private Integer purchaser_id;
 
     /**
-     * 主体企业买家企业版本号
+     * 采购方编号
      */
-    @TableField("buyer_enterprise_version")
-    private Integer buyer_enterprise_version;
+    @TableField("purchaser_code")
+    private String purchaser_code;
 
     /**
-     * 主体企业买家企业名称
+     * 采购方名称
      */
-    @TableField("buyer_enterprise_name")
-    private String buyer_enterprise_name;
-
-    /**
-     * 计划退款总金额
-     */
-    @TableField("refund_amount")
-    private BigDecimal refund_amount;
-
-    /**
-     * 退款中总金额
-     */
-    @TableField("refunding_amount")
-    private BigDecimal refunding_amount;
-
-    /**
-     * 实退总金额
-     */
-    @TableField("refunded_amount")
-    private BigDecimal refunded_amount;
+    @TableField("purchaser_name")
+    private String purchaser_name;
 
     /**
      * 备注
@@ -182,16 +178,20 @@ public class BApReFundEntity implements Serializable {
     private String bpm_cancel_process_name;
 
     /**
-     * 中止理由
+     * 作废理由
      */
-    @TableField("stop_reason")
-    private String stop_reason;
+    @TableField("cancel_reason")
+    private String cancel_reason;
 
     /**
-     * 中止附件 ID
+     * 作废附件 ID
      */
-    @TableField("stop_file")
-    private Integer stop_file;
+    @TableField("cancel_file")
+    private Integer cancel_file;
+
+
+
+
 
     /**
      * 创建人id

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -24,7 +25,10 @@ import java.io.Serializable;
 @TableName("m_bank_accounts_purpose")
 public class MBankAccountsPurposeEntity implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = -1889405333397569272L;
+
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

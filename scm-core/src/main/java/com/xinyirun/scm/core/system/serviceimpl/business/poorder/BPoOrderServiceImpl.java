@@ -481,6 +481,20 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     }
 
     /**
+     * 按退款条件分页查询
+     *
+     * @param searchCondition
+     */
+    @Override
+    public IPage<PoOrderVo> selectPageByAprefund(PoOrderVo searchCondition) {
+        // 分页条件
+        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+        return mapper.selectPageByAprefund(pageCondition, searchCondition);
+    }
+
+    /**
      * 采购订单 统计
      *
      * @param searchCondition
@@ -488,6 +502,11 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     @Override
     public PoOrderVo querySum(PoOrderVo searchCondition) {
         return mapper.querySum(searchCondition);
+    }
+
+    @Override
+    public PoOrderVo querySumByAprefund(PoOrderVo searchCondition) {
+        return mapper.querySumByAprefund(searchCondition);
     }
 
     /**

@@ -33,6 +33,12 @@ public class MBankAccountsTypeEntity implements Serializable {
     private Integer id;
 
     /**
+     * m_bank_accounts主表主键
+     */
+    @TableField("bank_id")
+    private Integer bank_id;
+
+    /**
      * 单号
      */
     @TableField("code")

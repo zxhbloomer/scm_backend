@@ -51,7 +51,7 @@ public interface ApiApMapper extends BaseMapper<BApEntity> {
      */
     @Select( "	SELECT                                                                                                                "
             +"		t1.id,t1.code,t1.ap_id,t1.ap_code,t1.type,t1.po_contract_code,                                                    "
-            +"		t1.po_code,t1.po_goods,t1.qty_total,t1.amount_total,t1.order_amount,t1.remark,                                      "
+            +"		t1.po_goods,t1.qty_total,t1.amount_total,t1.order_amount,t1.remark,                                      "
             +"		(t2.paying_amount + t2.paid_amount) as po_advance_payment_amount,                                                 "
             +"		(t1.amount_total - ifnull(t3.amount,0)) as po_can_advance_payment_amount                                          "
             +"		FROM b_ap_source_advance t1                                                                                       "

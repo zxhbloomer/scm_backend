@@ -84,11 +84,27 @@ public class BPoOrderController {
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
+    @SysLogAnnotion("采购订单管理，按退款条件获取列表信息")
+    @PostMapping("/pagelist/byaprefund")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<IPage<PoOrderVo>>> selectPagelistByAprefund(@RequestBody(required = false) PoOrderVo searchCondition) {
+        IPage<PoOrderVo> list = service.selectPageByAprefund(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(list));
+    }
+
     @SysLogAnnotion("按采购订单合计")
     @PostMapping("/sum")
     @ResponseBody
     public ResponseEntity<JsonResultAo<PoOrderVo>> querySum(@RequestBody(required = false) PoOrderVo searchCondition) {
         PoOrderVo result = service.querySum(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(result));
+    }
+
+    @SysLogAnnotion("采购订单管理，按退款条件汇总查询")
+    @PostMapping("/sum/aprefund")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<PoOrderVo>> querySumByAprefund(@RequestBody(required = false) PoOrderVo searchCondition) {
+        PoOrderVo result = service.querySumByAprefund(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 

@@ -55,23 +55,21 @@ public class BApReFundExportVo implements Serializable {
     @ExcelProperty(value = {"关联合同", "合同号"}, index = 7)
     private String po_contract_code;
 
-    @ExcelProperty(value = {"关联合同", "订单号"}, index = 8)
-    private String po_code;
 
-    @ExcelProperty(value = {"付款信息", "付款账户"}, index = 9)
+    @ExcelProperty(value = {"付款信息", "付款账户"}, index = 8)
     private String account_number;
 
-    @ExcelProperty(value = {"付款信息", "付款类型"}, index = 10)
+    @ExcelProperty(value = {"付款信息", "付款类型"}, index = 9)
     private String accounts_purpose_type_name;
 
-    @ExcelProperty(value = {"付款信息", "付款金额"}, index = 11)
-    private BigDecimal refund_amount;
+    @ExcelProperty(value = {"付款信息", "可退款金额"}, index = 11)
+    private BigDecimal refundable_amount;
 
     @ExcelProperty(value = {"付款信息", "备注"}, index = 12)
     private String remark;
 
-    @ExcelProperty(value = "付款状态", index = 13)
-    private String pay_status_name;
+    @ExcelProperty(value = "退款状态", index = 13)
+    private String refund_status_name;
 
     @ExcelProperty(value = "申请退款总金额", index = 14)
     private BigDecimal total_refund_amount;

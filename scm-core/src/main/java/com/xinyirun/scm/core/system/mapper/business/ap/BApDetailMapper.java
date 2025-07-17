@@ -27,9 +27,9 @@ public interface BApDetailMapper extends BaseMapper<BApDetailEntity> {
     /**
      * 根据应付账款ID删除明细数据
      */
-    @Delete(""
-            + " DELETE FROM b_ap_detail t where t.ap_id = #{ap_id}            "
-            + "    ")
+    @Delete("""
+            DELETE FROM b_ap_detail t where t.ap_id = #{ap_id}
+            """)
     void deleteByApId(Integer ap_id);
 
     /**

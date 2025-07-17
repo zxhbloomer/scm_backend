@@ -5,11 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundEntity;
 import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundVo;
-import com.xinyirun.scm.common.constant.DictConstant;
-import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 
@@ -26,240 +22,268 @@ import java.util.List;
 @Repository
 public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
 
-    String pageSql = "SELECT                                                                                                                             "
-                    +"	tab1.*,                                                                                                                          "
-                    +"	(tab1.refund_amount - ifnull(tab1.refunded_amount,0) - ifnull(tab1.refunding_amount,0)) as  not_pay_amount,                      "
-                    +"	tab2.poOrderListData,                                                                                                            "
-                    +"	tab3.bankListData,                                                                                                               "
-                    +"	tab4.name as c_name,                                                                                                             "
-                    +"  tab5.name as u_name,                                                                                                             "
-                    +"	tab6.label as status_name,                                                                                                       "
-                    +"	tab7.label as type_name,                                                                                                         "
-                    +"	tab8.label as pay_status_name																	                                 "
-                    +"FROM                                                                                                                               "
-                    +"	b_ap_refund tab1                                                                                                                 "
-                    +"	LEFT JOIN (SELECT                                                                                                                "
-                    +"		t1.ap_refund_id,CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id',t1.id,                                                              "
-                    +"					'code',t1.code,'ap_refund_id',t1.ap_refund_id,'ap_refund_code',t1.ap_refund_code,                                "
-                    +"					'type',t1.type,'po_contract_code',t1.po_contract_code,                                                           "
-                    +"					'po_code',t1.po_code,'po_goods',t1.po_goods,                                                                     "
-                    +"					'advance_pay_amount',t1.advance_pay_amount,'refunded_amount',t1.refunded_amount,                                 "
-                    +"					'refund_amount',t1.refund_amount,															                     "
-                    +"					'refunding_amount',t1.refunding_amount,'remark',t1.remark,                                                       "
-                    +"					'can_refunded_amount',t4.paid_amount - IFNULL( t3.amount, 0 ),'refunding_amount',t1.refunding_amount            "
-                    +"				)),']' ) AS poOrderListData                                                                                          "
-                    +"				FROM b_ap_refund_source_advance t1                                                                                   "
-                    +"				LEFT JOIN  b_ap_refund t2 ON t1.ap_refund_id = t2.id                                                                 "
-                    +"				LEFT JOIN (SELECT po_contract_code,  SUM(refund_amount)  AS amount FROM b_ap_refund                                  "
-                    +"				WHERE STATUS != '"+DictConstant.DICT_B_AP_REFUND_STATUS_FIVE+"' AND is_del = FALSE GROUP BY po_contract_code)        "
-                    +"				AS t3 ON t1.po_contract_code = t3.po_contract_code                                                                   "
-                    +"				LEFT JOIN b_ap t4 on t1.ap_id = t4.id                                                                                "
-                    +"				GROUP BY t1.ap_refund_id ) tab2 ON tab1.id = tab2.ap_refund_id                                                       "
-                    +"	LEFT JOIN (SELECT                                                                                                                "
-                    +"		t1.ap_refund_id,CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id',t1.id,                                                              "
-                    +"						'code',t1.code,'ap_refund_id',t1.ap_refund_id,'ap_refund_code',t1.ap_refund_code,                            "
-                    +"						'bank_accounts_id',t1.bank_accounts_id,                                                                      "
-                    +"						'bank_accounts_code',t1.bank_accounts_code,                                                                  "
-                    +"						'bank_accounts_type_id',t1.bank_accounts_type_id,                                                            "
-                    +"						'bank_accounts_type_code',t1.bank_accounts_type_code,                                                        "
-                    +"						'refund_amount',t1.refund_amount,'refunded_amount',t1.refunded_amount,                                       "
-                    +"						'remark',t1.remark,'name',t2.name,'bank_name',t2.bank_name,                                                  "
-                    +"						'account_number',t2.account_number,'accounts_purpose_type_name',t3.name                                      "
-                    +"				)),']' ) AS bankListData                                                                                             "
-                    +"				FROM b_ap_refund_detail t1 LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id                               "
-                    +"				LEFT JOIN m_bank_accounts_type t3 ON t1.bank_accounts_type_id = t3.id                                                "
-                    +"				GROUP BY t1.ap_refund_id) tab3 ON tab1.id = tab3.ap_refund_id                                                        "
-                    +"	LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id                                                                                    "
-                    +"  LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id                                                                                    "
-                    +"	LEFT JOIN s_dict_data tab6 ON tab6.code = '"+DictConstant.DICT_B_AP_REFUND_STATUS+"' AND tab6.dict_value = tab1.status           "
-                    +"	LEFT JOIN s_dict_data tab7 ON tab7.code = '"+DictConstant.DICT_B_AP_REFUND_TYPE+"' AND tab7.dict_value = tab1.type               "
-                    +"	LEFT JOIN s_dict_data tab8 ON tab8.code = '"+DictConstant.DICT_B_AP_REFUND_PAY_STATUS +"' AND tab8.dict_value = tab1.pay_status  "
-                    +"	WHERE TRUE																														 ";
-
     /**
      * 业务类型查询
      */
-    @Select(" select dict_value as dict_id ,label as dict_label from s_dict_data where code = '"+DictConstant.DICT_B_AP_REFUND_TYPE+"' and is_del = false ")
+    @Select(" select dict_value as dict_id ,label as dict_label from s_dict_data where code = 'b_ap_refund_type' and is_del = false ")
     List<BApReFundVo> getType();
 
     /**
      * 分页查询
      */
-    @Select(pageSql + " "
-    + "  AND tab1.is_del = false                                                                                                                                                                                                    "
-    + "  AND (tab1.code = #{p1.code} or #{p1.code} is null or  #{p1.code} = '')                                                                                                                                                     "
-    + "  AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                                             "
-    + "  AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                                                     "
-    + "  AND (tab1.pay_status = #{p1.pay_status} or #{p1.pay_status} is null or  #{p1.pay_status} = '')                                                                                                                             "
-    + "  AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                                                "
-    + "  AND (tab1.po_code like concat('%', #{p1.po_code}, '%') or #{p1.po_code} is null or  #{p1.po_code} = '')                                                                                                                    "
-    + "  AND (tab1.buyer_enterprise_name like concat('%', #{p1.buyer_enterprise_name}, '%') or #{p1.buyer_enterprise_name} is null or  #{p1.buyer_enterprise_name} = '')                                                            "
-    + "  AND (tab1.supplier_enterprise_name like concat('%', #{p1.supplier_enterprise_name}, '%') or #{p1.supplier_enterprise_name} is null or  #{p1.supplier_enterprise_name} = '')                                                "
-    )
-    @Results({
-            @Result(property = "poOrderListData", column = "poOrderListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-            @Result(property = "bankListData", column = "bankListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-    })
+    @Select("""
+            SELECT                                                                                                                             
+            	tab1.*,                                                                                                                          
+            	0 as  not_pay_amount,                      
+            	tab2.po_goods,
+            	tab2.order_amount as source_order_amount,
+            	tab2.refundable_amount_total,
+            	tab2.refunded_amount_total,
+            	tab2.refunding_amount_total,
+            	tab2.unrefund_amount_total,
+            	tab2.cancelrefund_amount_total,
+            	tab3.ap_refund_id,
+            	tab3.ap_refund_code,
+            	tab3.bank_accounts_id,
+            	tab3.bank_accounts_code,
+            	tab3.refundable_amount,
+            	tab3.refunded_amount,
+            	tab3.refunding_amount,
+            	tab3.unrefund_amount,
+            	tab3.order_amount as detail_order_amount,
+            	tab9.name,
+            	tab9.bank_name,
+            	tab9.account_number,
+            	GROUP_CONCAT(tab10.NAME) AS accounts_purpose_type_name,                                                                                                             
+            	tab4.name as c_name,                                                                                                             
+              tab5.name as u_name,                                                                                                             
+            	tab6.label as status_name,                                                                                                       
+            	tab7.label as type_name,                                                                                                         
+            	tab8.label as refund_status_name																	                                 
+            FROM                                                                                                                               
+            	b_ap_refund tab1                                                                                                                 
+            	LEFT JOIN b_ap_refund_source_advance tab2 ON tab1.id = tab2.ap_refund_id                                                        
+            	LEFT JOIN b_ap_refund_detail tab3 ON tab1.id = tab3.ap_refund_id                                                                
+            	LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id                                                                                    
+              LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id  
+            	LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_refund_status' AND tab6.dict_value = tab1.status           
+            	LEFT JOIN s_dict_data tab7 ON tab7.code = 'b_ap_refund_type' AND tab7.dict_value = tab1.type               
+            	LEFT JOIN s_dict_data tab8 ON tab8.code = 'b_ap_refund_pay_status' AND tab8.dict_value = tab1.refund_status
+            	LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
+            	LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id  
+            	WHERE TRUE
+              AND tab1.is_del = false                                                                                                                                                                                                    
+              AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')                                                                                                                                                     
+              AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                                             
+              AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                                                     
+              AND (tab1.refund_status = #{p1.refund_status} or #{p1.refund_status} is null or  #{p1.refund_status} = '')                                                                                                                             
+              AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                                                
+                                                                                                                    
+              AND (tab1.purchaser_name like concat('%', #{p1.purchaser_name}, '%') or #{p1.purchaser_name} is null or  #{p1.purchaser_name} = '')                                                            
+              AND (tab1.supplier_name like concat('%', #{p1.supplier_name}, '%') or #{p1.supplier_name} is null or  #{p1.supplier_name} = '')
+              GROUP BY tab1.code, tab3.code                                               
+              """)
     IPage<BApReFundVo> selectPage(Page page, @Param("p1") BApReFundVo searchCondition);
 
 
     /**
      * 根据id查询
      */
-    @Select(pageSql +" and tab1.id = #{p1}")
-    @Results({
-            @Result(property = "poOrderListData", column = "poOrderListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-            @Result(property = "bankListData", column = "bankListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-    })
+    @Select("""
+            SELECT                                                                                                                             
+            	tab1.*,                                                                                                                          
+            	0 as  not_pay_amount,                      
+            	tab2.po_goods,
+            	tab2.order_amount as source_order_amount,
+            	tab2.refundable_amount_total,
+            	tab2.refunded_amount_total,
+            	tab2.refunding_amount_total,
+            	tab2.unrefund_amount_total,
+            	tab2.cancelrefund_amount_total,
+            	tab2.advance_paid_total,
+            	tab2.advance_refund_amount_total,
+            	tab2.order_amount,
+            	tab3.ap_refund_id,
+            	tab3.ap_refund_code,
+            	tab3.bank_accounts_id,
+            	tab3.bank_accounts_code,
+            	tab3.refundable_amount,
+            	tab3.refunded_amount,
+            	tab3.refunding_amount,
+            	tab3.unrefund_amount,
+            	tab3.order_amount as detail_order_amount,
+            	tab9.name,
+            	tab9.bank_name,
+            	tab9.account_number,
+            	GROUP_CONCAT(tab10.NAME) AS bank_type_name,                                                                                                             
+            	tab4.name as c_name,                                                                                                             
+              tab5.name as u_name,                                                                                                             
+            	tab6.label as status_name,                                                                                                       
+            	tab7.label as type_name,                                                                                                         
+            	tab8.label as refund_status_name,
+            	tabb1.one_file as doc_att_file
+            FROM                                                                                                                               
+            	b_ap_refund tab1                                                                                                                 
+            	LEFT JOIN b_ap_refund_source_advance tab2 ON tab1.id = tab2.ap_refund_id                                                        
+            	LEFT JOIN b_ap_refund_detail tab3 ON tab1.id = tab3.ap_refund_id                                                                
+            	LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id                                                                                    
+              LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id  
+            	LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_refund_status' AND tab6.dict_value = tab1.status           
+            	LEFT JOIN s_dict_data tab7 ON tab7.code = 'b_ap_refund_type' AND tab7.dict_value = tab1.type               
+            	LEFT JOIN s_dict_data tab8 ON tab8.code = 'b_ap_refund_pay_status' AND tab8.dict_value = tab1.refund_status
+            	LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
+            	LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id  
+                LEFT JOIN b_ap_refund_attach tabb1 on tab1.id = tabb1.ap_refund_id
+            	WHERE TRUE
+              AND tab1.id = #{p1}
+              GROUP BY tab1.code, tab3.code
+            """)
     BApReFundVo selectId(@Param("p1") Integer id);
 
-    @Select(
-            "   <script>	 SELECT                                                                                                                                                                              "
-            +"	@row_num:= @row_num+ 1 as no,                                                                                                                                                                    "
-            +"	tab1.*,                                                                                                                                                                       "
-            +"	(tab1.refund_amount - ifnull(tab1.refunded_amount,0) - ifnull(tab1.refunding_amount,0)) as  not_pay_amount,                                                                                      "
-            +"	tab2.poOrderListData,                                                                                                                                                                            "
-            +"	tab3.bankListData,                                                                                                                                                                               "
-            +"	tab4.name as c_name,                                                                                                                                                                             "
-            +"  tab5.name as u_name,                                                                                                                                                                             "
-            +"	tab6.label as status_name,                                                                                                                                                                       "
-            +"	tab7.label as type_name,                                                                                                                                                                         "
-            +"	tab8.label as pay_status_name																	                                                                                                 "
-            +"FROM                                                                                                                                                                                               "
-            +"	b_ap_refund tab1                                                                                                                                                                                 "
-            +"	LEFT JOIN (SELECT                                                                                                                                                                                "
-            +"		t1.ap_refund_id,CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id',t1.id,                                                                                                                              "
-            +"					'code',t1.code,'ap_refund_id',t1.ap_refund_id,'ap_refund_code',t1.ap_refund_code,                                                                                                "
-            +"					'type',t1.type,'po_contract_code',t1.po_contract_code,                                                                                                                           "
-            +"					'po_code',t1.po_code,'po_goods',t1.po_goods,                                                                                                                                     "
-            +"					'advance_pay_amount',t1.advance_pay_amount,'refunded_amount',t1.refunded_amount,                                                                                                 "
-            +"					'refund_amount',t1.refund_amount,															                                                                                     "
-            +"					'refunding_amount',t1.refunding_amount,'remark',t1.remark,                                                                                                                       "
-            +"					'can_refunded_amount',(t1.advance_pay_amount - IFNULL(t3.amount,0)),'refunding_amount',t1.refunding_amount                                                                       "
-            +"				)),']' ) AS poOrderListData                                                                                                                                                          "
-            +"				FROM b_ap_refund_source_advance t1                                                                                                                                                   "
-            +"				LEFT JOIN  b_ap_refund t2 ON t1.ap_refund_id = t2.id                                                                                                                                 "
-            +"				LEFT JOIN (SELECT po_contract_code,SUM(refund_amount) AS amount FROM b_ap_refund                                                                                                     "
-            +"				WHERE STATUS != '"+DictConstant.DICT_B_AP_REFUND_STATUS_FIVE+"' AND is_del = FALSE GROUP BY po_contract_code)                                                                        "
-            +"				AS t3 ON t1.po_contract_code = t3.po_contract_code                                                                                                                                   "
-            +"				GROUP BY t1.ap_refund_id ) tab2 ON tab1.id = tab2.ap_refund_id                                                                                                                       "
-            +"	LEFT JOIN (SELECT                                                                                                                                                                                "
-            +"		t1.ap_refund_id,CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id',t1.id,                                                                                                                              "
-            +"						'code',t1.code,'ap_refund_id',t1.ap_refund_id,'ap_refund_code',t1.ap_refund_code,                                                                                            "
-            +"						'bank_accounts_id',t1.bank_accounts_id,                                                                                                                                      "
-            +"						'bank_accounts_code',t1.bank_accounts_code,                                                                                                                                  "
-            +"						'bank_accounts_type_id',t1.bank_accounts_type_id,                                                                                                                            "
-            +"						'bank_accounts_type_code',t1.bank_accounts_type_code,                                                                                                                        "
-            +"						'refund_amount',t1.refund_amount,'refunded_amount',t1.refunded_amount,                                                                                                       "
-            +"						'remark',t1.remark,'name',t2.name,'bank_name',t2.bank_name,                                                                                                                  "
-            +"						'account_number',t2.account_number,'accounts_purpose_type_name',t3.name                                                                                                      "
-            +"				)),']' ) AS bankListData                                                                                                                                                             "
-            +"				FROM b_ap_refund_detail t1 LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id                                                                                               "
-            +"				LEFT JOIN m_bank_accounts_type t3 ON t1.bank_accounts_type_id = t3.id                                                                                                                "
-            +"				GROUP BY t1.ap_refund_id) tab3 ON tab1.id = tab3.ap_refund_id                                                                                                                        "
-            +"	LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id                                                                                                                                                    "
-            +"  LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id                                                                                                                                                    "
-            +"	LEFT JOIN s_dict_data tab6 ON tab6.code = '"+DictConstant.DICT_B_AP_REFUND_STATUS+"' AND tab6.dict_value = tab1.status                                                                           "
-            +"	LEFT JOIN s_dict_data tab7 ON tab7.code = '"+DictConstant.DICT_B_AP_REFUND_TYPE+"' AND tab7.dict_value = tab1.type                                                                               "
-            +"	LEFT JOIN s_dict_data tab8 ON tab8.code = '"+DictConstant.DICT_B_AP_REFUND_PAY_STATUS +"' AND tab8.dict_value = tab1.pay_status,                                                                 "
-            +"	(select @row_num:=0) tb9                                                                                                                                                                         "
-            +"	WHERE TRUE                                                                                                                                                                                       "
-            +"  AND tab1.is_del = false                                                                                                                                                                          "
-            +"  AND (tab1.code = #{p1.code} or #{p1.code} is null or  #{p1.code} = '')                                                                                                                           "
-            +"  AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                   "
-            +"  AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                           "
-            +"  AND (tab1.pay_status = #{p1.pay_status} or #{p1.pay_status} is null or  #{p1.pay_status} = '')                                                                                                   "
-            +"  AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                      "
-            +"  AND (tab1.po_code like concat('%', #{p1.po_code}, '%') or #{p1.po_code} is null or  #{p1.po_code} = '')                                                                                          "
-            +"  AND (tab1.buyer_enterprise_name like concat('%', #{p1.buyer_enterprise_name}, '%') or #{p1.buyer_enterprise_name} is null or  #{p1.buyer_enterprise_name} = '')                                  "
-            +"  AND (tab1.supplier_enterprise_name like concat('%', #{p1.supplier_enterprise_name}, '%') or #{p1.supplier_enterprise_name} is null or  #{p1.supplier_enterprise_name} = '')                      "
-            +"   <if test='p1.ids != null and p1.ids.length != 0' >                                                                                                                                              "
-            +"    and tab1.id in                                                                                                                                                                                 "
-            +"        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>                                                                                                   "
-            +"         #{item}                                                                                                                                                                                   "
-            +"        </foreach>                                                                                                                                                                                 "
-            +"   </if>                                                                                                                                                                                           "
-            +"		  </script>                                                                                                                                                                                  "
-    )
-    @Results({
-            @Result(property = "poOrderListData", column = "poOrderListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-            @Result(property = "bankListData", column = "bankListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-    })
+    /**
+     * 根据退款编号查询退款ID
+     * @param code 退款编号
+     * @return 退款ID
+     */
+    @Select("SELECT id FROM b_ap_refund WHERE code = #{p1} AND is_del = false")
+    Integer selectIdByCode(@Param("p1") String code);
+
+    @Select("""
+            <script>	 SELECT                                                                                                                                                                              
+            	@row_num:= @row_num+ 1 as no,                                                                                                                                                                    
+            	tab1.*,                                                                                                                                                                       
+            	0 as  not_pay_amount,                                                                                      
+            	tab2.po_goods,
+            	tab2.order_amount as source_order_amount,
+            	tab2.refundable_amount_total,
+            	tab2.refunded_amount_total,
+            	tab2.refunding_amount_total,
+            	tab2.unrefund_amount_total,
+            	tab2.cancelrefund_amount_total,
+            	tab3.ap_refund_id,
+            	tab3.ap_refund_code,
+            	tab3.bank_accounts_id,
+            	tab3.bank_accounts_code,
+            	tab3.refundable_amount,
+            	tab3.refunded_amount,
+            	tab3.refunding_amount,
+            	tab3.unrefund_amount,
+            	tab3.order_amount as detail_order_amount,
+            	tab9.name,
+            	tab9.bank_name,
+            	tab9.account_number,
+            	GROUP_CONCAT(tab10.NAME) AS accounts_purpose_type_name,    
+            	tab4.name as c_name,                                                                                                                                                                             
+              tab5.name as u_name,                                                                                                                                                                             
+            	tab6.label as status_name,                                                                                                                                                                       
+            	tab7.label as type_name,                                                                                                                                                                         
+            	tab8.label as refund_status_name																	                                                                                                 
+            FROM                                                                                                                                                                                               
+            	b_ap_refund tab1                                                                                                                                                                                 
+            	LEFT JOIN b_ap_refund_source_advance tab2 ON tab1.id = tab2.ap_refund_id                                                                                                                       
+            	LEFT JOIN b_ap_refund_detail tab3 ON tab1.id = tab3.ap_refund_id                                                                                                                                
+            	LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id                                                                                                                                                    
+              LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id                                                                                                                                                    
+            	LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_refund_status' AND tab6.dict_value = tab1.status                                                                           
+            	LEFT JOIN s_dict_data tab7 ON tab7.code = 'b_ap_refund_type' AND tab7.dict_value = tab1.type                                                                               
+            	LEFT JOIN s_dict_data tab8 ON tab8.code = 'b_ap_refund_pay_status' AND tab8.dict_value = tab1.refund_status,                                                                 
+            	LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
+            	LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id,                                                               
+            	(select @row_num:=0) tb11                                                                                                                                                                         
+            	WHERE TRUE                                                                                                                                                                                       
+              AND tab1.is_del = false                                                                                                                                                                          
+              AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')                                                                                                                           
+              AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                   
+              AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                           
+              AND (tab1.refund_status = #{p1.refund_status} or #{p1.refund_status} is null or  #{p1.refund_status} = '')                                                                                                   
+              AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                      
+                                                    
+              AND (tab1.purchaser_name like concat('%', #{p1.purchaser_name}, '%') or #{p1.purchaser_name} is null or  #{p1.purchaser_name} = '')                                  
+              AND (tab1.supplier_name like concat('%', #{p1.supplier_name}, '%') or #{p1.supplier_name} is null or  #{p1.supplier_name} = '')                      
+               <if test='p1.ids != null and p1.ids.length != 0' >                                                                                                                                              
+                and tab1.id in                                                                                                                                                                                 
+                    <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>                                                                                                   
+                     #{item}                                                                                                                                                                                   
+                    </foreach>                                                                                                                                                                                 
+               </if>
+               GROUP BY tab1.code, tab3.code                                                                                                                                                                                           
+            		  </script>                                                                                                                                                                                  
+            """)
     List<BApReFundVo> selectExportList(@Param("p1") BApReFundVo param);
 
-    @Select("   <script>	 SELECT                                                                                                                                                                              "
-           +"	count(tab1.id)																	                                                                                                 "
-           +"FROM                                                                                                                                                                                               "
-            +"	b_ap_refund tab1                                                                                                                                                                                 "
-            +"	LEFT JOIN (SELECT                                                                                                                                                                                "
-            +"		t1.ap_refund_id,CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id',t1.id,                                                                                                                              "
-            +"					'code',t1.code,'ap_refund_id',t1.ap_refund_id,'ap_refund_code',t1.ap_refund_code,                                                                                                "
-            +"					'type',t1.type,'po_contract_code',t1.po_contract_code,                                                                                                                           "
-            +"					'po_code',t1.po_code,'po_goods',t1.po_goods,                                                                                                                                     "
-            +"					'advance_pay_amount',t1.advance_pay_amount,'refunded_amount',t1.refunded_amount,                                                                                                 "
-            +"					'refund_amount',t1.refund_amount,															                                                                                     "
-            +"					'refunding_amount',t1.refunding_amount,'remark',t1.remark,                                                                                                                       "
-            +"					'can_refunded_amount',(t1.advance_pay_amount - IFNULL(t3.amount,0)),'refunding_amount',t1.refunding_amount                                                                       "
-            +"				)),']' ) AS poOrderListData                                                                                                                                                          "
-            +"				FROM b_ap_refund_source_advance t1                                                                                                                                                   "
-            +"				LEFT JOIN  b_ap_refund t2 ON t1.ap_refund_id = t2.id                                                                                                                                 "
-            +"				LEFT JOIN (SELECT po_contract_code,  SUM(refund_amount)  AS amount FROM b_ap_refund                                                                                                  "
-            +"				WHERE STATUS != '"+DictConstant.DICT_B_AP_REFUND_STATUS_FIVE+"' AND is_del = FALSE GROUP BY po_contract_code)                                                                        "
-            +"				AS t3 ON t1.po_contract_code = t3.po_contract_code                                                                                                                                   "
-            +"				GROUP BY t1.ap_refund_id ) tab2 ON tab1.id = tab2.ap_refund_id                                                                                                                       "
-            +"	LEFT JOIN (SELECT                                                                                                                                                                                "
-            +"		t1.ap_refund_id,CONCAT('[',GROUP_CONCAT(JSON_OBJECT('id',t1.id,                                                                                                                              "
-            +"						'code',t1.code,'ap_refund_id',t1.ap_refund_id,'ap_refund_code',t1.ap_refund_code,                                                                                            "
-            +"						'bank_accounts_id',t1.bank_accounts_id,                                                                                                                                      "
-            +"						'bank_accounts_code',t1.bank_accounts_code,                                                                                                                                  "
-            +"						'bank_accounts_type_id',t1.bank_accounts_type_id,                                                                                                                            "
-            +"						'bank_accounts_type_code',t1.bank_accounts_type_code,                                                                                                                        "
-            +"						'refund_amount',t1.refund_amount,'refunded_amount',t1.refunded_amount,                                                                                                       "
-            +"						'remark',t1.remark,'name',t2.name,'bank_name',t2.bank_name,                                                                                                                  "
-            +"						'account_number',t2.account_number,'accounts_purpose_type_name',t3.name                                                                                                      "
-            +"				)),']' ) AS bankListData                                                                                                                                                             "
-            +"				FROM b_ap_refund_detail t1 LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id                                                                                               "
-            +"				LEFT JOIN m_bank_accounts_type t3 ON t1.bank_accounts_type_id = t3.id                                                                                                                "
-            +"				GROUP BY t1.ap_refund_id) tab3 ON tab1.id = tab3.ap_refund_id                                                                                                                        "
-            +"	LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id                                                                                                                                                    "
-            +"  LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id                                                                                                                                                    "
-            +"	LEFT JOIN s_dict_data tab6 ON tab6.code = '"+DictConstant.DICT_B_AP_REFUND_STATUS+"' AND tab6.dict_value = tab1.status                                                                           "
-            +"	LEFT JOIN s_dict_data tab7 ON tab7.code = '"+DictConstant.DICT_B_AP_REFUND_TYPE+"' AND tab7.dict_value = tab1.type                                                                               "
-            +"	LEFT JOIN s_dict_data tab8 ON tab8.code = '"+DictConstant.DICT_B_AP_REFUND_PAY_STATUS +"' AND tab8.dict_value = tab1.pay_status,                                                                 "
-           +"	(select @row_num:=0) tb9                                                                                                                                                                         "
-           +"	WHERE TRUE                                                                                                                                                                                       "
-           +"  AND tab1.is_del = false                                                                                                                                                                           "
-           +"  AND (tab1.code = #{p1.code} or #{p1.code} is null or  #{p1.code} = '')                                                                                                                            "
-           +"  AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                    "
-           +"  AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                            "
-           +"  AND (tab1.pay_status = #{p1.pay_status} or #{p1.pay_status} is null or  #{p1.pay_status} = '')                                                                                                    "
-           +"  AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                       "
-           +"  AND (tab1.po_code like concat('%', #{p1.po_code}, '%') or #{p1.po_code} is null or  #{p1.po_code} = '')                                                                                           "
-           +"  AND (tab1.buyer_enterprise_name like concat('%', #{p1.buyer_enterprise_name}, '%') or #{p1.buyer_enterprise_name} is null or  #{p1.buyer_enterprise_name} = '')                                   "
-           +"  AND (tab1.supplier_enterprise_name like concat('%', #{p1.supplier_enterprise_name}, '%') or #{p1.supplier_enterprise_name} is null or  #{p1.supplier_enterprise_name} = '')                       "
-           +"   <if test='p1.ids != null and p1.ids.length != 0' >                                                                                                                                               "
-           +"    and tab1.id in                                                                                                                                                                                  "
-           +"        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>                                                                                                    "
-           +"         #{item}                                                                                                                                                                                    "
-           +"        </foreach>                                                                                                                                                                                  "
-           +"   </if>                                                                                                                                                                                            "
-           +"		  </script>                                                                                                                                                                                  "
-    )
-    @Results({
-            @Result(property = "poOrderListData", column = "poOrderListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-            @Result(property = "bankListData", column = "bankListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-    })
+    @Select("""
+           <script>	 SELECT                                                                                                                                                                              
+           	count(tab1.id)																	                                                                                                 
+           FROM                                                                                                                                                                                               
+            	b_ap_refund tab1                                                                                                                                                                                 
+            	LEFT JOIN b_ap_refund_source_advance tab2 ON tab1.id = tab2.ap_refund_id                                                                                                                       
+            	LEFT JOIN b_ap_refund_detail tab3 ON tab1.id = tab3.ap_refund_id                                                                                                                                
+           	WHERE TRUE                                                                                                                                                                                       
+              AND tab1.is_del = false                                                                                                                                                                           
+              AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')                                                                                                                            
+              AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                    
+              AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                            
+              AND (tab1.refund_status = #{p1.refund_status} or #{p1.refund_status} is null or  #{p1.refund_status} = '')                                                                                                    
+              AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                       
+              AND (tab1.purchaser_name like concat('%', #{p1.purchaser_name}, '%') or #{p1.purchaser_name} is null or  #{p1.purchaser_name} = '')                                   
+              AND (tab1.supplier_name like concat('%', #{p1.supplier_name}, '%') or #{p1.supplier_name} is null or  #{p1.supplier_name} = '')                       
+               <if test='p1.ids != null and p1.ids.length != 0' >                                                                                                                                               
+                and tab1.id in                                                                                                                                                                                  
+                    <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>                                                                                                    
+                     #{item}                                                                                                                                                                                    
+                    </foreach>                                                                                                                                                                                  
+               </if>                                                                                                                                                                                            
+           		  </script>                                                                                                                                                                                  
+            """)
     Long selectExportCount(@Param("p1") BApReFundVo param);
 
     /**
-     * 查询采购订单下 付款账单
+     * 查询采购订单下 退款账单
      */
-    @Select("select * from b_ap tab1 left join b_po_order tab2 on tab1.po_code = tab2.code where tab2.id = #{p1} and tab1.is_del = false")
+    @Select("select * from b_ap_refund tab1 left join b_po_order tab2 on tab1.po_order_code = tab2.code where tab2.id = #{p1} and tab1.is_del = false")
     List<BApReFundVo> selectByPoCode(@Param("p1")String code);
 
     /**
-     * 查询采购订单下 付款账单
+     * 查询采购订单下 退款账单
      */
-    @Select("select * from b_ap tab1 left join b_po_order tab2 on tab1.po_code = tab2.code where tab2.id = #{p1} and tab1.status != #{p2} and tab1.is_del = false")
+    @Select("select * from b_ap_refund tab1 left join b_po_order tab2 on tab1.po_order_code = tab2.code where tab2.id = #{p1} and tab1.status != #{p2} and tab1.is_del = false")
     List<BApReFundVo> selByPoCodeNotByStatus(@Param("p1")Integer code,@Param("p2") String dictBApStatusFive);
+
+    /**
+     * 获取下推预付退款款数据
+     */
+    @Select("SELECT tab1.* FROM b_ap_refund tab1 WHERE tab1.is_del = false AND tab1.po_order_code = #{p1.po_order_code}")
+    BApReFundVo getApRefund(@Param("p1")BApReFundVo searchCondition);
+
+    /**
+     * 汇总查询
+     */
+    @Select("""
+            <script>
+            SELECT 
+                SUM(IFNULL(tabb2.refundable_amount_total, 0)) as refundable_amount_total,
+                SUM(IFNULL(tabb2.refunded_amount_total, 0)) as refunded_amount_total,
+                SUM(IFNULL(tabb2.refunding_amount_total, 0)) as refunding_amount_total,
+                SUM(IFNULL(tabb2.unrefund_amount_total, 0)) as unrefund_amount_total,
+                SUM(IFNULL(tabb2.cancelrefund_amount_total, 0)) as cancelrefund_amount_total
+            FROM b_ap_refund tab1  
+                LEFT JOIN b_ap_refund_total tabb2 on tab1.id = tabb2.ap_refund_id
+            WHERE TRUE 
+                AND tab1.is_del = false 
+                AND (tab1.id = #{p1.id} OR #{p1.id} IS NULL) 
+                AND (tab1.status = #{p1.status} OR #{p1.status} IS NULL OR #{p1.status} = '') 
+                AND (tab1.type = #{p1.type} OR #{p1.type} IS NULL OR #{p1.type} = '') 
+                AND (tab1.refund_status = #{p1.refund_status} OR #{p1.refund_status} IS NULL OR #{p1.refund_status} = '') 
+                AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') OR #{p1.code} IS NULL OR #{p1.code} = '') 
+                AND (tab1.po_contract_code LIKE CONCAT('%', #{p1.po_contract_code}, '%') OR #{p1.po_contract_code} IS NULL OR #{p1.po_contract_code} = '') 
+                AND (tab1.po_order_code LIKE CONCAT('%', #{p1.po_order_code}, '%') OR #{p1.po_order_code} IS NULL OR #{p1.po_order_code} = '') 
+                <if test='p1.status_list != null and p1.status_list.length!=0' > 
+                  and tab1.status in 
+                    <foreach collection='p1.status_list' item='item' index='index' open='(' separator=',' close=')'> 
+                      #{item} 
+                    </foreach> 
+                </if> 
+            </script>
+            """)
+    BApReFundVo querySum(@Param("p1") BApReFundVo searchCondition);
 }

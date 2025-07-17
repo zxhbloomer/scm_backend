@@ -149,6 +149,11 @@ public class MBankAccountsVo implements Serializable {
     private String accounts_purpose_type_name;
 
     /**
+     * 银行账户类型名称（关联m_bank_accounts_type表）
+     */
+    private String bank_type_name;
+
+    /**
      * 导出 id
      */
     private Integer[] ids;
@@ -162,5 +167,10 @@ public class MBankAccountsVo implements Serializable {
      * 银行账户
      */
     private String bank_value;
+
+    /**
+     * 账户类型
+     */
+    private String [] bank_type;
 
 }

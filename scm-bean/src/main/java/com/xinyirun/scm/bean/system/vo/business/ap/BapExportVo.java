@@ -85,24 +85,21 @@ public class BapExportVo implements Serializable {
     @ExcelProperty(value = "未付款总金额", index = 17)
     private BigDecimal total_unpay_amount;
 
-    @ExcelProperty(value = "退款总金额", index = 18)
-    private BigDecimal total_return_pay_amount;
-
-    @ExcelProperty(value = "备注", index = 19)
+    @ExcelProperty(value = "备注", index = 18)
     private String remarks;
 
-    @ExcelProperty(value = "创建人", index = 20)
+    @ExcelProperty(value = "创建人", index = 19)
     private String c_name;
 
-    @ExcelProperty(value = "创建时间", index = 21)
+    @ExcelProperty(value = "创建时间", index = 20)
     @ColumnWidth(20)
     @DateTimeFormat("yyyy年MM月dd日 HH:mm:ss")
     private LocalDateTime c_time;
 
-    @ExcelProperty(value = "更新人", index = 22)
+    @ExcelProperty(value = "更新人", index = 21)
     private String u_name;
 
-    @ExcelProperty(value = "更新时间", index = 23)
+    @ExcelProperty(value = "更新时间", index = 22)
     @ColumnWidth(20)
     @DateTimeFormat("yyyy年MM月dd日 HH:mm:ss")
     private LocalDateTime u_time;

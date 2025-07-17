@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.entity.master.bank.MBankAccountsTypeEntity;
 import com.xinyirun.scm.bean.system.vo.master.bankaccounts.MBankAccountsTypeVo;
 import com.xinyirun.scm.bean.system.vo.master.bankaccounts.MBankAccountsVo;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
@@ -21,6 +22,6 @@ public interface MBankAccountsTypeMapper extends BaseMapper<MBankAccountsTypeEnt
     /**
      * 获取款项类型
      */
-    @Select("select * from m_bank_accounts_type")
-    List<MBankAccountsTypeVo> getBankType();
+    @Select("select * from m_bank_accounts_type where bank_id = #{bank_id}")
+    List<MBankAccountsTypeVo> getBankType(@Param("bank_id") Integer bank_id);
 }

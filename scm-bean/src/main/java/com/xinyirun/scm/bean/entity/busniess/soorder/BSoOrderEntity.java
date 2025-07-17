@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,7 +25,10 @@ import java.time.LocalDateTime;
 @TableName("b_so_order")
 public class BSoOrderEntity implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = 2768386331929505373L;
+
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

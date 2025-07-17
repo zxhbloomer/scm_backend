@@ -45,8 +45,8 @@ public class ApiApReFundController extends SystemBaseController {
     @GetMapping("/print/po_order")
     @ResponseBody
     public ResponseEntity<JsonResultAo<List<BApReFundSourceAdvanceVo>>> printPoOrder(@ModelAttribute BApReFundVo searchCondition) {
-        List<BApReFundSourceAdvanceVo> poOrderListData = service.printPoOrder(searchCondition);
-        return ResponseEntity.ok().body(ResultUtil.OK(poOrderListData));
+        List<BApReFundSourceAdvanceVo> apListData = service.printPoOrder(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(apListData));
     }
 
 
@@ -54,8 +54,8 @@ public class ApiApReFundController extends SystemBaseController {
     @GetMapping("/print/bank_accounts")
     @ResponseBody
     public ResponseEntity<JsonResultAo<List<BApReFundDetailVo>>> bankAccounts(@ModelAttribute BApReFundVo searchCondition) {
-        List<BApReFundDetailVo> poOrderListData = service.bankAccounts(searchCondition);
-        return ResponseEntity.ok().body(ResultUtil.OK(poOrderListData));
+        List<BApReFundDetailVo> bankListData = service.bankAccounts(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(bankListData));
     }
 
 }

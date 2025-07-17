@@ -1519,16 +1519,13 @@ public class DictConstant {
 
 
     /**
-     *  企业银行类型（1-预付款、2-预收款、3-应付款、4-应收款、5-保证金、6-其他付款、7-其他收款）
+     *  企业银行类型（1-预付款、2-预收款、3-应付款、4-应收款）
      */
     public static final String DICT_M_BANK_TYPE = "m_bank_type";
     public static final String DICT_M_BANK_TYPE_ONE = "1";
     public static final String DICT_M_BANK_TYPE_TWO = "2";
     public static final String DICT_M_BANK_TYPE_THREE = "3";
     public static final String DICT_M_BANK_TYPE_FOUR = "4";
-    public static final String DICT_M_BANK_TYPE_FIVE = "5";
-    public static final String DICT_M_BANK_TYPE_SIX = "6";
-    public static final String DICT_M_BANK_TYPE_SEVEN = "7";
 
     /**
      *  应付账款管理业务类型 1-应付、2-预付、3-其他支出

@@ -136,40 +136,35 @@ public class BPoOrderTotalEntity implements Serializable {
     private BigDecimal invoiced_amount_total;
 
     /**
-     * 退款：预付退款总金额-未完成
+     * 预付款退款-计划退款金额
      */
-    @TableField("refund_advance_doing_total")
-    private BigDecimal refund_advance_doing_total;
+    @TableField("advance_refundable_total")
+    private BigDecimal advance_refundable_total;
 
     /**
-     * 退款：预付退款总金额-已完成
+     * 预付款退款-实际退款金额
      */
-    @TableField("refund_advance_done_total")
-    private BigDecimal refund_advance_done_total;
+    @TableField("advance_refunded_total")
+    private BigDecimal advance_refunded_total;
 
     /**
-     * 退款：预付款退款总金额-计划金额
+     * 预付款退款-退款中金额
      */
-    @TableField("refund_advance_total")
-    private BigDecimal refund_advance_total;
+    @TableField("advance_refunding_total")
+    private BigDecimal advance_refunding_total;
 
     /**
-     * 退款：应付退款总金额-未完成
+     * 预付款退款-未退款金额
      */
-    @TableField("refund_payable_doing_total")
-    private BigDecimal refund_payable_doing_total;
+    @TableField("advance_unrefund_total")
+    private BigDecimal advance_unrefund_total;
 
     /**
-     * 退款：应付退款总金额-已完成
+     * 预付款退款-取消退款金额
      */
-    @TableField("refund_payable_done_total")
-    private BigDecimal refund_payable_done_total;
+    @TableField("advance_cancelrefund_total")
+    private BigDecimal advance_cancelrefund_total;
 
-    /**
-     * 退款：应付退款总金额-计划金额
-     */
-    @TableField("refund_payable_total")
-    private BigDecimal refund_payable_total;
 
     /**
      * 实际入库汇总

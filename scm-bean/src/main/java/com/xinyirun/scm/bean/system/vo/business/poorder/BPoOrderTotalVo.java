@@ -99,34 +99,30 @@ public class BPoOrderTotalVo implements Serializable {
     private BigDecimal invoiced_amount_total;
 
     /**
-     * 退款：预付退款总金额-未完成
+     * 预付款退款-计划退款金额
      */
-    private BigDecimal refund_advance_doing_total;
+    private BigDecimal advance_refundable_total;
 
     /**
-     * 退款：预付退款总金额-已完成
+     * 预付款退款-实际退款金额
      */
-    private BigDecimal refund_advance_done_total;
+    private BigDecimal advance_refunded_total;
 
     /**
-     * 退款：预付款退款总金额-计划金额
+     * 预付款退款-退款中金额
      */
-    private BigDecimal refund_advance_total;
+    private BigDecimal advance_refunding_total;
 
     /**
-     * 退款：应付退款总金额-未完成
+     * 预付款退款-未退款金额
      */
-    private BigDecimal refund_payable_doing_total;
+    private BigDecimal advance_unrefund_total;
 
     /**
-     * 退款：应付退款总金额-已完成
+     * 预付款退款-取消退款金额
      */
-    private BigDecimal refund_payable_done_total;
+    private BigDecimal advance_cancelrefund_total;
 
-    /**
-     * 退款：应付退款总金额-计划金额
-     */
-    private BigDecimal refund_payable_total;
 
     /**
      * 实际入库汇总
@@ -285,5 +281,10 @@ public class BPoOrderTotalVo implements Serializable {
      * 预付款付款中总金额
      */
     private BigDecimal advance_paying_total;
+
+    /**
+     * 可下推预付款退款金额
+     */
+    private BigDecimal advance_refund_amount_total;
 
 }

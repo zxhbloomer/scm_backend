@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.mapper.business.aprefundpay;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPayAttachEntity;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundPayAttachVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayAttachVo;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 

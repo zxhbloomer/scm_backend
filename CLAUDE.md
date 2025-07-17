@@ -182,6 +182,13 @@ Comprehensive Excel handling:
 ## Version Information
 Current version: v1.0.39 (as configured in application.yml)
 
+数据库配置信息：
+  - ip：127.0.0.1
+  - port：3306
+  - db:scm_tenant_20250519_001
+  - username:root
+  - password:123456
+
 # 项目开发时的规则说明
 - @~/.claude/java-rule-1.md
 - @~/.claude/java-rule-bpm.instructions.md

@@ -1,7 +1,6 @@
-package com.xinyirun.scm.bean.system.vo.master.bankaccounts;
+package com.xinyirun.scm.bean.system.vo.business.aprefund;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;
+import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -12,47 +11,42 @@ import java.time.LocalDateTime;
 
 /**
  * <p>
- * 款项类型
+ * 应付退款附件表
  * </p>
  *
  * @author xinyirun
- * @since 2025-03-02
+ * @since 2025-07-17
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-public class MBankAccountsTypeVo implements Serializable {
+public class BApReFundAttachVo implements Serializable {
 
 
     @Serial
-    private static final long serialVersionUID = 7707800057110751180L;
+    private static final long serialVersionUID = -6219136969784065223L;
+
+    /**
+     * 换页条件
+     */
+    private PageCondition pageCondition;
+
+    /**
+     * 导出 id
+     */
+    private Integer[] ids;
 
     private Integer id;
 
     /**
-     * m_bank_accounts主表主键
+     * 主表id
      */
-    private Integer bank_id;
+    private Integer ap_refund_id;
 
     /**
-     * 单号
+     * 文件ID
      */
-    private String code;
-
-    /**
-     * 名称：预付款、预收款、应付款、应收款
-     */
-    private String name;
-
-    /**
-     * 状态  0停用 1启用
-     */
-    private String status;
-
-    /**
-     * 备注
-     */
-    private String remark;
+    private Integer one_file;
 
     /**
      * 创建时间
@@ -73,7 +67,6 @@ public class MBankAccountsTypeVo implements Serializable {
      * 修改人id
      */
     private Long u_id;
-
 
     /**
      * 数据版本，乐观锁使用

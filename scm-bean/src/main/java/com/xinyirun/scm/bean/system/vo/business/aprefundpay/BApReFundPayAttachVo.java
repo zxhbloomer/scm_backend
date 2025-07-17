@@ -1,4 +1,4 @@
-package com.xinyirun.scm.bean.system.vo.business.aprefund;
+package com.xinyirun.scm.bean.system.vo.business.aprefundpay;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

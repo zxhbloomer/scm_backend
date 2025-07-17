@@ -1,6 +1,5 @@
-package com.xinyirun.scm.bean.system.vo.business.aprefund;
+package com.xinyirun.scm.bean.system.vo.business.aprefundpay;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import lombok.Data;
@@ -72,10 +71,6 @@ public class BApReFundPayVo implements Serializable {
     private String type_name;
 
 
-    /**
-     * 采购订单编号
-     */
-    private String po_code;
 
     /**
      * 采购合同编号

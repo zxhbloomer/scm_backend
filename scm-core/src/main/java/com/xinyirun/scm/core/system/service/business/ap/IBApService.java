@@ -45,6 +45,7 @@ public interface IBApService extends IService<BApEntity> ,
      */
     IPage<BApVo> selectPage(BApVo searchCondition);
 
+
     /**
      * 根据id查询
      */
@@ -79,11 +80,6 @@ public interface IBApService extends IService<BApEntity> ,
      * 中止付款
      */
     UpdateResultAo<Integer> suspendPayment(BApVo searchCondition);
-
-    /**
-     * 获取下推预付退款款数据
-     */
-    BApVo getApRefund(BApVo searchCondition);
 
     /**
      * 汇总查询

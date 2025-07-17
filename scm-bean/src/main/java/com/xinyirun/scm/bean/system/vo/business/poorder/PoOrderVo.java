@@ -35,11 +35,13 @@ public class PoOrderVo extends BaseVo implements Serializable {
     private static final long serialVersionUID = -6930578590189253290L;
 
     private Integer id;
+    private Integer po_order_id;
 
     /**
      * 编号自动生成编号
      */
     private String code;
+    private String po_order_code;
 
     /**
      * 类型：0：标准合同；1：框架合同
@@ -242,6 +244,21 @@ public class PoOrderVo extends BaseVo implements Serializable {
      * 可下推预付款金额
      */
     private BigDecimal advance_amount_total;
+
+    /**
+     * 可下推预付款退款金额
+     */
+    private BigDecimal advance_refund_amount_total;
+
+    /**
+     * 预付款已付总金额
+     */
+    private BigDecimal advance_paid_total;
+
+    /**
+     * 预付款作废总金额
+     */
+    private BigDecimal advance_cancelpay_total;
 
     /**
      * 已开票金额

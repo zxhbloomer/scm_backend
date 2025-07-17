@@ -89,13 +89,13 @@ public class BApPaySourceAdvanceEntity implements Serializable {
     /**
      * 总数量
      */
-    @TableField("qty_total")
+    @TableField("po_qty")
     private BigDecimal qty_total;
 
     /**
      * 总金额
      */
-    @TableField("amount_total")
+    @TableField("po_amount")
     private BigDecimal amount_total;
 
     /**

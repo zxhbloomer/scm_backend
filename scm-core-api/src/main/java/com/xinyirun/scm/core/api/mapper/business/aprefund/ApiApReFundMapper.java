@@ -57,7 +57,6 @@ public interface ApiApReFundMapper extends BaseMapper<BApReFundEntity> {
             +"	t1.ap_refund_code,                                                                                             "
             +"	t1.type,                                                                                                       "
             +"	t1.po_contract_code,                                                                                           "
-            +"	t1.po_code,                                                                                                    "
             +"	t1.po_goods,                                                                                                   "
             +"	t1.advance_pay_amount,                                                                                         "
             +"	t1.refunded_amount,                                                                                            "
