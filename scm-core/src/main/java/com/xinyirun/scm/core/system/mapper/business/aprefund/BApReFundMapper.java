@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundEntity;
 import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundDetailVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
@@ -286,4 +287,27 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
             </script>
             """)
     BApReFundVo querySum(@Param("p1") BApReFundVo searchCondition);
+
+    /**
+     * 获取应付退款明细信息（银行账号）
+     * 根据BApMapper.getApDetail方法学习实现
+     * @param id 应付退款ID
+     * @return 应付退款明细信息
+     */
+    @Select("""
+        SELECT
+            t1.*,
+            t2.name,
+            t2.bank_name,
+            t2.account_number,
+            GROUP_CONCAT(t3.name) AS bank_type_name
+        FROM b_ap_refund_detail t1
+        LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id
+        LEFT JOIN m_bank_accounts_type t3 ON t2.id = t3.bank_id
+        WHERE t1.ap_refund_id = #{p1}
+        GROUP BY t1.id, t1.code, t1.ap_refund_id, t1.ap_refund_code, t1.bank_accounts_id, t1.bank_accounts_code, 
+                 t1.refundable_amount, t1.refunded_amount, t1.refunding_amount, t1.unrefund_amount, 
+                 t1.cancel_amount, t1.order_amount, t2.name, t2.bank_name, t2.account_number
+        """)
+    List<BApReFundDetailVo> getApRefundDetail(@Param("p1") Integer id);
 }

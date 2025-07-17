@@ -123,4 +123,68 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
      */
     @Select("select * from b_ap_refund_pay where ap_refund_id = #{p1} and status != #{p2}  ")
     List<BApReFundPayVo> selectApPayByNotStatus(@Param("p1")  Integer apId, @Param("p2") String status);
+
+    /**
+     * 汇总查询
+     * @param searchCondition 查询条件
+     * @return 汇总结果
+     */
+    @Select({
+        "<script>",
+        "SELECT ",
+        "  SUM(IFNULL(tab1.refundable_amount_total, 0)) as sum_refundable_amount_total, ",
+        "  SUM(IFNULL(tab1.refunded_amount_total, 0)) as sum_refunded_amount_total, ",
+        "  SUM(IFNULL(tab1.refunding_amount_total, 0)) as sum_refunding_amount_total, ",
+        "  SUM(IFNULL(tab1.unrefund_amount_total, 0)) as sum_unrefund_amount_total, ",
+        "  SUM(IFNULL(tab1.cancelrefund_amount_total, 0)) as sum_cancelrefund_amount_total ",
+        "FROM ",
+        "  b_ap_refund_pay tab1 ",
+        "  LEFT JOIN m_staff tab2 ON tab2.id = tab1.c_id ",
+        "  LEFT JOIN m_staff tab3 ON tab3.id = tab1.u_id ",
+        "  LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_one_status' AND tab4.dict_value = tab1.status ",
+        "  LEFT JOIN s_dict_data tab5 ON tab5.CODE = 'b_ap_refund_type' AND tab5.dict_value = tab1.type ",
+        "  LEFT JOIN b_ap_refund tab6 ON tab6.id = tab1.ap_refund_id ",
+        "  LEFT JOIN b_ap_refund_detail tab7 ON tab7.ap_refund_id = tab1.ap_refund_id ",
+        "  LEFT JOIN m_bank_accounts tab8 ON tab8.id = tab7.bank_accounts_id ",
+        "WHERE 1=1 ",
+        "  <if test='searchCondition.purchaser_id != null'> AND tab1.purchaser_id = #{searchCondition.purchaser_id} </if>",
+        "  <if test='searchCondition.supplier_id != null'> AND tab1.supplier_id = #{searchCondition.supplier_id} </if>",
+        "  <if test='searchCondition.ap_refund_code != null and searchCondition.ap_refund_code != \"\"'> AND tab1.ap_refund_code like concat('%', #{searchCondition.ap_refund_code}, '%') </if>",
+        "  <if test='searchCondition.code != null and searchCondition.code != \"\"'> AND tab1.code like concat('%', #{searchCondition.code}, '%') </if>",
+        "  <if test='searchCondition.status != null and searchCondition.status != \"\"'> AND tab1.status = #{searchCondition.status} </if>",
+        "  <if test='searchCondition.type != null and searchCondition.type != \"\"'> AND tab1.type = #{searchCondition.type} </if>",
+        "  <if test='searchCondition.refund_date != null'> AND DATE(tab1.refund_date) = DATE(#{searchCondition.refund_date}) </if>",
+        "  <if test='searchCondition.account_name != null and searchCondition.account_name != \"\"'> AND tab8.name LIKE CONCAT('%',#{searchCondition.account_name},'%') </if>",
+        "  <if test='searchCondition.bank_name != null and searchCondition.bank_name != \"\"'> AND tab8.bank_name LIKE CONCAT('%',#{searchCondition.bank_name},'%') </if>",
+        "</script>"
+    })
+    BApReFundPayVo querySum(@Param("searchCondition") BApReFundPayVo searchCondition);
+
+    /**
+     * 单条汇总查询
+     * @param searchCondition 查询条件
+     * @return 汇总结果
+     */
+    @Select({
+        "<script>",
+        "SELECT ",
+        "  SUM(IFNULL(tab1.refundable_amount_total, 0)) as sum_refundable_amount_total, ",
+        "  SUM(IFNULL(tab1.refunded_amount_total, 0)) as sum_refunded_amount_total, ",
+        "  SUM(IFNULL(tab1.refunding_amount_total, 0)) as sum_refunding_amount_total, ",
+        "  SUM(IFNULL(tab1.unrefund_amount_total, 0)) as sum_unrefund_amount_total, ",
+        "  SUM(IFNULL(tab1.cancelrefund_amount_total, 0)) as sum_cancelrefund_amount_total ",
+        "FROM ",
+        "  b_ap_refund_pay tab1 ",
+        "  LEFT JOIN m_staff tab2 ON tab2.id = tab1.c_id ",
+        "  LEFT JOIN m_staff tab3 ON tab3.id = tab1.u_id ",
+        "  LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_one_status' AND tab4.dict_value = tab1.status ",
+        "  LEFT JOIN s_dict_data tab5 ON tab5.CODE = 'b_ap_refund_type' AND tab5.dict_value = tab1.type ",
+        "  LEFT JOIN b_ap_refund tab6 ON tab6.id = tab1.ap_refund_id ",
+        "  LEFT JOIN b_ap_refund_detail tab7 ON tab7.ap_refund_id = tab1.ap_refund_id ",
+        "  LEFT JOIN m_bank_accounts tab8 ON tab8.id = tab7.bank_accounts_id ",
+        "WHERE true ",
+        "  AND tab1.id = #{searchCondition.id} ",
+        "</script>"
+    })
+    BApReFundPayVo queryViewSum(@Param("searchCondition") BApReFundPayVo searchCondition);
 }

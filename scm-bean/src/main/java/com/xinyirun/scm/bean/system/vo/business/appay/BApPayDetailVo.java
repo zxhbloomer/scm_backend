@@ -72,15 +72,6 @@ public class BApPayDetailVo implements Serializable {
      */
     private String bank_accounts_code;
 
-    /**
-     * 企业银行款项类型分类表id
-     */
-    private Integer bank_accounts_type_id;
-
-    /**
-     * 企业银行款项类型分类表编号
-     */
-    private String bank_accounts_type_code;
 
     /**
      * 计划付款金额

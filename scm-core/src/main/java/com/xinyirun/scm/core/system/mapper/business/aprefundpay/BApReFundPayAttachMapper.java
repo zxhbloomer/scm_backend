@@ -17,6 +17,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BApReFundPayAttachMapper extends BaseMapper<BApReFundPayAttachEntity> {
 
-    @Select("SELECT * FROM b_ap_refund_pay_attach WHERE ap_refund_id = #{id}")
+    @Select("SELECT * FROM b_ap_refund_pay_attach WHERE ap_refund_pay_id = #{id}")
     BApReFundPayAttachVo selectByBapId(Integer id);
 }

@@ -1,7 +1,6 @@
-package com.xinyirun.scm.bean.entity.busniess.aprefundpay;
+package com.xinyirun.scm.bean.system.vo.business.aprefundpay;
 
-import com.baomidou.mybatisplus.annotation.*;
-import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;
+import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -22,119 +21,165 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("b_ap_refund_pay_detail")
-public class BApReFundPayDetailEntity implements Serializable {
-
+public class BApReFundPayDetailVo implements Serializable {
 
     @Serial
-    private static final long serialVersionUID = 639779810444323830L;
+    private static final long serialVersionUID = -3456789012345678901L;
 
+    /**
+     * 换页条件
+     */
+    private PageCondition pageCondition;
 
-    @TableId(value = "id", type = IdType.AUTO)
+    /**
+     * 导出 id
+     */
+    private Integer[] ids;
+
+    /**
+     * id
+     */
     private Integer id;
 
     /**
      * 退款单表id
      */
-    @TableField("ap_refund_pay_id")
     private Integer ap_refund_pay_id;
 
     /**
      * 退款单表code
      */
-    @TableField("ap_refund_pay_code")
     private String ap_refund_pay_code;
 
     /**
      * 退款管理id
      */
-    @TableField("ap_refund_id")
     private Integer ap_refund_id;
 
     /**
      * 退款管理code
      */
-    @TableField("ap_refund_code")
     private String ap_refund_code;
 
     /**
      * 企业银行账户表id
      */
-    @TableField("bank_accounts_id")
     private Integer bank_accounts_id;
 
     /**
      * 企业银行账户表编号
      */
-    @TableField("bank_accounts_code")
     private String bank_accounts_code;
+
+    /**
+     * 企业银行账户名称
+     */
+    private String bank_accounts_name;
 
     /**
      * 计划退款金额
      */
-    @TableField("refundable_amount")
     private BigDecimal refundable_amount;
 
     /**
      * 实退金额
      */
-    @TableField("refunded_amount")
     private BigDecimal refunded_amount;
 
     /**
      * 退款中金额
      */
-    @TableField("refunding_amount")
     private BigDecimal refunding_amount;
 
     /**
      * 未退款金额
      */
-    @TableField("unrefund_amount")
     private BigDecimal unrefund_amount;
 
     /**
      * 作废退款金额
      */
-    @TableField("cancel_amount")
     private BigDecimal cancel_amount;
 
     /**
      * 本次退款金额
      */
-    @TableField("order_amount")
     private BigDecimal order_amount;
 
     /**
      * 创建人id
      */
-    @TableField(value="c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    @DataChangeLabelAnnotation(value="创建人",  extension = "getUserNameExtension")
     private Integer c_id;
+
+    /**
+     * 创建人名称
+     */
+    private String c_name;
 
     /**
      * 创建时间
      */
-    @TableField(value="c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     private LocalDateTime c_time;
 
     /**
      * 修改人id
      */
-    @TableField(value="u_id", fill = FieldFill.INSERT_UPDATE)
-    @DataChangeLabelAnnotation(value="修改人", extension = "getUserNameExtension")
     private Integer u_id;
+
+    /**
+     * 修改人名称
+     */
+    private String u_name;
 
     /**
      * 修改时间
      */
-    @TableField(value="u_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime u_time;
 
     /**
      * 数据版本，乐观锁使用
      */
-    @TableField("dbversion")
     private Integer dbversion;
+
+    // 查询条件字段
+    /**
+     * 创建时间范围查询 - 开始时间
+     */
+    private LocalDateTime c_time_start;
+
+    /**
+     * 创建时间范围查询 - 结束时间
+     */
+    private LocalDateTime c_time_end;
+
+    /**
+     * 修改时间范围查询 - 开始时间
+     */
+    private LocalDateTime u_time_start;
+
+    /**
+     * 修改时间范围查询 - 结束时间
+     */
+    private LocalDateTime u_time_end;
+
+    /**
+     * 退款金额范围查询 - 最小值
+     */
+    private BigDecimal refundable_amount_min;
+
+    /**
+     * 退款金额范围查询 - 最大值
+     */
+    private BigDecimal refundable_amount_max;
+
+    /**
+     * 本次退款金额范围查询 - 最小值
+     */
+    private BigDecimal order_amount_min;
+
+    /**
+     * 本次退款金额范围查询 - 最大值
+     */
+    private BigDecimal order_amount_max;
 
 }

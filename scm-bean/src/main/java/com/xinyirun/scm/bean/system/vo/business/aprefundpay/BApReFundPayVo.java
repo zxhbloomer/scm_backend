@@ -59,7 +59,7 @@ public class BApReFundPayVo implements Serializable {
     private String ap_refund_code;
 
     /**
-     * 状态
+     * 状态（0-待退款、1-已退款、2-作废）
      */
     private String status;
     private String status_name;
@@ -78,39 +78,34 @@ public class BApReFundPayVo implements Serializable {
     private String po_contract_code;
 
     /**
-     * 供应商企业编号
+     * 供应商ID
      */
-    private String supplier_enterprise_code;
+    private Integer supplier_id;
 
     /**
-     * 供应商企业版本号
+     * 供应商编码
      */
-    private Integer supplier_enterprise_version;
+    private String supplier_code;
 
     /**
-     * 供应商企业名称
+     * 供应商名称
      */
-    private String supplier_enterprise_name;
+    private String supplier_name;
 
     /**
-     * 主体企业买家企业编号
+     * 购买方ID
      */
-    private String buyer_enterprise_code;
+    private Integer purchaser_id;
 
     /**
-     * 主体企业买家企业id
+     * 采购方编码
      */
-    private Integer buyer_enterprise_id;
+    private String purchaser_code;
 
     /**
-     * 主体企业买家企业版本号
+     * 采购方名称
      */
-    private Integer buyer_enterprise_version;
-
-    /**
-     * 主体企业买家企业名称
-     */
-    private String buyer_enterprise_name;
+    private String purchaser_name;
 
     /**
      * 退款日期
@@ -118,9 +113,29 @@ public class BApReFundPayVo implements Serializable {
     private LocalDateTime refund_date;
 
     /**
-     * 退款款单总金额
+     * 退款金额
      */
-    private BigDecimal refund_amount;
+    private BigDecimal refundable_amount_total;
+
+    /**
+     * 已退款
+     */
+    private BigDecimal refunded_amount_total;
+
+    /**
+     * 退款中
+     */
+    private BigDecimal refunding_amount_total;
+
+    /**
+     * 未退款
+     */
+    private BigDecimal unrefund_amount_total;
+
+    /**
+     * 退款取消
+     */
+    private BigDecimal cancelrefund_amount_total;
 
     /**
      * 退款方式：1-银行转账
@@ -137,6 +152,17 @@ public class BApReFundPayVo implements Serializable {
      * 凭证上传备注
      */
     private String voucher_remark;
+
+    /**
+     * 作废理由
+     */
+    private String cancel_reason;
+
+    /**
+     * 作废附件
+     */
+    private Integer cancel_file;
+    private List<SFileInfoVo> cancel_files;
 
     /**
      * 凭证上传附件
@@ -218,4 +244,28 @@ public class BApReFundPayVo implements Serializable {
      * 交易编号（资金池、合同编号-转款专用））
      */
     private String trade_no;
+
+    /**
+     * 退款账户信息数据
+     */
+    private BApReFundPayDetailVo detailData;
+
+    /**
+     * 退款指令金额
+     */
+    private BigDecimal refund_order_amount;
+
+    /**
+     * 退款备注
+     */
+    private String refund_remark;
+
+    /**
+     * 表头：数据汇总
+     */
+    private BigDecimal sum_refundable_amount_total;
+    private BigDecimal sum_refunded_amount_total;
+    private BigDecimal sum_refunding_amount_total;
+    private BigDecimal sum_unrefund_amount_total;
+    private BigDecimal sum_cancelrefund_amount_total;
 }

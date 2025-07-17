@@ -3,8 +3,10 @@ package com.xinyirun.scm.core.system.service.business.aprefundpay;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPayEntity;
+import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
+import com.xinyirun.scm.bean.system.vo.business.appay.BApPayVo;
 import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayVo;
 
 /**
@@ -41,5 +43,25 @@ public interface IBApReFundPayService extends IService<BApReFundPayEntity> {
      * 作废
      */
     UpdateResultAo<BApReFundPayVo> cancel(BApReFundPayVo searchCondition);
+
+    /**
+     * 校验
+     */
+    CheckResultAo checkLogic(BApReFundPayVo searchCondition, String checkType);
+
+    /**
+     * 付款单  新增
+     */
+    InsertResultAo<BApReFundPayVo> startInsert(BApReFundPayVo searchCondition);
+
+    /**
+     * 汇总查询
+     */
+    BApReFundPayVo querySum(BApReFundPayVo searchCondition);
+
+    /**
+     * 单条汇总查询
+     */
+    BApReFundPayVo queryViewSum(BApReFundPayVo searchCondition);
 
 }

@@ -50,7 +50,7 @@ public class BApReFundPayEntity implements Serializable {
     private String ap_refund_code;
 
     /**
-     * 状态（1-待付款、2已付款、3-作废）
+     * 状态（0-待退款、1-已退款、2-作废）
      */
     @TableField("status")
     private String status;
@@ -62,52 +62,40 @@ public class BApReFundPayEntity implements Serializable {
     private String type;
 
     /**
-     * 供应商企业银行名称
+     * 供应商ID
      */
-    @TableField("supplier_enterprise_bank_name")
-    private String supplier_enterprise_bank_name;
-    /**
-     * 供应商企业编号
-     */
-    @TableField("supplier_enterprise_code")
-    private String supplier_enterprise_code;
+    @TableField("supplier_id")
+    private Integer supplier_id;
 
     /**
-     * 供应商企业版本号
+     * 供应商编码
      */
-    @TableField("supplier_enterprise_version")
-    private Integer supplier_enterprise_version;
+    @TableField("supplier_code")
+    private String supplier_code;
 
     /**
-     * 供应商企业名称
+     * 供应商名称
      */
-    @TableField("supplier_enterprise_name")
-    private String supplier_enterprise_name;
-
-
-    /**
-     * 主体企业银行名称
-     */
-    @TableField("buyer_enterprise_bank_name")
-    private String buyer_enterprise_bank_name;
+    @TableField("supplier_name")
+    private String supplier_name;
 
     /**
-     * 主体企业买家企业编号
+     * 购买方ID
      */
-    @TableField("buyer_enterprise_code")
-    private String buyer_enterprise_code;
+    @TableField("purchaser_id")
+    private Integer purchaser_id;
 
     /**
-     * 主体企业买家企业版本号
+     * 采购方编码
      */
-    @TableField("buyer_enterprise_version")
-    private Integer buyer_enterprise_version;
+    @TableField("purchaser_code")
+    private String purchaser_code;
 
     /**
-     * 主体企业买家企业名称
+     * 采购方名称
      */
-    @TableField("buyer_enterprise_name")
-    private String buyer_enterprise_name;
+    @TableField("purchaser_name")
+    private String purchaser_name;
 
     /**
      * 退款日期
@@ -122,10 +110,34 @@ public class BApReFundPayEntity implements Serializable {
     private String refund_method;
 
     /**
-     * 退款款单总金额
+     * 退款金额
      */
-    @TableField("refund_amount")
-    private BigDecimal refund_amount;
+    @TableField("refundable_amount_total")
+    private BigDecimal refundable_amount_total;
+
+    /**
+     * 已退款
+     */
+    @TableField("refunded_amount_total")
+    private BigDecimal refunded_amount_total;
+
+    /**
+     * 退款中
+     */
+    @TableField("refunding_amount_total")
+    private BigDecimal refunding_amount_total;
+
+    /**
+     * 未退款
+     */
+    @TableField("unrefund_amount_total")
+    private BigDecimal unrefund_amount_total;
+
+    /**
+     * 退款取消
+     */
+    @TableField("cancelrefund_amount_total")
+    private BigDecimal cancelrefund_amount_total;
 
     /**
      * 付款指令备注
@@ -140,11 +152,23 @@ public class BApReFundPayEntity implements Serializable {
     private String voucher_remark;
 
     /**
+     * 作废理由
+     */
+    @TableField("cancel_reason")
+    private String cancel_reason;
+
+    /**
+     * 作废附件
+     */
+    @TableField("cancel_file")
+    private Integer cancel_file;
+
+    /**
      * 创建人id
      */
     @TableField(value="c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value="创建人",  extension = "getUserNameExtension")
-    private Long c_id;
+    private Integer c_id;
 
     /**
      * 创建时间
@@ -157,7 +181,7 @@ public class BApReFundPayEntity implements Serializable {
      */
     @TableField(value="u_id", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value="修改人", extension = "getUserNameExtension")
-    private Long u_id;
+    private Integer u_id;
 
     /**
      * 修改时间

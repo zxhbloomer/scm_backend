@@ -604,8 +604,6 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
                         payDetailVo.setAp_detail_code(apDetailVo.getCode());
                         payDetailVo.setBank_accounts_id(apDetailVo.getBank_accounts_id());
                         payDetailVo.setBank_accounts_code(apDetailVo.getBank_accounts_code());
-                        payDetailVo.setBank_accounts_type_id(apDetailVo.getBank_accounts_type_id());
-                        payDetailVo.setBank_accounts_type_code(apDetailVo.getBank_accounts_type_code());
                         payDetailVo.setPayable_amount(apDetailVo.getPayable_amount());
                         break; // 找到匹配项后跳出内层循环
                     }

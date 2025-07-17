@@ -367,4 +367,9 @@ public class BApVo implements Serializable {
      */
     private String po_order_code;
 
+    /**
+     * 付款账户类型
+     */
+    private String bank_type_name;
+
 }

@@ -13,22 +13,20 @@ import java.time.LocalDateTime;
 
 /**
  * <p>
- * 应付退款单明细表
+ * 退款单关联单据表-源单-预收款
  * </p>
  *
  * @author xinyirun
- * @since 2025-02-26
+ * @since 2025-07-17
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("b_ap_refund_pay_detail")
-public class BApReFundPayDetailEntity implements Serializable {
-
+@TableName("b_ap_refund_pay_source_advance")
+public class BApReFundPaySourceAdvanceEntity implements Serializable {
 
     @Serial
-    private static final long serialVersionUID = 639779810444323830L;
-
+    private static final long serialVersionUID = 1234567890123456789L;
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
@@ -58,52 +56,52 @@ public class BApReFundPayDetailEntity implements Serializable {
     private String ap_refund_code;
 
     /**
-     * 企业银行账户表id
+     * 1-应付退款、2-预付退款、3-其他支出退款
      */
-    @TableField("bank_accounts_id")
-    private Integer bank_accounts_id;
+    @TableField("type")
+    private String type;
 
     /**
-     * 企业银行账户表编号
+     * 采购合同id
      */
-    @TableField("bank_accounts_code")
-    private String bank_accounts_code;
+    @TableField("po_contract_id")
+    private Integer po_contract_id;
 
     /**
-     * 计划退款金额
+     * 采购合同编号
      */
-    @TableField("refundable_amount")
-    private BigDecimal refundable_amount;
+    @TableField("po_contract_code")
+    private String po_contract_code;
 
     /**
-     * 实退金额
+     * 采购订单编号
      */
-    @TableField("refunded_amount")
-    private BigDecimal refunded_amount;
+    @TableField("po_order_code")
+    private String po_order_code;
 
     /**
-     * 退款中金额
+     * 采购订单id
      */
-    @TableField("refunding_amount")
-    private BigDecimal refunding_amount;
+    @TableField("po_order_id")
+    private Integer po_order_id;
 
     /**
-     * 未退款金额
+     * 商品GROUP_CONCAT
      */
-    @TableField("unrefund_amount")
-    private BigDecimal unrefund_amount;
+    @TableField("po_goods")
+    private String po_goods;
 
     /**
-     * 作废退款金额
-     */
-    @TableField("cancel_amount")
-    private BigDecimal cancel_amount;
-
-    /**
-     * 本次退款金额
+     * 本次申请金额
      */
     @TableField("order_amount")
     private BigDecimal order_amount;
+
+    /**
+     * 备注
+     */
+    @TableField("remark")
+    private String remark;
 
     /**
      * 创建人id

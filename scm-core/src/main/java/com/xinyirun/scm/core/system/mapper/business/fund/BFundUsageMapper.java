@@ -27,11 +27,9 @@ public interface BFundUsageMapper extends BaseMapper<BFundUsageEntity> {
     @Select("SELECT * FROM b_fund_usage " +
             "WHERE enterprise_id = #{enterpriseId} " +
             "AND bank_account_id = #{bankAccountId} " +
-            "AND bank_accounts_type_id = #{bankAccountsTypeId} " +
             "AND type = #{type}")
     BFundUsageVo selectByCondition(@Param("enterpriseId") Integer enterpriseId,
                                    @Param("bankAccountId") Integer bankAccountId,
-                                   @Param("bankAccountsTypeId") Integer bankAccountsTypeId,
                                    @Param("type") String type);
 
 }

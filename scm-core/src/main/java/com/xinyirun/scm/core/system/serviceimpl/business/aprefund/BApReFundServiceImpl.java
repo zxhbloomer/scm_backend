@@ -527,7 +527,7 @@ public class BApReFundServiceImpl extends ServiceImpl<BApReFundMapper, BApReFund
      * 保存源单信息
      */
     private void saveSourceEntity(BApReFundVo vo, BApReFundEntity bApReFundEntity) {
-        BApRefundSourceEntity bApSourceEntity = new BApRefundSourceEntity();
+        BApReFundSourceEntity bApSourceEntity = new BApReFundSourceEntity();
         bApSourceEntity.setAp_refund_id(bApReFundEntity.getId());
         bApSourceEntity.setAp_refund_code(bApReFundEntity.getCode());
         bApSourceEntity.setType(bApReFundEntity.getType());
@@ -695,9 +695,9 @@ public class BApReFundServiceImpl extends ServiceImpl<BApReFundMapper, BApReFund
      * 更新源单信息
      */
     private void updateSourceEntity(BApReFundVo vo, BApReFundEntity bApReFundEntity) {
-        bApReFundSourceMapper.delete(new LambdaQueryWrapper<BApRefundSourceEntity>()
-                .eq(BApRefundSourceEntity :: getAp_refund_id, bApReFundEntity.getId()));
-        BApRefundSourceEntity bApSourceEntity = new BApRefundSourceEntity();
+        bApReFundSourceMapper.delete(new LambdaQueryWrapper<BApReFundSourceEntity>()
+                .eq(BApReFundSourceEntity:: getAp_refund_id, bApReFundEntity.getId()));
+        BApReFundSourceEntity bApSourceEntity = new BApReFundSourceEntity();
         bApSourceEntity.setAp_refund_id(bApReFundEntity.getId());
         bApSourceEntity.setAp_refund_code(bApReFundEntity.getCode());
         bApSourceEntity.setType(bApReFundEntity.getType());

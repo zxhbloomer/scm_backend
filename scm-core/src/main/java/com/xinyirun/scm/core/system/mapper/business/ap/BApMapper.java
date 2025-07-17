@@ -94,19 +94,15 @@ public interface BApMapper extends BaseMapper<BApEntity> {
                                 'ap_code',t1.ap_code,
                                 'bank_accounts_id',t1.bank_accounts_id,
                                 'bank_accounts_code',t1.bank_accounts_code,
-                                'bank_accounts_type_id',t1.bank_accounts_type_id,
-                                'bank_accounts_type_code',t1.bank_accounts_type_code,
                                 'payable_amount',t1.payable_amount,
                                 'paid_amount',t1.paid_amount,
                                 'remark',t1.remark,
                                 'name',t2.name,
                                 'bank_name',t2.bank_name,
-                                'account_number',t2.account_number,
-                                'accounts_purpose_type_name',t3.name
+                                'account_number',t2.account_number
                         )) AS bankListData
                         FROM b_ap_detail t1 LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id
-                        LEFT JOIN m_bank_accounts_type t3 ON t1.bank_accounts_type_id = t3.id
-                        GROUP BY t1.ap_id) tab3 ON tab1.id = tab3.ap_id
+                                                GROUP BY t1.ap_id) tab3 ON tab1.id = tab3.ap_id
             LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
             LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
             LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_status' AND tab6.dict_value = tab1.status
@@ -161,6 +157,14 @@ public interface BApMapper extends BaseMapper<BApEntity> {
         SELECT
             tab1.*,
             tabb2.unpay_amount_total as unpay_amount,
+            tab3.bank_accounts_id,
+            tab3.bank_accounts_code,
+            tab3.payable_amount,
+            tab3.paid_amount,
+            tab9.name,
+            tab9.bank_name,
+            tab9.account_number,
+            GROUP_CONCAT(tab10.NAME) AS bank_type_name,
             tab4.name as c_name,
             tab5.name as u_name,
             tab6.label as status_name,
@@ -172,6 +176,7 @@ public interface BApMapper extends BaseMapper<BApEntity> {
             tabb2.paying_amount_total,
             tabb2.unpay_amount_total        
          FROM b_ap tab1
+         LEFT JOIN b_ap_detail tab3 ON tab1.id = tab3.ap_id
          LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
          LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
          LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_status' AND tab6.dict_value = tab1.status
@@ -179,7 +184,10 @@ public interface BApMapper extends BaseMapper<BApEntity> {
          LEFT JOIN s_dict_data tab8 ON tab8.code = 'b_ap_pay_status' AND tab8.dict_value = tab1.pay_status
          LEFT JOIN b_ap_attach tabb1 on tab1.id = tabb1.ap_id
          LEFT JOIN b_ap_total tabb2 on tab1.id = tabb2.ap_id
+         LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
+         LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id
         WHERE tab1.id = #{p1}
+        GROUP BY tab1.code, tab3.code
         """)
     BApVo selectId(@Param("p1") Integer id);
 
@@ -235,19 +243,15 @@ public interface BApMapper extends BaseMapper<BApEntity> {
                                 'code',t1.code,'ap_id',t1.ap_id,'ap_code',t1.ap_code,
                                 'bank_accounts_id',t1.bank_accounts_id,
                                 'bank_accounts_code',t1.bank_accounts_code,
-                                'bank_accounts_type_id',t1.bank_accounts_type_id,
-                                'bank_accounts_type_code',t1.bank_accounts_type_code,
                                 'payable_amount',t1.payable_amount,
                                 'paid_amount',t1.paid_amount,
                                 'remark',t1.remark,
                                 'name',t2.name,
                                 'bank_name',t2.bank_name,
-                                'account_number',t2.account_number,
-                                'accounts_purpose_type_name',t3.name
+                                'account_number',t2.account_number
                         )) AS bankListData
                         FROM b_ap_detail t1 LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id
-                        LEFT JOIN m_bank_accounts_type t3 ON t1.bank_accounts_type_id = t3.id
-                        GROUP BY t1.ap_id) tab3 ON tab1.id = tab3.ap_id
+                                                GROUP BY t1.ap_id) tab3 ON tab1.id = tab3.ap_id
             LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
             LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
             LEFT JOIN b_ap_total tabb2 on tab1.id = tabb2.ap_id
@@ -416,11 +420,12 @@ public interface BApMapper extends BaseMapper<BApEntity> {
             t2.name,
             t2.bank_name,
             t2.account_number,
-            t3.name as accounts_purpose_type_name
+            GROUP_CONCAT(t3.name) AS bank_type_name
         FROM b_ap_detail t1
         LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id
-        LEFT JOIN m_bank_accounts_type t3 ON t1.bank_accounts_type_id = t3.id
+        LEFT JOIN m_bank_accounts_type t3 ON t2.id = t3.bank_id
         WHERE t1.ap_id = #{p1}
+        GROUP BY t1.id, t1.code, t1.ap_id, t1.ap_code, t1.bank_accounts_id, t1.bank_accounts_code, t1.payable_amount, t1.paid_amount, t1.remark, t2.name, t2.bank_name, t2.account_number
         """)
     List<BApDetailVo> getApDetail(@Param("p1") Integer id);
 

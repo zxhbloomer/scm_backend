@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.aprefund;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.aprefund.BApRefundSourceEntity;
+import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundSourceEntity;
 
 /**
  * <p>
@@ -11,6 +11,6 @@ import com.xinyirun.scm.bean.entity.busniess.aprefund.BApRefundSourceEntity;
  * @author xinyirun
  * @since 2025-02-26
  */
-public interface IBApReFundSourceService extends IService<BApRefundSourceEntity> {
+public interface IBApReFundSourceService extends IService<BApReFundSourceEntity> {
 
 }

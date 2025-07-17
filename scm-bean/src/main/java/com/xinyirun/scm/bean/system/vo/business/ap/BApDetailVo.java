@@ -57,15 +57,6 @@ public class BApDetailVo implements Serializable {
      */
     private String bank_accounts_code;
 
-    /**
-     * 企业银行账户分类表id
-     */
-    private Integer bank_accounts_type_id;
-
-    /**
-     * 企业银行账户分类表编号
-     */
-    private String bank_accounts_type_code;
 
     /**
      * 计划付款金额
@@ -136,9 +127,11 @@ public class BApDetailVo implements Serializable {
     /**
      * 银行账户
      */
-    private String account_number;    /**
-     * 企业银行账户类型
+    private String account_number;
+
+    /**
+     * 账户类型
      */
-    private String accounts_purpose_type_name;
+    private String bank_type_name;
 
 }

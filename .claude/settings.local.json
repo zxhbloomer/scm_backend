@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "mcp__mcp_server_mysql__mysql_query",
+      "mcp__dthink__sequentialthinking",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

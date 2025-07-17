@@ -1,9 +1,14 @@
 package com.xinyirun.scm.core.system.mapper.business.aprefund;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.ap.BApSourceEntity;
-import com.xinyirun.scm.bean.entity.busniess.aprefund.BApRefundSourceEntity;
+import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundSourceEntity;
+import com.xinyirun.scm.bean.system.vo.business.ap.BApSourceVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceVo;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,6 +19,11 @@ import org.springframework.stereotype.Repository;
  * @since 2025-02-26
  */
 @Repository
-public interface BApReFundSourceMapper extends BaseMapper<BApRefundSourceEntity> {
+public interface BApReFundSourceMapper extends BaseMapper<BApReFundSourceEntity> {
 
+    /**
+     * 根据ap_id查询源单
+     */
+    @Select("SELECT * FROM b_ap_refund_source t WHERE t.ap_refund_id = #{ap_refund_id}")
+    List<BApReFundSourceVo> selectByApRefundId(@Param("ap_refund_id") Integer ap_refund_id);
 }

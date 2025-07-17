@@ -61,17 +61,6 @@ public class BApDetailEntity implements Serializable {
     @TableField("bank_accounts_code")
     private String bank_accounts_code;
 
-    /**
-     * 企业银行账户分类表id
-     */
-    @TableField("bank_accounts_type_id")
-    private Integer bank_accounts_type_id;
-
-    /**
-     * 企业银行账户分类表编号
-     */
-    @TableField("bank_accounts_type_code")
-    private String bank_accounts_type_code;
 
     /**
      * 计划付款金额

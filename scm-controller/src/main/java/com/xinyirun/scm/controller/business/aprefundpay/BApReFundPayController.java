@@ -30,15 +30,15 @@ public class BApReFundPayController {
     private IBApReFundPayService service;
 
     /**
-     * 付款单表  下推付款单
+     * 付款单表  新增
      */
     @PostMapping("/insert")
-    @SysLogAnnotion("付款单表 下推付款单")
+    @SysLogAnnotion("付款单表 新增")
     @RepeatSubmitAnnotion
     public ResponseEntity<JsonResultAo<BApReFundPayVo>> insert(@RequestBody BApReFundPayVo searchCondition) {
-        InsertResultAo<BApReFundPayVo> resultAo = service.insert(searchCondition);
+        InsertResultAo<BApReFundPayVo> resultAo = service.startInsert(searchCondition);
         if (resultAo.isSuccess()) {
-            return ResponseEntity.ok().body(ResultUtil.OK(null));
+            return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(searchCondition.getId()),"新增成功"));
         } else {
             throw new InsertErrorException("新增成功，请编辑后重新新增。");
         }
@@ -54,7 +54,7 @@ public class BApReFundPayController {
     }
 
     @SysLogAnnotion("付款单表，获取单条数据")
-    @PostMapping("/getdetail")
+    @PostMapping("/get")
     public ResponseEntity<JsonResultAo<BApReFundPayVo>> get(@RequestBody(required = false) BApReFundPayVo searchCondition) {
         return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(searchCondition.getId())));
     }
@@ -79,5 +79,21 @@ public class BApReFundPayController {
         } else {
             throw new InsertErrorException("新增成功，请编辑后重新新增。");
         }
+    }
+
+    @SysLogAnnotion("付款单表，汇总查询")
+    @PostMapping("/sum")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<BApReFundPayVo>> querySum(@RequestBody(required = false) BApReFundPayVo searchCondition) {
+        BApReFundPayVo result = service.querySum(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(result));
+    }
+
+    @SysLogAnnotion("付款单表，单条汇总查询")
+    @PostMapping("/view/sum")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<BApReFundPayVo>> queryViewSum(@RequestBody(required = false) BApReFundPayVo searchCondition) {
+        BApReFundPayVo result = service.queryViewSum(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 }

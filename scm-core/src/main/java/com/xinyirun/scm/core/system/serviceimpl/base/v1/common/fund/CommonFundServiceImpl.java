@@ -109,8 +109,6 @@ public class CommonFundServiceImpl extends BaseServiceImpl<BFundUsageMapper, BFu
             fundMonitorVo.setEnterprise_code(bApPayVo.getPurchaser_code());
             fundMonitorVo.setBank_account_id(detail.getBank_accounts_id());
             fundMonitorVo.setBank_account_code(detail.getBank_accounts_code());
-            fundMonitorVo.setBank_accounts_type_id(detail.getBank_accounts_type_id());
-            fundMonitorVo.setBank_accounts_type_code(detail.getBank_accounts_type_code());
             fundMonitorVo.setFund_type("0");
             fundMonitorVo.setTrade_id(bApPayVo.getId());
             fundMonitorVo.setTrade_code(bApPayVo.getCode());
@@ -208,8 +206,6 @@ public class CommonFundServiceImpl extends BaseServiceImpl<BFundUsageMapper, BFu
             fundMonitorVo.setEnterprise_code(bApPayVo.getPurchaser_code());
             fundMonitorVo.setBank_account_id(detail.getBank_accounts_id());
             fundMonitorVo.setBank_account_code(detail.getBank_accounts_code());
-            fundMonitorVo.setBank_accounts_type_id(detail.getBank_accounts_type_id());
-            fundMonitorVo.setBank_accounts_type_code(detail.getBank_accounts_type_code());
             fundMonitorVo.setFund_type("0");
             fundMonitorVo.setTrade_id(bApPayVo.getId());
             fundMonitorVo.setTrade_code(bApPayVo.getCode());
@@ -264,7 +260,6 @@ public class CommonFundServiceImpl extends BaseServiceImpl<BFundUsageMapper, BFu
         BFundUsageVo existingUsage = baseMapper.selectByCondition(
             bApPayVo.getPurchaser_id(),
             detail.getBank_accounts_id(),
-            detail.getBank_accounts_type_id(),
             "0" // 资金类型：0-资金池
         );
 
@@ -299,8 +294,6 @@ public class CommonFundServiceImpl extends BaseServiceImpl<BFundUsageMapper, BFu
         newUsageVo.setEnterprise_code(bApPayVo.getPurchaser_code());
         newUsageVo.setBank_account_id(detail.getBank_accounts_id());
         newUsageVo.setBank_account_code(detail.getBank_accounts_code());
-        newUsageVo.setBank_accounts_type_id(detail.getBank_accounts_type_id());
-        newUsageVo.setBank_accounts_type_code(detail.getBank_accounts_type_code());
         newUsageVo.setType("0"); // 资金类型：0-资金池
         newUsageVo.setTrade_id(null); // 资金池，交易ID为null
         newUsageVo.setTrade_code(null); // 资金池，交易编号为null

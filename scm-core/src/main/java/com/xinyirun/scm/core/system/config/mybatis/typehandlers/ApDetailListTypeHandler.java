@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.config.mybatis.typehandlers;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import com.alibaba.fastjson2.TypeReference;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApRefundSourceVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceVo;
 import com.xinyirun.scm.common.utils.NullUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.type.BaseTypeHandler;
@@ -27,10 +27,10 @@ import java.util.List;
  */
 @MappedTypes(value = {List.class})
 @MappedJdbcTypes(value = {JdbcType.VARCHAR}, includeNullJdbcType = true)
-public class ApDetailListTypeHandler extends BaseTypeHandler<List<BApRefundSourceVo>> {
+public class ApDetailListTypeHandler extends BaseTypeHandler<List<BApReFundSourceVo>> {
 
     @Override
-    public void setNonNullParameter(PreparedStatement preparedStatement, int i, List<BApRefundSourceVo> jsonList, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement preparedStatement, int i, List<BApReFundSourceVo> jsonList, JdbcType jdbcType) throws SQLException {
         preparedStatement.setString(i,
                 JSON.toJSONString(jsonList,
                         JSONWriter.Feature.WriteNullStringAsEmpty,
@@ -44,26 +44,26 @@ public class ApDetailListTypeHandler extends BaseTypeHandler<List<BApRefundSourc
     }
 
     @Override
-    public List<BApRefundSourceVo> getNullableResult(ResultSet resultSet, String s) throws SQLException {
+    public List<BApReFundSourceVo> getNullableResult(ResultSet resultSet, String s) throws SQLException {
         return getJsonList(resultSet.getString(s));
     }
 
     @Override
-    public List<BApRefundSourceVo> getNullableResult(ResultSet resultSet, int i) throws SQLException {
+    public List<BApReFundSourceVo> getNullableResult(ResultSet resultSet, int i) throws SQLException {
         return getJsonList(resultSet.getString(i));
     }
 
     @Override
-    public List<BApRefundSourceVo> getNullableResult(CallableStatement callableStatement, int i) throws SQLException {
+    public List<BApReFundSourceVo> getNullableResult(CallableStatement callableStatement, int i) throws SQLException {
         return getJsonList(callableStatement.getString(i));
     }
 
-    private List<BApRefundSourceVo> getJsonList(String content) {
-        List<BApRefundSourceVo> jsonResult = new ArrayList<>();
+    private List<BApReFundSourceVo> getJsonList(String content) {
+        List<BApReFundSourceVo> jsonResult = new ArrayList<>();
 
         if (StringUtils.isNotBlank(content)) {
             try {
-                List<BApRefundSourceVo> jsonList = JSON.parseObject(content, new TypeReference<List<BApRefundSourceVo>>(){});
+                List<BApReFundSourceVo> jsonList = JSON.parseObject(content, new TypeReference<List<BApReFundSourceVo>>(){});
                 if (!NullUtil.isNull(jsonList)) {
                     jsonResult.addAll(jsonList);
                 }

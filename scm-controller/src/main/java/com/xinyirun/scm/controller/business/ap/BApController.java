@@ -183,7 +183,6 @@ public class BApController {
                 poOrderExportVo.setRemarks(poContractVo.getRemark());
 
                 poOrderExportVo.setAccount_number(bApDetailVos.getAccount_number());
-                poOrderExportVo.setAccounts_purpose_type_name(bApDetailVos.getAccounts_purpose_type_name());
                 poOrderExportVo.setPayable_amount(bApDetailVos.getPayable_amount());
                 poOrderExportVo.setRemark(bApDetailVos.getRemark());
                 exportDataList.add(poOrderExportVo);
