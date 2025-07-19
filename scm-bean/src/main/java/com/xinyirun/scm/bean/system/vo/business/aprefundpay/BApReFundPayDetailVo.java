@@ -74,7 +74,10 @@ public class BApReFundPayDetailVo implements Serializable {
     /**
      * 企业银行账户名称
      */
-    private String bank_accounts_name;
+    private String account_name;
+    private String bank_name;
+    private String account_number;
+    private String bank_type_name;
 
     /**
      * 计划退款金额
@@ -140,46 +143,5 @@ public class BApReFundPayDetailVo implements Serializable {
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;
-
-    // 查询条件字段
-    /**
-     * 创建时间范围查询 - 开始时间
-     */
-    private LocalDateTime c_time_start;
-
-    /**
-     * 创建时间范围查询 - 结束时间
-     */
-    private LocalDateTime c_time_end;
-
-    /**
-     * 修改时间范围查询 - 开始时间
-     */
-    private LocalDateTime u_time_start;
-
-    /**
-     * 修改时间范围查询 - 结束时间
-     */
-    private LocalDateTime u_time_end;
-
-    /**
-     * 退款金额范围查询 - 最小值
-     */
-    private BigDecimal refundable_amount_min;
-
-    /**
-     * 退款金额范围查询 - 最大值
-     */
-    private BigDecimal refundable_amount_max;
-
-    /**
-     * 本次退款金额范围查询 - 最小值
-     */
-    private BigDecimal order_amount_min;
-
-    /**
-     * 本次退款金额范围查询 - 最大值
-     */
-    private BigDecimal order_amount_max;
 
 }

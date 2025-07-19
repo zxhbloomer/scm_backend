@@ -480,7 +480,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
                     return CheckResultUtil.NG(String.format("修改失败，付款管理[%s]不是待审批,驳回状态,无法删除", bApEntity.getCode()));
                 }
 
-                List<BApPayVo> delBApPayVo = bApPayMapper.selectApPayByNotStatus(searchCondition.getId(), DictConstant.DICT_B_AP_PAY_BILL_STATUS_TWO);
+                List<BApPayVo> delBApPayVo = bApPayMapper.selectApPayByNotStatus(searchCondition.getId(), DictConstant.DICT_B_AP_PAY_STATUS_TWO);
                 if (CollectionUtil.isNotEmpty(delBApPayVo)) {
                     return CheckResultUtil.NG("删除失败，存在付款单。");
                 }
@@ -504,7 +504,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
                     return CheckResultUtil.NG(String.format("作废失败，付款管理[%s]审核中，无法作废",bApEntity.getCode()));
                 }
 
-                List<BApPayVo> cancelBApPayVo = bApPayMapper.selectApPayByNotStatus(searchCondition.getId(), DictConstant.DICT_B_AP_PAY_BILL_STATUS_TWO);
+                List<BApPayVo> cancelBApPayVo = bApPayMapper.selectApPayByNotStatus(searchCondition.getId(), DictConstant.DICT_B_AP_PAY_STATUS_TWO);
                 if (CollectionUtil.isNotEmpty(cancelBApPayVo)) {
                     return CheckResultUtil.NG(String.format("作废失败，该应付账款下付款单号%s数据尚未作废，请先完成该付款单的作废。",cancelBApPayVo.stream().map(BApPayVo::getCode).collect(Collectors.toList())));
                 }
@@ -537,7 +537,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
                 }
 
                 // 查询是否存在付款单，且状态是待付款
-                List<BApPayVo> stopBApPayVo = bApPayMapper.selectApPayByStatus(searchCondition.getId(), DictConstant.DICT_B_AP_PAY_BILL_STATUS_ZERO);
+                List<BApPayVo> stopBApPayVo = bApPayMapper.selectApPayByStatus(searchCondition.getId(), DictConstant.DICT_B_AP_PAY_STATUS_ZERO);
                 if (CollectionUtil.isNotEmpty(stopBApPayVo)) {
                     return CheckResultUtil.NG("中止失败，该应付账款下，付款单“"+stopBApPayVo.stream().map(BApPayVo::getCode).collect(Collectors.toList())+"”状态为待付款，请先完成该付款单的处理。");
                 }
@@ -1421,7 +1421,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
      */
     private void suspendRelatedPayments(Integer apId) {
         // 查询待付款状态的付款单
-        List<BApPayVo> bApPayVos = bApPayMapper.selectApPayByStatus(apId, DictConstant.DICT_B_AP_PAY_BILL_STATUS_ZERO);
+        List<BApPayVo> bApPayVos = bApPayMapper.selectApPayByStatus(apId, DictConstant.DICT_B_AP_PAY_STATUS_ZERO);
         
         if (CollectionUtil.isNotEmpty(bApPayVos)) {
             for (BApPayVo paymentVo : bApPayVos) {
@@ -1439,7 +1439,7 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
      * @param paymentVo 付款单信息
      */
     private void updatePaymentStatusToSuspend(BApPayVo paymentVo) {
-        paymentVo.setStatus(DictConstant.DICT_B_AP_PAY_BILL_STATUS_STOP);
+        paymentVo.setStatus(DictConstant.DICT_B_AP_PAY_STATUS_STOP);
         BApPayEntity bApPayEntity = (BApPayEntity) BeanUtilsSupport.copyProperties(paymentVo, BApPayEntity.class);
         
         int updateResult = bApPayMapper.updateById(bApPayEntity);

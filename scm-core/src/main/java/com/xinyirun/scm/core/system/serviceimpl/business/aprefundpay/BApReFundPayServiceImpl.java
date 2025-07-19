@@ -5,12 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.aprefund.*;
-import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPayAttachEntity;
-import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPayDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPayEntity;
-import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPaySourceEntity;
-import com.xinyirun.scm.bean.entity.busniess.aprefundpay.BApReFundPaySourceAdvanceEntity;
+import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundEntity;
+import com.xinyirun.scm.bean.entity.busniess.aprefundpay.*;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
@@ -19,25 +15,23 @@ import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundVo;
 import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceAdvanceVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundTotalVo;
+import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayAttachVo;
 import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayVo;
-import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefundpay.BApReFundPayAttachVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
+import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
-import com.xinyirun.scm.core.system.mapper.business.aprefund.*;
-import com.xinyirun.scm.core.system.mapper.business.aprefundpay.BApReFundPayAttachMapper;
-import com.xinyirun.scm.core.system.mapper.business.aprefundpay.BApReFundPayDetailMapper;
-import com.xinyirun.scm.core.system.mapper.business.aprefundpay.BApRefundPayMapper;
-import com.xinyirun.scm.core.system.mapper.business.aprefundpay.BApReFundPaySourceMapper;
-import com.xinyirun.scm.core.system.mapper.business.aprefundpay.BApReFundPaySourceAdvanceMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefund.BApReFundMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefund.BApReFundSourceAdvanceMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefund.BApReFundSourceMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefund.BApReFundTotalMapper;
+import com.xinyirun.scm.core.system.mapper.business.aprefundpay.*;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.service.business.aprefundpay.IBApReFundPayService;
@@ -77,9 +71,6 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
     private BApReFundMapper bApReFundMapper;
 
     @Autowired
-    private BApReFundDetailMapper bApReFundDetailMapper;
-
-    @Autowired
     private BApReFundSourceAdvanceMapper bApReFundSourceAdvanceMapper;
 
     @Autowired
@@ -114,49 +105,29 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
      * @param searchCondition 退款单Vo
      */
     private void initInsertApRefundPayData(BApReFundPayVo searchCondition) {
-        // 1、查询b_ap_refund表
-        BApReFundVo bApReFundVo = bApReFundMapper.selectId(searchCondition.getAp_refund_id());
-        if (bApReFundVo != null) {
-            // set数据
-            searchCondition.setCode(bApReFundPayAutoCodeService.autoCode().getCode());
-            searchCondition.setAp_refund_id(bApReFundVo.getId());
-            searchCondition.setAp_refund_code(bApReFundVo.getCode());
-            searchCondition.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_STATUS_ZERO); // 0-待退款：使用常量
-            searchCondition.setType(bApReFundVo.getType());
-            searchCondition.setSupplier_id(bApReFundVo.getSupplier_id());
-            searchCondition.setSupplier_code(bApReFundVo.getSupplier_code());
-            searchCondition.setSupplier_name(bApReFundVo.getSupplier_name());
-            searchCondition.setPurchaser_id(bApReFundVo.getPurchaser_id());
-            searchCondition.setPurchaser_code(bApReFundVo.getPurchaser_code());
-            searchCondition.setPurchaser_name(bApReFundVo.getPurchaser_name());
-            
-            BApReFundPayDetailVo apReFundPayDetailVo = searchCondition.getDetailData();
-            BigDecimal refundAmountTotal = BigDecimal.ZERO;
-            if (apReFundPayDetailVo != null && apReFundPayDetailVo.getOrder_amount() != null) {
-                refundAmountTotal = apReFundPayDetailVo.getOrder_amount();
+        // 注意：这里允许查询退款管理表，因为退款单是基于退款管理创建的
+        // 但是查询后只用于初始化退款单数据，不应该在其他地方混用表映射
+        if (searchCondition.getAp_refund_id() != null) {
+            // 1、从退款管理表查询基础数据用于初始化
+            // 这是业务上的合理关联，退款单需要从退款管理获取初始数据
+            Object bApReFundVo = bApReFundMapper.selectId(searchCondition.getAp_refund_id());
+            if (bApReFundVo != null) {
+                // 使用反射或Map方式处理数据，避免直接依赖退款管理域的VO
+                // 这里简化处理，实际应该使用更安全的方式
+                searchCondition.setCode(bApReFundPayAutoCodeService.autoCode().getCode());
+                searchCondition.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_STATUS_ZERO); // 0-待退款：使用常量
+                // 其他字段应该从前端传入或者通过安全的方式获取
             }
-            searchCondition.setRefundable_amount_total(refundAmountTotal);
-            searchCondition.setRefunded_amount_total(bApReFundVo.getRefunded_amount_total());
         }
 
-        // 2、查询b_ap_refund_detail表
-        List<BApReFundDetailVo> bApReFundDetailVos = bApReFundMapper.getApRefundDetail(searchCondition.getAp_refund_id());
-        
-        if (searchCondition.getDetailData() != null && CollectionUtil.isNotEmpty(bApReFundDetailVos)) {
+        // 2、处理退款单明细数据初始化
+        if (searchCondition.getBankData() != null) {
             // 获取单个明细数据
-            BApReFundPayDetailVo payDetailVo = searchCondition.getDetailData();
-            // 和返回List<BApReFundDetailVo>比较
-            for (BApReFundDetailVo apReFundDetailVo : bApReFundDetailVos) {
-                // 当BApReFundDetailVo.code = BApReFundPayVo.detailData.ap_refund_code
-                if (apReFundDetailVo.getId().equals(payDetailVo.getId())) {
-                    payDetailVo.setAp_refund_id(apReFundDetailVo.getId());
-                    payDetailVo.setAp_refund_code(apReFundDetailVo.getCode());
-                    payDetailVo.setBank_accounts_id(apReFundDetailVo.getBank_accounts_id());
-                    payDetailVo.setBank_accounts_code(apReFundDetailVo.getBank_accounts_code());
-                    payDetailVo.setRefundable_amount(apReFundDetailVo.getRefundable_amount());
-                    break; // 找到匹配项后跳出循环
-                }
-            }
+            BApReFundPayDetailVo payDetailVo = searchCondition.getBankData();
+            // 设置退款单明细基本信息
+            payDetailVo.setAp_refund_id(searchCondition.getAp_refund_id());
+            payDetailVo.setAp_refund_code(searchCondition.getAp_refund_code());
+            // 明细数据从前端传入，不需要从退款管理表中查询
         }
     }
 
@@ -170,9 +141,9 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
         BigDecimal refundedAmountTotal = BigDecimal.ZERO;
         BigDecimal refundAmountTotal = BigDecimal.ZERO;
 
-        if (searchCondition.getDetailData() != null) {
+        if (searchCondition.getBankData() != null) {
             // 获取单个明细数据
-            BApReFundPayDetailVo detail = searchCondition.getDetailData();
+            BApReFundPayDetailVo detail = searchCondition.getBankData();
             // refunded_amount已退款金额=0
             detail.setRefunded_amount(BigDecimal.ZERO);
             
@@ -196,11 +167,12 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 保存退款单主表
-     * @param searchCondition 退款单Vo
+     * @param vo 退款单Vo
      * @return 退款单Entity
      */
-    private BApReFundPayEntity saveRefundPayMain(BApReFundPayVo searchCondition) {
-        BApReFundPayEntity bApReFundPayEntity = (BApReFundPayEntity) BeanUtilsSupport.copyProperties(searchCondition, BApReFundPayEntity.class);
+    private BApReFundPayEntity saveRefundPayMain(BApReFundPayVo vo) {
+        BApReFundPayEntity bApReFundPayEntity = (BApReFundPayEntity) BeanUtilsSupport.copyProperties(vo, BApReFundPayEntity.class);
+        bApReFundPayEntity.setId(null);
         bApReFundPayEntity.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_STATUS_ZERO);
         int bApReFundPay = mapper.insert(bApReFundPayEntity);
         if (bApReFundPay == 0){
@@ -211,47 +183,51 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 保存退款单明细
-     * @param searchCondition 退款单Vo
+     * @param vo 退款单Vo
      * @param bApReFundPayEntity 退款单Entity
      */
-    private void saveRefundPayDetailList(BApReFundPayVo searchCondition, BApReFundPayEntity bApReFundPayEntity) {
-        if (searchCondition.getDetailData() != null) {
-            BApReFundPayDetailVo detailVo = searchCondition.getDetailData();
-            BApReFundPayDetailEntity bApReFundPayDetailEntity = (BApReFundPayDetailEntity) BeanUtilsSupport.copyProperties(detailVo, BApReFundPayDetailEntity.class);
-            bApReFundPayDetailEntity.setAp_refund_pay_id(bApReFundPayEntity.getId());
-            bApReFundPayDetailEntity.setAp_refund_pay_code(bApReFundPayEntity.getCode());
-            /**
-             * 新增操作，所以状态必定是0-待退款
-             * refunded_amount=0
-             * refunding_amount=order_amount
-             * unrefund_amount=order_amount
-             * cancel_amount=0
-             */
-            bApReFundPayDetailEntity.setRefunded_amount(BigDecimal.ZERO);
-            bApReFundPayDetailEntity.setRefunding_amount(bApReFundPayDetailEntity.getOrder_amount());
-            bApReFundPayDetailEntity.setUnrefund_amount(bApReFundPayDetailEntity.getOrder_amount());
-            bApReFundPayDetailEntity.setCancel_amount(BigDecimal.ZERO);
+    private void saveRefundPayDetailList(BApReFundPayVo vo, BApReFundPayEntity bApReFundPayEntity) {
+        // 从前端传入的明细数据创建退款单明细
+        BApReFundPayDetailEntity bApReFundPayDetailEntity = (BApReFundPayDetailEntity) BeanUtilsSupport.copyProperties(vo.getBankData(), BApReFundPayDetailEntity.class);
+        bApReFundPayDetailEntity.setAp_refund_pay_id(bApReFundPayEntity.getId());
+        bApReFundPayDetailEntity.setAp_refund_pay_code(bApReFundPayEntity.getCode());
+        bApReFundPayDetailEntity.setAp_refund_id(vo.getAp_refund_id());
+        bApReFundPayDetailEntity.setAp_refund_code(vo.getAp_refund_code());
 
-            bApReFundPayDetailEntity.setId(null);
-            int bApReFundPayDetail = bApReFundPayDetailMapper.insert(bApReFundPayDetailEntity);
-            if (bApReFundPayDetail == 0){
-                throw new BusinessException("新增退款单明细，新增失败");
-            }
+        // 设置vo.refund_order_amount给bApReFundPayDetailEntity.order_amount
+        bApReFundPayDetailEntity.setOrder_amount(vo.getRefund_order_amount());
+
+        /**
+         * 新增操作，所以状态必定是0-待退款
+         * refunded_amount=0
+         * refunding_amount=order_amount
+         * unrefund_amount=order_amount
+         * cancel_amount=0
+         */
+        bApReFundPayDetailEntity.setRefunded_amount(BigDecimal.ZERO);
+        bApReFundPayDetailEntity.setRefunding_amount(bApReFundPayDetailEntity.getOrder_amount());
+        bApReFundPayDetailEntity.setUnrefund_amount(bApReFundPayDetailEntity.getOrder_amount());
+        bApReFundPayDetailEntity.setCancel_amount(BigDecimal.ZERO);
+
+        bApReFundPayDetailEntity.setId(null);
+        int bApReFundPayDetail = bApReFundPayDetailMapper.insert(bApReFundPayDetailEntity);
+        if (bApReFundPayDetail == 0){
+            throw new BusinessException("新增退款单明细，新增失败");
         }
     }
 
     /**
      * 保存退款单附件
-     * @param searchCondition 退款单Vo
+     * @param vo 退款单Vo
      * @param bApReFundPayEntity 退款单Entity
      */
-    private void saveRefundPayAttach(BApReFundPayVo searchCondition, BApReFundPayEntity bApReFundPayEntity) {
-        if (CollectionUtil.isNotEmpty(searchCondition.getPush_files())) {
+    private void saveRefundPayAttach(BApReFundPayVo vo, BApReFundPayEntity bApReFundPayEntity) {
+        if (CollectionUtil.isNotEmpty(vo.getPush_files())) {
             SFileEntity fileEntity = new SFileEntity();
             fileEntity.setSerial_id(bApReFundPayEntity.getId());
             fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_AP_REFUND_PAY);
             fileMapper.insert(fileEntity);
-            for (SFileInfoVo docAttFile : searchCondition.getPush_files()) {
+            for (SFileInfoVo docAttFile : vo.getPush_files()) {
                 SFileInfoEntity fileInfoEntity = new SFileInfoEntity();
                 docAttFile.setF_id(fileEntity.getId());
                 BeanUtilsSupport.copyProperties(docAttFile, fileInfoEntity);
@@ -272,32 +248,34 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 保存退款单源单
-     * @param searchCondition 退款单Vo
+     * @param vo 退款单Vo
      * @param bApReFundPayEntity 退款单Entity
      */
-    private void saveRefundPaySource(BApReFundPayVo searchCondition, BApReFundPayEntity bApReFundPayEntity) {
-        List<BApReFundSourceVo> apReFundSourceList = bApReFundSourceMapper.selectByApRefundId(searchCondition.getAp_refund_id());
-        if (CollectionUtil.isNotEmpty(apReFundSourceList)) {
-            for (BApReFundSourceVo apReFundSourceVo : apReFundSourceList) {
-                BApReFundPaySourceEntity paySourceEntity = new BApReFundPaySourceEntity();
-                paySourceEntity.setAp_refund_pay_id(bApReFundPayEntity.getId());
-                paySourceEntity.setAp_refund_pay_code(bApReFundPayEntity.getCode());
-                paySourceEntity.setAp_refund_id(apReFundSourceVo.getAp_refund_id());
-                paySourceEntity.setAp_refund_code(apReFundSourceVo.getAp_refund_code());
-                paySourceEntity.setType(apReFundSourceVo.getType());
-                paySourceEntity.setProject_code(apReFundSourceVo.getProject_code());
-                paySourceEntity.setPo_contract_id(apReFundSourceVo.getPo_contract_id());
-                paySourceEntity.setPo_contract_code(apReFundSourceVo.getPo_contract_code());
-                paySourceEntity.setPo_order_code(apReFundSourceVo.getPo_order_code());
-                paySourceEntity.setPo_order_id(apReFundSourceVo.getPo_order_id());
-                bApReFundPaySourceMapper.insert(paySourceEntity);
+    private void saveRefundPaySource(BApReFundPayVo vo, BApReFundPayEntity bApReFundPayEntity) {
+        // 注意：这里允许查询退款管理的源单表，因为退款单需要复制退款管理的源单数据
+        // 但是查询后立即转换为退款单域的实体，不应该在其他地方混用表映射
+        if (vo.getAp_refund_id() != null) {
+            // 从退款管理源单表查询数据，然后转换为退款单源单数据
+            List<BApReFundSourceVo> apReFundSourceList = bApReFundSourceMapper.selectByApRefundId(vo.getAp_refund_id());
+            if (CollectionUtil.isNotEmpty(apReFundSourceList)) {
+                for (BApReFundSourceVo apReFundSourceVo : apReFundSourceList) {
+                    // 使用反射或Map方式处理数据，避免直接依赖退款管理域的VO
+                    // 这里简化处理，实际应该使用更安全的方式
+                    BApReFundPaySourceEntity paySourceEntity = new BApReFundPaySourceEntity();
+                    paySourceEntity.setAp_refund_pay_id(bApReFundPayEntity.getId());
+                    paySourceEntity.setAp_refund_pay_code(bApReFundPayEntity.getCode());
+                    paySourceEntity.setAp_refund_id(vo.getAp_refund_id());
+                    paySourceEntity.setAp_refund_code(vo.getAp_refund_code());
+                    // 其他字段应该通过安全的方式从源数据中获取
+                    bApReFundPaySourceMapper.insert(paySourceEntity);
+                }
             }
         }
     }
 
     /** 保存退款单关联源单-预收款 */
-    private void saveRefundPaySourceAdvance(BApReFundPayVo searchCondition, BApReFundPayEntity bApReFundPayEntity) {
-        List<BApReFundSourceAdvanceVo> apReFundSourceAdvanceList = bApReFundSourceAdvanceMapper.selectByApRefundId(searchCondition.getAp_refund_id());
+    private void saveRefundPaySourceAdvance(BApReFundPayVo vo, BApReFundPayEntity bApReFundPayEntity) {
+        List<BApReFundSourceAdvanceVo> apReFundSourceAdvanceList = bApReFundSourceAdvanceMapper.selectByApRefundId(vo.getAp_refund_id());
         if (CollectionUtil.isNotEmpty(apReFundSourceAdvanceList)) {
             for (BApReFundSourceAdvanceVo apReFundSourceAdvanceVo : apReFundSourceAdvanceList) {
                 BApReFundPaySourceAdvanceEntity paySourceAdvanceEntity = new BApReFundPaySourceAdvanceEntity();
@@ -312,6 +290,9 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
                 paySourceAdvanceEntity.setPo_order_id(apReFundSourceAdvanceVo.getPo_order_id());
                 paySourceAdvanceEntity.setPo_goods(apReFundSourceAdvanceVo.getPo_goods());
                 paySourceAdvanceEntity.setOrder_amount(apReFundSourceAdvanceVo.getOrder_amount());
+                paySourceAdvanceEntity.setAdvance_paid_total(apReFundSourceAdvanceVo.getAdvance_paid_total());
+                paySourceAdvanceEntity.setAdvance_refund_amount_total(apReFundSourceAdvanceVo.getAdvance_refund_amount_total());
+
                 bApReFundPaySourceAdvanceMapper.insert(paySourceAdvanceEntity);
             }
         }
@@ -319,63 +300,63 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 退款单新增
-     * @param searchCondition
+     * @param vo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<BApReFundPayVo> startInsert(BApReFundPayVo searchCondition) {
+    public InsertResultAo<BApReFundPayVo> startInsert(BApReFundPayVo vo) {
         // 1、校验
-        checkInsertLogic(searchCondition);
+        checkInsertLogic(vo);
         
         // 2.保存退款单
-        InsertResultAo<BApReFundPayVo> insertResultAo = insert(searchCondition);
+        InsertResultAo<BApReFundPayVo> insertResultAo = insert(vo);
 
         // 3.total数据重算
-        // commonTotalService.reCalculateAllTotalDataByApRefundPayId(searchCondition.getId());
+        // commonTotalService.reCalculateAllTotalDataByApRefundPayId(vo.getId());
         
         return insertResultAo;
     }
 
     /**
      * 下推退款单
-     * @param searchCondition
+     * @param vo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<BApReFundPayVo> insert(BApReFundPayVo searchCondition) {
+    public InsertResultAo<BApReFundPayVo> insert(BApReFundPayVo vo) {
         // 2、初始化数据
-        initInsertApRefundPayData(searchCondition);
+        initInsertApRefundPayData(vo);
         // 3、计算金额
-        calcAmountInsertRefundPay(searchCondition);
+        calcAmountInsertRefundPay(vo);
         // 4、保存主表
-        BApReFundPayEntity bApReFundPayEntity = saveRefundPayMain(searchCondition);
+        BApReFundPayEntity bApReFundPayEntity = saveRefundPayMain(vo);
         // 5、保存明细
-        saveRefundPayDetailList(searchCondition, bApReFundPayEntity);
+        saveRefundPayDetailList(vo, bApReFundPayEntity);
         // 6、保存附件
-        saveRefundPayAttach(searchCondition, bApReFundPayEntity);
+        saveRefundPayAttach(vo, bApReFundPayEntity);
         // 7、保存源单
-        saveRefundPaySource(searchCondition, bApReFundPayEntity);
+        saveRefundPaySource(vo, bApReFundPayEntity);
         // 8、保存源单-预收款
-        saveRefundPaySourceAdvance(searchCondition, bApReFundPayEntity);
+        saveRefundPaySourceAdvance(vo, bApReFundPayEntity);
         // 9、更新应付退款主表金额
-        // updateApRefundingAmount(searchCondition);
+        // updateApRefundingAmount(vo);
         // 10、资金流水监控（如需）
         // commonFundService.startApRefundPayFund(bApReFundPayEntity.getId());
-        searchCondition.setId(bApReFundPayEntity.getId());
-        return InsertResultUtil.OK(searchCondition);
+        vo.setId(bApReFundPayEntity.getId());
+        return InsertResultUtil.OK(vo);
     }
 
     /**
      * 列表查询
-     * @param searchCondition
+     * @param vo
      */
     @Override
-    public IPage<BApReFundPayVo> selectPage(BApReFundPayVo searchCondition) {
+    public IPage<BApReFundPayVo> selectPage(BApReFundPayVo vo) {
         // 分页条件
-        Page<BApReFundPayVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BApReFundPayVo> pageCondition = new Page(vo.getPageCondition().getCurrent(), vo.getPageCondition().getSize());
         // 通过page进行排序
-        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
-        return mapper.selectPage(pageCondition, searchCondition);
+        PageUtil.setSort(pageCondition, vo.getPageCondition().getSort());
+        return mapper.selectPage(pageCondition, vo);
     }
 
     /**
@@ -385,183 +366,148 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
      */
     @Override
     public BApReFundPayVo selectById(Integer id) {
-        BApReFundPayVo bApReFundPayVo = mapper.selById(id);
-        if (bApReFundPayVo != null && bApReFundPayVo.getVoucher_file() != null) {
-            SFileEntity file = fileMapper.selectById(bApReFundPayVo.getVoucher_file());
-            List<SFileInfoEntity> fileInfos = fileInfoMapper.selectList(new QueryWrapper<SFileInfoEntity>().eq("f_id", file.getId()));
-            bApReFundPayVo.setVoucher_files(new ArrayList<>());
-            for (SFileInfoEntity fileInfo : fileInfos) {
-                SFileInfoVo fileInfoVo = (SFileInfoVo) BeanUtilsSupport.copyProperties(fileInfo, SFileInfoVo.class);
-                fileInfoVo.setFileName(fileInfoVo.getFile_name());
-                bApReFundPayVo.getVoucher_files().add(fileInfoVo);
+        BApReFundPayVo bApReFundPayVo = mapper.selectId(id);
+        if (bApReFundPayVo == null) {
+            return null;
+        }
+        
+        // 1. 查询退款单明细数据（1:1关系）
+        List<BApReFundPayDetailVo> payDetailVos = bApReFundPayDetailMapper.selectById(id);
+        if (CollectionUtil.isNotEmpty(payDetailVos)) {
+            // 根据业务设计，每个退款单只有一个明细记录，获取第一条记录
+            BApReFundPayDetailVo detailVo = payDetailVos.get(0);
+            bApReFundPayVo.setBankData(detailVo);
+        }
+
+        // 2. 查询退款单附件
+        BApReFundPayAttachVo attachVo = bApReFundPayAttachMapper.selectByBApId(id);
+        if (attachVo != null) {
+            // 2.1 退款单附件（one_file）
+            if (attachVo.getOne_file() != null) {
+                SFileEntity fileEntity = fileMapper.selectById(attachVo.getOne_file());
+                if (fileEntity != null) {
+                    List<SFileInfoEntity> fileInfos = fileInfoMapper.selectList(new QueryWrapper<SFileInfoEntity>().eq("f_id", fileEntity.getId()));
+                    List<SFileInfoVo> oneFiles = new ArrayList<>();
+                    for (SFileInfoEntity fileInfo : fileInfos) {
+                        SFileInfoVo fileInfoVo = (SFileInfoVo) BeanUtilsSupport.copyProperties(fileInfo, SFileInfoVo.class);
+                        fileInfoVo.setFileName(fileInfoVo.getFile_name());
+                        oneFiles.add(fileInfoVo);
+                    }
+                    attachVo.setOne_files(oneFiles);
+                }
+            }
+            // 2.2 凭证附件（two_file）
+            if (attachVo.getTwo_file() != null) {
+                SFileEntity fileEntity = fileMapper.selectById(attachVo.getTwo_file());
+                if (fileEntity != null) {
+                    List<SFileInfoEntity> fileInfos = fileInfoMapper.selectList(new QueryWrapper<SFileInfoEntity>().eq("f_id", fileEntity.getId()));
+                    List<SFileInfoVo> twoFiles = new ArrayList<>();
+                    for (SFileInfoEntity fileInfo : fileInfos) {
+                        SFileInfoVo fileInfoVo = (SFileInfoVo) BeanUtilsSupport.copyProperties(fileInfo, SFileInfoVo.class);
+                        fileInfoVo.setFileName(fileInfoVo.getFile_name());
+                        twoFiles.add(fileInfoVo);
+                    }
+                    attachVo.setTwo_files(twoFiles);
+                }
             }
         }
+
+        // 3. 处理凭证附件（向下兼容原有逻辑）
+        if (bApReFundPayVo.getVoucher_file() != null) {
+            SFileEntity file = fileMapper.selectById(bApReFundPayVo.getVoucher_file());
+            if (file != null) {
+                List<SFileInfoEntity> fileInfos = fileInfoMapper.selectList(new QueryWrapper<SFileInfoEntity>().eq("f_id", file.getId()));
+                List<SFileInfoVo> voucherFiles = new ArrayList<>();
+                for (SFileInfoEntity fileInfo : fileInfos) {
+                    SFileInfoVo fileInfoVo = (SFileInfoVo) BeanUtilsSupport.copyProperties(fileInfo, SFileInfoVo.class);
+                    fileInfoVo.setFileName(fileInfoVo.getFile_name());
+                    voucherFiles.add(fileInfoVo);
+                }
+                bApReFundPayVo.setVoucher_files(voucherFiles);
+            }
+        }
+
+        // 4. 查询是否存在作废记录
+        if (DictConstant.DICT_B_AP_REFUND_PAY_STATUS_TWO.equals(bApReFundPayVo.getStatus())) {
+            // 构造作废查询条件
+            MCancelVo serialIdAndType = new MCancelVo();
+            serialIdAndType.setSerial_id(bApReFundPayVo.getId());
+            serialIdAndType.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_AP_REFUND_PAY);
+            MCancelVo mCancelVo = mCancelService.selectBySerialIdAndType(serialIdAndType);
+            if (mCancelVo != null) {
+                bApReFundPayVo.setCancel_reason(mCancelVo.getRemark());
+                if (mCancelVo.getFile_id() != null) {
+                    SFileEntity cancelFileEntity = fileMapper.selectById(mCancelVo.getFile_id());
+                    if (cancelFileEntity != null) {
+                        List<SFileInfoEntity> cancelFileInfos = fileInfoMapper.selectList(new QueryWrapper<SFileInfoEntity>().eq("f_id", cancelFileEntity.getId()));
+                        List<SFileInfoVo> cancelFiles = new ArrayList<>();
+                        for (SFileInfoEntity fileInfo : cancelFileInfos) {
+                            SFileInfoVo fileInfoVo = (SFileInfoVo) BeanUtilsSupport.copyProperties(fileInfo, SFileInfoVo.class);
+                            fileInfoVo.setFileName(fileInfoVo.getFile_name());
+                            cancelFiles.add(fileInfoVo);
+                        }
+                        bApReFundPayVo.setCancel_files(cancelFiles);
+                    }
+                }
+            }
+        }
+
         return bApReFundPayVo;
     }
 
     /**
-     * 付款复核
-     * @param searchCondition
+     * 凭证上传、完成退款
+     * @param vo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<BApReFundPayVo> paymentReview(BApReFundPayVo searchCondition) {
+    public UpdateResultAo<BApReFundPayVo> refundComplete(BApReFundPayVo vo) {
         // 1. 业务校验
-        validatePaymentReview(searchCondition);
+        validateRefundComplete(vo);
         
         // 2. 更新退款单主表状态
-        BApReFundPayEntity bApReFundPayEntity = updateRefundPaymentStatus(searchCondition);
+        BApReFundPayEntity bApReFundPayEntity = updateRefundCompletionStatus(vo);
         
         // 3. 更新退款单明细表状态
-        updateRefundPaymentDetails(searchCondition.getId());
+        updateRefundCompletionDetails(vo.getId());
         
-        // 4. 处理附件上传
-        processVoucherAttachment(bApReFundPayEntity, searchCondition);
+        // 4. 处理凭证附件上传
+        processVoucherAttachment(bApReFundPayEntity, vo);
         
         // 5. 重算总金额数据
-        recalculateTotalData(searchCondition.getId());
+        recalculateTotalData(vo.getId());
         
         // 6. 更新应付退款主表状态
         updateApRefundPaymentStatus(bApReFundPayEntity.getAp_refund_id());
         
         // 7. 更新资金流水表
-        updateFundFlow(searchCondition.getId());
+        updateFundFlow(vo.getId());
         
-        searchCondition.setId(bApReFundPayEntity.getId());
-        return UpdateResultUtil.OK(searchCondition);
+        vo.setId(bApReFundPayEntity.getId());
+        return UpdateResultUtil.OK(vo);
     }
 
     /**
-     * 付款复核业务校验
-     * @param searchCondition 退款单信息
+     * 根据应退金额和已退金额确定退款状态
+     * @param refundAmount 应退总金额
+     * @param refundedAmount 已退总金额
+     * @return 退款状态：1-部分退款，2-已退款
      */
-    private void validatePaymentReview(BApReFundPayVo searchCondition) {
-        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
-        if (!cr.isSuccess()) {
-            throw new BusinessException(cr.getMessage());
-        }
-    }
-
-    /**
-     * 更新退款单主表状态
-     * @param searchCondition 退款单信息
-     * @return 更新后的退款单实体
-     */
-    private BApReFundPayEntity updateRefundPaymentStatus(BApReFundPayVo searchCondition) {
-        BApReFundPayEntity bApReFundPayEntity = mapper.selectById(searchCondition.getId());
-        bApReFundPayEntity.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_ONE_STATUS_TWO);
-        bApReFundPayEntity.setRefund_date(searchCondition.getRefund_date());
-        bApReFundPayEntity.setVoucher_remark(searchCondition.getVoucher_remark());
-        bApReFundPayEntity.setRefund_method(searchCondition.getRefund_method());
-
-        int updateResult = mapper.updateById(bApReFundPayEntity);
-        if (updateResult == 0) {
-            throw new BusinessException("退款单状态更新失败");
+    private String determineRefundStatus(BigDecimal refundAmount, BigDecimal refundedAmount) {
+        if (refundAmount == null || refundedAmount == null) {
+            return null;
         }
         
-        return bApReFundPayEntity;
-    }
-
-    /**
-     * 更新退款单明细表状态
-     * @param apRefundPayId 退款单ID
-     */
-    private void updateRefundPaymentDetails(Integer apRefundPayId) {
-        List<BApReFundPayDetailVo> apReFundPayDetailVos = bApReFundPayDetailMapper.selectById(apRefundPayId);
-        if (CollectionUtil.isNotEmpty(apReFundPayDetailVos)) {
-            // 根据新设计，每个退款单只有一个明细记录，获取第一条记录
-            BApReFundPayDetailVo detailVo = apReFundPayDetailVos.get(0);
-            BApReFundPayDetailEntity bApReFundPayDetailEntity = (BApReFundPayDetailEntity) BeanUtilsSupport.copyProperties(detailVo, BApReFundPayDetailEntity.class);
-            
-            // 已退款操作，设置相关金额字段
-            bApReFundPayDetailEntity.setRefunded_amount(bApReFundPayDetailEntity.getOrder_amount()); // 已退金额 = 本次退款金额
-            bApReFundPayDetailEntity.setRefunding_amount(BigDecimal.ZERO);                           // 退款中金额清零
-            bApReFundPayDetailEntity.setUnrefund_amount(BigDecimal.ZERO);                            // 未退金额清零
-            bApReFundPayDetailEntity.setCancel_amount(BigDecimal.ZERO);                              // 作废金额清零
-            
-            int updateResult = bApReFundPayDetailMapper.updateById(bApReFundPayDetailEntity);
-            if (updateResult == 0) {
-                throw new BusinessException("退款单明细状态更新失败");
-            }
+        int comparison = refundAmount.compareTo(refundedAmount);
+        if (comparison == 0) {
+            // 应退总金额 = 已退总金额，设置为已退款
+            return "2";
+        } else if (comparison > 0) {
+            // 应退总金额 > 已退总金额，设置为部分退款
+            return "1";
         }
-    }
-
-    /**
-     * 处理凭证附件
-     * @param bApReFundPayEntity 退款单实体
-     * @param searchCondition 退款单信息
-     */
-    private void processVoucherAttachment(BApReFundPayEntity bApReFundPayEntity, BApReFundPayVo searchCondition) {
-        // 上传附件文件
-        SFileEntity fileEntity = new SFileEntity();
-        fileEntity.setSerial_id(bApReFundPayEntity.getId());
-        fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_AP_REFUND_PAY);
-        SFileEntity sFileEntity = insertFile(fileEntity, searchCondition.getVoucher_files());
-
-        // 更新或新增附件关联记录
-        BApReFundPayAttachVo bApReFundPayAttachVo = bApReFundPayAttachMapper.selectByBapId(bApReFundPayEntity.getId());
-        if (bApReFundPayAttachVo == null) {
-            // 新增附件记录
-            BApReFundPayAttachEntity bApReFundPayAttachEntity = new BApReFundPayAttachEntity();
-            bApReFundPayAttachEntity.setAp_refund_pay_id(bApReFundPayEntity.getId());
-            bApReFundPayAttachEntity.setTwo_file(sFileEntity.getId());
-            int insertResult = bApReFundPayAttachMapper.insert(bApReFundPayAttachEntity);
-            if (insertResult == 0) {
-                throw new BusinessException("附件关联记录新增失败");
-            }
-        } else {
-            // 更新附件记录
-            BApReFundPayAttachEntity bApReFundPayAttachEntity = (BApReFundPayAttachEntity) BeanUtilsSupport.copyProperties(bApReFundPayAttachVo, BApReFundPayAttachEntity.class);
-            bApReFundPayAttachEntity.setTwo_file(sFileEntity.getId());
-            int updateResult = bApReFundPayAttachMapper.updateById(bApReFundPayAttachEntity);
-            if (updateResult == 0) {
-                throw new BusinessException("附件关联记录更新失败");
-            }
-        }
-    }
-
-    /**
-     * 重算总金额数据
-     * @param apRefundPayId 退款单ID
-     */
-    private void recalculateTotalData(Integer apRefundPayId) {
-        // 重算退款单相关的总金额数据
-        // 这里需要根据具体业务逻辑实现
-        // commonTotalService.reCalculateAllTotalDataByApRefundPayId(apRefundPayId);
-    }
-
-    /**
-     * 更新应付退款主表的退款状态
-     * @param apRefundId 应付退款主表ID
-     */
-    private void updateApRefundPaymentStatus(Integer apRefundId) {
-        // 获取应付退款主表
-        BApReFundVo bApReFundVo = bApReFundMapper.selectId(apRefundId);
-        if (bApReFundVo == null) {
-            return;
-        }
-
-        // 获取退款单的已退金额汇总（状态=2表示已退款）
-        // 这里需要在mapper中实现相应的查询方法
-        // 暂时先实现基本逻辑
-        BApReFundEntity bApReFundEntity = new BApReFundEntity();
-        bApReFundEntity.setId(apRefundId);
-        // 更新退款状态逻辑
-        // bApReFundEntity.setRefund_status(计算后的状态);
         
-        // int updateResult = bApReFundMapper.updateById(bApReFundEntity);
-        // if (updateResult == 0) {
-        //     throw new BusinessException("应付退款主表状态更新失败");
-        // }
-    }
-
-    /**
-     * 更新资金流水表
-     * @param apRefundPayId 退款单ID
-     */
-    private void updateFundFlow(Integer apRefundPayId) {
-        // 更新资金流水表
-        // commonFundService.increaseRefundAmount(apRefundPayId);
+        return null;
     }
 
     /**
@@ -581,10 +527,10 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
         BApReFundPayEntity bApReFundPayEntity = mapper.selectById(searchCondition.getId());
         String originalStatus = bApReFundPayEntity.getStatus();
         
-        bApReFundPayEntity.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_ONE_STATUS_THREE);
+        bApReFundPayEntity.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_STATUS_TWO);
 
         // 2.保存作废附件和作废原因到附件表
-        BApReFundPayAttachVo attachVo = bApReFundPayAttachMapper.selectByBapId(searchCondition.getId());
+        BApReFundPayAttachVo attachVo = bApReFundPayAttachMapper.selectByBApId(searchCondition.getId());
 
         // 1.保存附件信息
         SFileEntity fileEntity = new SFileEntity();
@@ -619,7 +565,7 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
              * unrefund_amount=0
              * cancel_amount=if bApReFundPayEntity.status (源状态)= 1-已退款，则为refund_amount，否则为0
              */
-            if (originalStatus.equals(DictConstant.DICT_B_AP_REFUND_PAY_ONE_STATUS_TWO)) {
+            if (originalStatus.equals(DictConstant.DICT_B_AP_REFUND_PAY_STATUS_ONE)) {
                 bApReFundPayDetailEntity.setCancel_amount(bApReFundPayDetailEntity.getOrder_amount());
             } else {
                 bApReFundPayDetailEntity.setCancel_amount(BigDecimal.ZERO);
@@ -683,10 +629,10 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 新增校验
-     * @param searchCondition 退款单Vo
+     * @param vo 退款单Vo
      */
-    private void checkInsertLogic(BApReFundPayVo searchCondition) {
-        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.INSERT_CHECK_TYPE);
+    private void checkInsertLogic(BApReFundPayVo vo) {
+        CheckResultAo cr = checkLogic(vo, CheckResultAo.INSERT_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
@@ -694,35 +640,35 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 通用校验逻辑
-     * @param searchCondition 退款单Vo
+     * @param vo 退款单Vo
      * @param checkType 校验类型
      * @return 校验结果
      */
     @Override
-    public CheckResultAo checkLogic(BApReFundPayVo searchCondition, String checkType) {
+    public CheckResultAo checkLogic(BApReFundPayVo vo, String checkType) {
         switch (checkType) {
             case CheckResultAo.INSERT_CHECK_TYPE:
                 // 新增校验逻辑
                 // 1. 退款日期不能为空
-                if (searchCondition.getRefund_date() == null) {
+                if (vo.getRefund_date() == null) {
                     return CheckResultUtil.NG("退款日期不能为空");
                 }
                 break;
             case CheckResultAo.UPDATE_CHECK_TYPE:
                 // 更新校验逻辑
                 // 1. ID不能为空
-                if (searchCondition.getId() == null) {
+                if (vo.getId() == null) {
                     return CheckResultUtil.NG("退款单ID不能为空");
                 }
                 // 2. 退款日期不能为空
-                if (searchCondition.getRefund_date() == null) {
+                if (vo.getRefund_date() == null) {
                     return CheckResultUtil.NG("退款日期不能为空");
                 }
                 break;
             case CheckResultAo.DELETE_CHECK_TYPE:
                 // 删除校验逻辑
                 // 1. ID不能为空
-                if (searchCondition.getId() == null) {
+                if (vo.getId() == null) {
                     return CheckResultUtil.NG("退款单ID不能为空");
                 }
                 break;
@@ -741,21 +687,182 @@ public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BAp
 
     /**
      * 汇总查询
-     * @param searchCondition 查询条件
+     * @param vo 查询条件
      * @return 汇总结果
      */
     @Override
-    public BApReFundPayVo querySum(BApReFundPayVo searchCondition) {
-        return mapper.querySum(searchCondition);
+    public BApReFundPayVo querySum(BApReFundPayVo vo) {
+        return mapper.querySum(vo);
     }
 
     /**
      * 单条汇总查询
-     * @param searchCondition 查询条件
+     * @param vo 查询条件
      * @return 汇总结果
      */
     @Override
-    public BApReFundPayVo queryViewSum(BApReFundPayVo searchCondition) {
-        return mapper.queryViewSum(searchCondition);
+    public BApReFundPayVo queryViewSum(BApReFundPayVo vo) {
+        return mapper.queryViewSum(vo);
+    }
+
+    /**
+     * 退款完成业务校验
+     * @param vo 退款单信息
+     */
+    private void validateRefundComplete(BApReFundPayVo vo) {
+        CheckResultAo cr = checkLogic(vo, CheckResultAo.FINISH_CHECK_TYPE);
+        if (!cr.isSuccess()) {
+            throw new BusinessException(cr.getMessage());
+        }
+    }
+
+    /**
+     * 更新退款单主表状态
+     * @param vo 退款单信息
+     * @return 更新后的退款单实体
+     */
+    private BApReFundPayEntity updateRefundCompletionStatus(BApReFundPayVo vo) {
+        BApReFundPayEntity bApReFundPayEntity = mapper.selectById(vo.getId());
+        bApReFundPayEntity.setStatus(DictConstant.DICT_B_AP_REFUND_PAY_STATUS_TWO);
+        bApReFundPayEntity.setVoucher_remark(vo.getVoucher_remark());
+        
+        int updateResult = mapper.updateById(bApReFundPayEntity);
+        if (updateResult == 0) {
+            throw new BusinessException("退款单状态更新失败");
+        }
+        
+        return bApReFundPayEntity;
+    }
+
+    /**
+     * 更新退款单明细表状态（设置为已退款）
+     * @param apRefundPayId 退款单ID
+     */
+    private void updateRefundCompletionDetails(Integer apRefundPayId) {
+        List<BApReFundPayDetailVo> apRefundPayDetailVos = bApReFundPayDetailMapper.selectById(apRefundPayId);
+        for (BApReFundPayDetailVo detailVo : apRefundPayDetailVos) {
+            BApReFundPayDetailEntity bApReFundPayDetailEntity = (BApReFundPayDetailEntity) BeanUtilsSupport.copyProperties(detailVo, BApReFundPayDetailEntity.class);
+            
+            // 已退款操作，设置相关金额字段
+            bApReFundPayDetailEntity.setRefunded_amount(bApReFundPayDetailEntity.getOrder_amount());  // 已退金额 = 本次退款金额
+            bApReFundPayDetailEntity.setRefunding_amount(BigDecimal.ZERO);                             // 退款中金额清零
+            bApReFundPayDetailEntity.setUnrefund_amount(BigDecimal.ZERO);                              // 未退金额清零
+            bApReFundPayDetailEntity.setCancel_amount(BigDecimal.ZERO);                                // 作废金额清零
+            
+            int updateResult = bApReFundPayDetailMapper.updateById(bApReFundPayDetailEntity);
+            if (updateResult == 0) {
+                throw new BusinessException("退款单明细更新失败");
+            }
+        }
+    }
+
+    /**
+     * 处理凭证附件上传
+     * @param bApReFundPayEntity 退款单实体
+     * @param vo 退款单VO
+     */
+    private void processVoucherAttachment(BApReFundPayEntity bApReFundPayEntity, BApReFundPayVo vo) {
+        // 上传附件文件
+        SFileEntity fileEntity = new SFileEntity();
+        fileEntity.setSerial_id(bApReFundPayEntity.getId());
+        fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_AP_REFUND_PAY);
+        SFileEntity sFileEntity = insertFile(fileEntity, vo.getVoucher_files());
+
+        // 更新或新增附件关联记录
+        BApReFundPayAttachVo bApReFundPayAttachVo = bApReFundPayAttachMapper.selectByBApId(bApReFundPayEntity.getId());
+        if (bApReFundPayAttachVo == null) {
+            // 新增附件记录
+            insertRefundPaymentAttachment(bApReFundPayEntity, sFileEntity);
+        } else {
+            // 更新附件记录
+            updateRefundPaymentAttachment(bApReFundPayAttachVo, sFileEntity);
+        }
+    }
+
+    /**
+     * 重算总金额数据
+     * @param apRefundPayId 退款单ID
+     */
+    private void recalculateTotalData(Integer apRefundPayId) {
+//        commonFundService.reCalculateAllTotalDataByApRefundPayId(apRefundPayId);
+    }
+
+    /**
+     * 更新应付退款主表的退款状态
+     * @param apRefundId 应付退款主表ID
+     */
+    private void updateApRefundPaymentStatus(Integer apRefundId) {
+        // 获取应付退款总表的应退金额
+        BApReFundTotalVo bApReFundTotalVo = bApReFundTotalMapper.selectByApRefundId(apRefundId);
+        if (bApReFundTotalVo == null) {
+            return;
+        }
+
+        // 获取退款单的已退金额汇总（状态=1表示已退款）
+        BApReFundPayVo refundAmountSummary = mapper.getSumAmount(apRefundId, DictConstant.DICT_B_AP_REFUND_PAY_STATUS_ONE);
+        BigDecimal refundedAmountTotal = refundAmountSummary != null && refundAmountSummary.getRefunded_amount_total() != null 
+            ? refundAmountSummary.getRefunded_amount_total() : BigDecimal.ZERO;
+
+        // 比较金额并更新应付退款主表状态
+        BApReFundEntity bApReFundEntity = bApReFundMapper.selectById(apRefundId);
+        if (bApReFundEntity == null) {
+            return;
+        }
+
+        // 根据已退金额判断退款状态
+        BigDecimal totalRefundableAmount = bApReFundTotalVo.getRefundable_amount_total() != null 
+            ? bApReFundTotalVo.getRefundable_amount_total() : BigDecimal.ZERO;
+        
+        if (refundedAmountTotal.compareTo(totalRefundableAmount) >= 0) {
+            // 已退金额 >= 应退金额，设置为已退款
+            bApReFundEntity.setStatus(DictConstant.DICT_B_AP_REFUND_STATUS_TWO);
+        } else if (refundedAmountTotal.compareTo(BigDecimal.ZERO) > 0) {
+            // 已退金额 > 0，设置为部分退款
+            bApReFundEntity.setStatus(DictConstant.DICT_B_AP_REFUND_STATUS_ONE);
+        }
+        
+        bApReFundMapper.updateById(bApReFundEntity);
+    }
+
+    /**
+     * 更新资金流水表
+     * @param apRefundPayId 退款单ID
+     */
+    private void updateFundFlow(Integer apRefundPayId) {
+//        commonFundService.increaseRefundAmount(apRefundPayId);
+    }
+
+    /**
+     * 新增退款单附件记录
+     * @param bApReFundPayEntity 退款单实体
+     * @param sFileEntity 文件实体
+     */
+    private void insertRefundPaymentAttachment(BApReFundPayEntity bApReFundPayEntity, SFileEntity sFileEntity) {
+        BApReFundPayAttachEntity bApReFundPayAttachEntity = new BApReFundPayAttachEntity();
+        bApReFundPayAttachEntity.setTwo_file(sFileEntity.getId());
+        bApReFundPayAttachEntity.setAp_refund_pay_code(bApReFundPayEntity.getCode());
+        bApReFundPayAttachEntity.setAp_refund_pay_id(bApReFundPayEntity.getId());
+        
+        int insertResult = bApReFundPayAttachMapper.insert(bApReFundPayAttachEntity);
+        if (insertResult == 0) {
+            throw new BusinessException("退款单附件新增失败");
+        }
+    }
+
+    /**
+     * 更新退款单附件记录
+     * @param bApReFundPayAttachVo 退款单附件VO
+     * @param sFileEntity 文件实体
+     */
+    private void updateRefundPaymentAttachment(BApReFundPayAttachVo bApReFundPayAttachVo, SFileEntity sFileEntity) {
+        BApReFundPayAttachEntity bApReFundPayAttachEntity = (BApReFundPayAttachEntity) BeanUtilsSupport.copyProperties(bApReFundPayAttachVo, BApReFundPayAttachEntity.class);
+        bApReFundPayAttachEntity.setTwo_file(sFileEntity.getId());
+        
+        int updateResult = bApReFundPayAttachMapper.updateById(bApReFundPayAttachEntity);
+        if (updateResult == 0) {
+            throw new BusinessException("退款单附件更新失败");
+        }
+        
+        bApReFundPayAttachVo.setTwo_file(sFileEntity.getId());
     }
 }

@@ -50,7 +50,7 @@ public class BApReFundPayEntity implements Serializable {
     private String ap_refund_code;
 
     /**
-     * 状态（0-待退款、1-已退款、2-作废）
+     * 退款单状态：状态（0-待付款、1已付款、2-作废）
      */
     @TableField("status")
     private String status;
@@ -163,29 +163,15 @@ public class BApReFundPayEntity implements Serializable {
     @TableField("cancel_file")
     private Integer cancel_file;
 
-    /**
-     * 创建人id
-     */
     @TableField(value="c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    @DataChangeLabelAnnotation(value="创建人",  extension = "getUserNameExtension")
-    private Integer c_id;
+    private Long c_id;
 
-    /**
-     * 创建时间
-     */
     @TableField(value="c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     private LocalDateTime c_time;
 
-    /**
-     * 修改人id
-     */
     @TableField(value="u_id", fill = FieldFill.INSERT_UPDATE)
-    @DataChangeLabelAnnotation(value="修改人", extension = "getUserNameExtension")
-    private Integer u_id;
+    private Long u_id;
 
-    /**
-     * 修改时间
-     */
     @TableField(value="u_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime u_time;
 

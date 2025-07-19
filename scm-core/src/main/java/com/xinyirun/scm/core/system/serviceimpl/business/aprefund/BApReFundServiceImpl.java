@@ -403,7 +403,7 @@ public class BApReFundServiceImpl extends ServiceImpl<BApReFundMapper, BApReFund
                     return CheckResultUtil.NG(String.format("修改失败，退款管理[%s]不是待审批,驳回状态,无法删除", bApEntity.getCode()));
                 }
 
-                List<BApReFundPayVo> delBApPayVo = bApRefundPayMapper.selectApPayByNotStatus(vo.getId(), DictConstant.DICT_B_AP_PAY_BILL_STATUS_TWO);
+                List<BApReFundPayVo> delBApPayVo = bApRefundPayMapper.selectApPayByNotStatus(vo.getId(), DictConstant.DICT_B_AP_REFUND_STATUS_TWO);
                 if (CollectionUtil.isNotEmpty(delBApPayVo)) {
                     return CheckResultUtil.NG("删除失败，存在退款单。");
                 }
@@ -425,11 +425,6 @@ public class BApReFundServiceImpl extends ServiceImpl<BApReFundMapper, BApReFund
                 }
                 if (!Objects.equals(bApEntity.getStatus(), DictConstant.DICT_B_AP_REFUND_STATUS_TWO)) {
                     return CheckResultUtil.NG(String.format("作废失败，退款管理[%s]审核中，无法作废",bApEntity.getCode()));
-                }
-
-                List<BApReFundPayVo> cancelBApPayVo = bApRefundPayMapper.selectApPayByNotStatus(vo.getId(), DictConstant.DICT_B_AP_REFUND_PAY_ONE_STATUS_THREE);
-                if (CollectionUtil.isNotEmpty(cancelBApPayVo)) {
-                    return CheckResultUtil.NG(String.format("作废失败，该应付退款下退款单号%s数据尚未作废，请先完成该退款单的作废。",cancelBApPayVo.stream().map(BApReFundPayVo::getCode).collect(Collectors.toList())));
                 }
 
                 break;

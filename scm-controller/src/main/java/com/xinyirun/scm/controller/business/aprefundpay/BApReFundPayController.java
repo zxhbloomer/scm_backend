@@ -59,12 +59,12 @@ public class BApReFundPayController {
         return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(searchCondition.getId())));
     }
 
-    @SysLogAnnotion("付款单表，付款复核")
-    @PostMapping("/payment_review")
-    public ResponseEntity<JsonResultAo<BApReFundPayVo>> paymentReview(@RequestBody(required = false) BApReFundPayVo searchCondition) {
-        UpdateResultAo<BApReFundPayVo> resultAo = service.paymentReview(searchCondition);
+    @SysLogAnnotion("退款单表，凭证上传，完成退款")
+    @PostMapping("/complete")
+    public ResponseEntity<JsonResultAo<BApReFundPayVo>> refundComplete(@RequestBody(required = false) BApReFundPayVo searchCondition) {
+        UpdateResultAo<BApReFundPayVo> resultAo = service.refundComplete(searchCondition);
         if (resultAo.isSuccess()) {
-            return ResponseEntity.ok().body(ResultUtil.OK(null));
+            return ResponseEntity.ok().body(ResultUtil.OK(resultAo.getData(), "操作成功"));
         } else {
             throw new InsertErrorException("新增成功，请编辑后重新新增。");
         }

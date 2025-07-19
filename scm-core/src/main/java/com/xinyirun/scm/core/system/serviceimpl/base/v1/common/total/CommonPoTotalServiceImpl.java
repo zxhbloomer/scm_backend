@@ -345,7 +345,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
                 apTotalVo.setPaid_amount_total(BigDecimal.ZERO);
             }
             // 2.4、获取付款中总金额
-            BApPayVo payingVo = bApPayMapper.getSumAmount(apId, DictConstant.DICT_B_AP_PAY_BILL_STATUS_ZERO);
+            BApPayVo payingVo = bApPayMapper.getSumAmount(apId, DictConstant.DICT_B_AP_PAY_STATUS_ZERO);
             if (payingVo != null) {
                 apTotalVo.setPaying_amount_total(payingVo.getPayable_amount_total());
             } else {
@@ -356,7 +356,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             // 2.4.1、判断应付账款的付款状态是否为已中止
             // 查询应付账款的pay_status和status
             BApVo apVo = bApMapper.selectId(apTotalVo.getAp_id());
-            if (apVo != null && DictConstant.DICT_B_AP_PAY_BILL_STATUS_STOP.equals(apVo.getPay_status())) {
+            if (apVo != null && DictConstant.DICT_B_AP_PAY_STATUS_STOP.equals(apVo.getPay_status())) {
                 // 2.4.2、如果是已中止，则设置paying_amount_total=0，stoppay_amount_total=payable_amount_total-paid_amount_total
                 apTotalVo.setPaying_amount_total(BigDecimal.ZERO);
                 BigDecimal payableAmountTotal = handleNullBigDecimal(apTotalVo.getPayable_amount_total());

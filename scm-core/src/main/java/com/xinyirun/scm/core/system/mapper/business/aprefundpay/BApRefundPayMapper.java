@@ -33,12 +33,13 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
             tab3.NAME AS u_name,
             tab4.label AS status_name,
             tab5.label AS type_name,
-            tab6.po_contract_code AS po_contract_code
+            tab6.po_contract_code AS po_contract_code,
+            tab7.order_amount as refund_order_amount
         FROM
             b_ap_refund_pay tab1
             LEFT JOIN m_staff tab2 ON tab2.id = tab1.c_id
             LEFT JOIN m_staff tab3 ON tab3.id = tab1.u_id
-            LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_one_status'
+            LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_status'
             AND tab4.dict_value = tab1.status
             LEFT JOIN s_dict_data tab5 ON tab5.CODE = 'b_ap_refund_type'
             AND tab5.dict_value = tab1.type
@@ -50,66 +51,6 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
             AND (tab8.bank_name LIKE CONCAT('%',#{p1.bank_name},'%') OR #{p1.bank_name} IS NULL OR  #{p1.bank_name} = '' )
         """)
     IPage<BApReFundPayVo> selectPage(Page page, @Param("p1") BApReFundPayVo searchCondition);
-
-    @Select("""
-        SELECT
-          tab1.id,
-        	tab1.CODE,
-        	tab1.ap_refund_id,
-        	tab1.ap_refund_code,
-        	tab1.STATUS,
-        	tab1.type,
-        	tab1.supplier_enterprise_bank_name,
-        	tab1.supplier_enterprise_code,
-        	tab1.supplier_enterprise_version,
-        	tab1.supplier_enterprise_name,
-        	IFNULL(
-        		tab1.buyer_enterprise_bank_name,
-        	CONCAT_WS( ' | ', tab8.holder_name, tab8.bank_name, tab8.account_number )) AS buyer_enterprise_bank_name,
-        	tab1.buyer_enterprise_code,
-        	tab8.id as bank_account_id,
-        	tab8.code as bank_account_code,
-        	tab7.bank_accounts_type_id,
-        	tab7.bank_accounts_type_code,
-        	tab6.po_contract_code as trade_no,
-        	tab9.id as buyer_enterprise_id,
-        	tab1.buyer_enterprise_version,
-        	tab1.buyer_enterprise_name,
-        	tab1.refund_date,
-        	tab1.refund_method,
-        	tab10.label as refund_method_name,
-        	tab1.refund_amount,
-        	tab1.remark,
-        	tab1.voucher_remark,
-        	tab1.c_id,
-        	tab1.c_time,
-        	tab1.u_id,
-        	tab1.u_time,
-        	tab1.dbversion,
-        	tab2.NAME AS c_name,
-        	tab3.NAME AS u_name,
-        	tab4.label AS status_name,
-        	tab5.label AS type_name,
-        	tab6.po_contract_code AS po_contract_code,
-        	tab11.voucher_files AS voucher_file
-        FROM
-        	b_ap_refund_pay tab1
-        	LEFT JOIN m_staff tab2 ON tab2.id = tab1.c_id
-        	LEFT JOIN m_staff tab3 ON tab3.id = tab1.u_id
-        	LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_one_status'
-        	AND tab4.dict_value = tab1.status
-        	LEFT JOIN s_dict_data tab5 ON tab5.CODE = 'b_ap_refund_type'
-        	AND tab5.dict_value = tab1.type
-        	LEFT JOIN b_ap_refund tab6 ON tab6.id = tab1.ap_refund_id
-        	LEFT JOIN b_ap_refund_detail tab7 ON tab6.id = tab7.ap_refund_id
-        	LEFT JOIN m_bank_accounts tab8 ON tab7.bank_accounts_id = tab8.id
-        	LEFT JOIN m_enterprise tab9 ON tab1.buyer_enterprise_code = tab9.code
-        	LEFT JOIN s_dict_data tab10 ON tab10.CODE = 'b_po_order_payment_type'
-        	AND tab10.dict_value = tab1.refund_method
-        	LEFT JOIN b_ap_refund_pay_attach tab11 ON tab11.ap_refund_id = tab1.id
-        	where tab1.id = #{p1}
-        """)
-    BApReFundPayVo selById(@Param("p1") Integer id);
 
     /**
      * 查询ap_refund_id的付款单状态等于status的付款单
@@ -141,7 +82,7 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
         "  b_ap_refund_pay tab1 ",
         "  LEFT JOIN m_staff tab2 ON tab2.id = tab1.c_id ",
         "  LEFT JOIN m_staff tab3 ON tab3.id = tab1.u_id ",
-        "  LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_one_status' AND tab4.dict_value = tab1.status ",
+        "  LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_status' AND tab4.dict_value = tab1.status ",
         "  LEFT JOIN s_dict_data tab5 ON tab5.CODE = 'b_ap_refund_type' AND tab5.dict_value = tab1.type ",
         "  LEFT JOIN b_ap_refund tab6 ON tab6.id = tab1.ap_refund_id ",
         "  LEFT JOIN b_ap_refund_detail tab7 ON tab7.ap_refund_id = tab1.ap_refund_id ",
@@ -161,6 +102,59 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
     BApReFundPayVo querySum(@Param("searchCondition") BApReFundPayVo searchCondition);
 
     /**
+     * 根据id查询详细信息
+     * @param id 退款单支付ID
+     * @return 退款单支付详细信息
+     */
+    @Select("""
+        SELECT
+            tab1.*,
+            0 as not_pay_amount,
+            tab2.po_goods,
+            tab2.order_amount as source_order_amount,
+            tab2.po_contract_id,
+            tab2.po_order_id,
+            tab2.po_contract_code,
+            tab2.po_order_code,
+            tab2.advance_refund_amount_total,
+            tab2.advance_paid_total,
+            tab3.ap_refund_pay_id,
+            tab3.ap_refund_pay_code,
+            tab3.bank_accounts_id,
+            tab3.bank_accounts_code,
+            tab3.refundable_amount,
+            tab3.refunded_amount,
+            tab3.refunding_amount,
+            tab3.unrefund_amount,
+            tab3.order_amount as detail_order_amount,
+            tab9.name,
+            tab9.bank_name,
+            tab9.account_number,
+            GROUP_CONCAT(tab10.NAME) AS bank_type_name,
+            tab4.name as c_name,
+            tab5.name as u_name,
+            tab6.label as status_name,
+            tab7.label as type_name,
+            tab11.one_file as doc_att_file,
+            tab11.two_file as voucher_file
+        FROM
+            b_ap_refund_pay tab1
+            LEFT JOIN b_ap_refund_pay_source_advance tab2 ON tab1.id = tab2.ap_refund_pay_id
+            LEFT JOIN b_ap_refund_pay_detail tab3 ON tab1.id = tab3.ap_refund_pay_id
+            LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
+            LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
+            LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_refund_pay_status' AND tab6.dict_value = tab1.status
+            LEFT JOIN s_dict_data tab7 ON tab7.code = 'b_ap_refund_type' AND tab7.dict_value = tab1.type
+            LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
+            LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id
+            LEFT JOIN b_ap_refund_pay_attach tab11 ON tab1.id = tab11.ap_refund_pay_id
+        WHERE TRUE
+            AND tab1.id = #{p1}
+        GROUP BY tab1.code, tab3.ap_refund_pay_code
+        """)
+    BApReFundPayVo selectId(@Param("p1") Integer id);
+
+    /**
      * 单条汇总查询
      * @param searchCondition 查询条件
      * @return 汇总结果
@@ -177,7 +171,7 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
         "  b_ap_refund_pay tab1 ",
         "  LEFT JOIN m_staff tab2 ON tab2.id = tab1.c_id ",
         "  LEFT JOIN m_staff tab3 ON tab3.id = tab1.u_id ",
-        "  LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_one_status' AND tab4.dict_value = tab1.status ",
+        "  LEFT JOIN s_dict_data tab4 ON tab4.CODE = 'b_ap_refund_pay_status' AND tab4.dict_value = tab1.status ",
         "  LEFT JOIN s_dict_data tab5 ON tab5.CODE = 'b_ap_refund_type' AND tab5.dict_value = tab1.type ",
         "  LEFT JOIN b_ap_refund tab6 ON tab6.id = tab1.ap_refund_id ",
         "  LEFT JOIN b_ap_refund_detail tab7 ON tab7.ap_refund_id = tab1.ap_refund_id ",
@@ -187,4 +181,21 @@ public interface BApRefundPayMapper extends BaseMapper<BApReFundPayEntity> {
         "</script>"
     })
     BApReFundPayVo queryViewSum(@Param("searchCondition") BApReFundPayVo searchCondition);
+
+    /**
+     * 查询退款单金额汇总数据
+     * @param ap_refund_id 退款主表id
+     * @param status 退款单状态
+     * @return 金额汇总VO
+     */
+    @Select("""
+        SELECT t1.id,
+          sum(t1.refundable_amount_total) as refundable_amount_total,
+          sum(t1.refunded_amount_total) as refunded_amount_total,
+          sum(t1.refunding_amount_total) as refunding_amount_total
+        FROM b_ap_refund_pay t1
+        WHERE t1.ap_refund_id = #{ap_refund_id}
+          AND (t1.status = #{status} OR #{status} = '' OR #{status} IS NULL)
+        """)
+    BApReFundPayVo getSumAmount(@Param("ap_refund_id") Integer ap_refund_id, @Param("status") String status);
 }

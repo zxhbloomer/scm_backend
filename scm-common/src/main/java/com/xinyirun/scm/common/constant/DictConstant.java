@@ -1555,14 +1555,14 @@ public class DictConstant {
     public static final String DICT_B_AP_PAY_STATUS_TWO = "2";
     public static final String DICT_B_AP_PAY_STATUS_STOP = "-1";
 
-    /**
-     *  付款单状态：状态（0-待付款、1已付款、2-作废、-1-中止付款）
-     */
-    public static final String DICT_B_AP_PAY_BILL_STATUS = "b_ap_pay_bill_status";
-    public static final String DICT_B_AP_PAY_BILL_STATUS_ZERO = "0";
-    public static final String DICT_B_AP_PAY_BILL_STATUS_ONE = "1";
-    public static final String DICT_B_AP_PAY_BILL_STATUS_TWO = "2";
-    public static final String DICT_B_AP_PAY_BILL_STATUS_STOP = "-1";
+//    /**
+//     *  付款单状态：状态（0-待付款、1已付款、2-作废、-1-中止付款）
+//     */
+//    public static final String DICT_B_AP_PAY_BILL_STATUS = "b_ap_pay_bill_status";
+//    public static final String DICT_B_AP_PAY_BILL_STATUS_ZERO = "0";
+//    public static final String DICT_B_AP_PAY_BILL_STATUS_ONE = "1";
+//    public static final String DICT_B_AP_PAY_BILL_STATUS_TWO = "2";
+//    public static final String DICT_B_AP_PAY_BILL_STATUS_STOP = "-1";
 
     public static final String DICT_B_FUND_MONITOR_BUSINESS_TYPE = "b_fund_monitor_business_type";
 
@@ -1622,22 +1622,12 @@ public class DictConstant {
     public static final String DICT_B_AP_REFUND_STATUS_FIVE = "5";
 
     /**
-     *  应付退款管理付款状态 付款状态：0-未退款、1-部分退款、2-已退款、-1-中止退款
+     *  应付退款管理付款状态 付款状态：0-未退款、1-部分退款、2-已退款
      */
     public static final String DICT_B_AP_REFUND_PAY_STATUS = "b_ap_refund_pay_status";
     public static final String DICT_B_AP_REFUND_PAY_STATUS_ZERO = "0";
     public static final String DICT_B_AP_REFUND_PAY_STATUS_ONE = "1";
     public static final String DICT_B_AP_REFUND_PAY_STATUS_TWO = "2";
-    public static final String DICT_B_AP_REFUND_PAY_STATUS_STOP = "-1";
-
-    /**
-     *  退款单状态 1-待退款、2已退款、3-作废 -1-中止退款
-     */
-    public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS = "b_ap_refund_pay_one_status";
-    public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_ONE = "1";
-    public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_TWO = "2";
-    public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_THREE = "3";
-    public static final String DICT_B_AP_REFUND_PAY_ONE_STATUS_STOP = "-1";
 
     /**
      * 采购结算类型：0-采购结算

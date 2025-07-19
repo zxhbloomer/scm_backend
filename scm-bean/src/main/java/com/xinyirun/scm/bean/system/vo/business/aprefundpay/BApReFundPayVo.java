@@ -59,7 +59,7 @@ public class BApReFundPayVo implements Serializable {
     private String ap_refund_code;
 
     /**
-     * 状态（0-待退款、1-已退款、2-作废）
+     * 退款单状态：状态（0-待付款、1已付款、2-作废）
      */
     private String status;
     private String status_name;
@@ -211,16 +211,6 @@ public class BApReFundPayVo implements Serializable {
     private String buyer_bank_name;
 
     /**
-     * 主体企业银行名称
-     */
-    private String buyer_enterprise_bank_name;
-
-    /**
-     * 供应商企业银行名称
-     */
-    private String supplier_enterprise_bank_name;
-
-    /**
      * 企业银行账户id
      */
     private Integer bank_account_id;
@@ -231,16 +221,6 @@ public class BApReFundPayVo implements Serializable {
     private String bank_account_code;
 
     /**
-     * 款项类型id
-     */
-    private Integer bank_accounts_type_id;
-
-    /**
-     * 款项类型code
-     */
-    private String bank_accounts_type_code;
-
-    /**
      * 交易编号（资金池、合同编号-转款专用））
      */
     private String trade_no;
@@ -248,7 +228,7 @@ public class BApReFundPayVo implements Serializable {
     /**
      * 退款账户信息数据
      */
-    private BApReFundPayDetailVo detailData;
+    private BApReFundPayDetailVo bankData;
 
     /**
      * 退款指令金额
@@ -268,4 +248,14 @@ public class BApReFundPayVo implements Serializable {
     private BigDecimal sum_refunding_amount_total;
     private BigDecimal sum_unrefund_amount_total;
     private BigDecimal sum_cancelrefund_amount_total;
+    private BigDecimal advance_refund_amount_total;
+    private BigDecimal advance_paid_total;
+
+    private String po_goods;
+    private Integer po_order_id;
+    private String po_order_code;
+    private Integer po_contract_id;
+
+    private BigDecimal source_order_amount;
+
 }

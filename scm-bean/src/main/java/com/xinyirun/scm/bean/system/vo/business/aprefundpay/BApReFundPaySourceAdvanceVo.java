@@ -112,6 +112,16 @@ public class BApReFundPaySourceAdvanceVo implements Serializable {
     private BigDecimal order_amount;
 
     /**
+     * 预收款已付总金额
+     */
+    private BigDecimal advance_paid_total;
+
+    /**
+     * 预收款退款总金额
+     */
+    private BigDecimal advance_refund_amount_total;
+
+    /**
      * 备注
      */
     private String remark;

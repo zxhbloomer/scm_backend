@@ -35,9 +35,9 @@ public interface IBApReFundPayService extends IService<BApReFundPayEntity> {
     BApReFundPayVo selectById(Integer id);
 
     /**
-     * 付款复核
+     * 凭证上传、完成退款
      */
-    UpdateResultAo<BApReFundPayVo> paymentReview(BApReFundPayVo searchCondition);
+    UpdateResultAo<BApReFundPayVo> refundComplete(BApReFundPayVo searchCondition);
 
     /**
      * 作废

@@ -181,7 +181,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
     /** 保存主表 */
     private BApPayEntity savePayMain(BApPayVo searchCondition) {
         BApPayEntity bApPayEntity = (BApPayEntity) BeanUtilsSupport.copyProperties(searchCondition, BApPayEntity.class);
-        bApPayEntity.setStatus(DictConstant.DICT_B_AP_PAY_BILL_STATUS_ZERO);
+        bApPayEntity.setStatus(DictConstant.DICT_B_AP_PAY_STATUS_ZERO);
         int bApPay = mapper.insert(bApPayEntity);
         if (bApPay == 0){
             throw new BusinessException("新增付款单，新增失败");
@@ -369,7 +369,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
         }
 
         // 4. 查询是否存在作废记录
-        if (DictConstant.DICT_B_AP_PAY_BILL_STATUS_TWO.equals(bApPayVo.getStatus())) {
+        if (DictConstant.DICT_B_AP_PAY_STATUS_TWO.equals(bApPayVo.getStatus())) {
             // 构造作废查询条件
             MCancelVo serialIdAndType = new MCancelVo();
             serialIdAndType.setSerial_id(bApPayVo.getId());
@@ -450,7 +450,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
         BApPayEntity bApPayEntity = mapper.selectById(searchCondition.getId());
         String orignalStatus = bApPayEntity.getStatus();
 
-        bApPayEntity.setStatus(DictConstant.DICT_B_AP_PAY_BILL_STATUS_TWO);
+        bApPayEntity.setStatus(DictConstant.DICT_B_AP_PAY_STATUS_TWO);
 
         // 2.保存作废附件和作废原因到附件表
         BApPayAttachVo attachVo = bApPayAttachMapper.selectByBApId(searchCondition.getId());
@@ -486,7 +486,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
                  * unpay_amount=0
                  * cancel_amount=if bApPayEntity.status (源状态)= 1-已付款，则为pay_amount，否则为0
                  */
-            if (orignalStatus.equals(DictConstant.DICT_B_AP_PAY_BILL_STATUS_ONE)) {
+            if (orignalStatus.equals(DictConstant.DICT_B_AP_PAY_STATUS_ONE)) {
                 bApPayDetailEntity.setCancel_amount(bApPayDetailEntity.getPay_amount());
             } else {
                 bApPayDetailEntity.setCancel_amount(BigDecimal.ZERO);
@@ -564,7 +564,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
             searchCondition.setCode(bApPayAutoCodeService.autoCode().getCode());
             searchCondition.setAp_id(bApVo.getId());
             searchCondition.setAp_code(bApVo.getCode());
-            searchCondition.setStatus(DictConstant.DICT_B_AP_PAY_BILL_STATUS_ZERO); // 1-待付款：使用常量
+            searchCondition.setStatus(DictConstant.DICT_B_AP_PAY_STATUS_ZERO); // 1-待付款：使用常量
             searchCondition.setType(bApVo.getType());
             searchCondition.setSupplier_id(bApVo.getSupplier_id());
             searchCondition.setSupplier_code(bApVo.getSupplier_code());
@@ -773,7 +773,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
      */
     private BApPayEntity updatePaymentStatus(BApPayVo searchCondition) {
         BApPayEntity bApPayEntity = mapper.selectById(searchCondition.getId());
-        bApPayEntity.setStatus(DictConstant.DICT_B_AP_PAY_BILL_STATUS_ONE);
+        bApPayEntity.setStatus(DictConstant.DICT_B_AP_PAY_STATUS_TWO);
         bApPayEntity.setPay_date(searchCondition.getPay_date());
         bApPayEntity.setVoucher_remark(searchCondition.getVoucher_remark());
         
@@ -884,7 +884,7 @@ public class BApPayServiceImpl extends ServiceImpl<BApPayMapper, BApPayEntity> i
         }
 
         // 获取付款单的已付金额汇总（状态=1表示已付款）
-        BApPayVo payAmountSummary = mapper.getSumAmount(apId, DictConstant.DICT_B_AP_PAY_BILL_STATUS_ONE);
+        BApPayVo payAmountSummary = mapper.getSumAmount(apId, DictConstant.DICT_B_AP_PAY_STATUS_ONE);
         BigDecimal paidAmountTotal = payAmountSummary != null && payAmountSummary.getPaid_amount_total() != null 
             ? payAmountSummary.getPaid_amount_total() : BigDecimal.ZERO;
 
