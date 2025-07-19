@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.api.service.business.v1.in;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.api.vo.business.in.ApiBInOrderGoodsVo;
-import com.xinyirun.scm.bean.entity.busniess.in.order.BInOrderGoodsEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.order.BInOrderGoodsEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 

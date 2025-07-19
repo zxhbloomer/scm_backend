@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.api.mapper.business.in.order.deliveryconfirm;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.api.bo.steel.ApiDeliveryConfirmBo;
 import com.xinyirun.scm.bean.api.vo.business.orderdoc.ApiDeliveryConfirmVo;
-import com.xinyirun.scm.bean.entity.busniess.in.order.BInOrderEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.order.BInOrderEntity;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

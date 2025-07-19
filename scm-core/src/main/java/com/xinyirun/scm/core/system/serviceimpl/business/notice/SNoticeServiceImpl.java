@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.notice;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.bean.entity.busniess.notice.BNoticeEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;

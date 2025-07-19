@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.api.service.business.v1.soorder;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.soorder.BSoOrderEntity;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderVo;
+import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderEntity;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 
 import java.util.List;

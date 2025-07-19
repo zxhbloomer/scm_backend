@@ -13,7 +13,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustVo;
-import com.xinyirun.scm.bean.system.vo.business.inventory.*;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.*;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsSpecVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;

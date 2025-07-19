@@ -6,7 +6,7 @@ import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.bean.entity.master.warehouse.MWarehouseEntity;
 import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BDailyInventoryVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.mq.MessageConsumerQueueException;

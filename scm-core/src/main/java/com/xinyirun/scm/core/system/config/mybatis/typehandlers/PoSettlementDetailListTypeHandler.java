@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.config.mybatis.typehandlers;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import com.alibaba.fastjson2.TypeReference;
-import com.xinyirun.scm.bean.system.vo.business.settlement.BPoSettlementDetailSourceInboundVo;
+import com.xinyirun.scm.bean.system.vo.business.po.settlement.BPoSettlementDetailSourceInboundVo;
 import com.xinyirun.scm.common.utils.NullUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.type.BaseTypeHandler;

@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.api.service.business.v1.in;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.api.vo.business.in.ApiBPurchasePricingVo;
-import com.xinyirun.scm.bean.entity.busniess.in.BPurchasePricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.BPurchasePricingEntity;
 
 import java.util.List;
 

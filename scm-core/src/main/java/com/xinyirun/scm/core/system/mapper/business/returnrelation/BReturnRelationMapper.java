@@ -4,7 +4,7 @@ package com.xinyirun.scm.core.system.mapper.business.returnrelation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.in.BInEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.BInEntity;
 import com.xinyirun.scm.bean.entity.busniess.returnrelation.BReturnRelationEntity;
 import com.xinyirun.scm.bean.system.vo.business.returnrelation.BReturnRelationExportVo;
 import com.xinyirun.scm.bean.system.vo.business.returnrelation.BReturnRelationVo;

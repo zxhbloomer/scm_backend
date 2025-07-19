@@ -1,7 +1,7 @@
 package com.xinyirun.scm.quartz.util;
 
 import com.alibaba.fastjson2.JSON;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BDailyInventoryVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;

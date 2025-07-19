@@ -1,10 +1,10 @@
 package com.xinyirun.scm.core.api.service.business.v1.ap;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.ap.BApEntity;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApSourceAdvanceVo;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApVo;
+import com.xinyirun.scm.bean.entity.busniess.po.ap.BApEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApSourceAdvanceVo;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApVo;
 
 import java.util.List;
 

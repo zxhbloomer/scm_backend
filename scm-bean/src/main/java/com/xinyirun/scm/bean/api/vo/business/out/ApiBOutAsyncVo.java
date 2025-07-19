@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.api.vo.business.out;
 
-import com.xinyirun.scm.bean.system.vo.business.out.BOutVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

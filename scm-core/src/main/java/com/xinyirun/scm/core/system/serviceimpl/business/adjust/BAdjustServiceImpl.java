@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustDetailEntity;
 import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustEntity;
-import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;

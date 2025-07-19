@@ -2,10 +2,10 @@ package com.xinyirun.scm.core.api.serviceimpl.business.v1.soorder;
 
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.soorder.BSoOrderEntity;
+import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.constant.PageCodeConstant;

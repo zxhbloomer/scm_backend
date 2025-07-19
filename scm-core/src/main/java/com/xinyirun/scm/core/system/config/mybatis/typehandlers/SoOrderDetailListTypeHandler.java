@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.config.mybatis.typehandlers;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderDetailVo;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 

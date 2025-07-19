@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.api.mapper.business.largescreen;
 
 import com.xinyirun.scm.bean.api.vo.business.largescreen.ApiTodayQtyStatisticsVo;
 import com.xinyirun.scm.bean.api.vo.business.largescreen.ApiWarehouseStatisticsVo;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BContractReportVo;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BQtyLossScheduleReportVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BContractReportVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BQtyLossScheduleReportVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Param;

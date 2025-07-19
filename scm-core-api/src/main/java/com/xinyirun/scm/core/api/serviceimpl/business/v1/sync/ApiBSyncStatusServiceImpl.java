@@ -8,7 +8,7 @@ import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.api.mapper.sync.ApiBSyncStatusMapper;
 import com.xinyirun.scm.core.api.service.business.v1.sync.ApiIBSyncStatusService;
 import com.xinyirun.scm.core.api.serviceimpl.base.v1.ApiBaseServiceImpl;
-import com.xinyirun.scm.core.system.mapper.wms.inplan.BInPlanMapper;
+import com.xinyirun.scm.core.system.mapper.business.wms.inplan.BInPlanMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

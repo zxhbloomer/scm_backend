@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.api.serviceimpl.business.v1.out;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.api.vo.business.out.ApiBSalesPricingVo;
-import com.xinyirun.scm.bean.entity.busniess.out.BSalesPricingEntity;
-import com.xinyirun.scm.bean.entity.busniess.out.BWkSalesPricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BSalesPricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BWkSalesPricingEntity;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.api.mapper.business.out.ApiSalesPricingMapper;
 import com.xinyirun.scm.core.api.mapper.business.out.ApiWkSalesPricingMapper;

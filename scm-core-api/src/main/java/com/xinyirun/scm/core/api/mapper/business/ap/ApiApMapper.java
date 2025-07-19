@@ -1,10 +1,10 @@
 package com.xinyirun.scm.core.api.mapper.business.ap;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.ap.BApEntity;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApSourceAdvanceVo;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApVo;
+import com.xinyirun.scm.bean.entity.busniess.po.ap.BApEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApSourceAdvanceVo;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

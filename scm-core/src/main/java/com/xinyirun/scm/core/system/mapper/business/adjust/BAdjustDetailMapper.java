@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustVo;
-import com.xinyirun.scm.bean.system.vo.business.inventory.*;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.*;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

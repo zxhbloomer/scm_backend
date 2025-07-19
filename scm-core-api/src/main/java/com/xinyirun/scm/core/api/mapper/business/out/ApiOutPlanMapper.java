@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.api.mapper.business.out;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.api.vo.business.out.ApiOutPlanVo;
-import com.xinyirun.scm.bean.entity.busniess.out.BOutPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutPlanEntity;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

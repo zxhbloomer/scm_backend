@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.api.service.business.v1.out;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.out.BWkSalesPricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BWkSalesPricingEntity;
 
 /**
  * <p>

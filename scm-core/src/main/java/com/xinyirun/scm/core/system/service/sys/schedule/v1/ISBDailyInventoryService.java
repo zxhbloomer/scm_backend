@@ -1,8 +1,7 @@
 package com.xinyirun.scm.core.system.service.sys.schedule.v1;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.inventory.BDailyInventoryEntity;
-import com.xinyirun.scm.bean.entity.sys.SSmsCodeEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
 
 /**
  * <p>

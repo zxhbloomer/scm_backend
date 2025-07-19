@@ -4,7 +4,9 @@
       "Bash(rg:*)",
       "mcp__mcp_server_mysql__mysql_query",
       "mcp__dthink__sequentialthinking",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }

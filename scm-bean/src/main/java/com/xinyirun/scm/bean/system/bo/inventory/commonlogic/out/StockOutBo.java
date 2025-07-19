@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.system.bo.inventory.commonlogic.out;
 
-import com.xinyirun.scm.bean.entity.busniess.out.BOutEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutEntity;
 import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.system.bo.inventory.company.ConsignorBo;
 import com.xinyirun.scm.bean.system.bo.inventory.company.OwnerBo;

@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v2;
 
 import com.alibaba.fastjson2.JSON;
-import com.xinyirun.scm.bean.entity.busniess.inventory.BDailyAveragePriceEntity;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BDailyAveragePriceVo;
+import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyAveragePriceEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyAveragePriceVo;
 import com.xinyirun.scm.core.system.mapper.sys.schedule.v2.SBDailyAveragePriceV2Mappper;
 import com.xinyirun.scm.core.system.service.sys.schedule.v2.ISBDailyAveragePriceV2Service;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;

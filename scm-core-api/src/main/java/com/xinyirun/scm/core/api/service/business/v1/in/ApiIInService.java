@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.api.service.business.v1.in;
 import com.xinyirun.scm.bean.api.vo.business.in.ApiInPlanDisContinuedVo;
 import com.xinyirun.scm.bean.api.vo.business.in.ApiInPlanVo;
 import com.xinyirun.scm.bean.api.vo.sync.ApiInPlanIdCodeVo;
-import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.core.api.service.base.v1.ApiIBaseService;
 

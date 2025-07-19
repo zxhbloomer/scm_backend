@@ -2,11 +2,11 @@ package com.xinyirun.scm.controller.query.inventory;
 
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BQtyLossScheduleReportVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BQtyLossScheduleReportVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
-import com.xinyirun.scm.core.system.service.wms.in.IBInService;
+import com.xinyirun.scm.core.system.service.business.wms.in.IBInService;
 import com.xinyirun.scm.core.system.service.business.monitor.IBMonitorService;
-import com.xinyirun.scm.core.system.service.business.out.IBOutService;
+import com.xinyirun.scm.core.system.service.business.wms.out.IBOutService;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

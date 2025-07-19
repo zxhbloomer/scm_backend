@@ -1,6 +1,6 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.schedule;
 
-import com.xinyirun.scm.bean.entity.busniess.inventory.BDailyInventoryEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
 import com.xinyirun.scm.core.system.mapper.sys.schedule.v1.SBDailyInventoryMappper;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.schedule.ISBDailyInventoryNewService;

@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.api.mapper.business.out;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.api.vo.business.out.ApiOutPlanDetailVo;
-import com.xinyirun.scm.bean.entity.busniess.out.BOutPlanDetailEntity;
-import com.xinyirun.scm.bean.system.vo.business.out.BOutPlanListVo;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutPlanDetailEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutPlanListVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

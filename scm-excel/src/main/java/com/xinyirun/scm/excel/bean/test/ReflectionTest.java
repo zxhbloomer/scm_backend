@@ -1,6 +1,6 @@
 package com.xinyirun.scm.excel.bean.test;
 
-import com.xinyirun.scm.bean.system.vo.business.out.BOutImportVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutImportVo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Method;

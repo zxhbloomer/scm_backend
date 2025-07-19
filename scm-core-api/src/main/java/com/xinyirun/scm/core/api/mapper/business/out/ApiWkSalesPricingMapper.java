@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.api.mapper.business.out;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.out.BWkSalesPricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BWkSalesPricingEntity;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;

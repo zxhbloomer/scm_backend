@@ -3,9 +3,9 @@ package com.xinyirun.scm.controller.business.warehouse.position;
 
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.BWarehousePositionDataVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.MWarehousePositionTransferVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.MWarehouseTransferVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.BWarehousePositionDataVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.MWarehousePositionTransferVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.MWarehouseTransferVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.core.system.service.business.warehouse.relation.IBWarehousePositionService;

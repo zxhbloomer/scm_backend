@@ -4,7 +4,7 @@ package com.xinyirun.scm.controller.business.warehouse;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.BWarehouseGroupVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;

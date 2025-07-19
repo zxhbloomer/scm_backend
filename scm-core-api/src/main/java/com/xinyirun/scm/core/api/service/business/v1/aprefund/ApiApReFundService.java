@@ -1,10 +1,10 @@
 package com.xinyirun.scm.core.api.service.business.v1.aprefund;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundEntity;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceAdvanceVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundDetailVo;
+import com.xinyirun.scm.bean.entity.busniess.po.aprefund.BApReFundEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundSourceAdvanceVo;
+import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundVo;
+import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundDetailVo;
 
 import java.util.List;
 

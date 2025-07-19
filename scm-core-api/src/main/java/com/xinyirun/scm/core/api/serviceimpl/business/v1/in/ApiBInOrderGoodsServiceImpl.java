@@ -2,14 +2,14 @@ package com.xinyirun.scm.core.api.serviceimpl.business.v1.in;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.api.vo.business.in.ApiBInOrderGoodsVo;
-import com.xinyirun.scm.bean.entity.busniess.in.order.BInOrderGoodsEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.order.BInOrderGoodsEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.api.service.business.v1.in.ApiIBInOrderGoodsService;
-import com.xinyirun.scm.core.system.mapper.wms.in.order.BInOrderGoodsMapper;
+import com.xinyirun.scm.core.system.mapper.business.wms.in.order.BInOrderGoodsMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

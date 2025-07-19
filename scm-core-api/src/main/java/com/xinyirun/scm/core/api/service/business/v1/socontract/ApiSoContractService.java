@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.api.service.business.v1.socontract;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.socontract.BSoContractEntity;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractVo;
+import com.xinyirun.scm.bean.entity.busniess.so.socontract.BSoContractEntity;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 
 import java.util.List;

@@ -11,7 +11,7 @@ import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
-import com.xinyirun.scm.core.system.service.wms.in.IBInService;
+import com.xinyirun.scm.core.system.service.business.wms.in.IBInService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

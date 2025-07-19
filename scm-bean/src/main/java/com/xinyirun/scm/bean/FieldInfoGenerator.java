@@ -3,7 +3,7 @@ package com.xinyirun.scm.bean;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xinyirun.scm.bean.bpm.vo.field.FormFieldInfo;
 import com.xinyirun.scm.bean.bpm.vo.field.Props;
-import com.xinyirun.scm.bean.system.vo.business.out.BOutPlanListVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutPlanListVo;
 import com.xinyirun.scm.common.annotations.bpm.FieldMeta;
 
 import java.lang.reflect.Field;

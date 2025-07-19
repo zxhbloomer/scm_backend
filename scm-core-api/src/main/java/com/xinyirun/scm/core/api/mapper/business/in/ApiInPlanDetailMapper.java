@@ -1,10 +1,8 @@
 package com.xinyirun.scm.core.api.mapper.business.in;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanDetailEntity;
-import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanDetailEntity;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
 /**

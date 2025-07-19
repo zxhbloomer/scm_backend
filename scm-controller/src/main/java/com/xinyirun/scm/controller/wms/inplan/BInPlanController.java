@@ -12,7 +12,7 @@ import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
-import com.xinyirun.scm.core.system.service.wms.inplan.IBInPlanService;
+import com.xinyirun.scm.core.system.service.business.wms.inplan.IBInPlanService;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

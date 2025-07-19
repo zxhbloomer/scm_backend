@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.api.vo.business.out;
 
-import com.xinyirun.scm.bean.system.vo.business.out.receive.BReceiveVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.receive.BReceiveVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

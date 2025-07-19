@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.api.serviceimpl.business.v1.in;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.api.vo.business.in.ApiBPurchasePricingVo;
-import com.xinyirun.scm.bean.entity.busniess.in.BPurchasePricingEntity;
-import com.xinyirun.scm.bean.entity.busniess.in.BWkPurchasePricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.BPurchasePricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.BWkPurchasePricingEntity;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.api.mapper.business.in.ApiPurchasePricingMapper;
 import com.xinyirun.scm.core.api.mapper.business.in.ApiWkPurchasePricingMapper;

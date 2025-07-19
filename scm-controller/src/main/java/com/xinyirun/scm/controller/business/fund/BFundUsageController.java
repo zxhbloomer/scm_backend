@@ -4,7 +4,6 @@ package com.xinyirun.scm.controller.business.fund;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.ap.BApVo;
 import com.xinyirun.scm.bean.system.vo.business.fund.BFundUsageVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.core.system.service.business.fund.IBFundUsageService;

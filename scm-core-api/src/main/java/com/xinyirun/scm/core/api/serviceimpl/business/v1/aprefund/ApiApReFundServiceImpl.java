@@ -2,11 +2,11 @@ package com.xinyirun.scm.core.api.serviceimpl.business.v1.aprefund;
 
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.aprefund.BApReFundEntity;
+import com.xinyirun.scm.bean.entity.busniess.po.aprefund.BApReFundEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundSourceAdvanceVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundVo;
-import com.xinyirun.scm.bean.system.vo.business.aprefund.BApReFundDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundSourceAdvanceVo;
+import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundVo;
+import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.constant.PageCodeConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;

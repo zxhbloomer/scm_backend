@@ -2,7 +2,7 @@ package com.xinyirun.scm.mq.rabbitmq.producer.business.inventory;
 
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.ao.mqsender.builder.MqSenderAoBuilder;
-import com.xinyirun.scm.bean.system.vo.business.inventory.BDailyInventoryVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import com.xinyirun.scm.common.enums.mq.MqSenderEnum;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mq.rabbitmq.producer.ScmMqProducer;

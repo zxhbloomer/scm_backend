@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.api.mapper.business.out.order;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.entity.busniess.order.BOrderEntity;
-import com.xinyirun.scm.bean.entity.busniess.out.BOutOrderEntity;
-import com.xinyirun.scm.bean.system.vo.business.out.BOutOrderVo;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutOrderEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutOrderVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

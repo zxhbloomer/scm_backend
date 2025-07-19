@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.api.mapper.business.in;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.in.BInEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.BInEntity;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

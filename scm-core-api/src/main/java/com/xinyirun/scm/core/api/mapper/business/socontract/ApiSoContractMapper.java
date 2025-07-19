@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.api.mapper.business.socontract;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.socontract.BSoContractEntity;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractVo;
+import com.xinyirun.scm.bean.entity.busniess.so.socontract.BSoContractEntity;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;

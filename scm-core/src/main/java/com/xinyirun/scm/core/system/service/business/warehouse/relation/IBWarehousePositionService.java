@@ -1,12 +1,12 @@
 package com.xinyirun.scm.core.system.service.business.warehouse.relation;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.warehouse.position.BWarehousePositionEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.position.BWarehousePositionEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.BWarehousePositionDataVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.BWarehousePositionVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.MWarehousePositionTransferVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.MWarehouseTransferVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.BWarehousePositionDataVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.BWarehousePositionVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.MWarehousePositionTransferVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.MWarehouseTransferVo;
 
 import java.util.List;
 

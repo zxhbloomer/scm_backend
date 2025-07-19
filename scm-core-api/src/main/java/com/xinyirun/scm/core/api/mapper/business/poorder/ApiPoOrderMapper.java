@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.api.mapper.business.poorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.poorder.BPoOrderEntity;
-import com.xinyirun.scm.bean.system.vo.business.poorder.PoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
 import org.apache.ibatis.annotations.Param;

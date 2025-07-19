@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.api.mapper.business.in.order;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.in.order.BInOrderEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.in.order.BInOrderEntity;
 import com.xinyirun.scm.bean.entity.busniess.order.BOrderEntity;
 import com.xinyirun.scm.bean.system.vo.wms.in.order.BInOrderVo;
 import org.apache.ibatis.annotations.Param;

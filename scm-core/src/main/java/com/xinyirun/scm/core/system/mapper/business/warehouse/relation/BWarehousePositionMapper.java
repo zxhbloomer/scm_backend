@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.system.mapper.business.warehouse.relation;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.warehouse.position.BWarehousePositionEntity;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.BWarehousePositionVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.position.MWarehouseTransferVo;
+import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.position.BWarehousePositionEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.BWarehousePositionVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.position.MWarehouseTransferVo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

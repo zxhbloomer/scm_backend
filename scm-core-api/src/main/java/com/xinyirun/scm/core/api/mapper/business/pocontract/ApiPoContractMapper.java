@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.api.mapper.business.pocontract;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.pocontract.BPoContractEntity;
-import com.xinyirun.scm.bean.system.vo.business.pocontract.PoContractDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.pocontract.PoContractVo;
+import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoContractDetailListTypeHandler;

@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.api.mapper.business.soorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.soorder.BSoOrderEntity;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.soorder.SoOrderVo;
+import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderEntity;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
 import org.apache.ibatis.annotations.Param;

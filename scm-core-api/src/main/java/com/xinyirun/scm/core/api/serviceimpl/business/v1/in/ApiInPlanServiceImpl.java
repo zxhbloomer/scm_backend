@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.api.serviceimpl.business.v1.in;
 
 import com.xinyirun.scm.bean.api.vo.business.in.ApiInPlanVo;
-import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.core.api.mapper.business.in.ApiInPlanMapper;
 import com.xinyirun.scm.core.api.service.business.v1.in.ApiInPlanService;
 import com.xinyirun.scm.core.api.serviceimpl.base.v1.ApiBaseServiceImpl;

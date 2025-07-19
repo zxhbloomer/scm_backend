@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.api.mapper.business.out;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.out.BSalesPricingEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BSalesPricingEntity;
 import org.springframework.stereotype.Repository;
 
 /**

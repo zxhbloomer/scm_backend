@@ -1,10 +1,10 @@
 package com.xinyirun.scm.core.api.service.business.v1.out;
 
 import com.xinyirun.scm.bean.api.vo.business.out.ApiOutPlanVo;
-import com.xinyirun.scm.bean.entity.busniess.out.BOutPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutPlanEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
-import com.xinyirun.scm.bean.system.vo.business.out.BOutPlanListVo;
-import com.xinyirun.scm.bean.system.vo.business.out.BOutPlanVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutPlanListVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutPlanVo;
 import com.xinyirun.scm.core.api.service.base.v1.ApiIBaseService;
 
 import java.util.List;

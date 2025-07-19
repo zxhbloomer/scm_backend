@@ -1,17 +1,10 @@
 package com.xinyirun.scm.controller.business.bpm;
 
-import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
-import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.pocontract.PoContractVo;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractVo;
-import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseVo;
-import com.xinyirun.scm.common.exception.system.UpdateErrorException;
-import com.xinyirun.scm.core.system.service.business.pocontract.IBPoContractService;
-import com.xinyirun.scm.core.system.service.business.socontract.IBSoContractService;
+import com.xinyirun.scm.core.system.service.business.po.pocontract.IBPoContractService;
+import com.xinyirun.scm.core.system.service.business.so.socontract.IBSoContractService;
 import com.xinyirun.scm.core.system.service.master.enterprise.IMEnterpriseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**

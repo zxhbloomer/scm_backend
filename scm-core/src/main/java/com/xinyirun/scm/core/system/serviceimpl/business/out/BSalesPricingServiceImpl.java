@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.out;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.out.BSalesPricingEntity;
-import com.xinyirun.scm.core.system.mapper.business.out.BSalesPricingMapper;
-import com.xinyirun.scm.core.system.service.business.out.IBSalesPricingService;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BSalesPricingEntity;
+import com.xinyirun.scm.core.system.mapper.business.wms.out.BSalesPricingMapper;
+import com.xinyirun.scm.core.system.service.business.wms.out.IBSalesPricingService;
 import org.springframework.stereotype.Service;
 
 /**

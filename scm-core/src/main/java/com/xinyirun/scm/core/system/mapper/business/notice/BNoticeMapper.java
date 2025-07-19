@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.notice;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.bean.entity.busniess.notice.BNoticeEntity;
 import com.xinyirun.scm.bean.system.vo.business.notice.BNoticeVo;
 import org.apache.ibatis.annotations.Param;

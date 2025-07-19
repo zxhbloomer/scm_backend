@@ -1,15 +1,6 @@
 package com.xinyirun.scm.controller.business.warehouse;
 
 
-import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
-import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.BWarehouseGroupTransferVo;
-import com.xinyirun.scm.bean.system.vo.business.warehouse.BWarehouseTransferVo;
-import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
-import com.xinyirun.scm.common.annotations.SysLogAnnotion;
-import com.xinyirun.scm.core.system.service.business.warehouse.IBWarehouseGroupRelationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**

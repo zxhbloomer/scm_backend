@@ -1,15 +1,15 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.out.order;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.out.BOutOrderGoodsEntity;
+import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutOrderGoodsEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.out.BOutOrderGoodsVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutOrderGoodsVo;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
-import com.xinyirun.scm.core.system.mapper.business.out.order.BOutOrderGoodsMapper;
-import com.xinyirun.scm.core.system.service.business.out.order.IBOutOrderGoodsService;
+import com.xinyirun.scm.core.system.mapper.business.wms.out.order.BOutOrderGoodsMapper;
+import com.xinyirun.scm.core.system.service.business.wms.out.order.IBOutOrderGoodsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

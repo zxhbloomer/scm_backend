@@ -2,10 +2,10 @@ package com.xinyirun.scm.core.api.serviceimpl.business.v1.socontract;
 
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.socontract.BSoContractEntity;
+import com.xinyirun.scm.bean.entity.busniess.so.socontract.BSoContractEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.socontract.SoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.constant.PageCodeConstant;
