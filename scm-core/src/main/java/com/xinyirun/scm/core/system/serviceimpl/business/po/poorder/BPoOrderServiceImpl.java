@@ -982,40 +982,40 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackSave(PoOrderVo searchCondition) {
-        log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新开始《====",searchCondition.getId());
-        BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackSave(PoOrderVo vo) {
+        log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新开始《====",vo.getId());
+        BPoOrderEntity bPoOrderEntity = mapper.selectById(vo.getId());
 
-        bPoOrderEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
-        bPoOrderEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
-        bPoOrderEntity.setNext_approve_name(searchCondition.getNext_approve_name());
+        bPoOrderEntity.setBpm_cancel_instance_id(vo.getBpm_instance_id());
+        bPoOrderEntity.setBpm_cancel_instance_code(vo.getBpm_instance_code());
+        bPoOrderEntity.setNext_approve_name(vo.getNext_approve_name());
         int i = mapper.updateById(bPoOrderEntity);
 
-        log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新结束《====",searchCondition.getId());
+        log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新结束《====",vo.getId());
         return UpdateResultUtil.OK(i);
     }
 
     /**
      * 作废
-     * @param searchCondition
+     * @param vo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> cancel(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> cancel(PoOrderVo vo) {
 
         // 作废前check
-        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.CANCEL_CHECK_TYPE);
+        CheckResultAo cr = checkLogic(vo, CheckResultAo.CANCEL_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
 
-        BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
+        BPoOrderEntity bPoOrderEntity = mapper.selectById(vo.getId());
 
         // 1.保存附件信息
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bPoOrderEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_ORDER);
-        fileEntity = insertCancelFile(fileEntity, searchCondition);
+        fileEntity = insertCancelFile(fileEntity, vo);
 
         bPoOrderEntity.setBpm_cancel_process_name("作废采购订单审批");
         bPoOrderEntity.setStatus(DictConstant.DICT_B_PO_ORDER_STATUS_FOUR);
@@ -1026,14 +1026,14 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
 
         // 2.增加作废记录
         MCancelVo mCancelVo = new MCancelVo();
-        mCancelVo.setSerial_id(searchCondition.getId());
+        mCancelVo.setSerial_id(vo.getId());
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_PO_ORDER);
         mCancelVo.setFile_id(fileEntity.getId());
-        mCancelVo.setRemark(searchCondition.getCancel_reason());
+        mCancelVo.setRemark(vo.getCancel_reason());
         mCancelService.insert(mCancelVo);
 
         // 2.启动审批流程
-        startFlowProcess(searchCondition,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_ORDER_CANCEL);
+        startFlowProcess(vo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_ORDER_CANCEL);
 
         return UpdateResultUtil.OK(insert);
     }
@@ -1099,5 +1099,41 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     @Override
     public PoOrderVo queryOrderListWithSettlePageSum(PoOrderVo searchCondition) {
         return mapper.queryOrderListWithSettlePageSum(searchCondition);
+    }
+
+    /**
+     * 货权转移专用-分页查询采购订单信息
+     *
+     * @param searchCondition
+     */
+    @Override
+    public IPage<PoOrderVo> selectOrderListForCargoRightTransferPage(PoOrderVo searchCondition) {
+        // 分页条件
+        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+
+        // 查询货权转移专用采购订单page
+        return mapper.selectOrderListForCargoRightTransferPage(pageCondition, searchCondition);
+    }
+
+    /**
+     * 货权转移专用-采购订单统计
+     *
+     * @param searchCondition
+     */
+    @Override
+    public PoOrderVo queryOrderListForCargoRightTransferPageSum(PoOrderVo searchCondition) {
+        return mapper.queryOrderListForCargoRightTransferPageSum(searchCondition);
+    }
+
+    /**
+     * 货权转移专用-获取采购订单明细数据
+     *
+     * @param searchCondition
+     */
+    @Override
+    public List<PoOrderDetailVo> selectDetailData(PoOrderVo searchCondition) {
+        return mapper.selectDetailData(searchCondition);
     }
 }

@@ -74,31 +74,6 @@ public interface IBPoContractService extends IService<BPoContractEntity> ,
     List<PoContractVo> selectExportList(PoContractVo param);
 
     /**
-     * 作废审批流程摘要
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(PoContractVo searchCondition);
-
-    /**
-     *  作废审批流程通过 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackApprove(PoContractVo searchCondition);
-
-    /**
-     *  作废审批流程拒绝 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackRefuse(PoContractVo searchCondition);
-
-    /**
-     *  作废审批流程撤销 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackCancel(PoContractVo searchCondition);
-
-    /**
-     *  作废审批流程撤销 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackSave(PoContractVo searchCondition);
-
-    /**
      * 作废
      */
     UpdateResultAo<Integer> cancel(PoContractVo searchCondition);

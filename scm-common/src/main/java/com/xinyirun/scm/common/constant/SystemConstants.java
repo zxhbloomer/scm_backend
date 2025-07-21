@@ -650,6 +650,9 @@ public class SystemConstants  {
         /** 采购合同编号 */
         public static final String B_PO_CONTRACT = "b_po_contract";
 
+        /** 货权转移编号 */
+        public static final String B_CARGO_RIGHT_TRANSFER = "b_cargo_right_transfer";
+
         /** 采购订单编号 */
         public static final String B_PO_ORDER = "b_po_order";
 
@@ -1116,6 +1119,12 @@ public class SystemConstants  {
 
         // 作废 采购合同
         public static final String BPM_INSTANCE_B_PO_CONTRACT_CANCEL = "b_po_contract_cancel";
+
+        // 货权转移
+        public static final String BPM_INSTANCE_B_CARGO_RIGHT_TRANSFER = "b_cargo_right_transfer";
+
+        // 作废 货权转移
+        public static final String BPM_INSTANCE_B_CARGO_RIGHT_TRANSFER_CANCEL = "b_cargo_right_transfer_cancel";
 
         // 销售合同
         public static final String BPM_INSTANCE_B_SO_CONTRACT = "b_so_contract";

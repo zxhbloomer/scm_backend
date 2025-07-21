@@ -7,6 +7,7 @@ import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
 
 import java.util.List;
@@ -148,4 +149,19 @@ public interface IBPoOrderService extends IService<BPoOrderEntity> {
      * 采购订单结算信息统计
      */
     PoOrderVo queryOrderListWithSettlePageSum(PoOrderVo searchCondition);
+
+    /**
+     * 货权转移专用-分页查询采购订单信息
+     */
+    IPage<PoOrderVo> selectOrderListForCargoRightTransferPage(PoOrderVo searchCondition);
+
+    /**
+     * 货权转移专用-采购订单统计
+     */
+    PoOrderVo queryOrderListForCargoRightTransferPageSum(PoOrderVo searchCondition);
+
+    /**
+     * 货权转移专用-获取采购订单明细数据
+     */
+    List<PoOrderDetailVo> selectDetailData(PoOrderVo searchCondition);
 }

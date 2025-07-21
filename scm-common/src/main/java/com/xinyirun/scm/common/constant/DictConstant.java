@@ -806,6 +806,9 @@ public class DictConstant {
     /** 采购合同编号 */
     public static final String DICT_SYS_CODE_TYPE_B_PO_CONTRACT  = "b_po_contract";
 
+    /** 货权转移编号 */
+    public static final String DICT_SYS_CODE_TYPE_B_CARGO_RIGHT_TRANSFER = "b_cargo_right_transfer";
+
     /** 采购结算 */
     public static final String DICT_SYS_CODE_TYPE_B_PO_SETTLEMENT  = "b_po_settlement";
 
@@ -1341,6 +1344,18 @@ public class DictConstant {
      */
     public static final String DICT_B_PO_CONTRACT_PAYMENT_TYPE = "b_po_contract_payment_type";
     public static final String DICT_B_PO_CONTRACT_PAYMENT_TYPE_ONE = "1";
+
+    /**
+     * 货权转移 审批状态 0-待审批 1-审批中 2-已审批 3-驳回 4-作废审批中 5-已作废 6-已完成
+     */
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS = "b_cargo_right_transfer_status";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_ZERO = "0";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_ONE = "1";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_TWO = "2";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_THREE = "3";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_FOUR = "4";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_FIVE = "5";
+    public static final String DICT_B_CARGO_RIGHT_TRANSFER_STATUS_SIX = "6";
 
     /**
      *  税率：6、17、13、9
