@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
-public class BCargoRightTransferAttachVo implements Serializable {
+public class BPoCargoRightTransferAttachVo implements Serializable {
 
 
     @Serial

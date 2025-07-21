@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
-public class BCargoRightTransferTotalVo implements Serializable {
+public class BPoCargoRightTransferTotalVo implements Serializable {
 
 
     @Serial

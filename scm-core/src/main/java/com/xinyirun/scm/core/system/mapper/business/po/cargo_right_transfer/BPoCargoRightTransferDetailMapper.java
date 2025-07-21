@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BCargoRightTransferDetailEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BCargoRightTransferDetailVo;
+import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BPoCargoRightTransferDetailEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferDetailVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
@@ -17,7 +17,7 @@ import java.util.List;
  * @since 2025-01-19
  */
 @Repository
-public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightTransferDetailEntity> {
+public interface BPoCargoRightTransferDetailMapper extends BaseMapper<BPoCargoRightTransferDetailEntity> {
 
     /**
      * 根据货权转移主表ID查询明细列表
@@ -32,7 +32,7 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
             tab3.name as unit_name,
             tab4.label as quality_status_name,
             CONCAT(tab1.goods_code, '-', tab1.sku_code, '-', tab1.sku_name) as virtual_sku_code_name
-        FROM b_cargo_right_transfer_detail tab1
+        FROM b_po_cargo_right_transfer_detail tab1
         LEFT JOIN m_goods tab2 ON tab2.id = tab1.goods_id
         LEFT JOIN m_unit tab3 ON tab3.id = tab1.unit_id
         LEFT JOIN sys_dict_data tab4 ON tab4.dict_type = 'goods_quality_status' 
@@ -40,7 +40,7 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
         WHERE tab1.cargo_right_transfer_id = #{cargoRightTransferId}
         ORDER BY tab1.id ASC
         """)
-    List<BCargoRightTransferDetailVo> selectByCargoRightTransferId(@Param("cargoRightTransferId") Integer cargoRightTransferId);
+    List<BPoCargoRightTransferDetailVo> selectByCargoRightTransferId(@Param("cargoRightTransferId") Integer cargoRightTransferId);
 
     /**
      * 根据采购订单明细ID查询已转移数量
@@ -50,8 +50,8 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
      */
     @Select("""
         SELECT COALESCE(SUM(transfer_qty), 0) 
-        FROM b_cargo_right_transfer_detail tab1
-        INNER JOIN b_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
+        FROM b_po_cargo_right_transfer_detail tab1
+        INNER JOIN b_po_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
         WHERE tab1.po_order_detail_id = #{poOrderDetailId} 
         AND tab2.status IN ('2', '6')
         """)
@@ -65,8 +65,8 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
      */
     @Select("""
         SELECT COALESCE(SUM(transfer_qty), 0) 
-        FROM b_cargo_right_transfer_detail tab1
-        INNER JOIN b_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
+        FROM b_po_cargo_right_transfer_detail tab1
+        INNER JOIN b_po_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
         WHERE tab1.sku_id = #{skuId} 
         AND tab2.status IN ('2', '6')
         """)
@@ -79,7 +79,7 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
      * @return 删除行数
      */
     @Select("""
-        DELETE FROM b_cargo_right_transfer_detail 
+        DELETE FROM b_po_cargo_right_transfer_detail 
         WHERE cargo_right_transfer_id = #{cargoRightTransferId}
         """)
     Integer deleteByCargoRightTransferId(@Param("cargoRightTransferId") Integer cargoRightTransferId);
@@ -95,13 +95,13 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
             tab1.*,
             tab2.code as cargo_right_transfer_code,
             tab2.status as cargo_right_transfer_status
-        FROM b_cargo_right_transfer_detail tab1
-        INNER JOIN b_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
+        FROM b_po_cargo_right_transfer_detail tab1
+        INNER JOIN b_po_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
         WHERE tab1.goods_id = #{goodsId} 
         AND tab2.is_del = false
         ORDER BY tab1.id DESC
         """)
-    List<BCargoRightTransferDetailVo> selectByGoodsId(@Param("goodsId") Integer goodsId);
+    List<BPoCargoRightTransferDetailVo> selectByGoodsId(@Param("goodsId") Integer goodsId);
 
     /**
      * 批量插入明细数据
@@ -111,7 +111,7 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
      */
     @Select("""
         <script>
-        INSERT INTO b_cargo_right_transfer_detail (
+        INSERT INTO b_po_cargo_right_transfer_detail (
             cargo_right_transfer_id, po_order_detail_id, po_order_id, po_order_code,
             goods_id, goods_code, goods_name, sku_id, sku_code, sku_name,
             unit_id, origin, order_qty, order_price, order_amount,
@@ -131,5 +131,5 @@ public interface BCargoRightTransferDetailMapper extends BaseMapper<BCargoRightT
         </foreach>
         </script>
         """)
-    Integer batchInsert(@Param("detailList") List<BCargoRightTransferDetailEntity> detailList);
+    Integer batchInsert(@Param("detailList") List<BPoCargoRightTransferDetailEntity> detailList);
 }

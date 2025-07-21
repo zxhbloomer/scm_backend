@@ -18,8 +18,8 @@ import java.math.BigDecimal;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("b_cargo_right_transfer_total")
-public class BCargoRightTransferTotalEntity implements Serializable {
+@TableName("b_po_cargo_right_transfer_total")
+public class BPoCargoRightTransferTotalEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

@@ -1,10 +1,10 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.po.cargo_right_transfer;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BCargoRightTransferDetailEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BCargoRightTransferDetailVo;
-import com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer.BCargoRightTransferDetailMapper;
-import com.xinyirun.scm.core.system.service.business.po.cargo_right_transfer.IBCargoRightTransferDetailService;
+import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BPoCargoRightTransferDetailEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferDetailVo;
+import com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer.BPoCargoRightTransferDetailMapper;
+import com.xinyirun.scm.core.system.service.business.po.cargo_right_transfer.IBPoCargoRightTransferDetailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,28 +23,28 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @Service
-public class BCargoRightTransferDetailServiceImpl extends ServiceImpl<BCargoRightTransferDetailMapper, BCargoRightTransferDetailEntity>
-        implements IBCargoRightTransferDetailService {
+public class BPoCargoRightTransferDetailServiceImpl extends ServiceImpl<BPoCargoRightTransferDetailMapper, BPoCargoRightTransferDetailEntity>
+        implements IBPoCargoRightTransferDetailService {
 
     @Autowired
-    private BCargoRightTransferDetailMapper detailMapper;
+    private BPoCargoRightTransferDetailMapper detailMapper;
 
     @Override
-    public List<BCargoRightTransferDetailVo> selectByCargoRightTransferId(Integer cargoRightTransferId) {
+    public List<BPoCargoRightTransferDetailVo> selectByCargoRightTransferId(Integer cargoRightTransferId) {
         return detailMapper.selectByCargoRightTransferId(cargoRightTransferId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean saveDetails(Integer cargoRightTransferId, List<BCargoRightTransferDetailVo> detailList) {
+    public boolean saveDetails(Integer cargoRightTransferId, List<BPoCargoRightTransferDetailVo> detailList) {
         try {
             // 删除原有明细
             detailMapper.deleteByCargoRightTransferId(cargoRightTransferId);
 
             if (detailList != null && !detailList.isEmpty()) {
                 // 转换并批量插入
-                List<BCargoRightTransferDetailEntity> entities = detailList.stream().map(vo -> {
-                    BCargoRightTransferDetailEntity entity = new BCargoRightTransferDetailEntity();
+                List<BPoCargoRightTransferDetailEntity> entities = detailList.stream().map(vo -> {
+                    BPoCargoRightTransferDetailEntity entity = new BPoCargoRightTransferDetailEntity();
                     BeanUtils.copyProperties(vo, entity);
                     entity.setCargo_right_transfer_id(cargoRightTransferId);
                     return entity;
@@ -71,7 +71,7 @@ public class BCargoRightTransferDetailServiceImpl extends ServiceImpl<BCargoRigh
     }
 
     @Override
-    public List<BCargoRightTransferDetailVo> selectByGoodsId(Integer goodsId) {
+    public List<BPoCargoRightTransferDetailVo> selectByGoodsId(Integer goodsId) {
         return detailMapper.selectByGoodsId(goodsId);
     }
 }

@@ -23,7 +23,7 @@ public class BCargoRightTransferAutoCodeServiceImpl implements IAutoCodeService 
 
     @Override
     public SCodeEntity autoCode() {
-        String type = DictConstant.DICT_SYS_CODE_TYPE_B_CARGO_RIGHT_TRANSFER;
+        String type = DictConstant.DICT_SYS_CODE_TYPE_B_PO_CARGO_RIGHT_TRANSFER;
         UpdateResultAo<SCodeEntity> upd = service.createCode(type);
         if(upd.isSuccess()){
             return upd.getData();

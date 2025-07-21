@@ -24,7 +24,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
-public class BCargoRightTransferImportVo extends BaseVo implements Serializable {
+public class BPoCargoRightTransferImportVo extends BaseVo implements Serializable {
 
 
     @Serial
@@ -108,7 +108,7 @@ public class BCargoRightTransferImportVo extends BaseVo implements Serializable 
     /**
      * 货权转移明细信息
      */
-    private List<BCargoRightTransferDetailVo> detailListData;
+    private List<BPoCargoRightTransferDetailVo> detailListData;
 
     /**
      * 换页条件

@@ -28,7 +28,7 @@ import java.util.Map;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
-public class BCargoRightTransferVo implements Serializable {
+public class BPoCargoRightTransferVo implements Serializable {
 
 
     @Serial
@@ -230,17 +230,17 @@ public class BCargoRightTransferVo implements Serializable {
     /**
      * 明细列表数据
      */
-    private List<BCargoRightTransferDetailVo> detailListData;
+    private List<BPoCargoRightTransferDetailVo> detailListData;
 
     /**
      * 附件列表数据
      */
-    private List<BCargoRightTransferAttachVo> attachListData;
+    private List<BPoCargoRightTransferAttachVo> attachListData;
 
     /**
      * 汇总数据
      */
-    private BCargoRightTransferTotalVo totalData;
+    private BPoCargoRightTransferTotalVo totalData;
 
     // ========== 附件相关字段 ==========
 

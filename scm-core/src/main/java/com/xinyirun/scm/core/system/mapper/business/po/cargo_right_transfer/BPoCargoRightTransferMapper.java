@@ -3,10 +3,10 @@ package com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BCargoRightTransferEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BCargoRightTransferVo;
+import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BPoCargoRightTransferEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferVo;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
-import com.xinyirun.scm.core.system.config.mybatis.typehandlers.CargoRightTransferDetailListTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoCargoRightTransferDetailListTypeHandler;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
@@ -24,7 +24,7 @@ import java.util.List;
  * @since 2025-07-20
  */
 @Repository
-public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransferEntity> {
+public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTransferEntity> {
 
 
     /**
@@ -40,7 +40,7 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
             	tab4.name as c_name,
             	tab5.name as u_name
             FROM
-            	b_cargo_right_transfer tab1
+            	b_po_cargo_right_transfer tab1
                 LEFT JOIN (select cargo_right_transfer_id,JSON_ARRAYAGG(
                 JSON_OBJECT( 'sku_code', sku_code,
                 'sku_name',sku_name,
@@ -60,8 +60,8 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
                 'batch_no', batch_no,
                 'production_date', production_date,
                 'expiry_date', expiry_date )) as detailListData
-                 from b_cargo_right_transfer_detail GROUP BY cargo_right_transfer_id) tab2 ON tab1.id = tab2.cargo_right_transfer_id
-            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_cargo_right_transfer_status' AND tab3.dict_value = tab1.status
+                 from b_po_cargo_right_transfer_detail GROUP BY cargo_right_transfer_id) tab2 ON tab1.id = tab2.cargo_right_transfer_id
+            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_po_cargo_right_transfer_status' AND tab3.dict_value = tab1.status
               LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
               LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
               LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
@@ -87,8 +87,8 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
                       select
                         1
                       from
-                        b_cargo_right_transfer_detail subt1
-                        INNER JOIN b_cargo_right_transfer subt2 ON subt1.cargo_right_transfer_id = subt2.id
+                        b_po_cargo_right_transfer_detail subt1
+                        INNER JOIN b_po_cargo_right_transfer subt2 ON subt1.cargo_right_transfer_id = subt2.id
                       where (subt1.sku_name like CONCAT('%', #{p1.goods_name}, '%') or subt1.goods_name like CONCAT('%', #{p1.goods_name}, '%'))
                         and subt2.id = tab1.id
                      )
@@ -98,9 +98,9 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
             </script>
             """)
     @Results({
-            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = CargoRightTransferDetailListTypeHandler.class),
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoCargoRightTransferDetailListTypeHandler.class),
     })
-    IPage<BCargoRightTransferVo> selectPage(Page<BCargoRightTransferVo> page, @Param("p1") BCargoRightTransferVo searchCondition);
+    IPage<BPoCargoRightTransferVo> selectPage(Page<BPoCargoRightTransferVo> page, @Param("p1") BPoCargoRightTransferVo searchCondition);
 
 
     /**
@@ -115,7 +115,7 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
             	tab4.name as c_name,
             	tab5.name as u_name
             FROM
-            	b_cargo_right_transfer tab1
+            	b_po_cargo_right_transfer tab1
                 LEFT JOIN (select cargo_right_transfer_id,JSON_ARRAYAGG(
                 JSON_OBJECT( 'sku_code', sku_code,
                 'sku_name',sku_name,
@@ -135,8 +135,8 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
                 'batch_no', batch_no,
                 'production_date', production_date,
                 'expiry_date', expiry_date )) as detailListData
-                 from b_cargo_right_transfer_detail GROUP BY cargo_right_transfer_id) tab2 ON tab1.id = tab2.cargo_right_transfer_id
-            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_cargo_right_transfer_status' AND tab3.dict_value = tab1.status
+                 from b_po_cargo_right_transfer_detail GROUP BY cargo_right_transfer_id) tab2 ON tab1.id = tab2.cargo_right_transfer_id
+            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_po_cargo_right_transfer_status' AND tab3.dict_value = tab1.status
               LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
               LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
               LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
@@ -147,9 +147,9 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
             	tab2.cargo_right_transfer_id
             """)
     @Results({
-            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = CargoRightTransferDetailListTypeHandler.class),
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoCargoRightTransferDetailListTypeHandler.class),
     })
-    BCargoRightTransferVo selectId(@Param("p1") Integer id);
+    BPoCargoRightTransferVo selectId(@Param("p1") Integer id);
 
     /**
      * ����o
@@ -160,8 +160,8 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
             	SUM( IFNULL(tab2.amount_total,0) )  as  total_amount,
             	SUM( IFNULL(tab2.qty_total,0) )  as  total_qty
             FROM
-            	b_cargo_right_transfer tab1
-            	LEFT JOIN b_cargo_right_transfer_total tab2  ON tab1.id = tab2.cargo_right_transfer_id
+            	b_po_cargo_right_transfer tab1
+            	LEFT JOIN b_po_cargo_right_transfer_total tab2  ON tab1.id = tab2.cargo_right_transfer_id
             	WHERE TRUE
             	 AND tab1.is_del = false
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
@@ -183,8 +183,8 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
                       select
                         1
                       from
-                        b_cargo_right_transfer_detail subt1
-                        INNER JOIN b_cargo_right_transfer subt2 ON subt1.cargo_right_transfer_id = subt2.id
+                        b_po_cargo_right_transfer_detail subt1
+                        INNER JOIN b_po_cargo_right_transfer subt2 ON subt1.cargo_right_transfer_id = subt2.id
                       where (subt1.sku_name like CONCAT('%', #{p1.goods_name}, '%') or subt1.goods_name like CONCAT('%', #{p1.goods_name}, '%'))
                         and subt2.id = tab1.id
                      )
@@ -192,17 +192,17 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
 
               </script>
             """)
-    BCargoRightTransferVo querySum(@Param("p1") BCargoRightTransferVo searchCondition);
+    BPoCargoRightTransferVo querySum(@Param("p1") BPoCargoRightTransferVo searchCondition);
 
     /**
      * !��/&�
      */
     @Select("""
-            select * from b_cargo_right_transfer where true and is_del = false
+            select * from b_po_cargo_right_transfer where true and is_del = false
             and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
             and code = #{p1.code}
             """)
-    List<BCargoRightTransferVo> validateDuplicateCode(@Param("p1") BCargoRightTransferVo bean);
+    List<BPoCargoRightTransferVo> validateDuplicateCode(@Param("p1") BPoCargoRightTransferVo bean);
 
 
     /**
@@ -221,7 +221,7 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
             	tab6.code as po_order_code,
             	tab7.contract_code as po_contract_code
             FROM
-            	b_cargo_right_transfer tab1
+            	b_po_cargo_right_transfer tab1
                 LEFT JOIN (select cargo_right_transfer_id,JSON_ARRAYAGG(
                 JSON_OBJECT( 'sku_code', sku_code,
                 'sku_name',sku_name,
@@ -241,8 +241,8 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
                 'batch_no', batch_no,
                 'production_date', production_date,
                 'expiry_date', expiry_date )) as detailListData
-                 from b_cargo_right_transfer_detail GROUP BY cargo_right_transfer_id) tab2 ON tab1.id = tab2.cargo_right_transfer_id
-            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_cargo_right_transfer_status' AND tab3.dict_value = tab1.status
+                 from b_po_cargo_right_transfer_detail GROUP BY cargo_right_transfer_id) tab2 ON tab1.id = tab2.cargo_right_transfer_id
+            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_po_cargo_right_transfer_status' AND tab3.dict_value = tab1.status
               LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
               LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
               LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
@@ -264,34 +264,34 @@ public interface BCargoRightTransferMapper extends BaseMapper<BCargoRightTransfe
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
     })
-    List<BCargoRightTransferVo> selectExportList(@Param("p1") BCargoRightTransferVo param);
+    List<BPoCargoRightTransferVo> selectExportList(@Param("p1") BPoCargoRightTransferVo param);
 
     @Select("""
             SELECT
             	count(tab1.id)
             FROM
-            	b_cargo_right_transfer tab1
+            	b_po_cargo_right_transfer tab1
             	WHERE TRUE
             	 AND tab1.is_del = false
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
             	 AND (tab1.code like CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or #{p1.code} = '')
             """)
-    Long selectExportCount(@Param("p1") BCargoRightTransferVo param);
+    Long selectExportCount(@Param("p1") BPoCargoRightTransferVo param);
 
     /**
      * 9ncode��'Cl�
      */
     @Select("""
-            select * from b_cargo_right_transfer where code = #{code} and is_del = false
+            select * from b_po_cargo_right_transfer where code = #{code} and is_del = false
             """)
-    BCargoRightTransferVo selectByCode(@Param("code") String code);
+    BPoCargoRightTransferVo selectByCode(@Param("code") String code);
 
     /**
      * 9npo_order_code��'Cl�
      */
     @Select("""
-            select * from b_cargo_right_transfer where po_order_code = #{po_order_code} and is_del = false
+            select * from b_po_cargo_right_transfer where po_order_code = #{po_order_code} and is_del = false
             """)
-    BCargoRightTransferVo selectByPoOrderCode(@Param("po_order_code") String po_order_code);
+    BPoCargoRightTransferVo selectByPoOrderCode(@Param("po_order_code") String po_order_code);
 
 }

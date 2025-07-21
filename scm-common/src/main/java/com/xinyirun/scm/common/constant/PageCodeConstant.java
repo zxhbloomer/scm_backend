@@ -54,6 +54,6 @@ public class PageCodeConstant {
     public static final String PAGE_B_PROJECT = "P00000170";
 
     /**货权转移 */
-    public static final String PAGE_B_CARGO_RIGHT_TRANSFER = "P00000185";
+    public static final String PAGE_B_PO_CARGO_RIGHT_TRANSFER = "P00000185";
 
 }

@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.service.business.po.cargo_right_transfer;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BCargoRightTransferDetailEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BCargoRightTransferDetailVo;
+import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BPoCargoRightTransferDetailEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferDetailVo;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.List;
  * @author system
  * @since 2025-01-19
  */
-public interface IBCargoRightTransferDetailService extends IService<BCargoRightTransferDetailEntity> {
+public interface IBPoCargoRightTransferDetailService extends IService<BPoCargoRightTransferDetailEntity> {
 
     /**
      * 根据货权转移主表ID查询明细列表
@@ -21,7 +21,7 @@ public interface IBCargoRightTransferDetailService extends IService<BCargoRightT
      * @param cargoRightTransferId 货权转移主表ID
      * @return 明细列表
      */
-    List<BCargoRightTransferDetailVo> selectByCargoRightTransferId(Integer cargoRightTransferId);
+    List<BPoCargoRightTransferDetailVo> selectByCargoRightTransferId(Integer cargoRightTransferId);
 
     /**
      * 保存明细数据
@@ -30,7 +30,7 @@ public interface IBCargoRightTransferDetailService extends IService<BCargoRightT
      * @param detailList           明细列表
      * @return 保存结果
      */
-    boolean saveDetails(Integer cargoRightTransferId, List<BCargoRightTransferDetailVo> detailList);
+    boolean saveDetails(Integer cargoRightTransferId, List<BPoCargoRightTransferDetailVo> detailList);
 
     /**
      * 根据采购订单明细ID查询已转移数量
@@ -54,6 +54,6 @@ public interface IBCargoRightTransferDetailService extends IService<BCargoRightT
      * @param goodsId 商品ID
      * @return 明细列表
      */
-    List<BCargoRightTransferDetailVo> selectByGoodsId(Integer goodsId);
+    List<BPoCargoRightTransferDetailVo> selectByGoodsId(Integer goodsId);
 
 }

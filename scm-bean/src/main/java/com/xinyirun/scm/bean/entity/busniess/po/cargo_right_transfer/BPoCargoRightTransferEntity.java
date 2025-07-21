@@ -21,8 +21,8 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("b_cargo_right_transfer")
-public class BCargoRightTransferEntity implements Serializable {
+@TableName("b_po_cargo_right_transfer")
+public class BPoCargoRightTransferEntity implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1763083828674328539L;
