@@ -12,27 +12,4 @@ import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargo
  */
 public interface IBPoCargoRightTransferTotalService extends IService<BPoCargoRightTransferTotalEntity> {
 
-    /**
-     * 根据货权转移主表ID查询汇总数据
-     *
-     * @param cargoRightTransferId 货权转移主表ID
-     * @return 汇总数据
-     */
-    BPoCargoRightTransferTotalVo selectByCargoRightTransferId(Integer cargoRightTransferId);
-
-    /**
-     * 刷新汇总数据
-     *
-     * @param cargoRightTransferId 货权转移主表ID
-     * @return 刷新结果
-     */
-    boolean refreshTotal(Integer cargoRightTransferId);
-
-    /**
-     * 删除汇总数据
-     *
-     * @param cargoRightTransferId 货权转移主表ID
-     * @return 删除结果
-     */
-    boolean deleteByCargoRightTransferId(Integer cargoRightTransferId);
 }

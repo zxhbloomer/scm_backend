@@ -88,4 +88,10 @@ public class TotalDataRecalculateBo implements Serializable {
      */
     private Integer poRefundId;
     private List<Integer> poRefundIds;
+
+    /**
+     * 货权转移id
+     */
+    private Integer cargoRightTransferId;
+    private List<Integer> cargoRightTransferIds;
 }

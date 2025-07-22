@@ -43,21 +43,6 @@ public interface BPoCargoRightTransferDetailMapper extends BaseMapper<BPoCargoRi
     List<BPoCargoRightTransferDetailVo> selectByCargoRightTransferId(@Param("cargoRightTransferId") Integer cargoRightTransferId);
 
     /**
-     * 根据采购订单明细ID查询已转移数量
-     *
-     * @param poOrderDetailId 采购订单明细ID
-     * @return 已转移数量
-     */
-    @Select("""
-        SELECT COALESCE(SUM(transfer_qty), 0) 
-        FROM b_po_cargo_right_transfer_detail tab1
-        INNER JOIN b_po_cargo_right_transfer tab2 ON tab2.id = tab1.cargo_right_transfer_id
-        WHERE tab1.po_order_detail_id = #{poOrderDetailId} 
-        AND tab2.status IN ('2', '6')
-        """)
-    BigDecimal sumTransferredQtyByPoOrderDetailId(@Param("poOrderDetailId") Integer poOrderDetailId);
-
-    /**
      * 根据SKU ID统计转移数量
      *
      * @param skuId SKU ID

@@ -21,35 +21,4 @@ import org.springframework.transaction.annotation.Transactional;
 public class BPoCargoRightTransferTotalServiceImpl extends ServiceImpl<BPoCargoRightTransferTotalMapper, BPoCargoRightTransferTotalEntity>
         implements IBPoCargoRightTransferTotalService {
 
-    @Autowired
-    private BPoCargoRightTransferTotalMapper totalMapper;
-
-    @Override
-    public BPoCargoRightTransferTotalVo selectByCargoRightTransferId(Integer cargoRightTransferId) {
-        return totalMapper.selectByCargoRightTransferId(cargoRightTransferId);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean refreshTotal(Integer cargoRightTransferId) {
-        try {
-            totalMapper.refreshTotal(cargoRightTransferId);
-            return true;
-        } catch (Exception e) {
-            log.error("刷新汇总数据失败", e);
-            return false;
-        }
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean deleteByCargoRightTransferId(Integer cargoRightTransferId) {
-        try {
-            totalMapper.deleteByCargoRightTransferId(cargoRightTransferId);
-            return true;
-        } catch (Exception e) {
-            log.error("删除汇总数据失败", e);
-            return false;
-        }
-    }
 }

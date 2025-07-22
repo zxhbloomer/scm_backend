@@ -61,11 +61,6 @@ public class BPoCargoRightTransferDetailServiceImpl extends ServiceImpl<BPoCargo
     }
 
     @Override
-    public BigDecimal getTransferredQtyByPoOrderDetailId(Integer poOrderDetailId) {
-        return detailMapper.sumTransferredQtyByPoOrderDetailId(poOrderDetailId);
-    }
-
-    @Override
     public BigDecimal getTransferredQtyBySkuId(Integer skuId) {
         return detailMapper.sumTransferredQtyBySkuId(skuId);
     }

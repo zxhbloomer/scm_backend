@@ -134,6 +134,26 @@ public class BPoCargoRightTransferVo implements Serializable {
     private BigDecimal total_amount;
 
     /**
+     * 未处理中数量
+     */
+    private BigDecimal cargo_right_untransfer_qty_total;
+
+    /**
+     * 处理中数量
+     */
+    private BigDecimal cargo_right_transfering_qty_total;
+
+    /**
+     * 已处理移数量
+     */
+    private BigDecimal cargo_right_transferred_qty_total;
+
+    /**
+     * 已作废数量
+     */
+    private BigDecimal cargo_right_transfer_cancel_qty_total;
+
+    /**
      * 下一审批人
      */
     private String next_approve_name;

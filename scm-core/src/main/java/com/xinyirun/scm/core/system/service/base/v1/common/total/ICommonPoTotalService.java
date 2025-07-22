@@ -113,4 +113,18 @@ public interface ICommonPoTotalService extends IService<BPoContractTotalEntity> 
      */
     Boolean reCalculateAllTotalDataByPoRefundCode(String code);
 
+    /**
+     * 按货权转移id重新生成Total数据
+     * @param id 货权转移id
+     * @return 是否操作成功
+     */
+    Boolean reCalculateAllTotalDataByCargoRightTransferId(Integer id);
+
+    /**
+     * 按货权转移编号重新生成Total数据
+     * @param code 货权转移编号
+     * @return 是否操作成功
+     */
+    Boolean reCalculateAllTotalDataByCargoRightTransferCode(String code);
+
 }

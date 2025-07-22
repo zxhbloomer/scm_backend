@@ -45,6 +45,10 @@ import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
 import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.po.ap.IBApTotalService;
 import com.xinyirun.scm.core.system.service.business.po.aprefund.IBApReFundTotalService;
+import com.xinyirun.scm.core.system.service.business.po.cargo_right_transfer.IBPoCargoRightTransferTotalService;
+import com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer.BPoCargoRightTransferMapper;
+import com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer.BPoCargoRightTransferTotalMapper;
+import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferVo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -136,6 +140,15 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     @Autowired
     private BPoSettlementTotalMapper bPoSettlementTotalMapper;
 
+    @Autowired
+    private BPoCargoRightTransferMapper bPoCargoRightTransferMapper;
+
+    @Autowired
+    private BPoCargoRightTransferTotalMapper bPoCargoRightTransferTotalMapper;
+
+    @Autowired
+    private IBPoCargoRightTransferTotalService bPoCargoRightTransferTotalService;
+
     /**
      * 重新计算所有的财务数据，最终得到合同ID集合 contractIdSet
      * @param bo 查询条件
@@ -183,6 +196,8 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
              */
             // ===================== 处理应付退款total数据（b_ap_refund_total） - 优先处理 =====================
             processApRefundTotalDataByContractId(contractId);
+            // ===================== 处理货权转秛total数据（b_po_cargo_right_transfer_total） =====================
+            processCargoRightTransferTotalDataByContractId(contractId);
             // ===================== 处理采购结算汇总数据（b_po_settlement_total） =====================
             processPoSettlementTotalDataByContractId(contractId);
             // ===================== 处理入库方面的total数据（b_in_plan_detail、b_in_plan_total） =====================
@@ -658,6 +673,8 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             return getContractIdsFromPoSettlement(bo);
         } else if (bo.getPoRefundId() != null || (bo.getPoRefundIds() != null && !bo.getPoRefundIds().isEmpty())) {
             return getContractIdsFromPoRefund(bo);
+        } else if (bo.getCargoRightTransferId() != null || (bo.getCargoRightTransferIds() != null && !bo.getCargoRightTransferIds().isEmpty())) {
+            return getContractIdsFromCargoRightTransfer(bo);
         }
         return new ArrayList<>();
     }
@@ -963,6 +980,45 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     }
 
     /**
+     * 货权转移分支，获取合同ID集合
+     */
+    private List<Integer> getContractIdsFromCargoRightTransfer(TotalDataRecalculateBo bo) {
+        LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
+        
+        if (bo.getCargoRightTransferId() != null) {
+            try {
+                // 通过货权转移ID查询货权转移信息，获取合同ID
+                BPoCargoRightTransferVo cargoTransferVo = bPoCargoRightTransferMapper.selectId(bo.getCargoRightTransferId());
+                if (cargoTransferVo != null && cargoTransferVo.getPo_contract_id() != null) {
+                    contractIdSet.add(cargoTransferVo.getPo_contract_id());
+                }
+                log.debug("处理货权转移ID: {} 的合同关联查询，找到合同ID: {}", bo.getCargoRightTransferId(), 
+                    cargoTransferVo != null ? cargoTransferVo.getPo_contract_id() : "null");
+            } catch (Exception e) {
+                log.warn("查询货权转移ID {} 的合同关联时出现异常: {}", bo.getCargoRightTransferId(), e.getMessage());
+            }
+        }
+        
+        if (bo.getCargoRightTransferIds() != null && !bo.getCargoRightTransferIds().isEmpty()) {
+            for (Integer cargoTransferId : bo.getCargoRightTransferIds()) {
+                try {
+                    BPoCargoRightTransferVo cargoTransferVo = bPoCargoRightTransferMapper.selectId(cargoTransferId);
+                    if (cargoTransferVo != null && cargoTransferVo.getPo_contract_id() != null) {
+                        contractIdSet.add(cargoTransferVo.getPo_contract_id());
+                    }
+                    log.debug("处理货权转移ID: {} 的合同关联查询，找到合同ID: {}", cargoTransferId, 
+                        cargoTransferVo != null ? cargoTransferVo.getPo_contract_id() : "null");
+                } catch (Exception e) {
+                    log.warn("查询货权转移ID {} 的合同关联时出现异常: {}", cargoTransferId, e.getMessage());
+                }
+            }
+        }
+        
+        log.debug("getContractIdsFromCargoRightTransfer 最终合同ID集合: {}", contractIdSet);
+        return new ArrayList<>(contractIdSet);
+    }
+
+    /**
      * 按采购合同编号重新生成Total数据
      * @param code 采购合同编号
      * @return 是否操作成功
@@ -1108,6 +1164,14 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             // 2.2.4 更新退款数据（从b_ap_refund_total汇总到采购订单总计表）
             int refundResult = bPoOrderTotalMapper.updateRefundAmountTotalData(poOrderIdSet);
             log.debug("更新退款数据完成，影响行数: {}", refundResult);
+            
+            // 2.2.4.5 更新货权转移明细汇总数据（从b_po_cargo_right_transfer_detail汇总到采购订单明细汇总表）
+            int cargoRightTransferDetailResult = poOrderDetailTotalMapper.updateCargoRightTransferTotalByPoOrderIds(poOrderIdSet);
+            log.debug("更新货权转移明细汇总数据完成，影响行数: {}", cargoRightTransferDetailResult);
+            
+            // 2.2.5 更新货权转移数据（从b_po_cargo_right_transfer_total汇总到采购订单总计表）
+            int cargoRightTransferResult = bPoOrderTotalMapper.updateCargoRightTransferTotalData(poOrderIdSet);
+            log.debug("更新货权转移数据完成，影响行数: {}", cargoRightTransferResult);
 
             // 2.3 更新采购订单明细汇总数据 (b_po_order_detail_total)
             log.debug("开始更新采购订单明细汇总数据");
@@ -1127,9 +1191,9 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             // 2.4 回写订单级别汇总数据 (b_po_order_total)
             log.debug("开始回写订单级别汇总数据");
             
-            // 2.4.1 从明细汇总表回写入库计划相关数据到订单总计表
-            int inPlanResult = bPoOrderTotalMapper.updateInPlanTotalData(poOrderIdSet);
-            log.debug("回写入库计划数据完成，影响行数: {}", inPlanResult);
+            // 2.4.1 从明细汇总表回写入库计划和货权转移相关数据到订单总计表
+            int inPlanResult = bPoOrderTotalMapper.updateInboundAndCargoRightTransferTotalData(poOrderIdSet);
+            log.debug("回写入库计划和货权转移数据完成，影响行数: {}", inPlanResult);
             
             // 2.4.2 更新订单级别待结算数量汇总
             int orderSettleResult = bPoOrderTotalMapper.updateSettleCanQtyTotal(poOrderIdSet);
@@ -1352,6 +1416,75 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         } catch (Exception e) {
             log.error("根据退款编号 {} 处理Total数据重计算时出现异常: {}", code, e.getMessage(), e);
             return false;
+        }
+    }
+
+    /**
+     * 按货权转移id重新生成Total数据
+     * @param id 货权转移id
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByCargoRightTransferId(Integer id) {
+        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        bo.setCargoRightTransferId(id);
+        return reCalculateAllTotalData(bo);
+    }
+
+    /**
+     * 按货权转移编号重新生成Total数据
+     * @param code 货权转移编号
+     * @return 是否操作成功
+     */
+    @Override
+    public Boolean reCalculateAllTotalDataByCargoRightTransferCode(String code) {
+        if (code == null || code.isBlank()) {
+            throw new BusinessException("货权转移编号不能为空");
+        }
+        
+        Integer cargoRightTransferId = bPoCargoRightTransferMapper.selectIdByCode(code);
+        if (cargoRightTransferId == null) {
+            throw new BusinessException("未找到货权转移记录，编号：" + code);
+        }
+        
+        return reCalculateAllTotalDataByCargoRightTransferId(cargoRightTransferId);
+    }
+
+    /**
+     * 处理货权转移总计数据（b_po_cargo_right_transfer_total）
+     * 步骤：
+     * 1. 根据合同ID查询货权转移ID集合
+     * 2. 插入缺失的Total记录（处理历史数据）
+     * 3. 批量更新货权转移总计数据，从明细表同步数据
+     *
+     * @param contractId 合同ID
+     */
+    private void processCargoRightTransferTotalDataByContractId(Integer contractId) {
+        // 1. 通过contractId获取相关的货权转移ID集合
+        LinkedHashSet<Integer> cargoRightTransferIdSet = new LinkedHashSet<>();
+        List<Integer> cargoTransferIdList = bPoCargoRightTransferTotalMapper.selectCargoRightTransferIdsByContractId(contractId);
+        if (cargoTransferIdList != null && !cargoTransferIdList.isEmpty()) {
+            cargoRightTransferIdSet.addAll(cargoTransferIdList);
+        }
+
+        // 2. 如果有货权转移ID，先插入缺失的Total记录，再进行批量更新
+        if (!cargoRightTransferIdSet.isEmpty()) {
+            try {
+                // 2.1 插入缺失的Total记录（处理历史数据）
+                Integer insertResult = bPoCargoRightTransferTotalMapper.insertMissingCargoRightTransferTotal(cargoRightTransferIdSet);
+                if (insertResult > 0) {
+                    log.debug("插入缺失的货权转移总计数据成功，插入行数: {}, 货权转移ID集合: {}", insertResult, cargoRightTransferIdSet);
+                }
+                
+                // 2.2 批量更新货权转移总计数据，从明细表同步数据
+                int updateResult = bPoCargoRightTransferTotalMapper.batchUpdateCargoRightTransferTotalFromDetail(cargoRightTransferIdSet);
+                log.debug("批量更新货权转移总计数据成功，影响行数: {}, 货权转移ID集合: {}", updateResult, cargoRightTransferIdSet);
+            } catch (Exception e) {
+                log.error("处理货权转移总计数据失败，货权转移ID集合: {}, 错误信息: {}", cargoRightTransferIdSet, e.getMessage(), e);
+                throw new BusinessException("处理货权转移总计数据失败: " + e.getMessage());
+            }
+        } else {
+            log.debug("合同ID {} 下未找到货权转移数据", contractId);
         }
     }
 

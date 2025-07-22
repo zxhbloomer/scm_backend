@@ -176,7 +176,7 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         // 4. 设置返回ID
         BPoCargoRightTransferVo.setId(bCargoRightTransferEntity.getId());
         // 5. 更新货权转移财务数据
-//        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
 
         return InsertResultUtil.OK(BPoCargoRightTransferVo);
     }
@@ -392,7 +392,7 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         // 3. 更新附件信息
         updateAttach(BPoCargoRightTransferVo, bCargoRightTransferEntity);
         // 4. 更新货权转移财务数据
-//        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
 
         return UpdateResultUtil.OK(1);
     }
@@ -797,6 +797,9 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 审批通过后重新计算总计数据
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(searchCondition.getId());
+
         log.debug("====》货权转移[{}]审批流程通过,更新结束《====", searchCondition.getId());
 
         return UpdateResultUtil.OK(i);
@@ -818,7 +821,7 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
-
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
         log.debug("====》货权转移[{}]审批流程拒绝,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(i);
 
@@ -840,6 +843,8 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
+
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
 
         log.debug("====》货权转移[{}]审批流程撤销,更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(i);
@@ -992,7 +997,7 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
-
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
         log.debug("====》货权转移[{}]审批流程通过,更新结束《====",vo.getId());
         return UpdateResultUtil.OK(i);
     }
@@ -1002,9 +1007,9 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BPoCargoRightTransferVo searchCondition) {
-        log.debug("====》货权转移[{}]作废审批流程拒绝，更新开始《====",searchCondition.getId());
-        BPoCargoRightTransferEntity bCargoRightTransferEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BPoCargoRightTransferVo vo) {
+        log.debug("====》货权转移[{}]作废审批流程拒绝，更新开始《====",vo.getId());
+        BPoCargoRightTransferEntity bCargoRightTransferEntity = mapper.selectById(vo.getId());
 
         bCargoRightTransferEntity.setStatus(DictConstant.DICT_B_PO_CARGO_RIGHT_TRANSFER_STATUS_TWO);
         bCargoRightTransferEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -1013,13 +1018,15 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
+
         // 删除对应作废理由
         MCancelVo mCancelVo = new MCancelVo();
         mCancelVo.setSerial_id(bCargoRightTransferEntity.getId());
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_PO_CARGO_RIGHT_TRANSFER);
         mCancelService.delete(mCancelVo);
 
-        log.debug("====》货权转移[{}]作废审批流程拒绝,更新结束《====",searchCondition.getId());
+        log.debug("====》货权转移[{}]作废审批流程拒绝,更新结束《====",vo.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -1038,6 +1045,8 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
+
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
 
         // 删除对应作废理由
         MCancelVo mCancelVo = new MCancelVo();
@@ -1106,6 +1115,8 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         mCancelVo.setRemark(searchCondition.getCancel_reason());
         mCancelService.insert(mCancelVo);
 
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(bCargoRightTransferEntity.getId());
+
         // 3.启动审批流程
         startFlowProcess(searchCondition,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_CARGO_RIGHT_TRANSFER_CANCEL);
 
@@ -1131,6 +1142,9 @@ public class BPoCargoRightTransferServiceImpl extends BaseServiceImpl<BPoCargoRi
         if (update == 0) {
             throw new UpdateErrorException("修改失败");
         }
+
+        // 完成后重新计算总计数据
+        iCommonPoTotalService.reCalculateAllTotalDataByCargoRightTransferId(searchCondition.getId());
 
         return UpdateResultUtil.OK(update);
     }

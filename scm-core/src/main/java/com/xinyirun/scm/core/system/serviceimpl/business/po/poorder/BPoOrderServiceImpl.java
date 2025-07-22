@@ -808,6 +808,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
+
         log.debug("====》采购订单[{}]审批流程通过,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
     }
@@ -827,6 +830,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
+
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
 
         log.debug("====》采购订单[{}]审批流程拒绝,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
@@ -850,6 +856,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
+        
         log.debug("====》采购订单[{}]审批流程撤销,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
 
@@ -920,6 +929,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
+
         log.debug("====》采购订单[{}]审批流程通过,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
     }
@@ -945,6 +957,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         mCancelVo.setSerial_id(bPoOrderEntity.getId());
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_PO_ORDER);
         mCancelService.delete(mCancelVo);
+
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
 
         log.debug("====》采购订单[{}]作废审批流程拒绝,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
@@ -972,6 +987,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_PO_ORDER);
         mCancelService.delete(mCancelVo);
 
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
+        
         log.debug("====》采购订单[{}]作废审批流程撤销,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
 
@@ -1035,6 +1053,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         // 2.启动审批流程
         startFlowProcess(vo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_ORDER_CANCEL);
 
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(vo.getId());
+
         return UpdateResultUtil.OK(insert);
     }
 
@@ -1050,6 +1071,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
+
+        // 重新计算采购订单财务汇总数据
+        iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(searchCondition.getId());
 
         return null;
     }

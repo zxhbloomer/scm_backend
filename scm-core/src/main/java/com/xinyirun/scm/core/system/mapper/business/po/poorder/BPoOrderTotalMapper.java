@@ -155,7 +155,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
     int updatePaidTotalData(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
 
     /**
-     * 更新入库计划相关统计数据
+     * 更新入库计划和货权转移相关统计数据
      * 根据采购订单ID汇总明细总计表数据更新订单总计表
      * @param po_order_id 采购订单ID集合
      * @return 更新记录数
@@ -179,7 +179,11 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                 SUM(IFNULL(t2.inbound_cancel_weight_total, 0)) AS sum_inbound_cancel_weight_total,
                 SUM(IFNULL(t2.inbound_cancel_volume_total, 0)) AS sum_inbound_cancel_volume_total,
                 SUM(IFNULL(t2.inventory_in_total, 0)) AS sum_inventory_in_total,
-                SUM(IFNULL(t2.inventory_in_plan_total, 0)) AS sum_inventory_in_plan_total
+                SUM(IFNULL(t2.inventory_in_plan_total, 0)) AS sum_inventory_in_plan_total,
+                SUM(IFNULL(t2.cargo_right_untransfer_qty_total, 0)) AS sum_cargo_right_untransfer_qty_total,
+                SUM(IFNULL(t2.cargo_right_transfering_qty_total, 0)) AS sum_cargo_right_transfering_qty_total,
+                SUM(IFNULL(t2.cargo_right_transferred_qty_total, 0)) AS sum_cargo_right_transferred_qty_total,
+                SUM(IFNULL(t2.cargo_right_transfer_cancel_qty_total, 0)) AS sum_cargo_right_transfer_cancel_qty_total
             FROM b_po_order_detail_total t2
             WHERE t2.po_order_id IN
             <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
@@ -201,10 +205,14 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
             t1.inbound_cancel_weight_total = t3.sum_inbound_cancel_weight_total,
             t1.inbound_cancel_volume_total = t3.sum_inbound_cancel_volume_total,
             t1.inventory_in_total = t3.sum_inventory_in_total,
-            t1.inventory_in_plan_total = t3.sum_inventory_in_plan_total
+            t1.inventory_in_plan_total = t3.sum_inventory_in_plan_total,
+            t1.cargo_right_untransfer_qty_total = t3.sum_cargo_right_untransfer_qty_total,
+            t1.cargo_right_transfering_qty_total = t3.sum_cargo_right_transfering_qty_total,
+            t1.cargo_right_transferred_qty_total = t3.sum_cargo_right_transferred_qty_total,
+            t1.cargo_right_transfer_cancel_qty_total = t3.sum_cargo_right_transfer_cancel_qty_total
         </script>
         """)
-    int updateInPlanTotalData(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
+    int updateInboundAndCargoRightTransferTotalData(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
 
     /**
      * 更新可结算数量汇总
@@ -215,7 +223,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
     @Update("""
             <script>
                 UPDATE b_po_order_total
-                SET settle_can_qty_total = IFNULL(inventory_in_total, 0) - IFNULL(settle_planned_qty_total, 0)
+                SET settle_can_qty_total =  IFNULL(cargo_right_transferred_qty_total,0) + IFNULL(inventory_in_total, 0) - IFNULL(settle_planned_qty_total, 0)
                 WHERE po_order_id IN
                 <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                     #{id}
@@ -261,5 +269,41 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
             </script>
             """)
     int updateRefundAmountTotalData(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
+
+    /**
+     * 更新货权转移数据
+     * 根据采购订单ID从明细总计表汇总货权转移相关的统计数据
+     * @param po_order_id 采购订单ID集合
+     * @return 更新记录数
+     */
+    @Update("""
+            <script>
+                UPDATE b_po_order_total t1
+                LEFT JOIN (
+                    SELECT
+                        po_order_id,
+                        SUM(IFNULL(cargo_right_untransfer_qty_total, 0)) AS total_untransfer_qty,
+                        SUM(IFNULL(cargo_right_transfering_qty_total, 0)) AS total_transfering_qty,
+                        SUM(IFNULL(cargo_right_transferred_qty_total, 0)) AS total_transferred_qty,
+                        SUM(IFNULL(cargo_right_transfer_cancel_qty_total, 0)) AS total_transfer_cancel_qty
+                    FROM b_po_order_detail_total
+                    WHERE po_order_id IN
+                    <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
+                        #{id}
+                    </foreach>
+                    GROUP BY po_order_id
+                ) t2 ON t1.po_order_id = t2.po_order_id
+                SET
+                    t1.cargo_right_untransfer_qty_total = COALESCE(t2.total_untransfer_qty, 0),
+                    t1.cargo_right_transfering_qty_total = COALESCE(t2.total_transfering_qty, 0),
+                    t1.cargo_right_transferred_qty_total = COALESCE(t2.total_transferred_qty, 0),
+                    t1.cargo_right_transfer_cancel_qty_total = COALESCE(t2.total_transfer_cancel_qty, 0)
+                WHERE t1.po_order_id IN
+                <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
+                    #{id}
+                </foreach>
+            </script>
+            """)
+    int updateCargoRightTransferTotalData(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
 
 }

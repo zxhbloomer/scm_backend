@@ -194,11 +194,6 @@ public class PoOrderVo extends BaseVo implements Serializable {
     private BigDecimal inventory_in_total_sum;
 
     /**
-     * 待结算数量合计
-     */
-    private BigDecimal settle_can_qty_total_sum;
-
-    /**
      * 总税额
      */
     private BigDecimal tax_amount_sum;

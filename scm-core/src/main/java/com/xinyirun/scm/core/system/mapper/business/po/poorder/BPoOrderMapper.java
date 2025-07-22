@@ -54,7 +54,8 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.qty_total,
             		tab16.advance_refund_amount_total,
             		tab16.advance_paid_total,
-            		tab16.advance_cancelpay_total
+            		tab16.advance_cancelpay_total,
+            		tab16.settle_can_qty_total
             	FROM
             		b_po_order tab1
             	    LEFT JOIN (select t1.po_order_id,JSON_ARRAYAGG(
@@ -177,7 +178,9 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.qty_total,
             		tab16.advance_refund_amount_total,
             		tab16.advance_paid_total,
-            		tab16.advance_cancelpay_total
+            		tab16.advance_cancelpay_total,
+            		tab16.settle_can_qty_total
+            		
             	FROM
             		b_po_order tab1
             	    LEFT JOIN (select t1.po_order_id,JSON_ARRAYAGG(
@@ -302,7 +305,8 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.qty_total,
             		tab16.advance_refund_amount_total,
             		tab16.advance_paid_total,
-            		tab16.advance_cancelpay_total
+            		tab16.advance_cancelpay_total,
+            		tab16.settle_can_qty_total
             	FROM
             		b_po_order tab1
             	    LEFT JOIN (select t1.po_order_id,JSON_ARRAYAGG(
@@ -358,7 +362,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		SUM( IFNULL(tab2.advance_pay_total,0) )  as  advance_pay_total,
             		SUM( IFNULL(tab2.settle_amount_total,0) )  as  settle_amount_total,
             		SUM( IFNULL(tab3.inventory_in_total,0) )  as  inventory_in_total_sum,
-            		SUM( IFNULL(tab3.settle_can_qty_total,0) )  as  settle_can_qty_total_sum,
+            		SUM( IFNULL(tab3.settle_can_qty_total,0) )  as  settle_can_qty_total,
             		SUM( IFNULL(tab2.advance_refund_amount_total,0) )  as  advance_refund_amount_total,
             		SUM( IFNULL(tab2.advance_paid_total,0) )  as  advance_paid_total,
             		SUM( IFNULL(tab2.advance_cancelpay_total,0) )  as  advance_cancelpay_total
@@ -428,7 +432,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
         		SUM( IFNULL(tab2.advance_pay_total,0) )  as  advance_pay_total,
         		SUM( IFNULL(tab2.settle_amount_total,0) )  as  settle_amount_total,
         		SUM( IFNULL(tab3.inventory_in_total,0) )  as  inventory_in_total_sum,
-        		SUM( IFNULL(tab3.settle_can_qty_total,0) )  as  settle_can_qty_total_sum,
+        		SUM( IFNULL(tab3.settle_can_qty_total,0) )  as  settle_can_qty_total,
         		SUM( IFNULL(tab2.advance_refund_amount_total,0) )  as  advance_refund_amount_total,
         		SUM( IFNULL(tab2.advance_paid_total,0) )  as  advance_paid_total,
         		SUM( IFNULL(tab2.advance_cancelpay_total,0) )  as  advance_cancelpay_total
@@ -632,7 +636,8 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.advance_unpay_total,
             		tab16.advance_refund_amount_total,
             		tab16.advance_paid_total,
-            		tab16.advance_cancelpay_total
+            		tab16.advance_cancelpay_total,
+            		tab16.settle_can_qty_total
             	FROM
             		b_po_order tab1
             	    LEFT JOIN (select t1.po_order_id,JSON_ARRAYAGG(
@@ -738,7 +743,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		SUM( IFNULL(tab2.tax_amount_total,0) )  as  tax_amount_total,
             		SUM( IFNULL(tab2.advance_amount_total,0) )  as  advance_amount_total,
             		SUM( IFNULL(tab4.inventory_in_total,0) )  as  inventory_in_total_sum,
-            		SUM( IFNULL(tab4.settle_can_qty_total,0) )  as  settle_can_qty_total_sum,
+            		SUM( IFNULL(tab4.settle_can_qty_total,0) )  as  settle_can_qty_total,
             		SUM( IFNULL(tab2.advance_refund_amount_total,0) )  as  advance_refund_amount_total,
             		SUM( IFNULL(tab2.advance_paid_total,0) )  as  advance_paid_total,
             		SUM( IFNULL(tab2.advance_cancelpay_total,0) )  as  advance_cancelpay_total
@@ -836,7 +841,8 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.advance_cancelpay_total,
             		tab16.settle_amount_total,
             		tab16.settle_can_qty_total,
-            		tab16.advance_unpay_total
+            		tab16.advance_unpay_total,
+            		tab16.settle_can_qty_total
             	FROM
             		b_po_order tab1
             	    LEFT JOIN (select t1.po_order_id,JSON_ARRAYAGG(
@@ -941,7 +947,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		SUM( IFNULL(tab2.tax_amount_total,0) )  as  tax_amount_total,
             		SUM( IFNULL(tab2.advance_amount_total,0) )  as  advance_amount_total,
             		SUM( IFNULL(tab4.inventory_in_total,0) )  as  inventory_in_total_sum,
-            		SUM( IFNULL(tab4.settle_can_qty_total,0) )  as  settle_can_qty_total_sum,
+            		SUM( IFNULL(tab4.settle_can_qty_total,0) )  as  settle_can_qty_total,
             		SUM( IFNULL(tab2.advance_refund_amount_total,0) )  as  advance_refund_amount_total,
             		SUM( IFNULL(tab2.advance_paid_total,0) )  as  advance_paid_total,
             		SUM( IFNULL(tab2.advance_cancelpay_total,0) )  as  advance_cancelpay_total

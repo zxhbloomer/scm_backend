@@ -179,6 +179,30 @@ public class BPoOrderDetailTotalEntity implements Serializable {
     private BigDecimal inbound_cancel_volume_total;
 
     /**
+     * 货权转移-未处理中数量
+     */
+    @TableField("cargo_right_untransfer_qty_total")
+    private BigDecimal cargo_right_untransfer_qty_total;
+
+    /**
+     * 货权转移-处理中数量
+     */
+    @TableField("cargo_right_transfering_qty_total")
+    private BigDecimal cargo_right_transfering_qty_total;
+
+    /**
+     * 货权转移-已处理移数量
+     */
+    @TableField("cargo_right_transferred_qty_total")
+    private BigDecimal cargo_right_transferred_qty_total;
+
+    /**
+     * 货权转移-已作废数量
+     */
+    @TableField("cargo_right_transfer_cancel_qty_total")
+    private BigDecimal cargo_right_transfer_cancel_qty_total;
+
+    /**
      * 创建人id
      */
     @TableField(value="c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

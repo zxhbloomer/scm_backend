@@ -157,11 +157,17 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
     @Select("""
             <script>
             SELECT
-            	SUM( IFNULL(tab2.amount_total,0) )  as  total_amount,
-            	SUM( IFNULL(tab2.qty_total,0) )  as  total_qty
+            	SUM( IFNULL(tab2.cargo_right_untransfer_qty_total,0) )  as  cargo_right_untransfer_qty_total,
+            	SUM( IFNULL(tab2.cargo_right_transfering_qty_total,0) )  as  cargo_right_transfering_qty_total,
+            	SUM( IFNULL(tab2.cargo_right_transferred_qty_total,0) )  as  cargo_right_transferred_qty_total,
+            	SUM( IFNULL(tab2.cargo_right_transfer_cancel_qty_total,0) )  as  cargo_right_transfer_cancel_qty_total
             FROM
             	b_po_cargo_right_transfer tab1
             	LEFT JOIN b_po_cargo_right_transfer_total tab2  ON tab1.id = tab2.cargo_right_transfer_id
+              LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
+              LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
+              LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
+              LEFT JOIN b_po_contract tab7 ON tab7.id = tab1.po_contract_id
             	WHERE TRUE
             	 AND tab1.is_del = false
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
@@ -293,5 +299,13 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
             select * from b_po_cargo_right_transfer where po_order_code = #{po_order_code} and is_del = false
             """)
     BPoCargoRightTransferVo selectByPoOrderCode(@Param("po_order_code") String po_order_code);
+
+    /**
+     * 根据编号查询货权转移ID
+     */
+    @Select("""
+            select id from b_po_cargo_right_transfer where code = #{code} and is_del = false
+            """)
+    Integer selectIdByCode(@Param("code") String code);
 
 }

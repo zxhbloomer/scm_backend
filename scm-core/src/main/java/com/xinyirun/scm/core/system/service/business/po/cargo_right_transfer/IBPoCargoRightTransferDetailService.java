@@ -33,14 +33,6 @@ public interface IBPoCargoRightTransferDetailService extends IService<BPoCargoRi
     boolean saveDetails(Integer cargoRightTransferId, List<BPoCargoRightTransferDetailVo> detailList);
 
     /**
-     * 根据采购订单明细ID查询已转移数量
-     *
-     * @param poOrderDetailId 采购订单明细ID
-     * @return 已转移数量
-     */
-    BigDecimal getTransferredQtyByPoOrderDetailId(Integer poOrderDetailId);
-
-    /**
      * 根据SKU ID统计转移数量
      *
      * @param skuId SKU ID

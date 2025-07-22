@@ -33,24 +33,29 @@ public class BPoCargoRightTransferTotalVo implements Serializable {
     private Integer cargo_right_transfer_id;
 
     /**
-     * 转移总数量
+     * 采购订单ID
      */
-    private BigDecimal qty_total;
+    private Integer po_order_id;
 
     /**
-     * 转移总重量
+     * 货权转移-未处理中数量
      */
-    private BigDecimal weight_total;
+    private BigDecimal cargo_right_untransfer_qty_total;
 
     /**
-     * 转移总体积
+     * 货权转移-处理中数量
      */
-    private BigDecimal volume_total;
+    private BigDecimal cargo_right_transfering_qty_total;
 
     /**
-     * 转移总金额
+     * 货权转移-已处理移数量
      */
-    private BigDecimal amount_total;
+    private BigDecimal cargo_right_transferred_qty_total;
+
+    /**
+     * 货权转移-已作废数量
+     */
+    private BigDecimal cargo_right_transfer_cancel_qty_total;
 
     // ========== 扩展字段 ==========
 

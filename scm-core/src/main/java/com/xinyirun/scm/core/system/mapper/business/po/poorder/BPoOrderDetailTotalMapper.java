@@ -82,7 +82,7 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
     @Update("""
         <script>
         UPDATE b_po_order_detail_total
-        SET settle_can_qty_total = IFNULL(inventory_in_total, 0) - IFNULL(settle_planned_qty_total, 0)
+        SET settle_can_qty_total = IFNULL(cargo_right_transferred_qty_total,0) + IFNULL(inventory_in_total, 0) - IFNULL(settle_planned_qty_total, 0)
         WHERE po_order_id IN
         <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
             #{id}
@@ -112,4 +112,43 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
         </script>
         """)
     int insertMissingRecords(@Param("po_order_id") LinkedHashSet<Integer> po_order_id);
+
+    /**
+     * 更新货权转移汇总数据
+     * 根据货权转移明细数据按状态分类更新采购订单明细汇总表的货权转移相关字段
+     * 状态说明：0,3,4=未转移；1=转移中；2,6=已转移；5=转移取消
+     * 
+     * @param po_order_id 采购订单ID集合
+     * @return 更新记录数
+     */
+    @Update("""
+        <script>
+        UPDATE b_po_order_detail_total t1
+        JOIN (
+            SELECT
+                t2.po_order_detail_id,
+                SUM(CASE WHEN t3.status IN (0,3,4) THEN IFNULL(t2.transfer_qty, 0) ELSE 0 END) AS sum_untransfer_qty,
+                SUM(CASE WHEN t3.status = 1 THEN IFNULL(t2.transfer_qty, 0) ELSE 0 END) AS sum_transfering_qty,
+                SUM(CASE WHEN t3.status IN (2,6) THEN IFNULL(t2.transfer_qty, 0) ELSE 0 END) AS sum_transferred_qty,
+                SUM(CASE WHEN t3.status = 5 THEN IFNULL(t2.transfer_qty, 0) ELSE 0 END) AS sum_cancel_qty
+            FROM b_po_cargo_right_transfer_detail t2
+            JOIN b_po_cargo_right_transfer t3 ON t2.cargo_right_transfer_id = t3.id
+            WHERE t2.po_order_detail_id IN (
+                SELECT pod.id 
+                FROM b_po_order_detail pod 
+                WHERE pod.po_order_id IN 
+                <foreach collection="po_order_id" item="id" open="(" close=")" separator=",">
+                    #{id}
+                </foreach>
+            )
+            GROUP BY t2.po_order_detail_id
+        ) t3 ON t1.po_order_detail_id = t3.po_order_detail_id
+        SET
+            t1.cargo_right_untransfer_qty_total = t3.sum_untransfer_qty,
+            t1.cargo_right_transfering_qty_total = t3.sum_transfering_qty,
+            t1.cargo_right_transferred_qty_total = t3.sum_transferred_qty,
+            t1.cargo_right_transfer_cancel_qty_total = t3.sum_cancel_qty
+        </script>
+        """)
+    int updateCargoRightTransferTotalByPoOrderIds(@Param("po_order_id") LinkedHashSet<Integer> poOrderId);
 } 
