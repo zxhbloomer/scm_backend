@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.log.sys;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.sync.BSyncStatusEntity;
+import com.xinyirun.scm.bean.entity.business.sync.BSyncStatusEntity;
 import com.xinyirun.scm.bean.entity.log.sys.SLogSysEntity;
 import com.xinyirun.scm.bean.system.vo.business.sync.BSyncStatusVo;
 import com.xinyirun.scm.core.system.mapper.log.sys.SLogSyncStatusMapper;

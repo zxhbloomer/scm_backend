@@ -207,98 +207,81 @@ public class DictConstant {
     public static final String DICT_B_CHECK_RESULT_STATUS_CANCEL = "2";
 
     /**
-     * 出库计划状态：0制单,1已提交,2审核通过,3审核驳回,4作废,5完成,6过期 7中止,8审核中
+     * 出库计划状态：0-待审批，1-审批中，2-执行中，3-驳回，4-作废审批中，5-已作废，6-已完成
      */
     public static final String DICT_B_OUT_PLAN_STATUS = "b_out_plan_status";
-    public static final String DICT_B_OUT_PLAN_STATUS_SAVED = "0";
-    public static final String DICT_B_OUT_PLAN_STATUS_SUBMITTED = "1";
-    public static final String DICT_B_OUT_PLAN_STATUS_PASSED = "2";
-    public static final String DICT_B_OUT_PLAN_STATUS_RETURN = "3";
-    public static final String DICT_B_OUT_PLAN_STATUS_CANCEL = "4";
-    public static final String DICT_B_OUT_PLAN_STATUS_FINISH = "5";
-    public static final String DICT_B_OUT_PLAN_STATUS_EXPIRES = "6";
-    public static final String DICT_B_OUT_PLAN_STATUS_DISCONTINUE = "7";
-    public static final String DICT_B_OUT_PLAN_STATUS_CANCEL_BEING_AUDITED = "8";
+    public static final String DICT_B_OUT_PLAN_STATUS_ZERO = "0";   // 待审批
+    public static final String DICT_B_OUT_PLAN_STATUS_ONE = "1";    // 审批中
+    public static final String DICT_B_OUT_PLAN_STATUS_TWO = "2";    // 执行中
+    public static final String DICT_B_OUT_PLAN_STATUS_THREE = "3";  // 驳回
+    public static final String DICT_B_OUT_PLAN_STATUS_FOUR = "4";   // 作废审批中
+    public static final String DICT_B_OUT_PLAN_STATUS_FIVE = "5";   // 已作废
+    public static final String DICT_B_OUT_PLAN_STATUS_SIX = "6";    // 已完成
 
     /**
-     * 出库单状态：0制单,1已提交,2审核通过,3审核驳回,4作废,5完成,6过期,7审核中
+     * 状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
      */
     public static final String DICT_B_OUT_STATUS = "b_out_status";
-    public static final String DICT_B_OUT_STATUS_SAVED = "0";
-    public static final String DICT_B_OUT_STATUS_SUBMITTED = "1";
-    public static final String DICT_B_OUT_STATUS_PASSED = "2";
-    public static final String DICT_B_OUT_STATUS_RETURN = "3";
-    public static final String DICT_B_OUT_STATUS_CANCEL = "4";
-    public static final String DICT_B_OUT_STATUS_FINISH = "5";
-    public static final String DICT_B_OUT_STATUS_EXPIRES = "6";
-    public static final String DICT_B_OUT_STATUS_CANCEL_BEING_AUDITED = "7";
+    public static final String DICT_B_OUT_STATUS_ZERO = "0";
+    public static final String DICT_B_OUT_STATUS_ONE = "1";
+    public static final String DICT_B_OUT_STATUS_TWO = "2";
+    public static final String DICT_B_OUT_STATUS_THREE = "3";
+    public static final String DICT_B_OUT_STATUS_FOUR = "4";
+    public static final String DICT_B_OUT_STATUS_FIVE = "5";
+    public static final String DICT_B_OUT_STATUS_SIX = "6";
 
     /**
-     * 入库单类型：0采购入库,1调拨入库,2退货入库,5生产入库类型,3.监管入库, 4.普通入库 7监管退货
+     * 入库单类型：0采购入库,1调拨入库,2退货入库,3监管入库,4普通入库,5生产入库,6提货入库 ,7监管退货
      */
     public static final String DICT_B_IN_TYPE = "b_in_type";
-    public static final String DICT_B_IN_TYPE_CG = "0";
-    public static final String DICT_B_IN_TYPE_DB = "1";
-    public static final String DICT_B_IN_TYPE_TH = "2";
-    public static final String DICT_B_IN_TYPE_SC = "5";
-    public static final String DICT_B_IN_TYPE_JG = "3";
-    public static final String DICT_B_IN_TYPE_PT = "4";
-
-    public static final String DICT_B_IN_TYPE_JG_TH = "7";
+    public static final String DICT_B_IN_TYPE_ZERO = "0";
+    public static final String DICT_B_IN_TYPE_ONE = "1";
+    public static final String DICT_B_IN_TYPE_TWO = "2";
+    public static final String DICT_B_IN_TYPE_THREE = "3";
+    public static final String DICT_B_IN_TYPE_FOUR = "4";
+    public static final String DICT_B_IN_TYPE_FIVE = "5";
+    public static final String DICT_B_IN_TYPE_SIX = "6";
+    public static final String DICT_B_IN_TYPE_SEVEN = "7";
 
 
     /**
      * 入库计划类型：0采购入库,1调拨入库,2退货入库,3监管入库,4普通入库,5生产入库,6提货入库 ,7监管退货
      */
     public static final String DICT_B_IN_PLAN_TYPE = "b_in_plan_type";
-    public static final String DICT_B_IN_PLAN_TYPE_CG = "0";
-    public static final String DICT_B_IN_PLAN_TYPE_DB = "1";
-    public static final String DICT_B_IN_PLAN_TYPE_TH = "2";
-    public static final String DICT_B_IN_PLAN_TYPE_JG = "3";
-    public static final String DICT_B_IN_PLAN_TYPE_PT = "4";
-    public static final String DICT_B_IN_PLAN_TYPE_SC = "5";
-    public static final String DICT_B_IN_PLAN_TYPE_TIH = "6";
-    public static final String DICT_B_IN_PLAN_TYPE_JG_TH = "7";
+    public static final String DICT_B_IN_PLAN_TYPE_ZERO = "0";
+    public static final String DICT_B_IN_PLAN_TYPE_ONE = "1";
+    public static final String DICT_B_IN_PLAN_TYPE_TWO = "2";
+    public static final String DICT_B_IN_PLAN_TYPE_THREE = "3";
+    public static final String DICT_B_IN_PLAN_TYPE_FOUR = "4";
+    public static final String DICT_B_IN_PLAN_TYPE_FIVE = "5";
+    public static final String DICT_B_IN_PLAN_TYPE_SIX = "6";
+    public static final String DICT_B_IN_PLAN_TYPE_SEVEN = "7";
 
     /**
-     * 入库计划类型v2：0采购入库,1调拨入库,2退货入库,3监管入库,4普通入库,5生产入库,6提货入库 ,7监管退货
-     */
-    public static final String DICT_B_IN_PLAN_V2_TYPE = "b_in_plan_v2_type";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_CG = "0";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_DB = "1";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_TH = "2";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_JG = "3";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_PT = "4";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_SC = "5";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_TIH = "6";
-    public static final String DICT_B_IN_PLAN_V2_TYPE_JG_TH = "7";
-
-    /**
-     * 出库计划类型：0调拨出库,1库存调整,2盘亏出库,3监管出库,4普通出库,5销售出库,6退货出库,7领料出库8直采出库
+     * 出库计划类型：0销售出库,1调拨出库,2退货出库,3监管出库,4普通出库,5生产出库,6提货出库 ,7监管退货
      */
     public static final String DICT_B_OUT_PLAN_TYPE = "b_out_plan_type";
-    public static final String DICT_B_OUT_PLAN_TYPE_DB = "0";
-    public static final String DICT_B_OUT_PLAN_TYPE_KC = "1";
-    public static final String DICT_B_OUT_PLAN_TYPE_PK = "2";
-    public static final String DICT_B_OUT_PLAN_TYPE_JG = "3";
-    public static final String DICT_B_OUT_PLAN_TYPE_PT = "4";
-    public static final String DICT_B_OUT_PLAN_TYPE_XS = "5";
-    public static final String DICT_B_OUT_PLAN_TYPE_TH = "6";
-    public static final String DICT_B_OUT_PLAN_TYPE_LL = "7";
-    public static final String DICT_B_OUT_PLAN_TYPE_ZC = "8";
+    public static final String DICT_B_OUT_PLAN_TYPE_ZERO = "0";  // 销售出库
+    public static final String DICT_B_OUT_PLAN_TYPE_ONE = "1";
+    public static final String DICT_B_OUT_PLAN_TYPE_TWO = "2";
+    public static final String DICT_B_OUT_PLAN_TYPE_THREE = "3";
+    public static final String DICT_B_OUT_PLAN_TYPE_FOUR = "4";
+    public static final String DICT_B_OUT_PLAN_TYPE_FIVE = "5";
+    public static final String DICT_B_OUT_PLAN_TYPE_SIX = "6";
+    public static final String DICT_B_OUT_PLAN_TYPE_SEVEN = "7";
 
     /**
-     * 出库单类型：0调拨出库,1库存调整,2盘亏出库,3监管出库,4普通出库,5销售出库,6退货出库,7领料出库
+     * 出库单类型：0销售出库,1调拨出库,2退货出库,3监管出库,4普通出库,5生产出库,6提货出库 ,7监管退货
      */
-    public static final String DICT_B_OUT_TYPE = "b_out_plan_type";
-    public static final String DICT_B_OUT_TYPE_DB = "0";
-    public static final String DICT_B_OUT_TYPE_KC = "1";
-    public static final String DICT_B_OUT_TYPE_PK = "2";
-    public static final String DICT_B_OUT_TYPE_JG = "3";
-    public static final String DICT_B_OUT_TYPE_PT = "4";
-    public static final String DICT_B_OUT_TYPE_XS = "5";
-    public static final String DICT_B_OUT_TYPE_TH = "6";
-    public static final String DICT_B_OUT_TYPE_LL = "7";
+    public static final String DICT_B_OUT_TYPE = "b_out_type";
+    public static final String DICT_B_OUT_TYPE_ZERO = "0";
+    public static final String DICT_B_OUT_TYPE_ONE = "1";
+    public static final String DICT_B_OUT_TYPE_TWO = "2";
+    public static final String DICT_B_OUT_TYPE_THREE = "3";
+    public static final String DICT_B_OUT_TYPE_FOUR = "4";
+    public static final String DICT_B_OUT_TYPE_FIVE = "5";
+    public static final String DICT_B_OUT_TYPE_SIX = "6";
+    public static final String DICT_B_OUT_TYPE_SEVEN = "7";
 
     /**
      * 入库单单据类型:0供应链业务 1代理业务 2直销业务 3废钢业务
@@ -809,8 +792,14 @@ public class DictConstant {
     /** 货权转移编号 */
     public static final String DICT_SYS_CODE_TYPE_B_PO_CARGO_RIGHT_TRANSFER = "b_po_cargo_right_transfer";
 
+    /** 销售货权转移编号 */
+    public static final String DICT_SYS_CODE_TYPE_B_SO_CARGO_RIGHT_TRANSFER = "b_so_cargo_right_transfer";
+
     /** 采购结算 */
     public static final String DICT_SYS_CODE_TYPE_B_PO_SETTLEMENT  = "b_po_settlement";
+
+    /** 销售结算 */
+    public static final String DICT_SYS_CODE_TYPE_B_SO_SETTLEMENT  = "b_so_settlement";
 
     /** 销售合同编号 */
     public static final String DICT_SYS_CODE_TYPE_B_SO_CONTRACT  = "b_so_contract";
@@ -854,6 +843,36 @@ public class DictConstant {
 
     /** 应付退款明细表 */
     public static final String DICT_SYS_CODE_TYPE_B_AP_REFUND_DETAIL  = "b_ap_refund_detail";
+
+    /** 应收账款管理表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR  = "b_ar";
+
+    /** 收款单管理表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_RECEIVE  = "b_ar_receive";
+
+    /** 收款单明细表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_RECEIVE_DETAIL  = "b_ar_receive_detail";
+
+    /** 应收账款关联单据表-源单-预收款 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_SOURCE_ADVANCE  = "b_ar_source_advance";
+
+    /** 应收账款明细表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_DETAIL  = "b_ar_detail";
+
+    /** 应收退款管理表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_REFUND  = "b_ar_refund";
+
+    /** 退款收款单管理表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_REFUND_PAY  = "b_ar_refund_pay";
+
+    /** 应收退款收款单管理表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_REFUND_RECEIVE  = "b_ar_refund_receive";
+
+    /** 退款应收账款关联单据表-源单-预收款 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_REFUND_SOURCE_ADVANCE  = "b_ar_refund_source_advance";
+
+    /** 应收退款明细表 */
+    public static final String DICT_SYS_CODE_TYPE_B_AR_REFUND_DETAIL  = "b_ar_refund_detail";
 
     /** 退货单信息状态 1=审核通过 2=作废*/
     public static final String DICT_B_RETURN_RELATION_STATUS = "b_return_relation_status";
@@ -1358,6 +1377,18 @@ public class DictConstant {
     public static final String DICT_B_PO_CARGO_RIGHT_TRANSFER_STATUS_SIX = "6";
 
     /**
+     * 销售货权转移 审批状态 0-待审批 1-审批中 2-已审批 3-驳回 4-作废审批中 5-已作废 6-已完成
+     */
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS = "b_so_cargo_right_transfer_status";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_ZERO = "0";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_ONE = "1";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_TWO = "2";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_THREE = "3";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_FOUR = "4";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_FIVE = "5";
+    public static final String DICT_B_SO_CARGO_RIGHT_TRANSFER_STATUS_SIX = "6";
+
+    /**
      *  税率：6、17、13、9
      */
     public static final String DICT_S_TAX_TYPE = "s_tax_type";
@@ -1368,7 +1399,7 @@ public class DictConstant {
 
 
     /**
-     * 销售合同 审批状态 0-待审批 1-审批中 2-审批通过 3-驳回  4-作废审批中 5-已作废
+     * 销售合同 审批状态 0-待审批 1-审批中 2-审批通过 3-驳回  4-作废审批中 5-已作废 6-已完成
      */
     public static final String DICT_B_SO_CONTRACT_STATUS = "b_so_contract_status";
     public static final String DICT_B_SO_CONTRACT_STATUS_ZERO = "0";
@@ -1378,6 +1409,7 @@ public class DictConstant {
 
     public static final String DICT_B_SO_CONTRACT_STATUS_FOUR = "4";
     public static final String DICT_B_SO_CONTRACT_STATUS_FIVE = "5";
+    public static final String DICT_B_SO_CONTRACT_STATUS_SIX = "6";
 
     /**
      * 销售合同类型：0：标准合同；1：框架合同
@@ -1479,6 +1511,7 @@ public class DictConstant {
     public static final String DICT_B_SO_ORDER_STATUS_THREE = "3";
     public static final String DICT_B_SO_ORDER_STATUS_FOUR = "4";
     public static final String DICT_B_SO_ORDER_STATUS_FIVE = "5";
+    public static final String DICT_B_SO_ORDER_STATUS_SIX = "6";
     /**
      * 销售合同类型：0：标准合同；1：框架合同
      */
@@ -1551,6 +1584,14 @@ public class DictConstant {
     public static final String DICT_B_AP_TYPE_THREE = "3";
 
     /**
+     *  应收账款管理业务类型 1-应收、2-预收、3-其他收入
+     */
+    public static final String DICT_B_AR_TYPE = "b_ar_type";
+    public static final String DICT_B_AR_TYPE_ONE = "1";
+    public static final String DICT_B_AR_TYPE_TWO = "2";
+    public static final String DICT_B_AR_TYPE_THREE = "3";
+
+    /**
      *  应付账款管理审批状态 0-待审批 1-审批中 2-审批通过 3-驳回 4-作废审批中 5-已作废
      */
     public static final String DICT_B_AP_STATUS = "b_ap_status";
@@ -1562,6 +1603,17 @@ public class DictConstant {
     public static final String DICT_B_AP_STATUS_FIVE = "5";
 
     /**
+     *  应收账款管理审批状态 0-待审批 1-审批中 2-审批通过 3-驳回 4-作废审批中 5-已作废
+     */
+    public static final String DICT_B_AR_STATUS = "b_ar_status";
+    public static final String DICT_B_AR_STATUS_ZERO = "0";
+    public static final String DICT_B_AR_STATUS_ONE = "1";
+    public static final String DICT_B_AR_STATUS_TWO = "2";
+    public static final String DICT_B_AR_STATUS_THREE = "3";
+    public static final String DICT_B_AR_STATUS_FOUR = "4";
+    public static final String DICT_B_AR_STATUS_FIVE = "5";
+
+    /**
      *  应付账款管理付款状态 付款状态：0-未付款、1-部分付款、2-已付款、-1-中止付款
      */
     public static final String DICT_B_AP_PAY_STATUS = "b_ap_pay_status";
@@ -1569,6 +1621,15 @@ public class DictConstant {
     public static final String DICT_B_AP_PAY_STATUS_ONE = "1";
     public static final String DICT_B_AP_PAY_STATUS_TWO = "2";
     public static final String DICT_B_AP_PAY_STATUS_STOP = "-1";
+
+    /**
+     *  应收账款管理收款状态 收款状态：0-未收款、1-部分收款、2-已收款、-1-中止收款
+     */
+    public static final String DICT_B_AR_RECEIVE_STATUS = "b_ar_receive_status";
+    public static final String DICT_B_AR_RECEIVE_STATUS_ZERO = "0";
+    public static final String DICT_B_AR_RECEIVE_STATUS_ONE = "1";
+    public static final String DICT_B_AR_RECEIVE_STATUS_TWO = "2";
+    public static final String DICT_B_AR_RECEIVE_STATUS_STOP = "-1";
 
 //    /**
 //     *  付款单状态：状态（0-待付款、1已付款、2-作废、-1-中止付款）
@@ -1624,6 +1685,13 @@ public class DictConstant {
     public static final String DICT_B_AP_REFUND_TYPE_TWO = "2";
     public static final String DICT_B_AP_REFUND_TYPE_THREE = "3";
 
+    /**
+     *  应收退款管理业务类型 1-应收退款、2-预收退款、3-其他收入退款
+     */
+    public static final String DICT_B_AR_REFUND_TYPE = "b_ar_refund_type";
+    public static final String DICT_B_AR_REFUND_TYPE_ONE = "1";
+    public static final String DICT_B_AR_REFUND_TYPE_TWO = "2";
+    public static final String DICT_B_AR_REFUND_TYPE_THREE = "3";
 
     /**
      *  应付退款管理审批状态 0-待审批 1-审批中 2-审批通过 3-驳回 4-作废审批中 5-已作废
@@ -1637,12 +1705,31 @@ public class DictConstant {
     public static final String DICT_B_AP_REFUND_STATUS_FIVE = "5";
 
     /**
+     *  应收退款管理审批状态 0-待审批 1-审批中 2-审批通过 3-驳回 4-作废审批中 5-已作废
+     */
+    public static final String DICT_B_AR_REFUND_STATUS = "b_ar_refund_status";
+    public static final String DICT_B_AR_REFUND_STATUS_ZERO = "0";
+    public static final String DICT_B_AR_REFUND_STATUS_ONE = "1";
+    public static final String DICT_B_AR_REFUND_STATUS_TWO = "2";
+    public static final String DICT_B_AR_REFUND_STATUS_THREE = "3";
+    public static final String DICT_B_AR_REFUND_STATUS_FOUR = "4";
+    public static final String DICT_B_AR_REFUND_STATUS_FIVE = "5";
+
+    /**
      *  应付退款管理付款状态 付款状态：0-未退款、1-部分退款、2-已退款
      */
     public static final String DICT_B_AP_REFUND_PAY_STATUS = "b_ap_refund_pay_status";
     public static final String DICT_B_AP_REFUND_PAY_STATUS_ZERO = "0";
     public static final String DICT_B_AP_REFUND_PAY_STATUS_ONE = "1";
     public static final String DICT_B_AP_REFUND_PAY_STATUS_TWO = "2";
+
+    /**
+     *  应收退款管理收款状态 收款状态：0-待收款、1-已收款、2-作废
+     */
+    public static final String DICT_B_AR_REFUND_RECEIVE_STATUS = "b_ar_refund_receive_status";
+    public static final String DICT_B_AR_REFUND_RECEIVE_STATUS_ZERO = "0";
+    public static final String DICT_B_AR_REFUND_RECEIVE_STATUS_ONE = "1";
+    public static final String DICT_B_AR_REFUND_RECEIVE_STATUS_TWO = "2";
 
     /**
      * 采购结算类型：0-采购结算
@@ -1676,4 +1763,37 @@ public class DictConstant {
     public static final String DICT_B_PO_SETTLEMENT_BILL_TYPE = "b_po_settlement_bill_type";
     public static final String DICT_B_PO_SETTLEMENT_BILL_TYPE_ONE = "1";
     public static final String DICT_B_PO_SETTLEMENT_BILL_TYPE_TWO = "2";
+
+    /**
+     * 销售结算类型：0-销售结算
+     */
+    public static final String DICT_B_SO_SETTLEMENT_TYPE = "b_so_settlement_type";
+    public static final String DICT_B_SO_SETTLEMENT_TYPE_ZERO = "0";
+
+    /**
+     * 销售结算审批状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
+     */
+    public static final String DICT_B_SO_SETTLEMENT_STATUS = "b_so_settlement_status";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_ZERO = "0";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_ONE = "1";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_TWO = "2";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_THREE = "3";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_FOUR = "4";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_FIVE = "5";
+    public static final String DICT_B_SO_SETTLEMENT_STATUS_SIX = "6";
+
+    /**
+     * 销售结算结算方式：1-先款后货；2-先货后款；3-货到付款
+     */
+    public static final String DICT_B_SO_SETTLEMENT_SETTLE_TYPE = "b_so_settlement_settle_type";
+    public static final String DICT_B_SO_SETTLEMENT_SETTLE_TYPE_ONE = "1";
+    public static final String DICT_B_SO_SETTLEMENT_SETTLE_TYPE_TWO = "2";
+    public static final String DICT_B_SO_SETTLEMENT_SETTLE_TYPE_THREE = "3";
+
+    /**
+     * 销售结算单据类型：1-实际发货结算；2-货转凭证结算
+     */
+    public static final String DICT_B_SO_SETTLEMENT_BILL_TYPE = "b_so_settlement_bill_type";
+    public static final String DICT_B_SO_SETTLEMENT_BILL_TYPE_ONE = "1";
+    public static final String DICT_B_SO_SETTLEMENT_BILL_TYPE_TWO = "2";
 }

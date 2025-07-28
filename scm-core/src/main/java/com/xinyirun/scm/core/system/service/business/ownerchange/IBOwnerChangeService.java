@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.ownerchange;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.ownerchange.BOwnerChangeEntity;
+import com.xinyirun.scm.bean.entity.business.ownerchange.BOwnerChangeEntity;
 import com.xinyirun.scm.bean.system.vo.business.ownerchange.BOwnerChangeVo;
 
 import java.util.List;

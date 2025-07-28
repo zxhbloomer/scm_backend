@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.warehouse.relation;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.relation.MWarehouseRelationEntity;
+import com.xinyirun.scm.bean.entity.business.wms.warehouse.relation.MWarehouseRelationEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.*;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;

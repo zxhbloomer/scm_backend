@@ -11,7 +11,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApSourceAdvanceVo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApVo;
-import com.xinyirun.scm.bean.system.vo.business.po.ap.BapExportVo;
+import com.xinyirun.scm.bean.system.vo.business.po.ap.BApExportVo;
 import com.xinyirun.scm.bean.system.vo.business.wo.BWoExportUtilVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -164,7 +164,7 @@ public class BApController {
     public void export(@RequestBody(required = false) BApVo param, HttpServletResponse response) throws IOException {
         List<BApVo> result = service.selectExportList(param);
         // 创建导出的数据列表
-        List<BapExportVo> exportDataList = new ArrayList<>();
+        List<BApExportVo> exportDataList = new ArrayList<>();
 
         for (BApVo poContractVo : result) {
             List<BApSourceAdvanceVo> productList = JSON.parseArray(poContractVo.getPoOrderListData().toString(), BApSourceAdvanceVo.class);
@@ -172,7 +172,7 @@ public class BApController {
 
             for (int i = 0; i < productList.size(); i++) {
                 BApSourceAdvanceVo poOrderDetailVo = productList.get(i);
-                BapExportVo poOrderExportVo = new BapExportVo();
+                BApExportVo poOrderExportVo = new BApExportVo();
                 BeanUtils.copyProperties(poContractVo,poOrderExportVo);
                 poOrderExportVo.setPo_contract_code(poOrderDetailVo.getPo_contract_code());
                 poOrderExportVo.setPo_order_code(poOrderDetailVo.getPo_order_code());
@@ -189,11 +189,11 @@ public class BApController {
             }
         }
 
-        List<String> strategy_1 = exportDataList.stream().map(BapExportVo::getCode).collect(Collectors.toList());
+        List<String> strategy_1 = exportDataList.stream().map(BApExportVo::getCode).collect(Collectors.toList());
         List<BWoExportUtilVo> strategy_2 = exportDataList.stream().map(item -> new BWoExportUtilVo(item.getCode(), item.getAp_id())).collect(Collectors.toList());
 
         // 写sheet的时候注册相应的自定义合并单元格策略
-        WriteSheet writeSheet = EasyExcel.writerSheet("应付账款管理").head(BapExportVo.class)
+        WriteSheet writeSheet = EasyExcel.writerSheet("应付账款管理").head(BApExportVo.class)
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 0))
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 1))
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 2))
@@ -219,7 +219,7 @@ public class BApController {
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 22))
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 23))
                 .build();
-        new EasyExcelUtil<>(BapExportVo.class).exportExcel("应付账款管理" + DateTimeUtil.getDate(), exportDataList, response, writeSheet);
+        new EasyExcelUtil<>(BApExportVo.class).exportExcel("应付账款管理" + DateTimeUtil.getDate(), exportDataList, response, writeSheet);
     }
 
 }

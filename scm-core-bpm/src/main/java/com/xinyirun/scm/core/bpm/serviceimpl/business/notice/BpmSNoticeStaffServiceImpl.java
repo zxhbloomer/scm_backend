@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.bpm.serviceimpl.business.notice;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.xinyirun.scm.bean.entity.busniess.notice.BNoticeStaffEntity;
+import com.xinyirun.scm.bean.entity.business.notice.BNoticeStaffEntity;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.core.bpm.mapper.business.notice.BBpmNoticeStaffMapper;
 import com.xinyirun.scm.core.bpm.service.business.notice.IBpmBNoticeStaffService;

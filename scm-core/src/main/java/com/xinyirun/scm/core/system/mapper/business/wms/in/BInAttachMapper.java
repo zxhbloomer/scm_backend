@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.wms.in;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.wms.in.BInAttachEntity;
+import com.xinyirun.scm.bean.entity.business.wms.in.BInAttachEntity;
 import org.springframework.stereotype.Repository;
 
 /**

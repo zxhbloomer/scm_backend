@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.service.business.todo;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
-import com.xinyirun.scm.bean.entity.busniess.todo.BTodoEntity;
+import com.xinyirun.scm.bean.entity.business.todo.BTodoEntity;
 import com.xinyirun.scm.bean.system.vo.business.todo.BTodoVo;
 import com.xinyirun.scm.bean.system.vo.business.todo.TodoCountVo;
 

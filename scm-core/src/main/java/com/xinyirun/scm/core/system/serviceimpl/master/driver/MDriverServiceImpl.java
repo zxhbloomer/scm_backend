@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.master.driver;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.entity.master.driver.MDriverEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;

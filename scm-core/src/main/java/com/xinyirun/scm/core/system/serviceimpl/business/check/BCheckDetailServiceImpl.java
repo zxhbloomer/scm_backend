@@ -1,6 +1,6 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.check;
 
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckDetailEntity;
 import com.xinyirun.scm.core.system.mapper.business.check.BCheckDetailMapper;
 import com.xinyirun.scm.core.system.service.business.check.IBCheckDetailService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;

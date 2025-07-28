@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.po.ap;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.ap.BApEntity;
+import com.xinyirun.scm.bean.entity.business.po.ap.BApEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApSourceAdvanceVo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApSourceVo;

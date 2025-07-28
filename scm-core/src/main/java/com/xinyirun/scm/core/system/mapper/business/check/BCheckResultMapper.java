@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.check;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckResultEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckResultEntity;
 import com.xinyirun.scm.bean.system.vo.business.check.BCheckResultVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;

@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.mapper.business.pp;
 
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.pp.BPpMaterialEntity;
+import com.xinyirun.scm.bean.entity.business.pp.BPpMaterialEntity;
 import com.xinyirun.scm.bean.system.vo.business.pp.BPpMaterialVo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;

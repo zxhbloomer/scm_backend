@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.system.bo.inventory.commonlogic.adjust;
 
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustDetailEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustDetailEntity;
 import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.system.bo.inventory.company.ConsignorBo;
 import com.xinyirun.scm.bean.system.bo.inventory.company.OwnerBo;

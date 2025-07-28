@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.todo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.todo.BTodoEntity;
+import com.xinyirun.scm.bean.entity.business.todo.BTodoEntity;
 import com.xinyirun.scm.bean.system.vo.business.todo.BTodoVo;
 import com.xinyirun.scm.bean.system.vo.business.todo.TodoCountVo;
 import com.xinyirun.scm.common.constant.DictConstant;

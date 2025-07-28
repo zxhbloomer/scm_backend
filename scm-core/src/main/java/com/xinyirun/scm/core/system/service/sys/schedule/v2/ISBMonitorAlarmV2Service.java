@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.sys.schedule.v2;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 
 public interface ISBMonitorAlarmV2Service extends IService<BMonitorEntity> {
 

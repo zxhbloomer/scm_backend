@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.api.vo.sync.ApiBMaterialPriceVo;
-import com.xinyirun.scm.bean.entity.busniess.price.BMaterialPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BMaterialPriceEntity;
 import com.xinyirun.scm.bean.system.vo.business.price.BMaterialPriceVo;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.system.mapper.business.price.BMaterialPriceMapper;

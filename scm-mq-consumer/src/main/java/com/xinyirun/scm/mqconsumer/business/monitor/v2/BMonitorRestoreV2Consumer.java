@@ -3,7 +3,7 @@ package com.xinyirun.scm.mqconsumer.business.monitor.v2;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorBackupEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorBackupEntity;
 import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.entity.mongo.monitor.v2.BMonitorDataMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;

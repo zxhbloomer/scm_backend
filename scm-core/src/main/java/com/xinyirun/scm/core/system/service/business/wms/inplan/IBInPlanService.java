@@ -2,13 +2,13 @@ package com.xinyirun.scm.core.system.service.business.wms.inplan;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanDetailVo;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
 

@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.po.appay;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.appay.BApPayEntity;
+import com.xinyirun.scm.bean.entity.business.po.appay.BApPayEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPayDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPayVo;
 import org.apache.ibatis.annotations.Param;

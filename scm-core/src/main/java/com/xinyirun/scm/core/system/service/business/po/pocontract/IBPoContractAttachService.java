@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.po.pocontract;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractAttachEntity;
 
 /**
  * <p>

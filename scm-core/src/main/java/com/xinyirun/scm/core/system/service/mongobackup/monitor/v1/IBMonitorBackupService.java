@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.mongobackup.monitor.v1;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorBackupEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorBackupEntity;
 import com.xinyirun.scm.bean.entity.mongo.monitor.v1.BMonitorDataMongoEntity;
 
 /**

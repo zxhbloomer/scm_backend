@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.sys.schedule.v6;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.order.BOrderInvertedEntity;
+import com.xinyirun.scm.bean.entity.business.order.BOrderInvertedEntity;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Select;
@@ -64,7 +64,7 @@ public interface SBOrderInvertedMapper extends BaseMapper<BOrderInvertedEntity> 
             +"			LEFT JOIN m_warehouse tab4 ON tab4.id = tab2.warehouse_id                                                                               "
             +"		WHERE                                                                                                                                       "
             +"		TRUE                                                                                                                                        "
-            +"			AND tab1.type = '"+DictConstant.DICT_B_IN_PLAN_TYPE_CG+"'                                                                               "
+            +"			AND tab1.type = '"+DictConstant.DICT_B_IN_PLAN_TYPE_ZERO+"'                                                                               "
             +"			AND tab2.STATUS IN ('"+DictConstant.DICT_B_IN_PLAN_STATUS_TWO +"','"+DictConstant.DICT_B_IN_PLAN_STATUS_FIVE+"')                    "
             +"			AND tab3.STATUS = '"+DictConstant.DICT_B_IN_STATUS_TWO+"'                                                                            "
             +"			AND tab4.warehouse_type = '"+DictConstant.DICT_M_WAREHOUSE_TYPE_ZX+"'                                                                   "
@@ -88,7 +88,7 @@ public interface SBOrderInvertedMapper extends BaseMapper<BOrderInvertedEntity> 
             +"		WHERE                                                                                                                                       "
             +"		TRUE                                                                                                                                        "
             +"			AND tab5.warehouse_type = '"+DictConstant.DICT_M_WAREHOUSE_TYPE_ZX+"'                                                                   "
-            +"			AND tab4.STATUS = '"+DictConstant.DICT_B_OUT_STATUS_PASSED+"'                                                                           "
+//            +"			AND tab4.STATUS = '"+DictConstant.DICT_B_OUT_STATUS_PASSED+"'                                                                           "
             +"			AND tab2.STATUS IN ( '"+DictConstant.DICT_B_MONITOR_STATUS_THREE+"',                                                                    "
             +"                '"+DictConstant.DICT_B_MONITOR_STATUS_FOUR+"', '"+DictConstant.DICT_B_MONITOR_STATUS_FIVE+"',                                     "
             +"                '"+DictConstant.DICT_B_MONITOR_STATUS_SIX+"','"+DictConstant.DICT_B_MONITOR_STATUS_SEVEN+"' )                                     "
@@ -109,9 +109,9 @@ public interface SBOrderInvertedMapper extends BaseMapper<BOrderInvertedEntity> 
             +"			LEFT JOIN m_warehouse tab4 ON tab4.id = tab1.warehouse_id                                                                               "
             +"		WHERE                                                                                                                                       "
             +"		TRUE                                                                                                                                        "
-            +"			AND tab3.type =  '"+DictConstant.DICT_B_OUT_PLAN_TYPE_JG+"'                                                                             "
-            +"			AND tab2.STATUS =  '"+DictConstant.DICT_B_OUT_PLAN_STATUS_PASSED+"'                                                                     "
-            +"			AND tab1.STATUS =  '"+DictConstant.DICT_B_OUT_STATUS_PASSED+"'                                                                          "
+//            +"			AND tab3.type =  '"+DictConstant.DICT_B_OUT_PLAN_TYPE_JG+"'                                                                             "
+//            +"			AND tab2.STATUS =  '"+DictConstant.DICT_B_OUT_PLAN_STATUS_PASSED+"'                                                                     "
+//            +"			AND tab1.STATUS =  '"+DictConstant.DICT_B_OUT_STATUS_PASSED+"'                                                                          "
             +"			AND tab4.warehouse_type = '"+DictConstant.DICT_M_WAREHOUSE_TYPE_ZX+"'                                                                   "
             +"		GROUP BY                                                                                                                                    "
             +"			tab2.order_id                                                                                                                           "

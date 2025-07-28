@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.wms.warehouse;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.common.collect.Lists;
-import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.BWarehouseGroupRelationEntity;
+import com.xinyirun.scm.bean.entity.business.wms.warehouse.BWarehouseGroupRelationEntity;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupOperationVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupTransferVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseTransferVo;

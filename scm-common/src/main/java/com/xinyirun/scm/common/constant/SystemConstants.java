@@ -596,6 +596,8 @@ public class SystemConstants  {
         /** 入库单 */
         public static final String B_IN = "b_in";
         /** 出库计划 */
+        public static final String B_OUT_PLAN = "b_out_plan";
+        /** 出库计划详情 */
         public static final String B_OUT_PLAN_DETAIL = "b_out_plan_detail";
         /** 出库单 */
         public static final String B_OUT = "b_out";
@@ -656,6 +658,9 @@ public class SystemConstants  {
         /** 采购订单编号 */
         public static final String B_PO_ORDER = "b_po_order";
 
+        /** 销售货权转移编号 */
+        public static final String B_SO_CARGO_RIGHT_TRANSFER = "b_so_cargo_right_transfer";
+
         /** 销售合同编号 */
         public static final String B_SO_CONTRACT = "b_so_contract";
 
@@ -671,11 +676,23 @@ public class SystemConstants  {
         /** 应付退款管理表 */
         public static final String B_AP_REFUND  = "b_ap_refund";
 
+        /** 应收账款管理表 */
+        public static final String B_AR = "b_ar";
+
+        /** 应收收款单 */
+        public static final String B_AR_RECEIVE = "b_ar_receive";
+
+        /** 应收退款管理表 */
+        public static final String B_AR_REFUND  = "b_ar_refund";
+
         /** 项目管理 */
         public static final String B_PROJECT = "b_project";
 
         /** 采购结算 */
         public static final String B_PO_SETTLEMENT = "b_po_settlement";
+
+        /** 销售结算 */
+        public static final String B_SO_SETTLEMENT = "b_so_settlement";
     }
 
     /**
@@ -1102,8 +1119,23 @@ public class SystemConstants  {
         // 作废 采购结算
         public static final String BPM_INSTANCE_B_PO_SETTLEMENT_CANCEL = "b_po_settlement_cancel";
 
+        // 销售结算
+        public static final String BPM_INSTANCE_B_SO_SETTLEMENT = "b_so_settlement";
+
+        // 作废 销售结算
+        public static final String BPM_INSTANCE_B_SO_SETTLEMENT_CANCEL = "b_so_settlement_cancel";
+
         // 出库计划
         public static final String BPM_INSTANCE_B_OUT_PLAN = "b_out_plan";
+
+        // 作废 出库计划
+        public static final String BPM_INSTANCE_B_OUT_PLAN_CANCEL = "b_out_plan_cancel";
+
+        // 出库单
+        public static final String BPM_INSTANCE_B_OUT = "b_out";
+
+        // 作废 出库单
+        public static final String BPM_INSTANCE_B_OUT_CANCEL = "b_out_cancel";
 
         // 企业管理
         public static final String BPM_INSTANCE_M_ENTERPRISE = "m_enterprise";
@@ -1125,6 +1157,12 @@ public class SystemConstants  {
 
         // 作废 货权转移
         public static final String BPM_INSTANCE_B_PO_CARGO_RIGHT_TRANSFER_CANCEL = "b_po_cargo_right_transfer_cancel";
+
+        // 销售货权转移
+        public static final String BPM_INSTANCE_B_SO_CARGO_RIGHT_TRANSFER = "b_so_cargo_right_transfer";
+
+        // 作废 销售货权转移
+        public static final String BPM_INSTANCE_B_SO_CARGO_RIGHT_TRANSFER_CANCEL = "b_so_cargo_right_transfer_cancel";
 
         // 销售合同
         public static final String BPM_INSTANCE_B_SO_CONTRACT = "b_so_contract";
@@ -1155,6 +1193,18 @@ public class SystemConstants  {
 
         // 退款管理作废流程
         public static final String BPM_INSTANCE_B_AP_REFUND_CANCEL = "b_ap_refund_cancel";
+
+        // 应收账款管理
+        public static final String BPM_INSTANCE_B_AR = "b_ar";
+
+        // 应收账款管理作废流程
+        public static final String BPM_INSTANCE_B_AR_CANCEL = "b_ar_cancel";
+
+        // 应收退款管理
+        public static final String BPM_INSTANCE_B_AR_REFUND = "b_ar_refund";
+
+        // 应收退款管理作废流程
+        public static final String BPM_INSTANCE_B_AR_REFUND_CANCEL = "b_ar_refund_cancel";
 
         // 入库计划
         public static final String BPM_INSTANCE_B_IN_PLAN = "b_in_plan";

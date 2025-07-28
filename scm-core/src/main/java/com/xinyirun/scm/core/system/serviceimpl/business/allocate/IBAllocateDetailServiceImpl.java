@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.allocate;
 
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;

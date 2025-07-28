@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.mongobackup.monitor.v1;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.entity.mongo.monitor.v1.BMonitorDataMongoEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;

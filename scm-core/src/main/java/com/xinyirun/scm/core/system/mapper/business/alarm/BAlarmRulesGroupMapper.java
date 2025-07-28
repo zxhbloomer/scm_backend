@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.alarm;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmRulesGroupEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmRulesGroupEntity;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffTransferVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;

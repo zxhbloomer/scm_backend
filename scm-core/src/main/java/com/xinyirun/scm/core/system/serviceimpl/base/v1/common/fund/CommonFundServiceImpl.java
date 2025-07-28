@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.base.v1.common.fund;
 
-import com.xinyirun.scm.bean.entity.busniess.fund.BFundMonitorEntity;
-import com.xinyirun.scm.bean.entity.busniess.fund.BFundUsageEntity;
+import com.xinyirun.scm.bean.entity.business.fund.BFundMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.fund.BFundUsageEntity;
 import com.xinyirun.scm.bean.entity.sys.syscode.SCodeEntity;
 import com.xinyirun.scm.bean.system.bo.fund.monit.in.FundInBo;
 import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPayDetailVo;

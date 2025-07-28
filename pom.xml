@@ -18,26 +18,26 @@
         <module>./scm-core-api</module>
         <module>./scm-core-app</module>
 <!--        <module>./scm-core-whapp</module>-->
+        <module>./scm-core-mongodb</module>
+        <module>./scm-core-bpm</module>
+        <module>./scm-core-tenant</module>
+<!--        <module>./scm-controller-whapp</module>-->
+<!--        <module>./scm-start-parent</module>-->
+<!--        <module>./scm-start-parent/scm-main-start</module>-->
         <module>./scm-controller</module>
         <module>./scm-controller-api</module>
         <module>./scm-controller-app</module>
-<!--        <module>./scm-controller-whapp</module>-->
+        <module>./scm-controller-bpm</module>
+        <module>./scm-controller-tenant</module>
+        <module>./00autoCreateCode</module>
         <module>./scm-start</module>
         <module>./scm-security</module>
         <module>./scm-redis</module>
-        <module>./00autoCreateCode</module>
         <module>./scm-quartz</module>
         <module>./scm-excel</module>
         <module>./scm-framework</module>
         <module>./scm-mq</module>
         <module>./scm-mq-consumer</module>
-        <module>./scm-core-mongodb</module>
-<!--        <module>./scm-start-parent</module>-->
-<!--        <module>./scm-start-parent/scm-main-start</module>-->
-        <module>./scm-controller-bpm</module>
-        <module>./scm-core-bpm</module>
-        <module>./scm-core-tenant</module>
-        <module>./scm-controller-tenant</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>

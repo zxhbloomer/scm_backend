@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.check;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckDetailEntity;
 
 /**
  * <p>

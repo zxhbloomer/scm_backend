@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.promeg.pinyinhelper.Pinyin;
-import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.BWarehouseGroupEntity;
+import com.xinyirun.scm.bean.entity.business.wms.warehouse.BWarehouseGroupEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;

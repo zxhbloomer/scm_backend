@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.mapper.business.wms.inplan;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanAttachEntity;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanAttachVo;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanAttachEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanAttachVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

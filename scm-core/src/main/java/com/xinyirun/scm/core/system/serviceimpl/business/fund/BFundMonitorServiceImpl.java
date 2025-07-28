@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.fund;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.fund.BFundMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.fund.BFundMonitorEntity;
 import com.xinyirun.scm.bean.system.vo.business.fund.BFundMonitorVo;
 import com.xinyirun.scm.core.system.mapper.business.fund.BFundMonitorMapper;
 import com.xinyirun.scm.core.system.service.business.fund.IBFundMonitorService;

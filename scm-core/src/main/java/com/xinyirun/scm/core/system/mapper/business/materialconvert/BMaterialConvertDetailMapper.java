@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.materialconvert;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.materialconvert.BMaterialConvertDetailEntity;
+import com.xinyirun.scm.bean.entity.business.materialconvert.BMaterialConvertDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertVo;
 import org.apache.ibatis.annotations.Param;

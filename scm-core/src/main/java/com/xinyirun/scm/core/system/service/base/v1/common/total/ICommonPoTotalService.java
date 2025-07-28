@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.service.base.v1.common.total;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractTotalEntity;
-import com.xinyirun.scm.bean.system.bo.fund.total.TotalDataRecalculateBo;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractTotalEntity;
+import com.xinyirun.scm.bean.system.bo.fund.total.PoTotalDataRecalculateBo;
 
 /**
  * <p>
@@ -20,7 +20,7 @@ public interface ICommonPoTotalService extends IService<BPoContractTotalEntity> 
      *
      * @return 是否操作成功
      */
-    Boolean reCalculateAllTotalData(TotalDataRecalculateBo bo);
+    Boolean reCalculateAllTotalData(PoTotalDataRecalculateBo bo);
 
     /**
      * 按采购合同编号重新生成Total数据

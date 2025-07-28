@@ -5,11 +5,11 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractAttachEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderEntity;
 import com.xinyirun.scm.bean.entity.master.goods.MGoodsEntity;
 import com.xinyirun.scm.bean.entity.master.goods.MGoodsSpecEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
@@ -25,11 +25,11 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractAttachVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractImportVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractAttachVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractImportVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
 import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseVo;
@@ -178,28 +178,28 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
 
     /**
      * 采购合同  新增
-     * @param poContractVo
+     * @param BPoContractVo
      */
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<PoContractVo> insert(PoContractVo poContractVo) {
+    public InsertResultAo<BPoContractVo> insert(BPoContractVo BPoContractVo) {
         // 1. 保存主表信息
-        BPoContractEntity bPoContractEntity = saveMainEntity(poContractVo);
+        BPoContractEntity bPoContractEntity = saveMainEntity(BPoContractVo);
         // 2. 保存明细信息
-        saveDetailList(poContractVo, bPoContractEntity);
+        saveDetailList(BPoContractVo, bPoContractEntity);
         // 3. 保存附件信息
-        saveAttach(poContractVo, bPoContractEntity);
+        saveAttach(BPoContractVo, bPoContractEntity);
         // 4. 设置返回ID
-        poContractVo.setId(bPoContractEntity.getId());
+        BPoContractVo.setId(bPoContractEntity.getId());
         // 5. 更新合同财务数据
         iCommonPoTotalService.reCalculateAllTotalDataByPoContractId(bPoContractEntity.getId());
 
-        return InsertResultUtil.OK(poContractVo);
+        return InsertResultUtil.OK(BPoContractVo);
     }
     /**
      * 校验新增业务规则
      */
-    private void checkInsertLogic(PoContractVo poContractVo) {
-        CheckResultAo cr = checkLogic(poContractVo, CheckResultAo.INSERT_CHECK_TYPE);
+    private void checkInsertLogic(BPoContractVo BPoContractVo) {
+        CheckResultAo cr = checkLogic(BPoContractVo, CheckResultAo.INSERT_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
@@ -207,9 +207,9 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 保存主表信息
      */
-    private BPoContractEntity saveMainEntity(PoContractVo poContractVo) {
+    private BPoContractEntity saveMainEntity(BPoContractVo BPoContractVo) {
         BPoContractEntity bPoContractEntity = new BPoContractEntity();
-        BeanUtils.copyProperties(poContractVo, bPoContractEntity);
+        BeanUtils.copyProperties(BPoContractVo, bPoContractEntity);
         bPoContractEntity.setStatus(DictConstant.DICT_B_PO_CONTRACT_STATUS_ONE);
         bPoContractEntity.setCode(bPoContractAutoCodeService.autoCode().getCode());
         bPoContractEntity.setIs_del(Boolean.FALSE);
@@ -218,7 +218,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             bPoContractEntity.setContract_code(bPoContractEntity.getCode());
         }
         bPoContractEntity.setAuto_create_order(true);
-        List<PoContractDetailVo> detailListData = poContractVo.getDetailListData();
+        List<BPoContractDetailVo> detailListData = BPoContractVo.getDetailListData();
         calculateContractAmounts(detailListData, bPoContractEntity);
         int bPurContract = mapper.insert(bPoContractEntity);
         if (bPurContract == 0){
@@ -229,9 +229,9 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 保存明细信息
      */
-    private void saveDetailList(PoContractVo poContractVo, BPoContractEntity bPoContractEntity) {
-        List<PoContractDetailVo> detailListData = poContractVo.getDetailListData();
-        for (PoContractDetailVo detailListDatum : detailListData) {
+    private void saveDetailList(BPoContractVo BPoContractVo, BPoContractEntity bPoContractEntity) {
+        List<BPoContractDetailVo> detailListData = BPoContractVo.getDetailListData();
+        for (BPoContractDetailVo detailListDatum : detailListData) {
             BPoContractDetailEntity bPoContractDetailEntity = new BPoContractDetailEntity();
             BeanUtils.copyProperties(detailListDatum, bPoContractDetailEntity);
             bPoContractDetailEntity.setPo_contract_id(bPoContractEntity.getId());
@@ -250,11 +250,11 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 保存附件信息
      */
-    private void saveAttach(PoContractVo poContractVo, BPoContractEntity bPoContractEntity) {
+    private void saveAttach(BPoContractVo BPoContractVo, BPoContractEntity bPoContractEntity) {
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bPoContractEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_CONTRACT);
-        BPoContractAttachEntity bPoContractAttachEntity = insertFile(fileEntity, poContractVo, new BPoContractAttachEntity());
+        BPoContractAttachEntity bPoContractAttachEntity = insertFile(fileEntity, BPoContractVo, new BPoContractAttachEntity());
         bPoContractAttachEntity.setPo_contract_id(bPoContractEntity.getId());
         int insert = bPoContractAttachMapper.insert(bPoContractAttachEntity);
         if (insert == 0) {
@@ -265,27 +265,27 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 采购合同  新增
      *
-     * @param poContractVo
+     * @param BPoContractVo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<PoContractVo> startInsert(PoContractVo poContractVo) {
+    public InsertResultAo<BPoContractVo> startInsert(BPoContractVo BPoContractVo) {
         // 1. 校验业务规则
-        checkInsertLogic(poContractVo);
+        checkInsertLogic(BPoContractVo);
         
         // 2.保存采购合同
-        InsertResultAo<PoContractVo> insertResultAo = insert(poContractVo);
+        InsertResultAo<BPoContractVo> insertResultAo = insert(BPoContractVo);
 
         // 3.启动审批流程
-        startFlowProcess(poContractVo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_CONTRACT);
+        startFlowProcess(BPoContractVo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_CONTRACT);
 
         return insertResultAo;
     }
 
     @Override
-    public IPage<PoContractVo> selectPage(PoContractVo searchCondition) {
+    public IPage<BPoContractVo> selectPage(BPoContractVo searchCondition) {
         // 分页条件
-        Page<PoContractVo> pageCondition = new Page<>(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BPoContractVo> pageCondition = new Page<>(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
 
@@ -298,62 +298,62 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param id
      */
     @Override
-    public PoContractVo selectById(Integer id) {
-        PoContractVo poContractVo = mapper.selectId(id);
+    public BPoContractVo selectById(Integer id) {
+        BPoContractVo BPoContractVo = mapper.selectId(id);
 
         // 其他附件信息
-        List<SFileInfoVo> doc_att_files = isFileService.selectFileInfo(poContractVo.getDoc_att_file());
-        poContractVo.setDoc_att_files(doc_att_files);
+        List<SFileInfoVo> doc_att_files = isFileService.selectFileInfo(BPoContractVo.getDoc_att_file());
+        BPoContractVo.setDoc_att_files(doc_att_files);
 
         // 查询是否存在作废记录
-        if (DictConstant.DICT_B_PO_CONTRACT_STATUS_FOUR.equals(poContractVo.getStatus()) || Objects.equals(poContractVo.getStatus(), DictConstant.DICT_B_PO_CONTRACT_STATUS_FIVE)) {
+        if (DictConstant.DICT_B_PO_CONTRACT_STATUS_FOUR.equals(BPoContractVo.getStatus()) || Objects.equals(BPoContractVo.getStatus(), DictConstant.DICT_B_PO_CONTRACT_STATUS_FIVE)) {
             MCancelVo serialIdAndType = new MCancelVo();
-            serialIdAndType.setSerial_id(poContractVo.getId());
+            serialIdAndType.setSerial_id(BPoContractVo.getId());
             serialIdAndType.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_CONTRACT);
             MCancelVo mCancelVo = mCancelService.selectBySerialIdAndType(serialIdAndType);
             // 作废理由
-            poContractVo.setCancel_reason(mCancelVo.getRemark());
+            BPoContractVo.setCancel_reason(mCancelVo.getRemark());
             // 作废附件信息
             if (mCancelVo.getFile_id() != null) {
                 List<SFileInfoVo> cancel_doc_att_files = isFileService.selectFileInfo(mCancelVo.getFile_id());
-                poContractVo.setCancel_doc_att_files(cancel_doc_att_files);
+                BPoContractVo.setCancel_doc_att_files(cancel_doc_att_files);
             }
 
             // 通过表m_staff获取作废提交人名称
             MStaffVo searchCondition = new MStaffVo();
             searchCondition.setId(mCancelVo.getC_id());
-            poContractVo.setCancel_name(mStaffMapper.selectByid(searchCondition).getName());
+            BPoContractVo.setCancel_name(mStaffMapper.selectByid(searchCondition).getName());
 
             // 作废时间
-            poContractVo.setCancel_time(mCancelVo.getC_time());
+            BPoContractVo.setCancel_time(mCancelVo.getC_time());
         }
 
         // 查询是否存在项目信息
-        if (poContractVo.getProject_code() != null) {
-            BProjectVo bProjectVo = bProjectMapper.selectCode(poContractVo.getProject_code());
+        if (BPoContractVo.getProject_code() != null) {
+            BProjectVo bProjectVo = bProjectMapper.selectCode(BPoContractVo.getProject_code());
             List<SFileInfoVo> project_doc_att_files = isFileService.selectFileInfo(bProjectVo.getDoc_att_file());
             bProjectVo.setDoc_att_files(project_doc_att_files);
-            poContractVo.setProject(bProjectVo);
+            BPoContractVo.setProject(bProjectVo);
         }
-        return poContractVo;
+        return BPoContractVo;
     }
 
     /**
      * 采购合同  新增
      *
-     * @param poContractVo
+     * @param BPoContractVo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> startUpdate(PoContractVo poContractVo) {
+    public UpdateResultAo<Integer> startUpdate(BPoContractVo BPoContractVo) {
         // 1. 校验业务规则
-        checkUpdateLogic(poContractVo);
+        checkUpdateLogic(BPoContractVo);
         
         // 2.保存采购合同
-        UpdateResultAo<Integer> insertResultAo = update(poContractVo);
+        UpdateResultAo<Integer> insertResultAo = update(BPoContractVo);
 
         // 3.启动审批流程
-        startFlowProcess(poContractVo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_CONTRACT);
+        startFlowProcess(BPoContractVo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_CONTRACT);
 
         return insertResultAo;
     }
@@ -361,16 +361,16 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 更新采购合同信息
      *
-     * @param poContractVo
+     * @param BPoContractVo
      */
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> update(PoContractVo poContractVo) {
+    public UpdateResultAo<Integer> update(BPoContractVo BPoContractVo) {
         // 1. 更新主表信息
-        BPoContractEntity bPoContractEntity = updateMainEntity(poContractVo);
+        BPoContractEntity bPoContractEntity = updateMainEntity(BPoContractVo);
         // 2. 更新明细信息
-        updateDetailList(poContractVo, bPoContractEntity);
+        updateDetailList(BPoContractVo, bPoContractEntity);
         // 3. 更新附件信息
-        updateAttach(poContractVo, bPoContractEntity);
+        updateAttach(BPoContractVo, bPoContractEntity);
         // 4. 更新合同财务数据
         iCommonPoTotalService.reCalculateAllTotalDataByPoContractId(bPoContractEntity.getId());
 
@@ -379,8 +379,8 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 校验更新业务规则
      */
-    private void checkUpdateLogic(PoContractVo poContractVo) {
-        CheckResultAo cr = checkLogic(poContractVo, CheckResultAo.UPDATE_CHECK_TYPE);
+    private void checkUpdateLogic(BPoContractVo BPoContractVo) {
+        CheckResultAo cr = checkLogic(BPoContractVo, CheckResultAo.UPDATE_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
@@ -388,11 +388,11 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 更新主表信息
      */
-    private BPoContractEntity updateMainEntity(PoContractVo poContractVo) {
-        BPoContractEntity bPoContractEntity = (BPoContractEntity) BeanUtilsSupport.copyProperties(poContractVo, BPoContractEntity.class);
+    private BPoContractEntity updateMainEntity(BPoContractVo BPoContractVo) {
+        BPoContractEntity bPoContractEntity = (BPoContractEntity) BeanUtilsSupport.copyProperties(BPoContractVo, BPoContractEntity.class);
         bPoContractEntity.setStatus(DictConstant.DICT_B_PO_CONTRACT_STATUS_ONE);
         bPoContractEntity.setBpm_process_name("更新采购合同审批");
-        List<PoContractDetailVo> detailListData = poContractVo.getDetailListData();
+        List<BPoContractDetailVo> detailListData = BPoContractVo.getDetailListData();
         calculateContractAmounts(detailListData, bPoContractEntity);
         int updCount = mapper.updateById(bPoContractEntity);
         if(updCount == 0){
@@ -403,10 +403,10 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 更新明细信息
      */
-    private void updateDetailList(PoContractVo poContractVo, BPoContractEntity bPoContractEntity) {
-        List<PoContractDetailVo> detailListData = poContractVo.getDetailListData();
+    private void updateDetailList(BPoContractVo BPoContractVo, BPoContractEntity bPoContractEntity) {
+        List<BPoContractDetailVo> detailListData = BPoContractVo.getDetailListData();
         bPoContractDetailMapper.deleteByPoContractId(bPoContractEntity.getId());
-        for (PoContractDetailVo detailListDatum : detailListData) {
+        for (BPoContractDetailVo detailListDatum : detailListData) {
             BPoContractDetailEntity bPoContractDetailEntity = new BPoContractDetailEntity();
             BeanUtils.copyProperties(detailListDatum, bPoContractDetailEntity);
             bPoContractDetailEntity.setPo_contract_id(bPoContractEntity.getId());
@@ -425,15 +425,15 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 更新附件信息
      */
-    private void updateAttach(PoContractVo poContractVo, BPoContractEntity bPoContractEntity) {
-        PoContractAttachVo poContractAttachVo = bPoContractAttachMapper.selectByPoContractId(bPoContractEntity.getId());
-        if (poContractAttachVo != null) {
+    private void updateAttach(BPoContractVo BPoContractVo, BPoContractEntity bPoContractEntity) {
+        BPoContractAttachVo BPoContractAttachVo = bPoContractAttachMapper.selectByPoContractId(bPoContractEntity.getId());
+        if (BPoContractAttachVo != null) {
             // 更新附件信息
             SFileEntity fileEntity = new SFileEntity();
             fileEntity.setSerial_id(bPoContractEntity.getId());
             fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_CONTRACT);
-            BPoContractAttachEntity bPoContractAttachEntity =(BPoContractAttachEntity) BeanUtilsSupport.copyProperties(poContractAttachVo, BPoContractAttachEntity.class);
-            insertFile(fileEntity, poContractVo, bPoContractAttachEntity);
+            BPoContractAttachEntity bPoContractAttachEntity =(BPoContractAttachEntity) BeanUtilsSupport.copyProperties(BPoContractAttachVo, BPoContractAttachEntity.class);
+            insertFile(fileEntity, BPoContractVo, bPoContractAttachEntity);
             bPoContractAttachEntity.setPo_contract_id(bPoContractEntity.getId());
             int update = bPoContractAttachMapper.updateById(bPoContractAttachEntity);
             if (update == 0) {
@@ -445,7 +445,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             fileEntity.setSerial_id(bPoContractEntity.getId());
             fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_CONTRACT);
             BPoContractAttachEntity bPoContractAttachEntity = new BPoContractAttachEntity();
-            insertFile(fileEntity, poContractVo, bPoContractAttachEntity);
+            insertFile(fileEntity, BPoContractVo, bPoContractAttachEntity);
             bPoContractAttachEntity.setPo_contract_id(bPoContractEntity.getId());
             int insert = bPoContractAttachMapper.insert(bPoContractAttachEntity);
             if (insert == 0) {
@@ -461,17 +461,17 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DeleteResultAo<Integer> delete(List<PoContractVo> searchCondition) {
-        for (PoContractVo poContractVo : searchCondition) {
+    public DeleteResultAo<Integer> delete(List<BPoContractVo> searchCondition) {
+        for (BPoContractVo BPoContractVo : searchCondition) {
 
             // 删除前check
-            CheckResultAo cr = checkLogic(poContractVo, CheckResultAo.DELETE_CHECK_TYPE);
+            CheckResultAo cr = checkLogic(BPoContractVo, CheckResultAo.DELETE_CHECK_TYPE);
             if (!cr.isSuccess()) {
                 throw new BusinessException(cr.getMessage());
             }
 
             // 逻辑删除
-            BPoContractEntity bPoContractEntity = mapper.selectById(poContractVo.getId());
+            BPoContractEntity bPoContractEntity = mapper.selectById(BPoContractVo.getId());
             bPoContractEntity.setIs_del(Boolean.TRUE);
 
             int delCount = mapper.updateById(bPoContractEntity);
@@ -488,7 +488,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param searchCondition
      */
     @Override
-    public PoContractVo querySum(PoContractVo searchCondition) {
+    public BPoContractVo querySum(BPoContractVo searchCondition) {
         return mapper.querySum(searchCondition);
     }
 
@@ -499,8 +499,8 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param checkType
      */
     @Override
-    public CheckResultAo checkLogic(PoContractVo bean, String checkType) {
-        List<PoContractVo> poContractVos = mapper.validateDuplicateContractCode(bean);
+    public CheckResultAo checkLogic(BPoContractVo bean, String checkType) {
+        List<BPoContractVo> BPoContractVos = mapper.validateDuplicateContractCode(bean);
         BPoContractEntity bPoContractEntity = null;
         switch (checkType) {
             case CheckResultAo.INSERT_CHECK_TYPE:
@@ -510,7 +510,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
 
                 Map<String, Long> collect = bean.getDetailListData()
                         .stream()
-                        .map(PoContractDetailVo::getSku_code)
+                        .map(BPoContractDetailVo::getSku_code)
                         .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
                 List<String> result = new ArrayList<>();
                 collect.forEach((k,v)->{
@@ -523,7 +523,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                 }
 
                 // 判断合同号是否重复
-                if (CollectionUtil.isNotEmpty(poContractVos)){
+                if (CollectionUtil.isNotEmpty(BPoContractVos)){
                     String err = "合同编号重复：系统检测到" + bean.getContract_code() + "已被使用，请输入其他编号继续操作";
                     return CheckResultUtil.NG(err);
                 }
@@ -550,7 +550,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
 
                 Map<String, Long> collect2 = bean.getDetailListData()
                         .stream()
-                        .map(PoContractDetailVo::getSku_code)
+                        .map(BPoContractDetailVo::getSku_code)
                         .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
                 List<String> result2 = new ArrayList<>();
                 collect2.forEach((k,v)->{
@@ -563,7 +563,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                 }
 
                 // 判断合同号是否重复
-                if (CollectionUtil.isNotEmpty(poContractVos)){
+                if (CollectionUtil.isNotEmpty(BPoContractVos)){
                     String err = "合同编号重复：系统检测到" + bean.getContract_code() + "已被使用，请输入其他编号继续操作";
                     return CheckResultUtil.NG(err);
                 }
@@ -584,7 +584,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                     return CheckResultUtil.NG(String.format("删除失败，采购合同[%s]不是待审批,驳回状态,无法删除",bPoContractEntity.getCode()));
                 }
 
-                List<PoOrderVo> delBApPayVo = bPoOrderMapper.selectByPoContractId(bean.getId());
+                List<BPoOrderVo> delBApPayVo = bPoOrderMapper.selectByPoContractId(bean.getId());
                 if (CollectionUtil.isNotEmpty(delBApPayVo)) {
                     return CheckResultUtil.NG("删除失败，存在采购订单");
                 }
@@ -608,9 +608,9 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                     return CheckResultUtil.NG(String.format("作废失败，采购合同[%s]审核中，无法作废",bPoContractEntity.getCode()));
                 }
 
-                List<PoOrderVo> cancelOrderVos = bPoOrderMapper.selectByPoContractIdNotByStatus(bean.getId(), DictConstant.DICT_B_PO_CONTRACT_STATUS_FIVE);
+                List<BPoOrderVo> cancelOrderVos = bPoOrderMapper.selectByPoContractIdNotByStatus(bean.getId(), DictConstant.DICT_B_PO_CONTRACT_STATUS_FIVE);
                 if (CollectionUtil.isNotEmpty(cancelOrderVos)){
-                    return CheckResultUtil.NG(String.format("作废失败，采购单号[%s]数据未作废，请先完成该采购订单的作废。",cancelOrderVos.stream().map(PoOrderVo::getCode).collect(Collectors.toList())));
+                    return CheckResultUtil.NG(String.format("作废失败，采购单号[%s]数据未作废，请先完成该采购订单的作废。",cancelOrderVos.stream().map(BPoOrderVo::getCode).collect(Collectors.toList())));
                 }
                 break;
             // 完成校验
@@ -630,7 +630,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                     return CheckResultUtil.NG(String.format("完成失败，采购合同[%s]未进入执行状态",bPoContractEntity.getCode()));
                 }
 
-                List<PoOrderVo> finishOrderVos = bPoOrderMapper.selectByPoContractIdNotByStatus(bean.getId(), DictConstant.DICT_B_PO_ORDER_STATUS_SIX);
+                List<BPoOrderVo> finishOrderVos = bPoOrderMapper.selectByPoContractIdNotByStatus(bean.getId(), DictConstant.DICT_B_PO_ORDER_STATUS_SIX);
                 if (CollectionUtil.isNotEmpty(finishOrderVos)){
                     return CheckResultUtil.NG(String.format("系统检测到合同编号[%s]存在未完成的采购订单，请完成订单[%s]后再提交。",bean.getContract_code(),finishOrderVos.stream().findFirst().get().getCode()));
                 }
@@ -643,7 +643,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 启动审批流
      */
-    public void startFlowProcess(PoContractVo bean,String type){
+    public void startFlowProcess(BPoContractVo bean, String type){
         // 未初始化审批流数据，不启动审批流
         if (StringUtils.isNotEmpty(bean.getInitial_process())) {
             // 启动审批流
@@ -677,24 +677,24 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCreateBpm(PoContractVo searchCondition){
+    public UpdateResultAo<Integer> bpmCallBackCreateBpm(BPoContractVo searchCondition){
         log.debug("====》审批流程创建成功，更新开始《====");
-        PoContractVo poContractVo = selectById(searchCondition.getId());
+        BPoContractVo BPoContractVo = selectById(searchCondition.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
          * bpm_instance_summary:{}  // 供应商：xxx，主体企业：xxx，合同金额:1000
          */
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("供应商：", poContractVo.getSupplier_name());
-        jsonObject.put("主体企业：", poContractVo.getPurchaser_name());
-        jsonObject.put("合同金额:", poContractVo.getContract_amount_sum());
+        jsonObject.put("供应商：", BPoContractVo.getSupplier_name());
+        jsonObject.put("主体企业：", BPoContractVo.getPurchaser_name());
+        jsonObject.put("合同金额:", BPoContractVo.getContract_amount_sum());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
         bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
-        bpmInstanceSummaryEntity.setProcess_definition_business_name(poContractVo.getBpm_process_name());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(BPoContractVo.getBpm_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
@@ -704,7 +704,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackApprove(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackApprove(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]审批流程通过，更新开始《====", searchCondition.getId());
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
 
@@ -723,7 +723,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
         /**
          * 根据审批后自动生成订单，自动生成的订单-已经审批
          */
-        PoContractVo vo = selectById(searchCondition.getId());
+        BPoContractVo vo = selectById(searchCondition.getId());
         if (vo.getAuto_create_order() != null && vo.getAuto_create_order()) {
             log.debug("====》开始自动创建采购订单《====");
             createAutoOrder(vo, bPoContractEntity);
@@ -739,7 +739,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackRefuse(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackRefuse(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]审批流程拒绝，更新开始《====", searchCondition.getId());
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
 
@@ -761,7 +761,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCancel(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackCancel(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]审批流程撤销，更新开始《====", searchCondition.getId());
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
 
@@ -782,7 +782,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackSave(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackSave(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]审批流程更新最新审批人，更新开始《====", searchCondition.getId());
 
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
@@ -801,7 +801,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param searchCondition
      */
     @Override
-    public PoContractVo getPrintInfo(PoContractVo searchCondition) {
+    public BPoContractVo getPrintInfo(BPoContractVo searchCondition) {
         /**
          * 获取打印配置信息
          * 1、从s_config中获取到：print_system_config、
@@ -838,7 +838,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param param
      */
     @Override
-    public List<PoContractVo> selectExportList(PoContractVo param) {
+    public List<BPoContractVo> selectExportList(BPoContractVo param) {
         // 导出限制开关
         SConfigEntity sConfigEntity = isConfigService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
         if (Objects.isNull(param.getIds()) && !Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
@@ -854,7 +854,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 附件逻辑 全删全增
      */
-    public BPoContractAttachEntity insertFile(SFileEntity fileEntity, PoContractVo vo, BPoContractAttachEntity extra) {
+    public BPoContractAttachEntity insertFile(SFileEntity fileEntity, BPoContractVo vo, BPoContractAttachEntity extra) {
         // 其他附件新增
         if (vo.getDoc_att_files() != null && vo.getDoc_att_files().size() > 0) {
             // 主表新增
@@ -884,22 +884,22 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(PoContractVo searchCondition){
+    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BPoContractVo searchCondition){
         log.debug("====》作废审批流程创建成功，更新开始《====");
-        PoContractVo poContractVo = selectById(searchCondition.getId());
+        BPoContractVo BPoContractVo = selectById(searchCondition.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
          * bpm_instance_summary:{}  // 作废理由:1000
          */
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("作废理由:", poContractVo.getCancel_reason());
+        jsonObject.put("作废理由:", BPoContractVo.getCancel_reason());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
         bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
-        bpmInstanceSummaryEntity.setProcess_definition_business_name(poContractVo.getBpm_cancel_process_name());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(BPoContractVo.getBpm_cancel_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
@@ -910,7 +910,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackApprove(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]审批流程通过，更新开始《====",searchCondition.getId());
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
 
@@ -933,7 +933,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]作废审批流程拒绝，更新开始《====",searchCondition.getId());
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
 
@@ -959,7 +959,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCancel(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackCancel(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]作废审批流程撤销，更新开始《====",searchCondition.getId());
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
 
@@ -986,7 +986,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackSave(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackSave(BPoContractVo searchCondition) {
         log.debug("====》采购合同[{}]作废审批流程更新最新审批人，更新开始《====",searchCondition.getId());
 
         BPoContractEntity bPoContractEntity = mapper.selectById(searchCondition.getId());
@@ -1006,7 +1006,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> cancel(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> cancel(BPoContractVo searchCondition) {
 
         // 作废前check
         CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.CANCEL_CHECK_TYPE);
@@ -1049,7 +1049,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> finish(PoContractVo searchCondition) {
+    public UpdateResultAo<Integer> finish(BPoContractVo searchCondition) {
         // 作废前check
         CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
         if (!cr.isSuccess()) {
@@ -1069,7 +1069,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
     /**
      * 附件
      */
-    public SFileEntity insertCancelFile(SFileEntity fileEntity, PoContractVo vo) {
+    public SFileEntity insertCancelFile(SFileEntity fileEntity, BPoContractVo vo) {
         // 其他附件新增
         if (vo.getCancel_files() != null && vo.getCancel_files().size() > 0) {
             // 主表新增
@@ -1094,9 +1094,9 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public List<PoContractImportVo> importData(List<PoContractImportVo> beans) {
-        List<PoContractImportVo>  vos = new ArrayList<>();
-        for (PoContractImportVo vo : beans) {
+    public List<BPoContractImportVo> importData(List<BPoContractImportVo> beans) {
+        List<BPoContractImportVo>  vos = new ArrayList<>();
+        for (BPoContractImportVo vo : beans) {
             // 字典类value设置：类型、结算方式、结算单据类型、运输方式；以及主表类id设置：供应商(必填)、主体企业(必填)、物料名称(必填)、规格(必填)
             setImportBean(vo);
 
@@ -1165,7 +1165,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos 所有合同导入对象列表
      * @return 返回true表示重复，false表示不重复
      */
-    public boolean checkSupplierIsExists(PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public boolean checkSupplierIsExists(BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 创建MEnterpriseVo对象用于查询
         MEnterpriseVo mEnterpriseVo = new MEnterpriseVo();
         mEnterpriseVo.setName(vo.getSupplier_name());
@@ -1188,7 +1188,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos 所有合同导入对象列表
      * @return 返回true表示重复，false表示不重复
      */
-    public boolean checkCustomerAndSysCompanyIsExists(PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public boolean checkCustomerAndSysCompanyIsExists(BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 创建MEnterpriseVo对象用于查询
         MEnterpriseVo mEnterpriseVo = new MEnterpriseVo();
         mEnterpriseVo.setName(vo.getPurchaser_name());
@@ -1212,7 +1212,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos
      * @return
      */
-    public Boolean checDictExistByNameType (PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public Boolean checDictExistByNameType (BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 校验
         SDictDataVo selectByName = sDictDataMapper.getDetailByCodeAndDictLabel(DictConstant.DICT_B_PO_CONTRACT_TYPE, vo.getType_name());
         if (selectByName == null) {
@@ -1230,7 +1230,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos
      * @return
      */
-    public Boolean checDictExistByNameSettleType (PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public Boolean checDictExistByNameSettleType (BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 校验
         SDictDataVo selectByName = sDictDataMapper.getDetailByCodeAndDictLabel(DictConstant.DICT_B_PO_CONTRACT_SETTLE_TYPE, vo.getSettle_type_name());
         if (selectByName == null) {
@@ -1248,7 +1248,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos
      * @return
      */
-    public Boolean checDictExistByNameBillType (PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public Boolean checDictExistByNameBillType (BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 校验
         SDictDataVo selectByName = sDictDataMapper.getDetailByCodeAndDictLabel(DictConstant.DICT_B_PO_CONTRACT_BILL_TYPE, vo.getBill_type_name());
         if (selectByName == null) {
@@ -1266,7 +1266,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos
      * @return
      */
-    public Boolean checDictExistByNamedeliveryType (PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public Boolean checDictExistByNamedeliveryType (BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         if(!StringUtils.isNotBlank(vo.getDelivery_type_name())) {
             return true; // 非必填，如果没有填写，直接返回true
         }
@@ -1286,18 +1286,18 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos 所有合同导入对象列表
      * @return 如果重复返回true，不重复返回false
      */
-    public Boolean checkContractNoDuplicate(PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public Boolean checkContractNoDuplicate(BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 创建参数对象
-        PoContractVo contractVo = new PoContractVo();
+        BPoContractVo contractVo = new BPoContractVo();
         contractVo.setContract_code(vo.getContract_code());
 
         // 调用mapper的校验方法
-        List<PoContractVo> poContractVos = mapper.validateDuplicateContractCode(contractVo);
+        List<BPoContractVo> BPoContractVos = mapper.validateDuplicateContractCode(contractVo);
 
         /**
          * 判断返回结果，size>=1表示数据存在，返回false，null或size=0表示不重复返回true
          */
-        if( poContractVos == null || poContractVos.size() == 0) {
+        if( BPoContractVos == null || BPoContractVos.size() == 0) {
             return Boolean.TRUE;
         } else {
             return Boolean.FALSE;
@@ -1311,7 +1311,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos 所有合同导入对象列表
      * @return 返回true表示重复，false表示不重复
      */
-    public boolean checkGoodsNameIsExists(PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public boolean checkGoodsNameIsExists(BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 获取商品名称
         String goodsName = vo.getGoods_name();
         
@@ -1330,7 +1330,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos 导入的VO对象列表
      * @return 如果存在返回true，否则返回false
      */
-    public boolean checkGoodsSpecNameIsExists(PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public boolean checkGoodsSpecNameIsExists(BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 获取商品名称
         String goodsName = vo.getGoods_name();
         // 从vo中获取sku_name
@@ -1353,7 +1353,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vos 所有合同导入对象列表
      * @return 如果税率有效返回true，否则返回false
      */
-    public boolean checkTaxData(PoContractImportVo vo, ArrayList<PoContractImportVo> vos) {
+    public boolean checkTaxData(BPoContractImportVo vo, ArrayList<BPoContractImportVo> vos) {
         // 从vo中获取tax_rate
         BigDecimal taxRate = vo.getTax_rate();
         
@@ -1388,7 +1388,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param vo
      * @return
      */
-    public void setImportBean (PoContractImportVo vo) {
+    public void setImportBean (BPoContractImportVo vo) {
         // 类型（必填）：字典的label->value
         SDictDataVo typeData = sDictDataMapper.getDetailByCodeAndDictLabel(DictConstant.DICT_B_PO_CONTRACT_TYPE, vo.getType_name());
         vo.setType(typeData.getDict_value());
@@ -1434,13 +1434,13 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
      * @param detailListData 合同明细数据
      * @param bPoContractEntity 采购合同实体对象
      */
-    private void calculateContractAmounts(List<PoContractDetailVo> detailListData, BPoContractEntity bPoContractEntity) {
+    private void calculateContractAmounts(List<BPoContractDetailVo> detailListData, BPoContractEntity bPoContractEntity) {
         BigDecimal contractAmountSum = BigDecimal.ZERO;
         BigDecimal contractTotal = BigDecimal.ZERO;
         BigDecimal taxAmountSum = BigDecimal.ZERO;
         
         if (detailListData != null && !detailListData.isEmpty()) {
-            for (PoContractDetailVo detail : detailListData) {
+            for (BPoContractDetailVo detail : detailListData) {
                 BigDecimal qty = detail.getQty() != null ? detail.getQty() : BigDecimal.ZERO;
                 BigDecimal price = detail.getPrice() != null ? detail.getPrice() : BigDecimal.ZERO;
                 BigDecimal taxRate = detail.getTax_rate() != null ? detail.getTax_rate() : BigDecimal.ZERO;
@@ -1465,10 +1465,10 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
 
     /**
      * 自动创建采购订单
-     * @param poContractVo 采购合同查询条件
+     * @param BPoContractVo 采购合同查询条件
      * @param bPoContractEntity 采购合同实体
      */
-    private void createAutoOrder(PoContractVo poContractVo, BPoContractEntity bPoContractEntity) {
+    private void createAutoOrder(BPoContractVo BPoContractVo, BPoContractEntity bPoContractEntity) {
 //        try {
             // 1. 创建采购订单主表数据
             BPoOrderEntity bPoOrderEntity = new BPoOrderEntity();
@@ -1497,8 +1497,8 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             BigDecimal orderAmountSum = BigDecimal.ZERO;
             BigDecimal orderTotal = BigDecimal.ZERO;
             BigDecimal taxAmountSum = BigDecimal.ZERO;
-            List<PoContractDetailVo> detailListData = poContractVo.getDetailListData();
-            for (PoContractDetailVo detail : detailListData) {
+            List<BPoContractDetailVo> detailListData = BPoContractVo.getDetailListData();
+            for (BPoContractDetailVo detail : detailListData) {
                     BigDecimal qty = detail.getQty() != null ? detail.getQty() : BigDecimal.ZERO;
                     BigDecimal price = detail.getPrice() != null ? detail.getPrice() : BigDecimal.ZERO;
                     BigDecimal taxRate = detail.getTax_rate() != null ? detail.getTax_rate() : BigDecimal.ZERO;
@@ -1518,8 +1518,8 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             // 设置订单状态为已审批（跳过审批流程）
             bPoOrderEntity.setStatus(DictConstant.DICT_B_PO_ORDER_STATUS_TWO);
             bPoOrderEntity.setIs_del(Boolean.FALSE);
-            bPoOrderEntity.setBpm_instance_id(poContractVo.getBpm_instance_id());
-            bPoOrderEntity.setBpm_instance_code(poContractVo.getBpm_instance_code());
+            bPoOrderEntity.setBpm_instance_id(BPoContractVo.getBpm_instance_id());
+            bPoOrderEntity.setBpm_instance_code(BPoContractVo.getBpm_instance_code());
             bPoOrderEntity.setBpm_process_name("自动生成采购订单（已审批）");
             bPoOrderEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
             
@@ -1535,8 +1535,8 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             
             log.debug("自动创建采购订单成功，订单ID：{}, 订单编号：{}", bPoOrderEntity.getId(), bPoOrderEntity.getCode());
               // 2. 创建采购订单明细数据
-            if (poContractVo.getDetailListData() != null && !poContractVo.getDetailListData().isEmpty()) {
-                for (PoContractDetailVo contractDetail : poContractVo.getDetailListData()) {
+            if (BPoContractVo.getDetailListData() != null && !BPoContractVo.getDetailListData().isEmpty()) {
+                for (BPoContractDetailVo contractDetail : BPoContractVo.getDetailListData()) {
                     BPoOrderDetailEntity orderDetail = new BPoOrderDetailEntity();
                     
                     // 明细字段映射
@@ -1574,7 +1574,7 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                     }
                 }
                 
-                log.debug("自动创建采购订单明细成功，明细数量：{}", poContractVo.getDetailListData().size());
+                log.debug("自动创建采购订单明细成功，明细数量：{}", BPoContractVo.getDetailListData().size());
             }
 
             commonTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());

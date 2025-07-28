@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.cancel;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.cancel.BCancelEntity;
+import com.xinyirun.scm.bean.entity.business.cancel.BCancelEntity;
 import org.springframework.stereotype.Repository;
 
 /**

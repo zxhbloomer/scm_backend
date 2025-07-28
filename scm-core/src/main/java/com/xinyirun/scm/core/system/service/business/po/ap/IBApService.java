@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.po.ap;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.ap.BApEntity;
+import com.xinyirun.scm.bean.entity.business.po.ap.BApEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;

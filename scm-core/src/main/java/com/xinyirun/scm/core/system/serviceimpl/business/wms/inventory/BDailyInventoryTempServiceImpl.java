@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.wms.inventory;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryTempEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryTempEntity;
 import com.xinyirun.scm.core.system.mapper.business.inventory.BDailyInventoryTempMapper;
 import com.xinyirun.scm.core.system.service.business.wms.inventory.IBDailyInventoryTempService;
 import org.springframework.beans.factory.annotation.Autowired;

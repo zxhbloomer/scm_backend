@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.po.pocontract;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractDetailEntity;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

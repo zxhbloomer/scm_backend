@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.sync;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.xinyirun.scm.bean.entity.busniess.sync.BSyncStatusErrorEntity;
+import com.xinyirun.scm.bean.entity.business.sync.BSyncStatusErrorEntity;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.core.system.mapper.business.sync.BSyncStatusErrorMapper;
 import com.xinyirun.scm.core.system.service.business.sync.IBSyncStatusErrorService;

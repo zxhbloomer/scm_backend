@@ -1,17 +1,14 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.bkmonitor.v2;
 
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.bkmonitor.BBkMonitorLogDetailEntity;
+import com.xinyirun.scm.bean.entity.business.bkmonitor.BBkMonitorLogDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.system.mapper.business.bkmonitor.v2.BBkMonitorLogDetailV2Mapper;
 import com.xinyirun.scm.core.system.service.business.bkmonitor.v2.IBBkMonitorLogDetailV2Service;
-import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

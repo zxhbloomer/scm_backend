@@ -2,13 +2,13 @@ package com.xinyirun.scm.core.system.service.business.po.poorder;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
 
 import java.util.List;
 
@@ -25,143 +25,143 @@ public interface IBPoOrderService extends IService<BPoOrderEntity> {
     /**
      * 获取采购订单信息
      */
-    PoOrderVo selectById(Integer id);
+    BPoOrderVo selectById(Integer id);
 
     /**
      * 采购订单  新增
      */
-    InsertResultAo<PoOrderVo> startInsert(PoOrderVo searchCondition);
+    InsertResultAo<BPoOrderVo> startInsert(BPoOrderVo searchCondition);
 
     /**
      * 采购订单校验
      */
-    CheckResultAo checkLogic(PoOrderVo searchCondition, String checkType);
+    CheckResultAo checkLogic(BPoOrderVo searchCondition, String checkType);
 
     /**
      * 分页查询
      */
-    IPage<PoOrderVo> selectPage(PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectPage(BPoOrderVo searchCondition);
 
     /**
      * 按退款条件分页查询
      */
-    IPage<PoOrderVo> selectPageByAprefund(PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectPageByAprefund(BPoOrderVo searchCondition);
 
     /**
      * 采购订单 统计
      */
-    PoOrderVo querySum(PoOrderVo searchCondition);
+    BPoOrderVo querySum(BPoOrderVo searchCondition);
 
     /**
      * 按退款条件汇总查询
      */
-    PoOrderVo querySumByAprefund(PoOrderVo searchCondition);
+    BPoOrderVo querySumByAprefund(BPoOrderVo searchCondition);
 
     /**
      * 更新采购合同信息
      */
-    UpdateResultAo<Integer> startUpdate(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> startUpdate(BPoOrderVo searchCondition);
 
     /**
      * 审批流程回调
      */
-    UpdateResultAo<Integer> bpmCallBackCreateBpm(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackCreateBpm(BPoOrderVo searchCondition);
 
 
     /**
      *  审批流程通过 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCallBackApprove(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackApprove(BPoOrderVo searchCondition);
 
     /**
      *  审批流程拒绝 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCallBackRefuse(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackRefuse(BPoOrderVo searchCondition);
 
     /**
      *  审批流程撤销 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCallBackCancel(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackCancel(BPoOrderVo searchCondition);
 
     /**
      *  企业管理审批流程回调
      *  审批流程撤销 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCallBackSave(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackSave(BPoOrderVo searchCondition);
 
     /**
      * 删除采购订单信息
      */
-    DeleteResultAo<Integer> delete(List<PoOrderVo> searchCondition);
+    DeleteResultAo<Integer> delete(List<BPoOrderVo> searchCondition);
 
     /**
      * 获取报表系统参数，并组装打印参数
      */
-    PoOrderVo getPrintInfo(PoOrderVo searchCondition);
+    BPoOrderVo getPrintInfo(BPoOrderVo searchCondition);
 
     /**
      * 导出查询
      */
-    List<PoOrderVo> selectExportList(PoOrderVo param);
+    List<BPoOrderVo> selectExportList(BPoOrderVo param);
 
 
     /**
      * 作废审批流程摘要
      */
-    UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BPoOrderVo searchCondition);
 
     /**
      *  作废审批流程通过 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCancelCallBackApprove(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackApprove(BPoOrderVo searchCondition);
 
     /**
      *  作废审批流程拒绝 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCancelCallBackRefuse(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackRefuse(BPoOrderVo searchCondition);
 
     /**
      *  作废审批流程撤销 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCancelCallBackCancel(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackCancel(BPoOrderVo searchCondition);
 
     /**
      *  作废审批流程撤销 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCancelCallBackSave(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackSave(BPoOrderVo searchCondition);
 
     /**
      * 作废
      */
-    UpdateResultAo<Integer> cancel(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> cancel(BPoOrderVo searchCondition);
 
     /**
      * 完成
      */
-    UpdateResultAo<Integer> finish(PoOrderVo searchCondition);
+    UpdateResultAo<Integer> finish(BPoOrderVo searchCondition);
 
     /**
      * 分页查询包含结算信息
      */
-    IPage<PoOrderVo> selectOrderListWithSettlePage(PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectOrderListWithSettlePage(BPoOrderVo searchCondition);
 
     /**
      * 采购订单结算信息统计
      */
-    PoOrderVo queryOrderListWithSettlePageSum(PoOrderVo searchCondition);
+    BPoOrderVo queryOrderListWithSettlePageSum(BPoOrderVo searchCondition);
 
     /**
      * 货权转移专用-分页查询采购订单信息
      */
-    IPage<PoOrderVo> selectOrderListForCargoRightTransferPage(PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectOrderListForCargoRightTransferPage(BPoOrderVo searchCondition);
 
     /**
      * 货权转移专用-采购订单统计
      */
-    PoOrderVo queryOrderListForCargoRightTransferPageSum(PoOrderVo searchCondition);
+    BPoOrderVo queryOrderListForCargoRightTransferPageSum(BPoOrderVo searchCondition);
 
     /**
      * 货权转移专用-获取采购订单明细数据
      */
-    List<PoOrderDetailVo> selectDetailData(PoOrderVo searchCondition);
+    List<BPoOrderDetailVo> selectDetailData(BPoOrderVo searchCondition);
 }

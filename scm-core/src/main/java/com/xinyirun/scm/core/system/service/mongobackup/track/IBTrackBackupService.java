@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.mongobackup.track;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.track.BTrackEntity;
+import com.xinyirun.scm.bean.entity.business.track.BTrackEntity;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackVo;
 import com.xinyirun.scm.bean.system.vo.mongo.track.BMonitorTrackMongoDataVo;
 

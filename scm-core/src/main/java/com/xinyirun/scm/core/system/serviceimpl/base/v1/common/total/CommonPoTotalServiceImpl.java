@@ -1,12 +1,12 @@
 package com.xinyirun.scm.core.system.serviceimpl.base.v1.common.total;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.po.ap.BApSourceAdvanceEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.ap.BApTotalEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractTotalEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderTotalEntity;
-import com.xinyirun.scm.bean.system.bo.fund.total.TotalDataRecalculateBo;
+import com.xinyirun.scm.bean.entity.business.po.ap.BApSourceAdvanceEntity;
+import com.xinyirun.scm.bean.entity.business.po.ap.BApTotalEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractTotalEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderTotalEntity;
+import com.xinyirun.scm.bean.system.bo.fund.total.PoTotalDataRecalculateBo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApSourceAdvanceVo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApTotalVo;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApVo;
@@ -15,9 +15,9 @@ import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPaySourceAdvanceVo;
 import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPaySourceVo;
 import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPayVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractTotalVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
 import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderTotalVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.core.system.mapper.business.po.ap.BApDetailMapper;
@@ -40,8 +40,8 @@ import com.xinyirun.scm.core.system.mapper.business.wms.inplan.BInPlanDetailMapp
 import com.xinyirun.scm.core.system.mapper.business.wms.inplan.BInPlanTotalMapper;
 import com.xinyirun.scm.core.system.mapper.business.wms.in.BInMapper;
 import com.xinyirun.scm.core.system.mapper.business.po.settlement.BPoSettlementMapper;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanTotalEntity;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanTotalEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanTotalVo;
 import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonPoTotalService;
 import com.xinyirun.scm.core.system.service.business.po.ap.IBApTotalService;
 import com.xinyirun.scm.core.system.service.business.po.aprefund.IBApReFundTotalService;
@@ -155,7 +155,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      * @return 是否操作成功
      */
     @Override
-    public Boolean reCalculateAllTotalData(TotalDataRecalculateBo bo) {
+    public Boolean reCalculateAllTotalData(PoTotalDataRecalculateBo bo) {
         // 1. 参数校验
         validateTotalDataRecalculateBo(bo);
 
@@ -610,7 +610,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 参数校验，校验bo至少有一个字段有值，否则抛异常
      */
-    private void validateTotalDataRecalculateBo(TotalDataRecalculateBo bo) {
+    private void validateTotalDataRecalculateBo(PoTotalDataRecalculateBo bo) {
         if (bo == null) {
             throw new BusinessException("参数不能为空");
         }
@@ -648,7 +648,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 业务分支选择，收集合同ID
      */
-    private List<Integer> collectContractIds(TotalDataRecalculateBo bo) {
+    private List<Integer> collectContractIds(PoTotalDataRecalculateBo bo) {
         if (bo.getPoContractId() != null || (bo.getPoContractIds() != null && !bo.getPoContractIds().isEmpty())
                 || (bo.getPoContractCode() != null && !bo.getPoContractCode().isBlank())
                 || (bo.getPoContractCodes() != null && !bo.getPoContractCodes().isEmpty())) {
@@ -682,13 +682,13 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 采购合同分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromPoContract(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromPoContract(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         if (bo.getPoContractId() != null) {
             contractIdSet.add(bo.getPoContractId());
         }
         if (bo.getPoContractCode() != null && !bo.getPoContractCode().isBlank()) {
-            PoContractVo vo = bPoContractMapper.selectByCode(bo.getPoContractCode());
+            BPoContractVo vo = bPoContractMapper.selectByCode(bo.getPoContractCode());
             if (vo != null && vo.getId() != null) {
                 contractIdSet.add(vo.getId());
             }
@@ -699,7 +699,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         if (bo.getPoContractCodes() != null && !bo.getPoContractCodes().isEmpty()) {
             for (String code : bo.getPoContractCodes()) {
                 if (code != null && !code.isBlank()) {
-                    PoContractVo vo = bPoContractMapper.selectByCode(code);
+                    BPoContractVo vo = bPoContractMapper.selectByCode(code);
                     if (vo != null && vo.getId() != null) {
                         contractIdSet.add(vo.getId());
                     }
@@ -712,23 +712,23 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 采购订单分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromPoOrder(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromPoOrder(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         if (bo.getPoOrderId() != null) {
-            PoOrderVo vo = bPoOrderMapper.selectId(bo.getPoOrderId());
+            BPoOrderVo vo = bPoOrderMapper.selectId(bo.getPoOrderId());
             if (vo != null && vo.getPo_contract_id() != null) {
                 contractIdSet.add(vo.getPo_contract_id());
             }
         }
         if (bo.getPoOrderCode() != null && !bo.getPoOrderCode().isBlank()) {
-            PoOrderVo vo = bPoOrderMapper.selectByCode(bo.getPoOrderCode());
+            BPoOrderVo vo = bPoOrderMapper.selectByCode(bo.getPoOrderCode());
             if (vo != null && vo.getPo_contract_id() != null) {
                 contractIdSet.add(vo.getPo_contract_id());
             }
         }
         if (bo.getPoOrderIds() != null && !bo.getPoOrderIds().isEmpty()) {
             for (Integer id : bo.getPoOrderIds()) {
-                PoOrderVo vo = bPoOrderMapper.selectId(id);
+                BPoOrderVo vo = bPoOrderMapper.selectId(id);
                 if (vo != null && vo.getPo_contract_id() != null) {
                     contractIdSet.add(vo.getPo_contract_id());
                 }
@@ -737,7 +737,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         if (bo.getPoOrderCodes() != null && !bo.getPoOrderCodes().isEmpty()) {
             for (String code : bo.getPoOrderCodes()) {
                 if (code != null && !code.isBlank()) {
-                    PoOrderVo vo = bPoOrderMapper.selectByCode(code);
+                    BPoOrderVo vo = bPoOrderMapper.selectByCode(code);
                     if (vo != null && vo.getPo_contract_id() != null) {
                         contractIdSet.add(vo.getPo_contract_id());
                     }
@@ -750,7 +750,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * AP分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromAp(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromAp(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         if (bo.getApId() != null) {
             List<BApSourceAdvanceVo> list = bApSourceAdvanceMapper.selectByApId(bo.getApId());
@@ -804,7 +804,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 付款单分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromApPay(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromApPay(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<String> contractCodeSet = new LinkedHashSet<>();
         if (bo.getApPayId() != null) {
             List<BApPaySourceVo> list = bApPaySourceMapper.selectByApPayId(bo.getApPayId());
@@ -856,7 +856,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         for (String code : contractCodeSet) {
             if (code != null && !code.isBlank()) {
-                PoContractVo vo = bPoContractMapper.selectByContractCode(code);
+                BPoContractVo vo = bPoContractMapper.selectByContractCode(code);
                 if (vo != null && vo.getId() != null) {
                     contractIdSet.add(vo.getId());
                 }
@@ -868,7 +868,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 入库计划分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromInPlan(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromInPlan(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         if (bo.getInPlanId() != null) {
             List<Integer> contractIds = bInPlanDetailMapper.selectContractIdsByInPlanId(bo.getInPlanId());
@@ -890,7 +890,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 入库单分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromInbound(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromInbound(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         if (bo.getInboundId() != null) {
             List<Integer> contractIds = bInMapper.selectContractIdsByInboundId(bo.getInboundId());
@@ -912,7 +912,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 采购结算分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromPoSettlement(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromPoSettlement(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         if (bo.getPoSettlementId() != null) {
             List<Integer> contractIds = bPoSettlementMapper.selectContractIdsBySettlementId(bo.getPoSettlementId());
@@ -934,7 +934,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 退款分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromPoRefund(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromPoRefund(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         LinkedHashSet<String> contractCodeSet = new LinkedHashSet<>();
         
@@ -969,7 +969,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
         // 合同编号转合同ID
         for (String contractCode : contractCodeSet) {
             if (contractCode != null && !contractCode.isBlank()) {
-                PoContractVo contractVo = bPoContractMapper.selectByContractCode(contractCode);
+                BPoContractVo contractVo = bPoContractMapper.selectByContractCode(contractCode);
                 if (contractVo != null && contractVo.getId() != null) {
                     contractIdSet.add(contractVo.getId());
                 }
@@ -982,7 +982,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     /**
      * 货权转移分支，获取合同ID集合
      */
-    private List<Integer> getContractIdsFromCargoRightTransfer(TotalDataRecalculateBo bo) {
+    private List<Integer> getContractIdsFromCargoRightTransfer(PoTotalDataRecalculateBo bo) {
         LinkedHashSet<Integer> contractIdSet = new LinkedHashSet<>();
         
         if (bo.getCargoRightTransferId() != null) {
@@ -1025,7 +1025,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPoContractCode(String code) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setPoContractCode(code);
         return reCalculateAllTotalData(bo);
     }
@@ -1037,7 +1037,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPoContractId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setPoContractId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1049,7 +1049,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPoOrderCode(String code) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setPoOrderCode(code);
         return reCalculateAllTotalData(bo);
     }
@@ -1061,7 +1061,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPoOrderId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setPoOrderId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1073,7 +1073,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByApId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setApId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1085,7 +1085,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByApCode(String code) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setApCode(code);
         return reCalculateAllTotalData(bo);
     }
@@ -1097,7 +1097,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByApPayId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setApPayId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1109,7 +1109,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByApPayCode(String code) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setApPayCode(code);
         return reCalculateAllTotalData(bo);
     }
@@ -1123,9 +1123,9 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
     private void processPoOrderTotalDataByContractId(Integer contractId) {
         // 1. 根据合同ID查询采购订单，获取采购订单ID集合
         LinkedHashSet<Integer> poOrderIdSet = new LinkedHashSet<>();
-        List<PoOrderVo> poOrderList = bPoOrderMapper.selectByPoContractId(contractId);
+        List<BPoOrderVo> poOrderList = bPoOrderMapper.selectByPoContractId(contractId);
         if (poOrderList != null && !poOrderList.isEmpty()) {
-            for (PoOrderVo vo : poOrderList) {
+            for (BPoOrderVo vo : poOrderList) {
                 if (vo.getId() != null) {
                     poOrderIdSet.add(vo.getId());
                 }
@@ -1346,7 +1346,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPlanId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setInPlanId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1358,7 +1358,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByInboundId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setInboundId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1370,7 +1370,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPoSettlementId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setPoSettlementId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1382,7 +1382,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByPoRefundId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setPoRefundId(id);
         return reCalculateAllTotalData(bo);
     }
@@ -1399,7 +1399,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             return false;
         }
         
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         
         try {
             // 使用新添加的selectIdByCode方法查询退款ID
@@ -1426,7 +1426,7 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
      */
     @Override
     public Boolean reCalculateAllTotalDataByCargoRightTransferId(Integer id) {
-        TotalDataRecalculateBo bo = new TotalDataRecalculateBo();
+        PoTotalDataRecalculateBo bo = new PoTotalDataRecalculateBo();
         bo.setCargoRightTransferId(id);
         return reCalculateAllTotalData(bo);
     }

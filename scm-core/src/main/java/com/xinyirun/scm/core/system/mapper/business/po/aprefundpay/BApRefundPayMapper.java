@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.po.aprefundpay;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.aprefundpay.BApReFundPayEntity;
+import com.xinyirun.scm.bean.entity.business.po.aprefundpay.BApReFundPayEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.aprefundpay.BApReFundPayVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

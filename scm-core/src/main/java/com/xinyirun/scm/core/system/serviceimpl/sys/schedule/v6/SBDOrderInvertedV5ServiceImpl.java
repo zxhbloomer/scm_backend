@@ -1,6 +1,6 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v6;
 
-import com.xinyirun.scm.bean.entity.busniess.order.BOrderInvertedEntity;
+import com.xinyirun.scm.bean.entity.business.order.BOrderInvertedEntity;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedVo;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.ip.IpUtils;
@@ -9,7 +9,6 @@ import com.xinyirun.scm.core.system.service.sys.schedule.v6.ISBDOrderInvertedV5S
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

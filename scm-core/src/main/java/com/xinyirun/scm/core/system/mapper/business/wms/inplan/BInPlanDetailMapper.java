@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanDetailEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanDetailEntity;
 
 /**
  * <p>

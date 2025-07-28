@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BPoCargoRightTransferEntity;
+import com.xinyirun.scm.bean.entity.business.po.cargo_right_transfer.BPoCargoRightTransferEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferVo;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoCargoRightTransferDetailListTypeHandler;

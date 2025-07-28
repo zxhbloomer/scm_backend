@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.monitor;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.api.vo.business.monitor.ApiBWkCoDetailVo;
 import com.xinyirun.scm.bean.api.vo.business.monitor.ApiBWkCoVo;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BWkCoEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BWkCoEntity;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;

@@ -3,9 +3,9 @@ package com.xinyirun.scm.core.system.mapper.business.wms.inplan;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanVo;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.InPlanDetailListTypeHandler;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
@@ -510,8 +510,6 @@ public interface BInPlanMapper extends BaseMapper<BInPlanEntity> {
                    GROUP BY tt1.in_plan_id) tab2 ON tab1.id = tab2.in_plan_id                                                                                
               		LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_in_plan_status' AND tab3.dict_value = tab1.status                  
               		LEFT JOIN s_dict_data  tab4 ON tab4.code = 'b_in_plan_type' AND tab4.dict_value = tab1.type                      
-              	    LEFT JOIN (SELECT * FROM bpm_instance WHERE serial_type = '" + SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_IN_PLAN + "'                 
-                   ORDER BY c_time DESC limit 1) as tab11 on tab11.serial_id = tab1.id                                                                       
                LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id                                                                                               
                LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id                                                                                               
               		WHERE TRUE                                                                                                                                  

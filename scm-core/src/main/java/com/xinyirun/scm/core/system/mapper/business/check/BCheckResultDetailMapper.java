@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.check;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckResultDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckResultDetailEntity;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

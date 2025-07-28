@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.warehouse.relation;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.relation.MWarehouseRelationEntity;
+import com.xinyirun.scm.bean.entity.business.wms.warehouse.relation.MWarehouseRelationEntity;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MRelationCountsVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MRelationTreeVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MWarehouseRelationVo;

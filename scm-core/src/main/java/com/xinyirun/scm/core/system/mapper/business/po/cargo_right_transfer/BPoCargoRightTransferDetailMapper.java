@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.po.cargo_right_transfer;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.cargo_right_transfer.BPoCargoRightTransferDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.cargo_right_transfer.BPoCargoRightTransferDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.cargo_right_transfer.BPoCargoRightTransferDetailVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

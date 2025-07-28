@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.message;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.message.BMessageEntity;
+import com.xinyirun.scm.bean.entity.business.message.BMessageEntity;
 import com.xinyirun.scm.bean.system.bo.business.message.BMessageBo;
 import com.xinyirun.scm.bean.system.vo.business.message.BMessageVo;
 

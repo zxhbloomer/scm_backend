@@ -2,12 +2,15 @@ package com.xinyirun.scm.core.system.service.business.so.socontract;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.so.socontract.BSoContractEntity;
+import com.xinyirun.scm.bean.entity.business.so.socontract.BSoContractEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.business.so.socontract.SoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractImportVo;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
 
 import java.util.List;
 
@@ -17,108 +20,71 @@ import java.util.List;
  * </p>
  *
  * @author xinyirun
- * @since 2025-01-14
+ * @since 2025-01-22
  */
-public interface IBSoContractService extends IService<BSoContractEntity> {
-
+public interface IBSoContractService extends IService<BSoContractEntity> ,
+        IBpmCommonCallBackService<BSoContractVo>,
+        IBpmCancelCommonCallBackService<BSoContractVo> {
 
     /**
      * 销售合同  新增
      */
-    InsertResultAo<SoContractVo> startInsert(SoContractVo SoContractVo);
+    InsertResultAo<BSoContractVo> startInsert(BSoContractVo soContractVo);
 
     /**
      * 分页查询
      */
-    IPage<SoContractVo> selectPage(SoContractVo searchCondition);
+    IPage<BSoContractVo> selectPage(BSoContractVo searchCondition);
 
     /**
      * 获取销售合同信息
      */
-    SoContractVo selectById(Integer id);
+    BSoContractVo selectById(Integer id);
 
     /**
      * 更新销售合同信息
      */
-    UpdateResultAo<Integer> startUpdate(SoContractVo SoContractVo);
+    UpdateResultAo<Integer> startUpdate(BSoContractVo soContractVo);
 
     /**
      * 删除销售合同信息
      */
-    DeleteResultAo<Integer> delete(List<SoContractVo> searchCondition);
+    DeleteResultAo<Integer> delete(List<BSoContractVo> searchCondition);
 
     /**
      * 按销售合同合计
      */
-    SoContractVo querySum(SoContractVo searchCondition);
+    BSoContractVo querySum(BSoContractVo searchCondition);
 
     /**
      * 销售合同校验
      */
-    CheckResultAo checkLogic(SoContractVo bean, String checkType);
+    CheckResultAo checkLogic(BSoContractVo bean, String checkType);
 
-    /**
-     * 审批流程回调 更新bpm_instance的摘要数据
-     */
-    UpdateResultAo<Integer> bpmCallBackCreateBpm(SoContractVo searchCondition);
 
-    /**
-     *  审批流程通过 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCallBackApprove(SoContractVo searchCondition);
-
-    /**
-     *  审批流程拒绝 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCallBackRefuse(SoContractVo searchCondition);
-
-    /**
-     *  审批流程撤销 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCallBackCancel(SoContractVo searchCondition);
-
-    /**
-     *  更新最新审批人
-     */
-    UpdateResultAo<Integer> bpmCallBackSave(SoContractVo searchCondition);
 
     /**
      * 获取报表系统参数，并组装打印参数
      */
-    SoContractVo getPrintInfo(SoContractVo searchCondition);
+    BSoContractVo getPrintInfo(BSoContractVo searchCondition);
 
     /**
      * 导出查询
      */
-    List<SoContractVo> selectExportList(SoContractVo param);
-
-    /**
-     * 作废审批流程摘要
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(SoContractVo searchCondition);
-
-    /**
-     *  作废审批流程通过 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackApprove(SoContractVo searchCondition);
-
-    /**
-     *  作废审批流程拒绝 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackRefuse(SoContractVo searchCondition);
-
-    /**
-     *  作废审批流程撤销 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackCancel(SoContractVo searchCondition);
-
-    /**
-     *  作废审批流程撤销 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCancelCallBackSave(SoContractVo searchCondition);
+    List<BSoContractVo> selectExportList(BSoContractVo param);
 
     /**
      * 作废
      */
-    UpdateResultAo<Integer> cancel(SoContractVo searchCondition);
+    UpdateResultAo<Integer> cancel(BSoContractVo searchCondition);
+
+    /**
+     * 完成
+     */
+    UpdateResultAo<Integer> finish(BSoContractVo searchCondition);
+
+    /**
+     * 导入数据
+     */
+    List<BSoContractImportVo> importData(List<BSoContractImportVo> beans);
 }

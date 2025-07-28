@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.alarm;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmRulesGroupEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmRulesGroupEntity;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffGroupTransferVo;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffTransferVo;
 import com.xinyirun.scm.common.constant.DictConstant;

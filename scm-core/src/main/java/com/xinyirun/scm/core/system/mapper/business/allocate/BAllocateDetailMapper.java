@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.allocate;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.allocate.BAllocateDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.allocate.BAllocateVo;
 import com.xinyirun.scm.common.constant.DictConstant;

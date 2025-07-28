@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.wms.inplan;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanTotalEntity;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanTotalVo;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanTotalEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanTotalVo;
 import com.xinyirun.scm.core.system.mapper.business.wms.inplan.BInPlanTotalMapper;
 import com.xinyirun.scm.core.system.service.business.wms.inplan.IBInPlanTotalService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;

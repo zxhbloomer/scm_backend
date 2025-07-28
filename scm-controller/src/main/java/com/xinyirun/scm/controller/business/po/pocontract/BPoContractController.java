@@ -9,10 +9,10 @@ import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractExportVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractImportVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractExportVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractImportVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
 import com.xinyirun.scm.bean.system.vo.business.wo.BWoExportUtilVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.SLogImportVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
@@ -71,8 +71,8 @@ public class BPoContractController extends SystemBaseController {
     @PostMapping("/insert")
     @SysLogAnnotion("采购合同 新增")
     @RepeatSubmitAnnotion
-    public ResponseEntity<JsonResultAo<PoContractVo>> insert(@RequestBody PoContractVo searchCondition) {
-        InsertResultAo<PoContractVo> resultAo = service.startInsert(searchCondition);
+    public ResponseEntity<JsonResultAo<BPoContractVo>> insert(@RequestBody BPoContractVo searchCondition) {
+        InsertResultAo<BPoContractVo> resultAo = service.startInsert(searchCondition);
         if (resultAo.isSuccess()) {
             return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(searchCondition.getId()),"新增成功"));
         } else {
@@ -84,7 +84,7 @@ public class BPoContractController extends SystemBaseController {
     @PostMapping("/validate")
     @ResponseBody
     @RepeatSubmitAnnotion
-    public ResponseEntity<JsonResultAo<String>> checkLogic(@RequestBody(required = false) PoContractVo searchCondition) {
+    public ResponseEntity<JsonResultAo<String>> checkLogic(@RequestBody(required = false) BPoContractVo searchCondition) {
         CheckResultAo checkResultAo = service.checkLogic(searchCondition, searchCondition.getCheck_type());
         if (!checkResultAo.isSuccess()) {
             throw new BusinessException(checkResultAo.getMessage());
@@ -95,30 +95,30 @@ public class BPoContractController extends SystemBaseController {
 
     @SysLogAnnotion("根据查询条件，获取采购合同集合信息")
     @PostMapping("/pagelist")
-    public ResponseEntity<JsonResultAo<IPage<PoContractVo>>> list(@RequestBody(required = false) PoContractVo searchCondition) {
-        IPage<PoContractVo> list = service.selectPage(searchCondition);
+    public ResponseEntity<JsonResultAo<IPage<BPoContractVo>>> list(@RequestBody(required = false) BPoContractVo searchCondition) {
+        IPage<BPoContractVo> list = service.selectPage(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
     @SysLogAnnotion("按采购合同合计")
     @PostMapping("/sum")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<PoContractVo>> querySum(@RequestBody(required = false) PoContractVo searchCondition) {
-        PoContractVo result = service.querySum(searchCondition);
+    public ResponseEntity<JsonResultAo<BPoContractVo>> querySum(@RequestBody(required = false) BPoContractVo searchCondition) {
+        BPoContractVo result = service.querySum(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 
     @SysLogAnnotion("根据查询条件，获取采购合同信息")
     @PostMapping("/get")
-    public ResponseEntity<JsonResultAo<PoContractVo>> get(@RequestBody(required = false) PoContractVo searchCondition) {
-        PoContractVo vo = service.selectById(searchCondition.getId());
+    public ResponseEntity<JsonResultAo<BPoContractVo>> get(@RequestBody(required = false) BPoContractVo searchCondition) {
+        BPoContractVo vo = service.selectById(searchCondition.getId());
         return ResponseEntity.ok().body(ResultUtil.OK(vo));
     }
 
     @SysLogAnnotion("采购合同更新保存")
     @PostMapping("/save")
     @RepeatSubmitAnnotion
-    public ResponseEntity<JsonResultAo<PoContractVo>> save(@RequestBody(required = false) PoContractVo searchCondition) {
+    public ResponseEntity<JsonResultAo<BPoContractVo>> save(@RequestBody(required = false) BPoContractVo searchCondition) {
         if(service.startUpdate(searchCondition).isSuccess()){
             return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(searchCondition.getId()),"更新成功"));
         } else {
@@ -128,7 +128,7 @@ public class BPoContractController extends SystemBaseController {
 
     @SysLogAnnotion("根据查询条件，采购合同逻辑删除")
     @PostMapping("/delete")
-    public ResponseEntity<JsonResultAo<PoContractVo>> delete(@RequestBody(required = false) List<PoContractVo> searchCondition) {
+    public ResponseEntity<JsonResultAo<BPoContractVo>> delete(@RequestBody(required = false) List<BPoContractVo> searchCondition) {
         if(service.delete(searchCondition).isSuccess()){
             return ResponseEntity.ok().body(ResultUtil.OK(null,"删除成功"));
         } else {
@@ -139,15 +139,15 @@ public class BPoContractController extends SystemBaseController {
     @SysLogAnnotion("获取报表系统参数，并组装打印参数")
     @PostMapping("/print")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<PoContractVo>> print(@RequestBody(required = false) PoContractVo searchCondition) {
-        PoContractVo printInfo = service.getPrintInfo(searchCondition);
+    public ResponseEntity<JsonResultAo<BPoContractVo>> print(@RequestBody(required = false) BPoContractVo searchCondition) {
+        BPoContractVo printInfo = service.getPrintInfo(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(printInfo));
     }
 
     @SysLogAnnotion("采购合同，作废")
     @PostMapping("/cancel")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<PoContractVo>> cancel(@RequestBody(required = false) PoContractVo searchCondition) {
+    public ResponseEntity<JsonResultAo<BPoContractVo>> cancel(@RequestBody(required = false) BPoContractVo searchCondition) {
         if(service.cancel(searchCondition).isSuccess()){
             return ResponseEntity.ok().body(ResultUtil.OK(null,"更新成功"));
         } else {
@@ -158,7 +158,7 @@ public class BPoContractController extends SystemBaseController {
     @SysLogAnnotion("采购合同，完成")
     @PostMapping("/finish")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<PoContractVo>> finish(@RequestBody(required = false) PoContractVo searchCondition) {
+    public ResponseEntity<JsonResultAo<BPoContractVo>> finish(@RequestBody(required = false) BPoContractVo searchCondition) {
         if(service.finish(searchCondition).isSuccess()){
             return ResponseEntity.ok().body(ResultUtil.OK(null,"更新成功"));
         } else {
@@ -168,28 +168,28 @@ public class BPoContractController extends SystemBaseController {
 
     @PostMapping("/export")
     @SysLogAnnotion("导出")
-    public void export(@RequestBody(required = false) PoContractVo param, HttpServletResponse response) throws IOException {
-        List<PoContractVo> result = service.selectExportList(param);
+    public void export(@RequestBody(required = false) BPoContractVo param, HttpServletResponse response) throws IOException {
+        List<BPoContractVo> result = service.selectExportList(param);
         // 创建导出的数据列表
-        List<PoContractExportVo> exportDataList = new ArrayList<>();
+        List<BPoContractExportVo> exportDataList = new ArrayList<>();
 
-        for (PoContractVo poContractVo : result) {
-            List<PoContractDetailVo> productList =JSON.parseArray(poContractVo.getDetailListData().toString(), PoContractDetailVo.class);
+        for (BPoContractVo BPoContractVo : result) {
+            List<BPoContractDetailVo> productList =JSON.parseArray(BPoContractVo.getDetailListData().toString(), BPoContractDetailVo.class);
 
             for (int i = 0; i < productList.size(); i++) {
-                PoContractDetailVo poContractDetailVo = productList.get(i);
-                PoContractExportVo poContractExportVo = new PoContractExportVo();
-                BeanUtils.copyProperties(poContractVo,poContractExportVo);
-                BeanUtils.copyProperties(poContractDetailVo,poContractExportVo);
-                exportDataList.add(poContractExportVo);
+                BPoContractDetailVo BPoContractDetailVo = productList.get(i);
+                BPoContractExportVo BPoContractExportVo = new BPoContractExportVo();
+                BeanUtils.copyProperties(BPoContractVo, BPoContractExportVo);
+                BeanUtils.copyProperties(BPoContractDetailVo, BPoContractExportVo);
+                exportDataList.add(BPoContractExportVo);
             }
         }
 
-        List<String> strategy_1 = exportDataList.stream().map(PoContractExportVo::getCode).collect(Collectors.toList());
+        List<String> strategy_1 = exportDataList.stream().map(BPoContractExportVo::getCode).collect(Collectors.toList());
         List<BWoExportUtilVo> strategy_2 = exportDataList.stream().map(item -> new BWoExportUtilVo(item.getCode(), item.getSku_code())).collect(Collectors.toList());
 
         // 写sheet的时候注册相应的自定义合并单元格策略
-        WriteSheet writeSheet = EasyExcel.writerSheet("采购合同").head(PoContractExportVo.class)
+        WriteSheet writeSheet = EasyExcel.writerSheet("采购合同").head(BPoContractExportVo.class)
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 0))
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 1))
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 2))
@@ -229,12 +229,12 @@ public class BPoContractController extends SystemBaseController {
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 36))
                 .registerWriteHandler(new CustomMergeStrategy(strategy_1, 37))
                 .build();
-        new EasyExcelUtil<>(PoContractExportVo.class).exportExcel("采购合同" + DateTimeUtil.getDate(), exportDataList, response, writeSheet);
+        new EasyExcelUtil<>(BPoContractExportVo.class).exportExcel("采购合同" + DateTimeUtil.getDate(), exportDataList, response, writeSheet);
     }
 
     @SysLogAnnotion("采购合同数据导入")
     @PostMapping("/import")
-    public ResponseEntity<JsonResultAo<Object>> importData(@RequestBody(required = false) PoContractImportVo vo, HttpServletResponse response) throws Exception {
+    public ResponseEntity<JsonResultAo<Object>> importData(@RequestBody(required = false) BPoContractImportVo vo, HttpServletResponse response) throws Exception {
         SPagesVo sPagesVo = new SPagesVo();
         sPagesVo.setCode(vo.getPage_code());
         SPagesVo pagesVo = isPagesService.get(sPagesVo);
@@ -257,7 +257,7 @@ public class BPoContractController extends SystemBaseController {
             String json = pagesVo.getImport_json();
 
             SystemExcelReader pr = super.downloadExcelAndImportData(vo.getUrl(), json);
-            List<PoContractImportVo> beans = pr.readBeans(PoContractImportVo.class);
+            List<BPoContractImportVo> beans = pr.readBeans(BPoContractImportVo.class);
 
             if (pr.isDataValid()) {
                 pr.closeAll();
@@ -267,7 +267,7 @@ public class BPoContractController extends SystemBaseController {
                     throw new BusinessException("导入失败,导入文件无数据");
                 }
                 // 读取没有错误，开始插入
-                List<PoContractImportVo> mEnterpriseVos = service.importData(beans);
+                List<BPoContractImportVo> mEnterpriseVos = service.importData(beans);
 
                 isPagesService.updateImportProcessingFalse(pagesVo);
 
@@ -277,7 +277,7 @@ public class BPoContractController extends SystemBaseController {
             } else {
                 // 读取失败，需要返回错误
                 File rtnFile = pr.getValidateResultsInFile(pr.getFileName());
-                PoContractImportVo errorInfo = super.uploadFile(rtnFile.getAbsolutePath(), PoContractImportVo.class);
+                BPoContractImportVo errorInfo = super.uploadFile(rtnFile.getAbsolutePath(), BPoContractImportVo.class);
                 pr.closeAll();
 
                 isPagesService.updateImportProcessingFalse(pagesVo);

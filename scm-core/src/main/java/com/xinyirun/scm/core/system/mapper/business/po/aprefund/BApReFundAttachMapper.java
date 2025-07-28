@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.po.aprefund;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.aprefund.BApReFundAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.aprefund.BApReFundAttachEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.aprefund.BApReFundAttachVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

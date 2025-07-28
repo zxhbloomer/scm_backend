@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.todo;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.todo.BTodoEntity;
+import com.xinyirun.scm.bean.entity.business.todo.BTodoEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.bo.session.user.system.UserSessionBo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;

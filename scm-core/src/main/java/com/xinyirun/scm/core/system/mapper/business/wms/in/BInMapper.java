@@ -9,8 +9,8 @@ import org.apache.ibatis.annotations.Select;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.wms.in.BInEntity;
-import com.xinyirun.scm.bean.system.vo.wms.in.BInVo;
+import com.xinyirun.scm.bean.entity.business.wms.in.BInEntity;
+import com.xinyirun.scm.bean.system.vo.business.wms.in.BInVo;
 
 /**
  * <p>

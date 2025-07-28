@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.alarm;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmStaffEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmStaffEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffVo;

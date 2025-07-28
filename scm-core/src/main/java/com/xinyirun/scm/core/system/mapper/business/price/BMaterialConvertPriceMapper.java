@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.price;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.price.BMaterialConvertPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BMaterialConvertPriceEntity;
 import org.springframework.stereotype.Repository;
 
 /**

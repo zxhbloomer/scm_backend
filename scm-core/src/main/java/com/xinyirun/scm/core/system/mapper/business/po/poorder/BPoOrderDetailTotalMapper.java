@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.po.poorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderDetailTotalEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderDetailTotalEntity;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

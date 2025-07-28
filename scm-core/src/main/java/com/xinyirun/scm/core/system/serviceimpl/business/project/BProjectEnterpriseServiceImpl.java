@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.project;
 
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.project.BProjectEnterpriseEntity;
+import com.xinyirun.scm.bean.entity.business.project.BProjectEnterpriseEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;

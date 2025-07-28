@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v2;
 import cn.hutool.core.net.url.UrlBuilder;
 import com.xinyirun.scm.bean.api.vo.sync.ApiBMaterialPriceVo;
 import com.xinyirun.scm.bean.api.vo.sync.ApiMaterialPriceSyncVo;
-import com.xinyirun.scm.bean.entity.busniess.price.BMaterialPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BMaterialPriceEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SAppConfigEntity;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.core.system.mapper.sys.schedule.v2.SBMaterialPriceV2Mappper;

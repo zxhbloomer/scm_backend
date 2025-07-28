@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.wms.warehouse.relation;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.relation.BWarehouseRelationEntity;
+import com.xinyirun.scm.bean.entity.business.wms.warehouse.relation.BWarehouseRelationEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.BWarehouseRelationDataVo;

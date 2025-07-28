@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.cancel;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.cancel.BCancelEntity;
+import com.xinyirun.scm.bean.entity.business.cancel.BCancelEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.vo.business.cancel.BCancelVo;
 

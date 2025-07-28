@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.system.serviceimpl.base.v1.common.inventory;
 
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.in.BInEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustDetailEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustEntity;
+import com.xinyirun.scm.bean.entity.business.wms.in.BInEntity;
+import com.xinyirun.scm.bean.entity.business.wms.out.BOutEntity;
 import com.xinyirun.scm.bean.entity.master.customer.MCustomerEntity;
 import com.xinyirun.scm.bean.entity.master.customer.MOwnerEntity;
 import com.xinyirun.scm.bean.entity.master.goods.MGoodsSpecEntity;
@@ -672,7 +672,7 @@ public class CommonInventoryLogicServiceImpl  extends BaseServiceImpl<MInventory
 
             for ( MInventoryEntity entity : mInventoryEntities) {
                 // 判断是否已审核
-                if ("0".equals(outBo.getBOutEntity().getE_opinion())) {
+                if ("0".equals(outBo.getBOutEntity().getStatus())) {
                     // 已审核，增加可用库存
                     if (null == entity) {
                         entity = new MInventoryEntity();
@@ -709,7 +709,7 @@ public class CommonInventoryLogicServiceImpl  extends BaseServiceImpl<MInventory
                     // 生成库存流水
 //                    saveInventoryAccount(outBo, entity);
 
-                    if (null == outBo.getBOutEntity().getE_opinion()) {
+                    if (null == outBo.getBOutEntity().getStatus()) {
                         // 已提交，释放锁定库存 增加可用库存
                         // 锁定库存释放
                         entity.setQty_lock(entity.getQty_lock().subtract(outBo.getCalculate_count()));
@@ -1504,9 +1504,9 @@ public class CommonInventoryLogicServiceImpl  extends BaseServiceImpl<MInventory
             throw new InventoryBusinessException(InventoryResultEnum.BILL_OUT_DATA_IS_NOT_EXISTS);
         }
         // check inventory_account_id是否为空，暂不考虑该id在数据库是否存在
-        if(entity.getInventory_account_id() != null){
-            throw new InventoryBusinessException(InventoryResultEnum.BILL_OUT_DATA_IS_READY_RUN);
-        }
+//        if(entity.getInventory_account_id() != null){
+//            throw new InventoryBusinessException(InventoryResultEnum.BILL_OUT_DATA_IS_READY_RUN);
+//        }
 
         StockOutBo outBo = StockOutBo.builder()
                 .dt(entity.getU_time())
@@ -1515,7 +1515,7 @@ public class CommonInventoryLogicServiceImpl  extends BaseServiceImpl<MInventory
                 .count(entity.getActual_weight())
                 .serial_type(SerialType.BILL_BUSINESS_OUT)
                 .serial_id(entity.getId())
-                .consignor_id(entity.getConsignor_id())
+                .consignor_id(entity.getConsignee_id())
                 .owner_id(entity.getOwner_id())
                 .inventoryTypeEnum(InventoryTypeEnum.OUT)
                 .bOutEntity(entity)

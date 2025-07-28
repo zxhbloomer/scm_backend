@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.api.vo.business.in;
 
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

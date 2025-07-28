@@ -603,7 +603,7 @@ public interface MInventoryMapper extends BaseMapper<MInventoryEntity> {
             +  "    	FROM                                                                                                                    "
             +  "    		b_out t1                                                                                                            "
             +  "    	WHERE                                                                                                                   "
-            +  "    		t1.STATUS IN ( '"+ DictConstant.DICT_B_OUT_STATUS_SUBMITTED +"', '"+ DictConstant.DICT_B_OUT_STATUS_PASSED +"')     "
+//            +  "    		t1.STATUS IN ( '"+ DictConstant.DICT_B_OUT_STATUS_SUBMITTED +"', '"+ DictConstant.DICT_B_OUT_STATUS_PASSED +"')     "
             +  "    	GROUP BY                                                                                                                "
             +  "    		t1.warehouse_id,                                                                                                    "
             +  "    		t1.owner_id,                                                                                                        "

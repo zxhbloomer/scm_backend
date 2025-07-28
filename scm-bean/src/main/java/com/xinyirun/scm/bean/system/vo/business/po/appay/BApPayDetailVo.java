@@ -142,4 +142,9 @@ public class BApPayDetailVo implements Serializable {
      * 作废金额
      */
     private BigDecimal cancel_amount;
+
+    /**
+     * 备注
+     */
+    private String remark;
 } 

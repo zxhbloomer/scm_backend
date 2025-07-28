@@ -4,8 +4,8 @@ package com.xinyirun.scm.core.system.serviceimpl.log.datachange.business.pocontr
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractAttachEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractEntity;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.system.vo.mongo.log.SLogDataChangeDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogDetailVo;

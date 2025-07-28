@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.inventory;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryEntity;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import com.xinyirun.scm.bean.system.vo.excel.query.MDailyInventoryExportVo;

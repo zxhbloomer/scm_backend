@@ -1,11 +1,10 @@
 package com.xinyirun.scm.core.system.mapper.business.monitor;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BContainerInfoEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BContainerInfoEntity;
 import com.xinyirun.scm.bean.system.vo.business.monitor.BContainerInfoVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.alarm;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmGroupStaffEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmGroupStaffEntity;
 import org.springframework.stereotype.Repository;
 
 /**

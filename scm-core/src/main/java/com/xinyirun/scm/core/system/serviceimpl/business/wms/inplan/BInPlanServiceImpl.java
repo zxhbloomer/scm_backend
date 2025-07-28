@@ -4,9 +4,9 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanAttachEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.inplan.BInPlanEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanAttachEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanDetailEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inplan.BInPlanEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
@@ -19,9 +19,9 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanAttachVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanAttachVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
@@ -180,7 +180,7 @@ public class BInPlanServiceImpl extends BaseServiceImpl<BInPlanMapper, BInPlanEn
                 bInPlanDetailEntity.setCode(bInPlanDetailAutoCodeService.autoCode().getCode());
                 
                 // 如果入库计划类型是采购入库，设置 serial 相关字段
-                if (DictConstant.DICT_B_IN_PLAN_TYPE_CG.equals(bInPlanVo.getType())) {
+                if (DictConstant.DICT_B_IN_PLAN_TYPE_ZERO.equals(bInPlanVo.getType())) {
                     bInPlanDetailEntity.setSerial_id(detailVo.getOrder_id());
                     bInPlanDetailEntity.setSerial_code(detailVo.getOrder_code());
                     bInPlanDetailEntity.setSerial_type(DictConstant.DICT_B_IN_PLAN_TYPE);

@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.mapper.sys.schedule.v2;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.api.vo.sync.ApiScheduleVo;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyAveragePriceEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyAveragePriceEntity;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.wms.inventory;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryWorkEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryWorkEntity;
 
 /**
  * <p>

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.sync;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.sync.BSyncStatusErrorEntity;
+import com.xinyirun.scm.bean.entity.business.sync.BSyncStatusErrorEntity;
 import org.springframework.stereotype.Repository;
 
 /**

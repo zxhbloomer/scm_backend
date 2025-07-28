@@ -3,8 +3,8 @@ package com.xinyirun.scm.core.system.serviceimpl.log.datachange.business.project
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
-import com.xinyirun.scm.bean.entity.busniess.project.BProjectGoodsEntity;
-import com.xinyirun.scm.bean.entity.busniess.project.BProjectEntity;
+import com.xinyirun.scm.bean.entity.business.project.BProjectGoodsEntity;
+import com.xinyirun.scm.bean.entity.business.project.BProjectEntity;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.system.vo.mongo.log.SLogDataChangeDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogDetailVo;

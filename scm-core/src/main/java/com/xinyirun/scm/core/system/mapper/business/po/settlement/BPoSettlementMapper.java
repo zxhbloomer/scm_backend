@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.po.settlement;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.settlement.BPoSettlementEntity;
+import com.xinyirun.scm.bean.entity.business.po.settlement.BPoSettlementEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.settlement.BPoSettlementVo;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoSettlementDetailListTypeHandler;
 import org.apache.ibatis.annotations.*;

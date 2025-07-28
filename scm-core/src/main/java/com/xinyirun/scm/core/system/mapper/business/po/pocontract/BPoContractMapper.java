@@ -3,8 +3,8 @@ package com.xinyirun.scm.core.system.mapper.business.po.pocontract;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoContractDetailListTypeHandler;
 import org.apache.ibatis.annotations.Param;
@@ -123,7 +123,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoContractDetailListTypeHandler.class),
     })
-    IPage<PoContractVo> selectPage(Page<PoContractVo> page, @Param("p1") PoContractVo searchCondition);
+    IPage<BPoContractVo> selectPage(Page<BPoContractVo> page, @Param("p1") BPoContractVo searchCondition);
 
 
     /**
@@ -172,7 +172,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             """)    @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoContractDetailListTypeHandler.class),
     })
-    PoContractVo selectId(@Param("p1") Integer id);
+    BPoContractVo selectId(@Param("p1") Integer id);
 
     /**
      * 查询合计信息
@@ -237,7 +237,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
 
               </script>
             """)
-    PoContractVo querySum(@Param("p1") PoContractVo searchCondition);
+    BPoContractVo querySum(@Param("p1") BPoContractVo searchCondition);
 
     /**
      * 校验合同编号是否重复
@@ -247,7 +247,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
             and contract_code = #{p1.contract_code}
             """)
-    List<PoContractVo> validateDuplicateContractCode(@Param("p1")PoContractVo bean);
+    List<BPoContractVo> validateDuplicateContractCode(@Param("p1") BPoContractVo bean);
 
 
     /**
@@ -315,7 +315,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
     })
-    List<PoContractVo> selectExportList(@Param("p1")PoContractVo param);
+    List<BPoContractVo> selectExportList(@Param("p1") BPoContractVo param);
 
     @Select("""
             SELECT
@@ -327,7 +327,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
             	 AND (tab1.contract_code = #{p1.contract_code} or #{p1.contract_code} is null or #{p1.contract_code} = '')
             """)
-    Long selectExportCount(@Param("p1")PoContractVo param);
+    Long selectExportCount(@Param("p1") BPoContractVo param);
 
     /**
      * 根据code查询采购合同
@@ -335,7 +335,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
     @Select("""
             select * from b_po_contract where code = #{code} and is_del = false
             """)
-    PoContractVo selectByCode(@Param("code") String code);
+    BPoContractVo selectByCode(@Param("code") String code);
 
     /**
      * 根据code查询采购合同
@@ -343,6 +343,6 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
     @Select("""
             select * from b_po_contract where contract_code = #{contract_code} and is_del = false
             """)
-    PoContractVo selectByContractCode(@Param("contract_code") String contract_code);
+    BPoContractVo selectByContractCode(@Param("contract_code") String contract_code);
 
 }

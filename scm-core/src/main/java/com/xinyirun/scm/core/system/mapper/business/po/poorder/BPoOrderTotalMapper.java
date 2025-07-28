@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.system.mapper.business.po.poorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderTotalEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderTotalEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderTotalVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -41,7 +41,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
             "  LEFT JOIN b_po_order t3 ON t3.code = t2.po_order_code " +
             "WHERE TRUE " +
             "  AND t1.ap_id = #{apId}")
-    PoOrderVo getPoOrderTotalByApId(@Param("apId") Integer apId);
+    BPoOrderVo getPoOrderTotalByApId(@Param("apId") Integer apId);
 
     /**
      * 批量更新采购订单总计数据

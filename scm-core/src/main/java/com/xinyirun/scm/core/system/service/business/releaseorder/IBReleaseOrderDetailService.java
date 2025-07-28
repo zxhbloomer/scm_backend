@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.releaseorder;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.releaseorder.BReleaseOrderDetailEntity;
+import com.xinyirun.scm.bean.entity.business.releaseorder.BReleaseOrderDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.releaseorder.BReleaseOrderDetailVo;
 
 import java.util.List;

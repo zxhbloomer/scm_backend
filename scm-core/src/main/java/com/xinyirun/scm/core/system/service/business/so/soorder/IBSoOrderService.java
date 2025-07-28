@@ -2,123 +2,166 @@ package com.xinyirun.scm.core.system.service.business.so.soorder;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderEntity;
+import com.xinyirun.scm.bean.entity.business.so.soorder.BSoOrderEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.BSoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.BSoOrderVo;
 
 import java.util.List;
 
 /**
  * <p>
- * 采购订单表 服务类
+ * 销售订单表 服务类
  * </p>
  *
  * @author xinyirun
- * @since 2025-02-10
+ * @since 2025-07-23
  */
 public interface IBSoOrderService extends IService<BSoOrderEntity> {
 
     /**
-     * 获取采购订单信息
+     * 获取销售订单信息
      */
-    SoOrderVo selectById(Integer id);
+    BSoOrderVo selectById(Integer id);
 
     /**
-     * 采购订单  新增
+     * 销售订单  新增
      */
-    InsertResultAo<SoOrderVo> startInsert(SoOrderVo searchCondition);
+    InsertResultAo<BSoOrderVo> startInsert(BSoOrderVo searchCondition);
 
     /**
-     * 采购订单校验
+     * 销售订单校验
      */
-    CheckResultAo checkLogic(SoOrderVo searchCondition, String checkType);
+    CheckResultAo checkLogic(BSoOrderVo searchCondition, String checkType);
 
     /**
      * 分页查询
      */
-    IPage<SoOrderVo> selectPage(SoOrderVo searchCondition);
+    IPage<BSoOrderVo> selectPage(BSoOrderVo searchCondition);
 
     /**
-     * 采购订单 统计
+     * 按应收退款条件分页查询
      */
-    SoOrderVo querySum(SoOrderVo searchCondition);
+    IPage<BSoOrderVo> selectPageByArrefund(BSoOrderVo searchCondition);
 
     /**
-     * 更新采购合同信息
+     * 销售订单 统计
      */
-    UpdateResultAo<Integer> startUpdate(SoOrderVo searchCondition);
+    BSoOrderVo querySum(BSoOrderVo searchCondition);
+
+    /**
+     * 按应收退款条件汇总查询
+     */
+    BSoOrderVo querySumByArrefund(BSoOrderVo searchCondition);
+
+    /**
+     * 更新销售合同信息
+     */
+    UpdateResultAo<Integer> startUpdate(BSoOrderVo searchCondition);
 
     /**
      * 审批流程回调
      */
-    UpdateResultAo<Integer> bpmCallBackCreateBpm(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackCreateBpm(BSoOrderVo searchCondition);
+
 
     /**
      *  审批流程通过 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCallBackApprove(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackApprove(BSoOrderVo searchCondition);
 
     /**
      *  审批流程拒绝 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCallBackRefuse(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackRefuse(BSoOrderVo searchCondition);
 
     /**
      *  审批流程撤销 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCallBackCancel(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackCancel(BSoOrderVo searchCondition);
 
     /**
      *  企业管理审批流程回调
      *  审批流程撤销 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCallBackSave(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCallBackSave(BSoOrderVo searchCondition);
 
     /**
-     * 删除采购订单信息
+     * 删除销售订单信息
      */
-    DeleteResultAo<Integer> delete(List<SoOrderVo> searchCondition);
+    DeleteResultAo<Integer> delete(List<BSoOrderVo> searchCondition);
 
     /**
      * 获取报表系统参数，并组装打印参数
      */
-    SoOrderVo getPrintInfo(SoOrderVo searchCondition);
+    BSoOrderVo getPrintInfo(BSoOrderVo searchCondition);
 
     /**
-     * 报表导出
+     * 导出查询
      */
-    List<SoOrderVo> selectExportList(SoOrderVo param);
+    List<BSoOrderVo> selectExportList(BSoOrderVo param);
+
 
     /**
      * 作废审批流程摘要
      */
-    UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BSoOrderVo searchCondition);
 
     /**
      *  作废审批流程通过 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCancelCallBackApprove(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackApprove(BSoOrderVo searchCondition);
 
     /**
      *  作废审批流程拒绝 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCancelCallBackRefuse(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackRefuse(BSoOrderVo searchCondition);
 
     /**
      *  作废审批流程撤销 更新审核状态驳回
      */
-    UpdateResultAo<Integer> bpmCancelCallBackCancel(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackCancel(BSoOrderVo searchCondition);
 
     /**
      *  作废审批流程撤销 更新审核状态通过
      */
-    UpdateResultAo<Integer> bpmCancelCallBackSave(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> bpmCancelCallBackSave(BSoOrderVo searchCondition);
 
     /**
      * 作废
      */
-    UpdateResultAo<Integer> cancel(SoOrderVo searchCondition);
+    UpdateResultAo<Integer> cancel(BSoOrderVo searchCondition);
+
+    /**
+     * 完成
+     */
+    UpdateResultAo<Integer> finish(BSoOrderVo searchCondition);
+
+    /**
+     * 分页查询包含结算信息
+     */
+    IPage<BSoOrderVo> selectOrderListWithSettlePage(BSoOrderVo searchCondition);
+
+    /**
+     * 销售订单结算信息统计
+     */
+    BSoOrderVo queryOrderListWithSettlePageSum(BSoOrderVo searchCondition);
+
+    /**
+     * 货权转移专用-分页查询销售订单信息
+     */
+    IPage<BSoOrderVo> selectOrderListForCargoRightTransferPage(BSoOrderVo searchCondition);
+
+    /**
+     * 货权转移专用-销售订单统计
+     */
+    BSoOrderVo queryOrderListForCargoRightTransferPageSum(BSoOrderVo searchCondition);
+
+    /**
+     * 货权转移专用-获取销售订单明细数据
+     */
+    List<BSoOrderDetailVo> selectDetailData(BSoOrderVo searchCondition);
 }

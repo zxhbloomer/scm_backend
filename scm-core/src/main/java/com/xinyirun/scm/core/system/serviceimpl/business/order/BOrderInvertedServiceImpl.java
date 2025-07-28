@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.order;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.order.BOrderInvertedEntity;
+import com.xinyirun.scm.bean.entity.business.order.BOrderInvertedEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedExportVo;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedVo;

@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.system.serviceimpl.business.allocate;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.allocate.BAllocateVo;
@@ -15,7 +15,7 @@ import com.xinyirun.scm.core.system.mapper.business.allocate.BAllocateDetailMapp
 import com.xinyirun.scm.core.system.mapper.business.allocate.BAllocateMapper;
 import com.xinyirun.scm.core.system.service.business.allocate.IBAllocateService;
 import com.xinyirun.scm.core.system.service.business.wms.inplan.IBInPlanDetailService;
-import com.xinyirun.scm.core.system.service.business.wms.out.IBOutPlanDetailService;
+import com.xinyirun.scm.core.system.service.business.wms.outplan.IBOutPlanDetailService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.business.todo.TodoService;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;

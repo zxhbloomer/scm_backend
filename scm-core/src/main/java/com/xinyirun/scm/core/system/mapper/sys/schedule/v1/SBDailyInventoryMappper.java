@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.sys.schedule.v1;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryEntity;
 import com.xinyirun.scm.bean.system.bo.inventory.daily.BDailyInventoryWorkBo;
 import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Repository;

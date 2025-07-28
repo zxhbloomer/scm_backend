@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.track.bestfriend;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.track.BTrackGsh56Entity;
+import com.xinyirun.scm.bean.entity.business.track.BTrackGsh56Entity;
 import com.xinyirun.scm.bean.system.vo.business.track.BStartAndEndTimeVo;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackApiSinoiovVo;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackVo;

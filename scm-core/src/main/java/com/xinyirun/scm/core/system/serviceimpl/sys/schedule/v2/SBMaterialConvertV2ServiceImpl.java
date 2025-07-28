@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v2;
 
 import com.alibaba.fastjson2.JSON;
-import com.xinyirun.scm.bean.entity.busniess.materialconvert.BMaterialConvertEntity;
+import com.xinyirun.scm.bean.entity.business.materialconvert.BMaterialConvertEntity;
 import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.entity.master.warehouse.MBinEntity;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustDetailVo;
@@ -10,7 +10,6 @@ import com.xinyirun.scm.bean.system.vo.business.materialconvert.BConvertRecordVo
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
-import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.system.mapper.business.materialconvert.BMaterialConvertMapper;

@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.schedule;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.schedule.BScheduleEntity;
+import com.xinyirun.scm.bean.entity.business.schedule.BScheduleEntity;
 import com.xinyirun.scm.bean.system.vo.business.schedule.BScheduleSumVo;
 import com.xinyirun.scm.bean.system.vo.business.schedule.BScheduleVo;
 import com.xinyirun.scm.bean.system.vo.excel.schedule.BScheduleExcelVo;

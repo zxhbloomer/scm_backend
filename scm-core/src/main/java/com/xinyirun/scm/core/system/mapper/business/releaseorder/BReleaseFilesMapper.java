@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.releaseorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.releaseorder.BReleaseFilesEntity;
+import com.xinyirun.scm.bean.entity.business.releaseorder.BReleaseFilesEntity;
 import org.springframework.stereotype.Repository;
 
 /**

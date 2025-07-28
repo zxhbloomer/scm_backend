@@ -50,10 +50,19 @@ public class PageCodeConstant {
     /**应付退款管理表 */
     public static final String PAGE_B_AP_REFUND = "P00000180";
 
+    /**应收账款管理表 */
+    public static final String PAGE_B_AR = "待设置";   
+    
+    /**应收退款管理表 */
+    public static final String PAGE_B_AR_REFUND = "待设置";
+
     /**项目管理 */
     public static final String PAGE_B_PROJECT = "P00000170";
 
-    /**货权转移 */
+    /**采购货权转移 */
     public static final String PAGE_B_PO_CARGO_RIGHT_TRANSFER = "P00000185";
+
+    /**销售货权转移 */
+    public static final String PAGE_B_SO_CARGO_RIGHT_TRANSFER = "P00000186";
 
 }

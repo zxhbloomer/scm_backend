@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.promeg.pinyinhelper.Pinyin;
 import com.xinyirun.scm.bean.app.ao.result.AppCheckResultAo;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.entity.master.customer.MCustomerEntity;
 import com.xinyirun.scm.bean.entity.master.customer.MCustomerInfoEntity;
 import com.xinyirun.scm.bean.entity.master.customer.MCustomerTypeEntity;

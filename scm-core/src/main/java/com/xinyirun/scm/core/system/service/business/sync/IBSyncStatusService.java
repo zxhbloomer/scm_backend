@@ -1,9 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.sync;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.sync.BSyncStatusEntity;
-import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
-import com.xinyirun.scm.bean.system.vo.business.sync.BSyncStatusVo;
+import com.xinyirun.scm.bean.entity.business.sync.BSyncStatusEntity;
 
 /**
  * <p>

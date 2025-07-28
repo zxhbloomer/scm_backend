@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.mongobackup.monitor.v2;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.returnrelation.BReturnRelationEntity;
+import com.xinyirun.scm.bean.entity.business.returnrelation.BReturnRelationEntity;
 import com.xinyirun.scm.bean.entity.mongo2mysql.monitor.v2.BReturnRelationRestoreV2Entity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 import org.apache.ibatis.annotations.Delete;

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.releaseorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.releaseorder.BReleaseOrderDetailEntity;
+import com.xinyirun.scm.bean.entity.business.releaseorder.BReleaseOrderDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.releaseorder.BReleaseOrderDetailVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Select;

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.index;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.index.BPlanIndexEntity;
+import com.xinyirun.scm.bean.entity.business.index.BPlanIndexEntity;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

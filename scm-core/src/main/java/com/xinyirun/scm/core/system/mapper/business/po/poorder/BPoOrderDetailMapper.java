@@ -1,8 +1,8 @@
 package com.xinyirun.scm.core.system.mapper.business.po.poorder;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderDetailEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderDetailEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderDetailVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
@@ -24,6 +24,6 @@ public interface BPoOrderDetailMapper extends BaseMapper<BPoOrderDetailEntity> {
      * @return 订单明细合计VO
      */
     @Select("SELECT SUM(amount) AS amount, SUM(tax_amount) AS tax_amount, SUM(qty) AS qty FROM b_po_order_detail WHERE po_order_id = #{po_order_id}")
-    PoOrderDetailVo getSumAmount(@Param("po_order_id") Integer po_order_id);
+    BPoOrderDetailVo getSumAmount(@Param("po_order_id") Integer po_order_id);
 
 }

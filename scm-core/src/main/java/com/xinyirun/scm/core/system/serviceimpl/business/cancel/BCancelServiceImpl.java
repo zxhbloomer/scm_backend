@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.cancel;
 
 
-import com.xinyirun.scm.bean.entity.busniess.cancel.BCancelEntity;
+import com.xinyirun.scm.bean.entity.business.cancel.BCancelEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.cancel.BCancelVo;

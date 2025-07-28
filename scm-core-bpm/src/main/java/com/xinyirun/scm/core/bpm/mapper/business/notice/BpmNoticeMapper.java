@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.bpm.mapper.business.notice;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.notice.BNoticeEntity;
+import com.xinyirun.scm.bean.entity.business.notice.BNoticeEntity;
 import org.springframework.stereotype.Repository;
 
 /**

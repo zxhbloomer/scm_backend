@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.ownerchange;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.ownerchange.BOwnerChangeDetailEntity;
+import com.xinyirun.scm.bean.entity.business.ownerchange.BOwnerChangeDetailEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.vo.business.ownerchange.BOwnerChangeVo;

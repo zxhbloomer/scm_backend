@@ -1,6 +1,6 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v2;
 
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.system.bo.business.alarm.BAlarmRulesBo;
 import com.xinyirun.scm.bean.system.bo.business.message.BMessageBo;
 import com.xinyirun.scm.common.constant.DictConstant;

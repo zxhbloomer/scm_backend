@@ -1,7 +1,5 @@
 package com.xinyirun.scm.bean.system.vo.business.po.ap;
 
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -67,12 +65,12 @@ public class BApSourceAdvanceVo implements Serializable {
     /**
      * 总数量
      */
-    private BigDecimal qty_total;
+    private BigDecimal po_qty;
 
     /**
      * 总金额
      */
-    private BigDecimal amount_total;
+    private BigDecimal po_amount;
 
     /**
      * 累计预付款金额

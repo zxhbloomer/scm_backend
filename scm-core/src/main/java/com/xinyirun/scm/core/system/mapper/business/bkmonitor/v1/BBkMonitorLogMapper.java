@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.bkmonitor.v1;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.bkmonitor.BBkMonitorLogEntity;
+import com.xinyirun.scm.bean.entity.business.bkmonitor.BBkMonitorLogEntity;
 import org.springframework.stereotype.Repository;
 
 /**

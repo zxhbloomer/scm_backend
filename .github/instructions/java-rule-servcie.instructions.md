@@ -108,10 +108,11 @@ XxxVo querySum(XxxVo searchCondition);
 ```
 
 ### 接口导入依赖
+
 ```java
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.xxx.XxxEntity;
+import com.xinyirun.scm.bean.entity.business.xxx.XxxEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
@@ -120,7 +121,7 @@ import com.xinyirun.scm.bean.system.vo.business.xxx.XxxVo;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
 
-import java.util.List;
+
 ```
 
 ## Service 实现类 (XxxServiceImpl) 规范
@@ -389,13 +390,14 @@ private ISConfigService isConfigService;
 ```
 
 ### 导入依赖
+
 ```java
 import cn.hutool.core.collection.CollectionUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.xxx.*;
+import com.xinyirun.scm.bean.entity.business.xxx.*;
 import com.xinyirun.scm.bean.system.ao.result.*;
 import com.xinyirun.scm.bean.system.result.utils.v1.*;
 import com.xinyirun.scm.bean.system.vo.business.xxx.*;
@@ -415,10 +417,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+
 ```
 
 ### 通用规范
@@ -534,7 +533,7 @@ XxxVo querySum(XxxVo searchCondition);
 ```java
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.xxx.XxxEntity;
+import com.xinyirun.scm.bean.entity.business.xxx.XxxEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
@@ -543,7 +542,7 @@ import com.xinyirun.scm.bean.system.vo.business.xxx.XxxVo;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
 
-import java.util.List;
+
 ```
 
 ```java
@@ -790,7 +789,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.xxx.*;
+import com.xinyirun.scm.bean.entity.business.xxx.*;
 import com.xinyirun.scm.bean.system.ao.result.*;
 import com.xinyirun.scm.bean.system.result.utils.v1.*;
 import com.xinyirun.scm.bean.system.vo.business.xxx.*;
@@ -810,9 +809,5 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 ```
 

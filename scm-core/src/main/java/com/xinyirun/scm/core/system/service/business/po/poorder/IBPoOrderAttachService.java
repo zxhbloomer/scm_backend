@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.po.poorder;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderAttachEntity;
 
 /**
  * <p>

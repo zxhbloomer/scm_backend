@@ -2,14 +2,9 @@ package com.xinyirun.scm.core.system.service.business.order;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.order.BOrderEntity;
+import com.xinyirun.scm.bean.entity.business.order.BOrderEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
-import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedExportVo;
-import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedVo;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderVo;
-import org.apache.ibatis.annotations.Param;
-
-import java.util.List;
 
 public interface IBOrderService extends IService<BOrderEntity> {
     /**

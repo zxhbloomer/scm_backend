@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.order;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.order.BOrderInvertedEntity;
+import com.xinyirun.scm.bean.entity.business.order.BOrderInvertedEntity;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedExportVo;
 import com.xinyirun.scm.bean.system.vo.business.order.BOrderInvertedVo;
 import org.apache.ibatis.annotations.Param;

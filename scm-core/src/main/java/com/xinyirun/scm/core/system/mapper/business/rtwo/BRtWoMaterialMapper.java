@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.rtwo;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.rtwo.BRtWoMaterialEntity;
+import com.xinyirun.scm.bean.entity.business.rtwo.BRtWoMaterialEntity;
 import com.xinyirun.scm.bean.system.vo.business.rtwo.BRtWoMaterialVo;
 import com.xinyirun.scm.bean.system.vo.business.rtwo.BRtWoRouterMaterialVo;
 import org.apache.ibatis.annotations.Param;

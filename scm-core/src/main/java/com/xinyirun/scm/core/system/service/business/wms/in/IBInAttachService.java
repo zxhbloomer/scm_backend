@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.wms.in;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.wms.in.BInAttachEntity;
+import com.xinyirun.scm.bean.entity.business.wms.in.BInAttachEntity;
 
 /**
  * <p>

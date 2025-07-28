@@ -1,32 +1,27 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v5;
 
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
-import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.system.bo.business.alarm.BAlarmRulesBo;
 import com.xinyirun.scm.bean.system.bo.business.message.BMessageBo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.constant.WebSocketConstants;
-import com.xinyirun.scm.core.system.mapper.sys.schedule.v5.SBInventoryStagnationWarningBatchV5Mapper;
 import com.xinyirun.scm.core.system.mapper.sys.schedule.v5.SBMonitorLossWarningBatchV5Mapper;
 import com.xinyirun.scm.core.system.service.business.alarm.IBAlarmRulesService;
 import com.xinyirun.scm.core.system.service.business.message.IBMessageService;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.schedule.v5.ISBDMonitorLossWarningV5Service;
-import com.xinyirun.scm.core.system.service.sys.schedule.v5.ISInventoryStagnationWarningV5Service;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.utils.websocket.WebSocket2Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 

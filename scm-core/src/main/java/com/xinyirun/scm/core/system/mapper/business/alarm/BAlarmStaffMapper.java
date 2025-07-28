@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.alarm;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmStaffEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmStaffEntity;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffVo;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
 import org.apache.ibatis.annotations.Param;

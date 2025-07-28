@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.mongobackup.monitor.v2;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.returnrelation.BReturnRelationEntity;
+import com.xinyirun.scm.bean.entity.business.returnrelation.BReturnRelationEntity;
 import com.xinyirun.scm.bean.entity.mongo2mysql.monitor.v2.BReturnRelationRestoreV2Entity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 

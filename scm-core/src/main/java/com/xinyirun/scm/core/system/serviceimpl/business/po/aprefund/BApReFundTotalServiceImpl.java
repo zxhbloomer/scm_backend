@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.po.aprefund;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.po.aprefund.BApReFundTotalEntity;
+import com.xinyirun.scm.bean.entity.business.po.aprefund.BApReFundTotalEntity;
 import com.xinyirun.scm.core.system.mapper.business.po.aprefund.BApReFundTotalMapper;
 import com.xinyirun.scm.core.system.service.business.po.aprefund.IBApReFundTotalService;
 import org.springframework.stereotype.Service;

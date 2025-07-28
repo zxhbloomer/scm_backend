@@ -1,6 +1,6 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.sync;
 
-import com.xinyirun.scm.bean.entity.busniess.sync.BSyncStatusEntity;
+import com.xinyirun.scm.bean.entity.business.sync.BSyncStatusEntity;
 import com.xinyirun.scm.core.system.mapper.business.sync.BSyncStatusMapper;
 import com.xinyirun.scm.core.system.service.business.sync.IBSyncStatusService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;

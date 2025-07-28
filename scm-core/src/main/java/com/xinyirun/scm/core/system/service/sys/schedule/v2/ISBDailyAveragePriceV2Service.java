@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.sys.schedule.v2;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyAveragePriceEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyAveragePriceEntity;
 
 /**
  * <p>

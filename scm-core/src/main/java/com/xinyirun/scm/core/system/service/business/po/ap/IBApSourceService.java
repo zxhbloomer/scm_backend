@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.po.ap;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.ap.BApSourceEntity;
+import com.xinyirun.scm.bean.entity.business.po.ap.BApSourceEntity;
 
 /**
  * <p>

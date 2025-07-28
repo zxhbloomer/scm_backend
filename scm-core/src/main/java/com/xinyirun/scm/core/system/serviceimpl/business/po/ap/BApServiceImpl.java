@@ -6,9 +6,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.ap.*;
-import com.xinyirun.scm.bean.entity.busniess.po.appay.BApPayDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.appay.BApPayEntity;
+import com.xinyirun.scm.bean.entity.business.po.ap.*;
+import com.xinyirun.scm.bean.entity.business.po.appay.BApPayDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.appay.BApPayEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
@@ -1283,10 +1283,10 @@ public class BApServiceImpl extends ServiceImpl<BApMapper, BApEntity> implements
                 fileInfoMapper.insert(fileInfoEntity);
             }
             // 附件id
-            extra.setOneFile(fileEntity.getId());
+            extra.setOne_file(fileEntity.getId());
             fileEntity.setId(null);
         } else {
-            extra.setOneFile(null);
+            extra.setOne_file(null);
         }
         return extra;
     }

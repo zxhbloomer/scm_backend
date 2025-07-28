@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.check;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckOperateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckOperateDetailEntity;
 import com.xinyirun.scm.core.system.mapper.business.check.BCheckOperateDetailMapper;
 import com.xinyirun.scm.core.system.service.business.check.IBCheckOperateDetailService;
 import org.springframework.stereotype.Service;

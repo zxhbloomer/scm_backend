@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.po.pocontract;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractAttachEntity;
 import com.xinyirun.scm.core.system.mapper.business.po.pocontract.BPoContractAttachMapper;
 import com.xinyirun.scm.core.system.service.business.po.pocontract.IBPoContractAttachService;
 import org.springframework.stereotype.Service;

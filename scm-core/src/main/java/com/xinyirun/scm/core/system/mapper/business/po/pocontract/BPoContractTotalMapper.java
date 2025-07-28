@@ -1,9 +1,9 @@
 package com.xinyirun.scm.core.system.mapper.business.po.pocontract;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.pocontract.BPoContractTotalEntity;
+import com.xinyirun.scm.bean.entity.business.po.pocontract.BPoContractTotalEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractTotalVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -39,7 +39,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
             "  LEFT JOIN b_po_contract t3 ON t3.contract_code = t2.po_contract_code " +
             "WHERE TRUE " +
             "  AND t1.ap_id = #{apId}")
-    PoContractVo getPoContractTotalByApId(@Param("apId") Integer apId);    /**
+    BPoContractVo getPoContractTotalByApId(@Param("apId") Integer apId);    /**
      * 更新采购合同预付款汇总数据（优化版）
      * 根据合同ID汇总其下所有采购订单的预付款数据到合同级别
      * 使用一次JOIN子查询汇总所有字段，避免多次重复查询

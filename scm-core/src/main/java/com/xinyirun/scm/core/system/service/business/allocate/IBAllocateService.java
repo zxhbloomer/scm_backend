@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.allocate;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateEntity;
 import com.xinyirun.scm.bean.system.vo.business.allocate.BAllocateVo;
 
 import java.util.List;

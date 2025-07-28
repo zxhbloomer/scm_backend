@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.mapper.sys.schedule.v2;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.api.vo.sync.ApiBMaterialPriceVo;
-import com.xinyirun.scm.bean.entity.busniess.price.BMaterialPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BMaterialPriceEntity;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;

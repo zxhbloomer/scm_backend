@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.monitor;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BCarriageOrderEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BCarriageOrderEntity;
 import com.xinyirun.scm.bean.system.vo.business.carriage.BCarriageOrderExportVo;
 import com.xinyirun.scm.bean.system.vo.business.carriage.BCarriageOrderVo;
 import org.apache.ibatis.annotations.Param;

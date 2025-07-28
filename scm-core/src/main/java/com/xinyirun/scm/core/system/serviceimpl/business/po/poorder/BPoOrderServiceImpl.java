@@ -8,9 +8,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderAttachEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
@@ -25,10 +25,10 @@ import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.po.ap.BApVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderAttachVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderAttachVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
@@ -146,53 +146,53 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param id
      */
     @Override
-    public PoOrderVo selectById(Integer id) {
-        PoOrderVo poOrderVo = mapper.selectId(id);
+    public BPoOrderVo selectById(Integer id) {
+        BPoOrderVo BPoOrderVo = mapper.selectId(id);
 
         // 其他附件信息
-        List<SFileInfoVo> doc_att_files = isFileService.selectFileInfo(poOrderVo.getDoc_att_file());
-        poOrderVo.setDoc_att_files(doc_att_files);
+        List<SFileInfoVo> doc_att_files = isFileService.selectFileInfo(BPoOrderVo.getDoc_att_file());
+        BPoOrderVo.setDoc_att_files(doc_att_files);
 
         // 查询是否存在作废记录
-        if (DictConstant.DICT_B_PO_CONTRACT_STATUS_FOUR.equals(poOrderVo.getStatus()) || Objects.equals(poOrderVo.getStatus(), DictConstant.DICT_B_PO_CONTRACT_STATUS_FIVE)) {
+        if (DictConstant.DICT_B_PO_CONTRACT_STATUS_FOUR.equals(BPoOrderVo.getStatus()) || Objects.equals(BPoOrderVo.getStatus(), DictConstant.DICT_B_PO_CONTRACT_STATUS_FIVE)) {
             MCancelVo serialIdAndType = new MCancelVo();
-            serialIdAndType.setSerial_id(poOrderVo.getId());
+            serialIdAndType.setSerial_id(BPoOrderVo.getId());
             serialIdAndType.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_ORDER);
             MCancelVo mCancelVo = mCancelService.selectBySerialIdAndType(serialIdAndType);
             // 作废理由
-            poOrderVo.setCancel_reason(mCancelVo.getRemark());
+            BPoOrderVo.setCancel_reason(mCancelVo.getRemark());
             // 作废附件信息
             if (mCancelVo.getFile_id() != null) {
                 List<SFileInfoVo> cancel_doc_att_files = isFileService.selectFileInfo(mCancelVo.getFile_id());
-                poOrderVo.setCancel_doc_att_files(cancel_doc_att_files);
+                BPoOrderVo.setCancel_doc_att_files(cancel_doc_att_files);
             }
 
             // 通过表m_staff获取作废提交人名称
             MStaffVo searchCondition = new MStaffVo();
             searchCondition.setId(mCancelVo.getC_id());
-            poOrderVo.setCancel_name(mStaffMapper.selectByid(searchCondition).getName());
+            BPoOrderVo.setCancel_name(mStaffMapper.selectByid(searchCondition).getName());
 
             // 作废时间
-            poOrderVo.setCancel_time(mCancelVo.getC_time());
+            BPoOrderVo.setCancel_time(mCancelVo.getC_time());
         }
 
         // 查询是否存在项目信息
-        if (poOrderVo.getProject_code() != null) {
-            BProjectVo bProjectVo = bProjectMapper.selectCode(poOrderVo.getProject_code());
+        if (BPoOrderVo.getProject_code() != null) {
+            BProjectVo bProjectVo = bProjectMapper.selectCode(BPoOrderVo.getProject_code());
             List<SFileInfoVo> project_doc_att_files = isFileService.selectFileInfo(bProjectVo.getDoc_att_file());
             bProjectVo.setDoc_att_files(project_doc_att_files);
-            poOrderVo.setProject(bProjectVo);
+            BPoOrderVo.setProject(bProjectVo);
         }
 
         // 添加合同信息
-        if (poOrderVo.getPo_contract_id() != null) {
-            PoContractVo poContractVo = bPoContractMapper.selectId(poOrderVo.getPo_contract_id());
-            List<SFileInfoVo> contract_doc_att_files = isFileService.selectFileInfo(poContractVo.getDoc_att_file());
-            poContractVo.setDoc_att_files(contract_doc_att_files);
-            poOrderVo.setPo_contract(poContractVo);
+        if (BPoOrderVo.getPo_contract_id() != null) {
+            BPoContractVo BPoContractVo = bPoContractMapper.selectId(BPoOrderVo.getPo_contract_id());
+            List<SFileInfoVo> contract_doc_att_files = isFileService.selectFileInfo(BPoContractVo.getDoc_att_file());
+            BPoContractVo.setDoc_att_files(contract_doc_att_files);
+            BPoOrderVo.setPo_contract(BPoContractVo);
         }
 
-        return poOrderVo;
+        return BPoOrderVo;
     }
 
     /**
@@ -202,12 +202,12 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<PoOrderVo> startInsert(PoOrderVo searchCondition) {
+    public InsertResultAo<BPoOrderVo> startInsert(BPoOrderVo searchCondition) {
         // 1. 校验业务规则
         checkInsertLogic(searchCondition);
         
         // 2.保存采购订单
-        InsertResultAo<PoOrderVo> insertResultAo = insert(searchCondition);
+        InsertResultAo<BPoOrderVo> insertResultAo = insert(searchCondition);
 
         // 3.启动审批流程
         startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_ORDER);
@@ -218,25 +218,25 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * 新增采购订单主流程，分步骤调用各业务方法，便于维护和扩展
      */
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<PoOrderVo> insert(PoOrderVo poOrderVo) {
+    public InsertResultAo<BPoOrderVo> insert(BPoOrderVo BPoOrderVo) {
         // 1. 保存主表信息
-        BPoOrderEntity bPoOrderEntity = saveMainEntity(poOrderVo);
+        BPoOrderEntity bPoOrderEntity = saveMainEntity(BPoOrderVo);
         // 2. 保存明细信息
-        saveDetailList(poOrderVo, bPoOrderEntity);
+        saveDetailList(BPoOrderVo, bPoOrderEntity);
         // 3. 保存附件信息
-        saveAttach(poOrderVo, bPoOrderEntity);
+        saveAttach(BPoOrderVo, bPoOrderEntity);
         // 4. 设置返回ID
-        poOrderVo.setId(bPoOrderEntity.getId());
+        BPoOrderVo.setId(bPoOrderEntity.getId());
         // 5. 更新订单财务数据
         iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());
-        return InsertResultUtil.OK(poOrderVo);
+        return InsertResultUtil.OK(BPoOrderVo);
     }
 
     /**
      * 校验新增业务规则
      */
-    private void checkInsertLogic(PoOrderVo poOrderVo) {
-        CheckResultAo cr = checkLogic(poOrderVo, CheckResultAo.INSERT_CHECK_TYPE);
+    private void checkInsertLogic(BPoOrderVo BPoOrderVo) {
+        CheckResultAo cr = checkLogic(BPoOrderVo, CheckResultAo.INSERT_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
@@ -245,9 +245,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 保存主表信息
      */
-    private BPoOrderEntity saveMainEntity(PoOrderVo poOrderVo) {
+    private BPoOrderEntity saveMainEntity(BPoOrderVo BPoOrderVo) {
         BPoOrderEntity bPoOrderEntity = new BPoOrderEntity();
-        BeanUtils.copyProperties(poOrderVo, bPoOrderEntity);
+        BeanUtils.copyProperties(BPoOrderVo, bPoOrderEntity);
         bPoOrderEntity.setStatus(DictConstant.DICT_B_PO_ORDER_STATUS_ONE);
         bPoOrderEntity.setCode(bPoOrderAutoCodeService.autoCode().getCode());
         bPoOrderEntity.setIs_del(Boolean.FALSE);
@@ -263,9 +263,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 保存明细信息
      */
-    private void saveDetailList(PoOrderVo poOrderVo, BPoOrderEntity bPoOrderEntity) {
-        List<PoOrderDetailVo> detailListData = poOrderVo.getDetailListData();
-        for (PoOrderDetailVo detailListDatum : detailListData) {
+    private void saveDetailList(BPoOrderVo BPoOrderVo, BPoOrderEntity bPoOrderEntity) {
+        List<BPoOrderDetailVo> detailListData = BPoOrderVo.getDetailListData();
+        for (BPoOrderDetailVo detailListDatum : detailListData) {
             BPoOrderDetailEntity bPoOrderDetailEntity = new BPoOrderDetailEntity();
             BeanUtils.copyProperties(detailListDatum, bPoOrderDetailEntity);
             bPoOrderDetailEntity.setPo_order_id(bPoOrderEntity.getId());
@@ -279,11 +279,11 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 保存附件信息
      */
-    private void saveAttach(PoOrderVo poOrderVo, BPoOrderEntity bPoOrderEntity) {
+    private void saveAttach(BPoOrderVo BPoOrderVo, BPoOrderEntity bPoOrderEntity) {
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bPoOrderEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_ORDER);
-        BPoOrderAttachEntity bPoOrderAttachEntity = insertFile(fileEntity, poOrderVo, new BPoOrderAttachEntity());
+        BPoOrderAttachEntity bPoOrderAttachEntity = insertFile(fileEntity, BPoOrderVo, new BPoOrderAttachEntity());
         bPoOrderAttachEntity.setPo_order_id(bPoOrderEntity.getId());
         int insert = bPoOrderAttachMapper.insert(bPoOrderAttachEntity);
         if (insert == 0) {
@@ -333,7 +333,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
 //    }
 
     @Override
-    public CheckResultAo checkLogic(PoOrderVo searchCondition, String checkType) {
+    public CheckResultAo checkLogic(BPoOrderVo searchCondition, String checkType) {
         BPoOrderEntity bPoOrderEntity = null;
         switch (checkType) {
             case CheckResultAo.INSERT_CHECK_TYPE:
@@ -344,7 +344,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
                 // 商品重复校验
                 Map<String, Long> collect = searchCondition.getDetailListData()
                         .stream()
-                        .map(PoOrderDetailVo::getSku_code)
+                        .map(BPoOrderDetailVo::getSku_code)
                         .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
                 List<String> result = new ArrayList<>();
                 collect.forEach((k,v)->{
@@ -357,9 +357,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
 
                 // 标准合同下推校验 只能下推一个订单
                 if (ObjectUtil.isNotEmpty(searchCondition.getPo_contract_id())) {
-                    List<PoOrderVo> poOrderVos = mapper.validateDuplicateContractId(searchCondition);
-                    if (CollectionUtil.isNotEmpty(poOrderVos)) {
-                        return CheckResultUtil.NG("标准合同已存在下推订单", poOrderVos);
+                    List<BPoOrderVo> BPoOrderVos = mapper.validateDuplicateContractId(searchCondition);
+                    if (CollectionUtil.isNotEmpty(BPoOrderVos)) {
+                        return CheckResultUtil.NG("标准合同已存在下推订单", BPoOrderVos);
                     }
                 }
 
@@ -385,7 +385,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
 
                 Map<String, Long> collect2 = searchCondition.getDetailListData()
                         .stream()
-                        .map(PoOrderDetailVo::getSku_code)
+                        .map(BPoOrderDetailVo::getSku_code)
                         .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
                 List<String> result2 = new ArrayList<>();
                 collect2.forEach((k,v)->{
@@ -470,9 +470,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public IPage<PoOrderVo> selectPage(PoOrderVo searchCondition) {
+    public IPage<BPoOrderVo> selectPage(BPoOrderVo searchCondition) {
         // 分页条件
-        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BPoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
 
@@ -486,9 +486,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public IPage<PoOrderVo> selectPageByAprefund(PoOrderVo searchCondition) {
+    public IPage<BPoOrderVo> selectPageByAprefund(BPoOrderVo searchCondition) {
         // 分页条件
-        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BPoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
         return mapper.selectPageByAprefund(pageCondition, searchCondition);
@@ -500,12 +500,12 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public PoOrderVo querySum(PoOrderVo searchCondition) {
+    public BPoOrderVo querySum(BPoOrderVo searchCondition) {
         return mapper.querySum(searchCondition);
     }
 
     @Override
-    public PoOrderVo querySumByAprefund(PoOrderVo searchCondition) {
+    public BPoOrderVo querySumByAprefund(BPoOrderVo searchCondition) {
         return mapper.querySumByAprefund(searchCondition);
     }
 
@@ -516,7 +516,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> startUpdate(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> startUpdate(BPoOrderVo searchCondition) {
         // 1. 校验业务规则
         checkUpdateLogic(searchCondition);
         
@@ -535,22 +535,22 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCreateBpm(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackCreateBpm(BPoOrderVo searchCondition) {
         log.debug("====》审批流程创建成功，更新开始《====");
-        PoOrderVo poOrderVo = selectById(searchCondition.getId());
+        BPoOrderVo BPoOrderVo = selectById(searchCondition.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
          * bpm_instance_summary:{}  // 合同金额:1000
          */
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("合同金额:", poOrderVo.getOrder_amount_sum());
+        jsonObject.put("合同金额:", BPoOrderVo.getOrder_amount_sum());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
         bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
-        bpmInstanceSummaryEntity.setProcess_definition_business_name(poOrderVo.getBpm_process_name());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(BPoOrderVo.getBpm_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
@@ -560,13 +560,13 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * 更新采购订单主流程，分步骤调用各业务方法，便于维护和扩展
      */
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> update(PoOrderVo poOrderVo) {
+    public UpdateResultAo<Integer> update(BPoOrderVo BPoOrderVo) {
         // 1. 更新主表信息
-        BPoOrderEntity bPoOrderEntity = updateMainEntity(poOrderVo);
+        BPoOrderEntity bPoOrderEntity = updateMainEntity(BPoOrderVo);
         // 2. 更新明细信息
-        updateDetailList(poOrderVo, bPoOrderEntity);
+        updateDetailList(BPoOrderVo, bPoOrderEntity);
         // 3. 更新附件信息
-        updateAttach(poOrderVo, bPoOrderEntity);
+        updateAttach(BPoOrderVo, bPoOrderEntity);
         // 4. 更新订单财务数据
         iCommonPoTotalService.reCalculateAllTotalDataByPoOrderId(bPoOrderEntity.getId());
         return UpdateResultUtil.OK(1);
@@ -575,8 +575,8 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 校验更新业务规则
      */
-    private void checkUpdateLogic(PoOrderVo poOrderVo) {
-        CheckResultAo cr = checkLogic(poOrderVo, CheckResultAo.UPDATE_CHECK_TYPE);
+    private void checkUpdateLogic(BPoOrderVo BPoOrderVo) {
+        CheckResultAo cr = checkLogic(BPoOrderVo, CheckResultAo.UPDATE_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
@@ -585,8 +585,8 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 更新主表信息
      */
-    private BPoOrderEntity updateMainEntity(PoOrderVo poOrderVo) {
-        BPoOrderEntity bPoOrderEntity = (BPoOrderEntity) BeanUtilsSupport.copyProperties(poOrderVo, BPoOrderEntity.class);
+    private BPoOrderEntity updateMainEntity(BPoOrderVo BPoOrderVo) {
+        BPoOrderEntity bPoOrderEntity = (BPoOrderEntity) BeanUtilsSupport.copyProperties(BPoOrderVo, BPoOrderEntity.class);
         bPoOrderEntity.setStatus(DictConstant.DICT_B_PO_ORDER_STATUS_ONE);
         bPoOrderEntity.setBpm_process_name("更新采购订单审批");
 //        calculatePoorderAmounts(poOrderVo.getDetailListData(), bPoOrderEntity);
@@ -600,11 +600,11 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 更新明细信息
      */
-    private void updateDetailList(PoOrderVo poOrderVo, BPoOrderEntity bPoOrderEntity) {
-        List<PoOrderDetailVo> detailListData = poOrderVo.getDetailListData();
+    private void updateDetailList(BPoOrderVo BPoOrderVo, BPoOrderEntity bPoOrderEntity) {
+        List<BPoOrderDetailVo> detailListData = BPoOrderVo.getDetailListData();
         bPoOrderDetailMapper.delete(new LambdaQueryWrapper<BPoOrderDetailEntity>()
                 .eq(BPoOrderDetailEntity :: getPo_order_id, bPoOrderEntity.getId()));
-        for (PoOrderDetailVo detailListDatum : detailListData) {
+        for (BPoOrderDetailVo detailListDatum : detailListData) {
             BPoOrderDetailEntity bPoOrderDetailEntity = new BPoOrderDetailEntity();
             BeanUtils.copyProperties(detailListDatum, bPoOrderDetailEntity);
             bPoOrderDetailEntity.setPo_order_id(bPoOrderEntity.getId());
@@ -618,15 +618,15 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 更新附件信息
      */
-    private void updateAttach(PoOrderVo poOrderVo, BPoOrderEntity bPoOrderEntity) {
+    private void updateAttach(BPoOrderVo BPoOrderVo, BPoOrderEntity bPoOrderEntity) {
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bPoOrderEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_PO_ORDER);
-        PoOrderAttachVo poOrderAttachVo = bPoOrderAttachMapper.selByPoOrderId(bPoOrderEntity.getId());
-        if (poOrderAttachVo != null) {
+        BPoOrderAttachVo BPoOrderAttachVo = bPoOrderAttachMapper.selByPoOrderId(bPoOrderEntity.getId());
+        if (BPoOrderAttachVo != null) {
             // 更新附件信息
-            BPoOrderAttachEntity bPoOrderAttachEntity = (BPoOrderAttachEntity) BeanUtilsSupport.copyProperties(poOrderAttachVo, BPoOrderAttachEntity.class);
-            insertFile(fileEntity, poOrderVo, bPoOrderAttachEntity);
+            BPoOrderAttachEntity bPoOrderAttachEntity = (BPoOrderAttachEntity) BeanUtilsSupport.copyProperties(BPoOrderAttachVo, BPoOrderAttachEntity.class);
+            insertFile(fileEntity, BPoOrderVo, bPoOrderAttachEntity);
             bPoOrderAttachEntity.setPo_order_id(bPoOrderEntity.getId());
             int update = bPoOrderAttachMapper.updateById(bPoOrderAttachEntity);
             if (update == 0) {
@@ -635,7 +635,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
         } else {
             // 新增附件信息
             BPoOrderAttachEntity bPoOrderAttachEntity = new BPoOrderAttachEntity();
-            insertFile(fileEntity, poOrderVo, bPoOrderAttachEntity);
+            insertFile(fileEntity, BPoOrderVo, bPoOrderAttachEntity);
             bPoOrderAttachEntity.setPo_order_id(bPoOrderEntity.getId());
             int insert = bPoOrderAttachMapper.insert(bPoOrderAttachEntity);
             if (insert == 0) {
@@ -651,8 +651,8 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DeleteResultAo<Integer> delete(List<PoOrderVo> searchCondition) {
-        for (PoOrderVo poContractVo : searchCondition) {
+    public DeleteResultAo<Integer> delete(List<BPoOrderVo> searchCondition) {
+        for (BPoOrderVo poContractVo : searchCondition) {
 
             // 作废前check
             CheckResultAo cr = checkLogic(poContractVo, CheckResultAo.DELETE_CHECK_TYPE);
@@ -678,7 +678,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public PoOrderVo getPrintInfo(PoOrderVo searchCondition) {
+    public BPoOrderVo getPrintInfo(BPoOrderVo searchCondition) {
         /**
          * 获取打印配置信息
          * 1、从s_config中获取到：print_system_config、
@@ -715,7 +715,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param param
      */
     @Override
-    public List<PoOrderVo> selectExportList(PoOrderVo param) {
+    public List<BPoOrderVo> selectExportList(BPoOrderVo param) {
         // 导出限制开关
         SConfigEntity sConfigEntity = isConfigService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
         if (Objects.isNull(param.getIds()) && !Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
@@ -731,7 +731,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 启动审批流
      */
-    public void startFlowProcess(PoOrderVo bean,String type){
+    public void startFlowProcess(BPoOrderVo bean, String type){
         // 未初始化审批流数据，不启动审批流
         if (StringUtils.isNotEmpty(bean.getInitial_process())) {
             // 启动审批流
@@ -762,7 +762,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 附件逻辑 全删全增
      */
-    public BPoOrderAttachEntity insertFile(SFileEntity fileEntity, PoOrderVo vo, BPoOrderAttachEntity extra) {
+    public BPoOrderAttachEntity insertFile(SFileEntity fileEntity, BPoOrderVo vo, BPoOrderAttachEntity extra) {
         //  其他附件附件全删
        /* if (vo.getDoc_att_file()!=null){
             deleteFile(vo.getDoc_att_file());
@@ -794,7 +794,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackApprove(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackApprove(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]审批流程通过，更新开始《====",searchCondition.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -820,7 +820,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackRefuse(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackRefuse(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]审批流程拒绝，更新开始《====",searchCondition.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -845,7 +845,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCancel(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackCancel(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]审批流程撤销，更新开始《====",searchCondition.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -869,7 +869,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackSave(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackSave(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]审批流程更新最新审批人，更新开始《====",searchCondition.getId());
 
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
@@ -889,22 +889,22 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(PoOrderVo searchCondition){
+    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BPoOrderVo searchCondition){
         log.debug("====》作废审批流程创建成功，更新开始《====");
-        PoOrderVo poOrderVo = selectById(searchCondition.getId());
+        BPoOrderVo BPoOrderVo = selectById(searchCondition.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
          * bpm_instance_summary:{}  // 作废理由:1000
          */
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("作废理由:", poOrderVo.getCancel_reason());
+        jsonObject.put("作废理由:", BPoOrderVo.getCancel_reason());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
         bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
-        bpmInstanceSummaryEntity.setProcess_definition_business_name(poOrderVo.getBpm_cancel_process_name());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(BPoOrderVo.getBpm_cancel_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
@@ -915,7 +915,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackApprove(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]审批流程通过，更新开始《====",searchCondition.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -941,7 +941,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]作废审批流程拒绝，更新开始《====",searchCondition.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -970,7 +970,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCancel(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCancelCallBackCancel(BPoOrderVo searchCondition) {
         log.debug("====》采购订单[{}]作废审批流程撤销，更新开始《====",searchCondition.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -1000,7 +1000,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackSave(PoOrderVo vo) {
+    public UpdateResultAo<Integer> bpmCancelCallBackSave(BPoOrderVo vo) {
         log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新开始《====",vo.getId());
         BPoOrderEntity bPoOrderEntity = mapper.selectById(vo.getId());
 
@@ -1019,7 +1019,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> cancel(PoOrderVo vo) {
+    public UpdateResultAo<Integer> cancel(BPoOrderVo vo) {
 
         // 作废前check
         CheckResultAo cr = checkLogic(vo, CheckResultAo.CANCEL_CHECK_TYPE);
@@ -1065,7 +1065,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> finish(PoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> finish(BPoOrderVo searchCondition) {
         // 作废前check
         CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
         if (!cr.isSuccess()) {
@@ -1081,7 +1081,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
     /**
      * 附件
      */
-    public SFileEntity insertCancelFile(SFileEntity fileEntity, PoOrderVo vo) {
+    public SFileEntity insertCancelFile(SFileEntity fileEntity, BPoOrderVo vo) {
         // 其他附件新增
         if (vo.getCancel_files() != null && vo.getCancel_files().size() > 0) {
             // 主表新增
@@ -1105,9 +1105,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public IPage<PoOrderVo> selectOrderListWithSettlePage(PoOrderVo searchCondition) {
+    public IPage<BPoOrderVo> selectOrderListWithSettlePage(BPoOrderVo searchCondition) {
         // 分页条件
-        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BPoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
 
@@ -1121,7 +1121,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public PoOrderVo queryOrderListWithSettlePageSum(PoOrderVo searchCondition) {
+    public BPoOrderVo queryOrderListWithSettlePageSum(BPoOrderVo searchCondition) {
         return mapper.queryOrderListWithSettlePageSum(searchCondition);
     }
 
@@ -1131,9 +1131,9 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public IPage<PoOrderVo> selectOrderListForCargoRightTransferPage(PoOrderVo searchCondition) {
+    public IPage<BPoOrderVo> selectOrderListForCargoRightTransferPage(BPoOrderVo searchCondition) {
         // 分页条件
-        Page<PoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BPoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
 
@@ -1147,7 +1147,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public PoOrderVo queryOrderListForCargoRightTransferPageSum(PoOrderVo searchCondition) {
+    public BPoOrderVo queryOrderListForCargoRightTransferPageSum(BPoOrderVo searchCondition) {
         return mapper.queryOrderListForCargoRightTransferPageSum(searchCondition);
     }
 
@@ -1157,7 +1157,7 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
      * @param searchCondition
      */
     @Override
-    public List<PoOrderDetailVo> selectDetailData(PoOrderVo searchCondition) {
+    public List<BPoOrderDetailVo> selectDetailData(BPoOrderVo searchCondition) {
         return mapper.selectDetailData(searchCondition);
     }
 }

@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.config.mybatis.typehandlers;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
 import com.alibaba.fastjson2.TypeReference;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.PoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractDetailVo;
 import com.xinyirun.scm.common.utils.NullUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.type.BaseTypeHandler;
@@ -27,10 +27,10 @@ import java.util.List;
  */
 @MappedTypes(value = {List.class})
 @MappedJdbcTypes(value = {JdbcType.VARCHAR}, includeNullJdbcType = true)
-public class PoContractDetailListTypeHandler extends BaseTypeHandler<List<PoContractDetailVo>> {
+public class PoContractDetailListTypeHandler extends BaseTypeHandler<List<BPoContractDetailVo>> {
 
     @Override
-    public void setNonNullParameter(PreparedStatement preparedStatement, int i, List<PoContractDetailVo> jsonList, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement preparedStatement, int i, List<BPoContractDetailVo> jsonList, JdbcType jdbcType) throws SQLException {
         preparedStatement.setString(i,
                 JSON.toJSONString(jsonList,
                         JSONWriter.Feature.WriteNullStringAsEmpty,
@@ -44,26 +44,26 @@ public class PoContractDetailListTypeHandler extends BaseTypeHandler<List<PoCont
     }
 
     @Override
-    public List<PoContractDetailVo> getNullableResult(ResultSet resultSet, String s) throws SQLException {
+    public List<BPoContractDetailVo> getNullableResult(ResultSet resultSet, String s) throws SQLException {
         return getJsonList(resultSet.getString(s));
     }
 
     @Override
-    public List<PoContractDetailVo> getNullableResult(ResultSet resultSet, int i) throws SQLException {
+    public List<BPoContractDetailVo> getNullableResult(ResultSet resultSet, int i) throws SQLException {
         return getJsonList(resultSet.getString(i));
     }
 
     @Override
-    public List<PoContractDetailVo> getNullableResult(CallableStatement callableStatement, int i) throws SQLException {
+    public List<BPoContractDetailVo> getNullableResult(CallableStatement callableStatement, int i) throws SQLException {
         return getJsonList(callableStatement.getString(i));
     }
 
-    private List<PoContractDetailVo> getJsonList(String content) {
-        List<PoContractDetailVo> jsonResult = new ArrayList<>();
+    private List<BPoContractDetailVo> getJsonList(String content) {
+        List<BPoContractDetailVo> jsonResult = new ArrayList<>();
 
         if (StringUtils.isNotBlank(content)) {
             try {
-                List<PoContractDetailVo> jsonList = JSON.parseObject(content, new TypeReference<List<PoContractDetailVo>>(){});
+                List<BPoContractDetailVo> jsonList = JSON.parseObject(content, new TypeReference<List<BPoContractDetailVo>>(){});
                 if (!NullUtil.isNull(jsonList)) {
                     jsonResult.addAll(jsonList);
                 }

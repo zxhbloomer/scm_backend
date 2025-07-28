@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.rpd;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.rpd.RProductDailyBEntity;
+import com.xinyirun.scm.bean.entity.business.rpd.RProductDailyBEntity;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Delete;
@@ -63,7 +63,7 @@ public interface RProductDailyBMapper extends BaseMapper<RProductDailyBEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_two}                                                            "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "
@@ -83,7 +83,7 @@ public interface RProductDailyBMapper extends BaseMapper<RProductDailyBEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_OUT_TYPE_LL +"'                                                "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_OUT_TYPE_LL +"'                                                "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_two}                                                            "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "
@@ -103,7 +103,7 @@ public interface RProductDailyBMapper extends BaseMapper<RProductDailyBEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type IN ( '"+ DictConstant.DICT_B_OUT_STATUS_SAVED +"', '"+ DictConstant.DICT_B_OUT_TYPE_JG +"' )"
+//            +  "  		t.type IN ( '"+ DictConstant.DICT_B_OUT_STATUS_SAVED +"', '"+ DictConstant.DICT_B_OUT_TYPE_JG +"' )"
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_two}                                                            "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "
@@ -181,7 +181,7 @@ public interface RProductDailyBMapper extends BaseMapper<RProductDailyBEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_two}                                                            "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "
@@ -201,7 +201,7 @@ public interface RProductDailyBMapper extends BaseMapper<RProductDailyBEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_OUT_TYPE_LL +"'                                                "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_OUT_TYPE_LL +"'                                                "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_two}                                                            "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "
@@ -221,7 +221,7 @@ public interface RProductDailyBMapper extends BaseMapper<RProductDailyBEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type IN ( '"+ DictConstant.DICT_B_OUT_STATUS_SAVED +"', '"+ DictConstant.DICT_B_OUT_TYPE_JG +"' )"
+//            +  "  		t.type IN ( '"+ DictConstant.DICT_B_OUT_STATUS_SAVED +"', '"+ DictConstant.DICT_B_OUT_TYPE_JG +"' )"
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_two}                                                            "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "

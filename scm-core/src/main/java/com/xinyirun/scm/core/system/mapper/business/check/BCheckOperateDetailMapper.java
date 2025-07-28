@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.check;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckOperateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckOperateDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.check.BCheckOperateDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.check.BCheckOperateVo;
 import com.xinyirun.scm.common.constant.SystemConstants;

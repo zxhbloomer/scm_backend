@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.track;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.track.BTrackGsh56Entity;
+import com.xinyirun.scm.bean.entity.business.track.BTrackGsh56Entity;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackGsh56Vo;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

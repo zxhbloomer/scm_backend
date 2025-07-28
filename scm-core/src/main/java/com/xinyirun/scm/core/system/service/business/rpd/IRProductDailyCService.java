@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.rpd;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.rpd.RProductDailyCEntity;
+import com.xinyirun.scm.bean.entity.business.rpd.RProductDailyCEntity;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
 
 /**

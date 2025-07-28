@@ -2,8 +2,8 @@ package com.xinyirun.scm.core.system.serviceimpl.business.adjust;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustDetailEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;

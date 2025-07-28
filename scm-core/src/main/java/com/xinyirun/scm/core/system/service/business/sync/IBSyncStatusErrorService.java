@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.sync;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.sync.BSyncStatusErrorEntity;
+import com.xinyirun.scm.bean.entity.business.sync.BSyncStatusErrorEntity;
 
 import java.util.Set;
 

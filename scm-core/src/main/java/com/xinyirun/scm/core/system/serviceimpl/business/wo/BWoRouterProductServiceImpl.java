@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.wo;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.wo.BWoRouterProductEntity;
+import com.xinyirun.scm.bean.entity.business.wo.BWoRouterProductEntity;
 import com.xinyirun.scm.bean.system.vo.business.wo.BWoRouterProductVo;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;

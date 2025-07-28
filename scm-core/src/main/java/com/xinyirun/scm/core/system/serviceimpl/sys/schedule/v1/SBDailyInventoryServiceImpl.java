@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v1;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryEntity;
 import com.xinyirun.scm.bean.system.bo.inventory.daily.BDailyInventoryWorkBo;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.core.system.mapper.business.inventory.BDailyInventoryWorkMapper;

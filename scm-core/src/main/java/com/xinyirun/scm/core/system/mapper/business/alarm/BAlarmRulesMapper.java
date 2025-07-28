@@ -4,7 +4,7 @@ package com.xinyirun.scm.core.system.mapper.business.alarm;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmRulesEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmRulesEntity;
 import com.xinyirun.scm.bean.system.bo.business.alarm.BAlarmRulesBo;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmRulesVo;
 import com.xinyirun.scm.common.constant.DictConstant;

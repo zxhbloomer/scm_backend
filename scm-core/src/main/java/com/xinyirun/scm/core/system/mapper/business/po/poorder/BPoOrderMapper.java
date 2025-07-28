@@ -3,9 +3,9 @@ package com.xinyirun.scm.core.system.mapper.business.po.poorder;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.po.poorder.BPoOrderEntity;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderVo;
+import com.xinyirun.scm.bean.entity.business.po.poorder.BPoOrderEntity;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PoOrderDetailListTypeHandler;
 import org.apache.ibatis.annotations.Param;
@@ -145,7 +145,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             """)    @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
-    IPage<PoOrderVo> selectPage(Page<PoOrderVo> page, @Param("p1") PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectPage(Page<BPoOrderVo> page, @Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 按退款条件分页查询
@@ -272,7 +272,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
-    IPage<PoOrderVo> selectPageByAprefund(Page<PoOrderVo> page, @Param("p1") PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectPageByAprefund(Page<BPoOrderVo> page, @Param("p1") BPoOrderVo searchCondition);
 
 
 
@@ -348,7 +348,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
-    PoOrderVo selectId(@Param("p1") Integer id);
+    BPoOrderVo selectId(@Param("p1") Integer id);
 
     /**
      * 查询合计信息
@@ -418,7 +418,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
                    </if>
               </script>
             """)
-    PoOrderVo querySum( @Param("p1") PoOrderVo searchCondition);
+    BPoOrderVo querySum(@Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 按退款条件查询合计信息
@@ -489,14 +489,14 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
                    </if>
               </script>
             """)
-    PoOrderVo querySumByAprefund( @Param("p1") PoOrderVo searchCondition);
+    BPoOrderVo querySumByAprefund(@Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 标准合同下推校验 只能下推一个订单
      */
     @Select( "SELECT * FROM b_po_order tab1 LEFT JOIN b_po_contract tab2 ON tab1.po_contract_id = tab2.id                                           "
             +" WHERE tab1.is_del = FALSE AND tab2.type = '"+ DictConstant.DICT_B_PO_CONTRACT_TYPE_ZERO +"' AND tab2.id = #{p1.po_contract_id}       ")
-    List<PoOrderVo> validateDuplicateContractId(@Param("p1")PoOrderVo searchCondition);
+    List<BPoOrderVo> validateDuplicateContractId(@Param("p1") BPoOrderVo searchCondition);
 
     @Select("SELECT                                                                                                                                             "
             +"	count(tab1.id)                                                                                                                                  "
@@ -506,7 +506,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             +"		 AND tab1.is_del = false                                                                                                                    "
             +"		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')                                                              "
             +"		 AND (tab1.po_contract_code = #{p1.po_contract_code} or #{p1.po_contract_code} is null or #{p1.po_contract_code} = '')                      ")
-    Long selectExportCount(@Param("p1")PoOrderVo param);
+    Long selectExportCount(@Param("p1") BPoOrderVo param);
 
     /**
      * id查询
@@ -574,19 +574,19 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
-    List<PoOrderVo> selectExportList(@Param("p1")PoOrderVo param);
+    List<BPoOrderVo> selectExportList(@Param("p1") BPoOrderVo param);
 
     /**
      * 根据采购合同id,状态 查询采购订单
      */
     @Select("select * from b_po_order where po_contract_id = #{p1} and status != #{p2} and is_del = false")
-    List<PoOrderVo> selectByPoContractIdNotByStatus(@Param("p1")Integer id, @Param("p2") String dictBPoOrderStatusFive);
+    List<BPoOrderVo> selectByPoContractIdNotByStatus(@Param("p1")Integer id, @Param("p2") String dictBPoOrderStatusFive);
 
     /**
      * 根据采购合同id 查询采购订单
      */
     @Select("select * from b_po_order where po_contract_id = #{p1} and is_del = false")
-    List<PoOrderVo> selectByPoContractId(@Param("p1")Integer id);
+    List<BPoOrderVo> selectByPoContractId(@Param("p1")Integer id);
 
     /**
      * 根据采购合同id 查询采购订单
@@ -596,13 +596,13 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             "  and is_del = false " +
             "  and status not in ('" + DictConstant.DICT_B_PO_ORDER_STATUS_FIVE + "','" + DictConstant.DICT_B_PO_ORDER_STATUS_SIX + "')" +
             "  ")
-    List<PoOrderVo> selectLivePoByPoContractId(@Param("p1")Integer id);
+    List<BPoOrderVo> selectLivePoByPoContractId(@Param("p1")Integer id);
 
     /**
      * 根据code查询采购订单
      */
     @Select("select * from b_po_order where code = #{code} and is_del = false")
-    PoOrderVo selectByCode(@Param("code") String code);
+    BPoOrderVo selectByCode(@Param("code") String code);
 
     /**
      * 分页查询包含结算信息
@@ -724,7 +724,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
-    IPage<PoOrderVo> selectOrderListWithSettlePage(Page<PoOrderVo> page, @Param("p1") PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectOrderListWithSettlePage(Page<BPoOrderVo> page, @Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 采购订单结算信息统计
@@ -807,7 +807,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
 
               </script>
             """)
-    PoOrderVo queryOrderListWithSettlePageSum( @Param("p1") PoOrderVo searchCondition);
+    BPoOrderVo queryOrderListWithSettlePageSum(@Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 货权转移专用-分页查询采购订单信息
@@ -928,7 +928,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
-    IPage<PoOrderVo> selectOrderListForCargoRightTransferPage(Page<PoOrderVo> page, @Param("p1") PoOrderVo searchCondition);
+    IPage<BPoOrderVo> selectOrderListForCargoRightTransferPage(Page<BPoOrderVo> page, @Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 货权转移专用-采购订单统计
@@ -1003,7 +1003,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
                    </if>
               </script>
             """)
-    PoOrderVo queryOrderListForCargoRightTransferPageSum( @Param("p1") PoOrderVo searchCondition);
+    BPoOrderVo queryOrderListForCargoRightTransferPageSum(@Param("p1") BPoOrderVo searchCondition);
 
     /**
      * 货权转移专用-获取采购订单明细数据
@@ -1028,5 +1028,5 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             WHERE t2.id = #{p1.id} 
             AND t2.is_del = false
             """)
-    List<PoOrderDetailVo> selectDetailData(@Param("p1") PoOrderVo searchCondition);
+    List<BPoOrderDetailVo> selectDetailData(@Param("p1") BPoOrderVo searchCondition);
 }

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustDetailEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.*;
 

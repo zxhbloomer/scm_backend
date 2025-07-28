@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.rpd;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.rpd.RProductDailyDEntity;
+import com.xinyirun.scm.bean.entity.business.rpd.RProductDailyDEntity;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Delete;
@@ -63,7 +63,7 @@ public interface RProductDailyDMapper extends BaseMapper<RProductDailyDEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code IN                                                                            "
             +  "   <foreach collection='p1.p00000128Vo.columns_four' item='item' open='(' close=')' separator=','>                  "
@@ -86,7 +86,7 @@ public interface RProductDailyDMapper extends BaseMapper<RProductDailyDEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type IN ('"+DictConstant.DICT_B_OUT_TYPE_XS+"', '"+DictConstant.DICT_B_OUT_TYPE_DB+"', '"+DictConstant.DICT_B_OUT_TYPE_JG+"')                                                                       "
+            +  "  		t.type IN ('"+DictConstant.DICT_B_OUT_TYPE_ZERO+"', '"+DictConstant.DICT_B_OUT_TYPE_ONE+"', '"+DictConstant.DICT_B_OUT_TYPE_SIX+"')                                                                       "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code IN                                                                            "
             +  "   <foreach collection='p1.p00000128Vo.columns_four' item='item' open='(' close=')' separator=','>                  "
@@ -109,7 +109,7 @@ public interface RProductDailyDMapper extends BaseMapper<RProductDailyDEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_four_zz}                                                        "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "
@@ -189,7 +189,7 @@ public interface RProductDailyDMapper extends BaseMapper<RProductDailyDEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code IN                                                                            "
             +  "   <foreach collection='p1.p00000128Vo.columns_four' item='item' open='(' close=')' separator=','>                  "
@@ -212,7 +212,7 @@ public interface RProductDailyDMapper extends BaseMapper<RProductDailyDEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type IN ('"+DictConstant.DICT_B_OUT_TYPE_XS+"', '"+DictConstant.DICT_B_OUT_TYPE_DB+"', '"+DictConstant.DICT_B_OUT_TYPE_JG+"')                                                                       "
+            +  "  		t.type IN ('"+DictConstant.DICT_B_OUT_TYPE_ZERO+"', '"+DictConstant.DICT_B_OUT_TYPE_ONE+"', '"+DictConstant.DICT_B_OUT_TYPE_SIX+"')                                                                       "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code IN                                                                            "
             +  "   <foreach collection='p1.p00000128Vo.columns_four' item='item' open='(' close=')' separator=','>                  "
@@ -235,7 +235,7 @@ public interface RProductDailyDMapper extends BaseMapper<RProductDailyDEntity> {
             +  "  		LEFT JOIN m_goods_spec t1 ON t.sku_id = t1.id                                                   "
             +  "  		LEFT JOIN m_warehouse t2 ON t.warehouse_id = t2.id                                              "
             +  "  	WHERE                                                                                               "
-            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
+//            +  "  		t.type = '"+ DictConstant.DICT_B_IN_TYPE_SC +"'                                                 "
             +  "  		AND t.`status` = '2'                                                                            "
             +  "  		AND t1.goods_code = #{p1.p00000128Vo.column_four_zz}                                                        "
             +  "  		AND t2.warehouse_type = '"+ DictConstant.DICT_M_WAREHOUSE_TYPE_WD +"'                           "

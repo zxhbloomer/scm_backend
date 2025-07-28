@@ -2,10 +2,10 @@ package com.xinyirun.scm.core.system.serviceimpl.business.check;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckEntity;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckOperateDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.check.BCheckOperateEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckOperateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.check.BCheckOperateEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;

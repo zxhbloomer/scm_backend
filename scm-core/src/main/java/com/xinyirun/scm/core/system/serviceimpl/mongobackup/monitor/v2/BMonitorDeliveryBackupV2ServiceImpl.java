@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.mongobackup.monitor.v2;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorDeliveryEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorDeliveryEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 import com.xinyirun.scm.core.system.mapper.mongobackup.monitor.v2.BMonitorBackupDeliveryV2Mapper;
 import com.xinyirun.scm.core.system.service.mongobackup.monitor.v2.IBMonitorDeliveryBackupV2Service;

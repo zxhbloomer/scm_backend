@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.po.aprefund;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.po.aprefund.BApReFundAttachEntity;
+import com.xinyirun.scm.bean.entity.business.po.aprefund.BApReFundAttachEntity;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;

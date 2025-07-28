@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.api.vo.business.inventory.ApiDailyInventoryVo;
 import com.xinyirun.scm.bean.api.vo.business.inventory.ApiInventoryVo;
 import com.xinyirun.scm.bean.api.vo.business.price.ApiMaterialConvertPriceVo;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryEntity;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import com.xinyirun.scm.bean.system.vo.excel.query.MDailyInventoryExportVo;

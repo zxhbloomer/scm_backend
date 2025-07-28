@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.api.vo.business.monitor.ApiMonitorVo;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.system.vo.business.monitor.*;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.*;
 import com.xinyirun.scm.common.constant.DictConstant;

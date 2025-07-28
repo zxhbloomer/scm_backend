@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.materialconvert;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.materialconvert.BMaterialConvertEntity;
+import com.xinyirun.scm.bean.entity.business.materialconvert.BMaterialConvertEntity;
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.*;
 import com.xinyirun.scm.bean.system.vo.excel.materialconvert.BMaterialConvertExportVo;
 import com.xinyirun.scm.common.constant.DictConstant;

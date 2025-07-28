@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.releaseorder;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.releaseorder.BReleaseOrderEntity;
+import com.xinyirun.scm.bean.entity.business.releaseorder.BReleaseOrderEntity;
 import com.xinyirun.scm.bean.system.vo.business.releaseorder.BReleaseOrderVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;

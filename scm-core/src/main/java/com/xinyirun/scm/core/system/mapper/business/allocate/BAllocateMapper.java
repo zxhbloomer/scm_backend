@@ -3,13 +3,13 @@ package com.xinyirun.scm.core.system.mapper.business.allocate;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.allocate.BAllocateEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateDetailEntity;
+import com.xinyirun.scm.bean.entity.business.allocate.BAllocateEntity;
 import com.xinyirun.scm.bean.system.vo.business.allocate.BAllocateVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanDetailVo;
-import com.xinyirun.scm.bean.system.vo.wms.inplan.BInPlanVo;
-import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutPlanDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.wms.out.BOutPlanSaveVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.inplan.BInPlanVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.outplan.BOutPlanDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.outplan.BOutPlanVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Param;
@@ -209,7 +209,7 @@ public interface BAllocateMapper extends BaseMapper<BAllocateEntity> {
     @Select(""
             +"		SELECT                                                      									                                                    "
             +"			t1.c_time plan_time,                                    									                                                    "
-            +"			"+DictConstant.DICT_B_IN_TYPE_DB+" AS type,                                              	                                                    "
+            +"			"+DictConstant.DICT_B_IN_TYPE_ONE+" AS type,                                              	                                                    "
             +"			"+DictConstant.DICT_B_IN_PLAN_STATUS_ZERO+" AS status,                                                                                         "
             +"			t1.sku_id,                                              									                                                    "
             +"			t1.sku_code,                                            									                                                    "
@@ -235,7 +235,7 @@ public interface BAllocateMapper extends BaseMapper<BAllocateEntity> {
     @Select(""
             +"		SELECT                                                      									                                                    "
             +"			t1.c_time plan_time,                                    									                                                    "
-            +"			"+DictConstant.DICT_B_IN_PLAN_TYPE_DB+" AS type,                                                                                                "
+            +"			"+DictConstant.DICT_B_IN_PLAN_TYPE_ONE+" AS type,                                                                                                "
             +"			"+DictConstant.DICT_B_IN_PLAN_STATUS_TWO +" AS status,                                                                                        "
             +"			t1.sku_id,                                              									                                                    "
             +"			t1.sku_code,                                            									                                                    "
@@ -296,8 +296,8 @@ public interface BAllocateMapper extends BaseMapper<BAllocateEntity> {
     @Select(""
             +"		SELECT                                                      									                                                    "
             +"			t1.c_time plan_time,                                    									                                                    "
-            +"			"+DictConstant.DICT_B_OUT_PLAN_TYPE_DB+" AS type,                                                                                               "
-            +"			"+DictConstant.DICT_B_OUT_PLAN_STATUS_SAVED+" AS status,                                                                                        "
+            +"			"+DictConstant.DICT_B_OUT_PLAN_TYPE_ONE+" AS type,                                                                                               "
+//            +"			"+DictConstant.DICT_B_OUT_PLAN_STATUS_SAVED+" AS status,                                                                                        "
             +"			t1.sku_id,                                              									                                                    "
             +"			t1.sku_code,                                            									                                                    "
             +"			t2.out_owner_id owner_id,                                            									                                        "
@@ -317,13 +317,13 @@ public interface BAllocateMapper extends BaseMapper<BAllocateEntity> {
 //            +"			LEFT JOIN m_unit t3 ON t3.CODE = '"+DictConstant.DICT_API_UNIT_CODE+"'                                                                      "
             +"          WHERE t1.id =  #{p1,jdbcType=INTEGER}                                                                                                           "
     )
-    BOutPlanSaveVo getOutPlanFromAllocate(@Param("p1") int id);
+    BOutPlanVo getOutPlanFromAllocate(@Param("p1") int id);
 
     @Select(""
             +"		SELECT                                                      									                                                    "
             +"			t1.c_time plan_time,                                    									                                                    "
-            +"			"+DictConstant.DICT_B_OUT_PLAN_TYPE_DB+" AS type,                                                                                               "
-            +"			"+DictConstant.DICT_B_OUT_PLAN_STATUS_PASSED+" AS status,                                                                                       "
+            +"			"+DictConstant.DICT_B_OUT_PLAN_TYPE_ONE+" AS type,                                                                                               "
+//            +"			"+DictConstant.DICT_B_OUT_PLAN_STATUS_PASSED+" AS status,                                                                                       "
             +"			t1.sku_id,                                              									                                                    "
             +"			t1.sku_code,                                            									                                                    "
             +"			t2.out_owner_id owner_id,                                            									                                        "

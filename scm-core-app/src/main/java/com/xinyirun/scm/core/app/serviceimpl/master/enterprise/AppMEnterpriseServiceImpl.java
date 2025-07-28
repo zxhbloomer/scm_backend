@@ -10,8 +10,8 @@ import com.github.promeg.pinyinhelper.Pinyin;
 import com.xinyirun.scm.bean.app.ao.result.AppCheckResultAo;
 import com.xinyirun.scm.bean.app.result.utils.v1.AppCheckResultUtil;
 import com.xinyirun.scm.bean.app.vo.master.enterprise.AppMEnterpriseVo;
-import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutPlanEntity;
+import com.xinyirun.scm.bean.entity.business.wms.out.BOutEntity;
+import com.xinyirun.scm.bean.entity.business.wms.outplan.BOutPlanEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseAttachEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseHisEntity;
@@ -52,7 +52,7 @@ import com.xinyirun.scm.core.bpm.service.business.IBpmProcessTemplatesService;
 import com.xinyirun.scm.core.system.mapper.business.wms.in.BInMapper;
 import com.xinyirun.scm.core.system.mapper.business.wms.inplan.BInPlanMapper;
 import com.xinyirun.scm.core.system.mapper.business.wms.out.BOutMapper;
-import com.xinyirun.scm.core.system.mapper.business.wms.out.BOutPlanMapper;
+import com.xinyirun.scm.core.system.mapper.business.wms.outplan.BOutPlanMapper;
 import com.xinyirun.scm.core.system.mapper.sys.config.dict.SDictDataMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
@@ -803,16 +803,16 @@ public class AppMEnterpriseServiceImpl extends AppBaseServiceImpl<AppMEnterprise
 //                }
 
                 // 出库计划有该企业数据
-                List<BOutPlanEntity> bOutPlanEntities = bOutPlanMapper.selectByCustomerCode(enterpriseEntity.getCode());
-                if (!bOutPlanEntities.isEmpty()) {
-                    return AppCheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
-                }
-
-                // 出库单有该企业数据有该企业数据
-                List<BOutEntity> bOutEntities = bOutMapper.selectByCustomerCode(enterpriseEntity.getCode());
-                if (!bOutEntities.isEmpty()) {
-                    return AppCheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
-                }
+//                List<BOutPlanEntity> bOutPlanEntities = bOutPlanMapper.selectByCustomerCode(enterpriseEntity.getCode());
+//                if (!bOutPlanEntities.isEmpty()) {
+//                    return AppCheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
+//                }
+//
+//                // 出库单有该企业数据有该企业数据
+////                List<BOutEntity> bOutEntities = bOutMapper.selectByCustomerCode(enterpriseEntity.getCode());
+//                if (!bOutEntities.isEmpty()) {
+//                    return AppCheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
+//                }
 
                 break;
             default:

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.wo;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.wo.BWoRouterProductEntity;
+import com.xinyirun.scm.bean.entity.business.wo.BWoRouterProductEntity;
 import com.xinyirun.scm.bean.system.vo.business.wo.BWoRouterProductVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;

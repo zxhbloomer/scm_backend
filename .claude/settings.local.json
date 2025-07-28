@@ -6,7 +6,9 @@
       "mcp__dthink__sequentialthinking",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(tail:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

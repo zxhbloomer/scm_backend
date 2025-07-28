@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.wo;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.wo.BWoRouterProductEntity;
+import com.xinyirun.scm.bean.entity.business.wo.BWoRouterProductEntity;
 import com.xinyirun.scm.bean.system.vo.business.wo.BWoRouterProductVo;
 
 import java.util.List;

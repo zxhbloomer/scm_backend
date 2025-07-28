@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.mapper.business.track;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 //import com.xinyirun.scm.bean.app.vo.business.track.AppBTrackVo;
-import com.xinyirun.scm.bean.entity.busniess.track.BTrackEntity;
+import com.xinyirun.scm.bean.entity.business.track.BTrackEntity;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

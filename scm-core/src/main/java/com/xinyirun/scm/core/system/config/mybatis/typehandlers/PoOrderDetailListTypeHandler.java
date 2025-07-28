@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.config.mybatis.typehandlers;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
-import com.xinyirun.scm.bean.system.vo.business.po.poorder.PoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderDetailVo;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 
@@ -19,37 +19,37 @@ import java.util.List;
  * @author System
  * @since 2025-06-02
  */
-public class PoOrderDetailListTypeHandler extends BaseTypeHandler<List<PoOrderDetailVo>> {
+public class PoOrderDetailListTypeHandler extends BaseTypeHandler<List<BPoOrderDetailVo>> {
 
     @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, List<PoOrderDetailVo> parameter, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement ps, int i, List<BPoOrderDetailVo> parameter, JdbcType jdbcType) throws SQLException {
         ps.setString(i, JSON.toJSONString(parameter));
     }
 
     @Override
-    public List<PoOrderDetailVo> getNullableResult(ResultSet rs, String columnName) throws SQLException {
+    public List<BPoOrderDetailVo> getNullableResult(ResultSet rs, String columnName) throws SQLException {
         String jsonString = rs.getString(columnName);
         if (jsonString == null || jsonString.trim().isEmpty()) {
             return null;
         }
-        return JSON.parseObject(jsonString, new TypeReference<List<PoOrderDetailVo>>() {});
+        return JSON.parseObject(jsonString, new TypeReference<List<BPoOrderDetailVo>>() {});
     }
 
     @Override
-    public List<PoOrderDetailVo> getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+    public List<BPoOrderDetailVo> getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
         String jsonString = rs.getString(columnIndex);
         if (jsonString == null || jsonString.trim().isEmpty()) {
             return null;
         }
-        return JSON.parseObject(jsonString, new TypeReference<List<PoOrderDetailVo>>() {});
+        return JSON.parseObject(jsonString, new TypeReference<List<BPoOrderDetailVo>>() {});
     }
 
     @Override
-    public List<PoOrderDetailVo> getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+    public List<BPoOrderDetailVo> getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
         String jsonString = cs.getString(columnIndex);
         if (jsonString == null || jsonString.trim().isEmpty()) {
             return null;
         }
-        return JSON.parseObject(jsonString, new TypeReference<List<PoOrderDetailVo>>() {});
+        return JSON.parseObject(jsonString, new TypeReference<List<BPoOrderDetailVo>>() {});
     }
 }

@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.api.vo.business.in;
 
-import com.xinyirun.scm.bean.system.vo.wms.in.BInVo;
+import com.xinyirun.scm.bean.system.vo.business.wms.in.BInVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;

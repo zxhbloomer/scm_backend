@@ -8,9 +8,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderAttachEntity;
-import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderDetailEntity;
-import com.xinyirun.scm.bean.entity.busniess.so.soorder.BSoOrderEntity;
+import com.xinyirun.scm.bean.entity.business.so.soorder.BSoOrderAttachEntity;
+import com.xinyirun.scm.bean.entity.business.so.soorder.BSoOrderDetailEntity;
+import com.xinyirun.scm.bean.entity.business.so.soorder.BSoOrderEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
@@ -22,12 +22,16 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.DeleteResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
+import com.xinyirun.scm.bean.system.vo.business.so.ar.BArVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
-import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderAttachVo;
-import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderDetailVo;
-import com.xinyirun.scm.bean.system.vo.business.so.soorder.SoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.BSoOrderAttachVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.BSoOrderDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.so.soorder.BSoOrderVo;
+import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
+import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
@@ -40,11 +44,17 @@ import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.bpm.service.business.IBpmInstanceSummaryService;
 import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessTemplatesServiceImpl;
+import com.xinyirun.scm.core.system.mapper.business.so.ar.BArMapper;
+import com.xinyirun.scm.core.system.mapper.business.so.socontract.BSoContractMapper;
 import com.xinyirun.scm.core.system.mapper.business.so.soorder.BSoOrderAttachMapper;
 import com.xinyirun.scm.core.system.mapper.business.so.soorder.BSoOrderDetailMapper;
 import com.xinyirun.scm.core.system.mapper.business.so.soorder.BSoOrderMapper;
+import com.xinyirun.scm.core.system.mapper.business.project.BProjectMapper;
+import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
+import com.xinyirun.scm.core.system.service.base.v1.common.total.ICommonSoTotalService;
+import com.xinyirun.scm.core.system.service.business.so.soorder.IBSoOrderTotalService;
 import com.xinyirun.scm.core.system.service.business.so.soorder.IBSoOrderService;
 import com.xinyirun.scm.core.system.service.master.cancel.MCancelService;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
@@ -71,7 +81,7 @@ import java.util.stream.Collectors;
  * </p>
  *
  * @author xinyirun
- * @since 2025-02-10
+ * @since 2025-07-23
  */
 @Slf4j
 @Service
@@ -79,6 +89,12 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
 
     @Autowired
     private BSoOrderMapper mapper;
+
+    @Autowired
+    private BProjectMapper bProjectMapper;
+
+    @Autowired
+    private BSoContractMapper bSoContractMapper;
 
     @Autowired
     private SFileMapper fileMapper;
@@ -111,20 +127,73 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
     private IBpmInstanceSummaryService iBpmInstanceSummaryService;
 
     @Autowired
+    private BArMapper bArMapper;
+
+    @Autowired
     private MCancelService mCancelService;
+
+    @Autowired
+    private MStaffMapper mStaffMapper;
+
+    @Autowired
+    private IBSoOrderTotalService iBSoOrderFinService;
+
+    // 注意：ICommonSoTotalService暂时跳过，按照要求不处理
+    // @Autowired
+    // private ICommonSoTotalService iCommonSoTotalService;
 
     /**
      * 获取销售订单信息
      * @param id
      */
     @Override
-    public SoOrderVo selectById(Integer id) {
-        SoOrderVo soOrderVo = mapper.selectId(id);
+    public BSoOrderVo selectById(Integer id) {
+        BSoOrderVo BSoOrderVo = mapper.selectId(id);
 
         // 其他附件信息
-        List<SFileInfoVo> doc_att_files = isFileService.selectFileInfo(soOrderVo.getDoc_att_file());
-        soOrderVo.setDoc_att_files(doc_att_files);
-        return soOrderVo;
+        List<SFileInfoVo> doc_att_files = isFileService.selectFileInfo(BSoOrderVo.getDoc_att_file());
+        BSoOrderVo.setDoc_att_files(doc_att_files);
+
+        // 查询是否存在作废记录
+        if (DictConstant.DICT_B_SO_CONTRACT_STATUS_FOUR.equals(BSoOrderVo.getStatus()) || Objects.equals(BSoOrderVo.getStatus(), DictConstant.DICT_B_SO_CONTRACT_STATUS_FIVE)) {
+            MCancelVo serialIdAndType = new MCancelVo();
+            serialIdAndType.setSerial_id(BSoOrderVo.getId());
+            serialIdAndType.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_SO_ORDER);
+            MCancelVo mCancelVo = mCancelService.selectBySerialIdAndType(serialIdAndType);
+            // 作废理由
+            BSoOrderVo.setCancel_reason(mCancelVo.getRemark());
+            // 作废附件信息
+            if (mCancelVo.getFile_id() != null) {
+                List<SFileInfoVo> cancel_doc_att_files = isFileService.selectFileInfo(mCancelVo.getFile_id());
+                BSoOrderVo.setCancel_doc_att_files(cancel_doc_att_files);
+            }
+
+            // 通过表m_staff获取作废提交人名称
+            MStaffVo searchCondition = new MStaffVo();
+            searchCondition.setId(mCancelVo.getC_id());
+            BSoOrderVo.setCancel_name(mStaffMapper.selectByid(searchCondition).getName());
+
+            // 作废时间
+            BSoOrderVo.setCancel_time(mCancelVo.getC_time());
+        }
+
+        // 查询是否存在项目信息
+        if (BSoOrderVo.getProject_code() != null) {
+            BProjectVo bProjectVo = bProjectMapper.selectCode(BSoOrderVo.getProject_code());
+            List<SFileInfoVo> project_doc_att_files = isFileService.selectFileInfo(bProjectVo.getDoc_att_file());
+            bProjectVo.setDoc_att_files(project_doc_att_files);
+            BSoOrderVo.setProject(bProjectVo);
+        }
+
+        // 添加合同信息
+        if (BSoOrderVo.getSo_contract_id() != null) {
+            BSoContractVo soContractVo = bSoContractMapper.selectId(BSoOrderVo.getSo_contract_id());
+            List<SFileInfoVo> contract_doc_att_files = isFileService.selectFileInfo(soContractVo.getDoc_att_file());
+            soContractVo.setDoc_att_files(contract_doc_att_files);
+            BSoOrderVo.setSo_contract(soContractVo);
+        }
+
+        return BSoOrderVo;
     }
 
     /**
@@ -134,75 +203,138 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public InsertResultAo<SoOrderVo> startInsert(SoOrderVo searchCondition) {
-        // 1.保存销售订单
-        InsertResultAo<SoOrderVo> insertResultAo = insert(searchCondition);
+    public InsertResultAo<BSoOrderVo> startInsert(BSoOrderVo searchCondition) {
+        // 1. 校验业务规则
+        checkInsertLogic(searchCondition);
+        
+        // 2.保存销售订单
+        InsertResultAo<BSoOrderVo> insertResultAo = insert(searchCondition);
 
-        // 2.启动审批流程
+        // 3.启动审批流程
         startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_ORDER);
         return insertResultAo;
     }
 
     /**
-     * 销售合同  新增
-     * @param soOrderVo
+     * 新增销售订单主流程，分步骤调用各业务方法，便于维护和扩展
      */
-    public InsertResultAo<SoOrderVo> insert(SoOrderVo soOrderVo) {
+    @Transactional(rollbackFor = Exception.class)
+    public InsertResultAo<BSoOrderVo> insert(BSoOrderVo BSoOrderVo) {
+        // 1. 保存主表信息
+        BSoOrderEntity bSoOrderEntity = saveMainEntity(BSoOrderVo);
+        // 2. 保存明细信息
+        saveDetailList(BSoOrderVo, bSoOrderEntity);
+        // 3. 保存附件信息
+        saveAttach(BSoOrderVo, bSoOrderEntity);
+        // 4. 设置返回ID
+        BSoOrderVo.setId(bSoOrderEntity.getId());
+        // 5. 更新订单财务数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(bSoOrderEntity.getId());
+        return InsertResultUtil.OK(BSoOrderVo);
+    }
 
-        // 插入前check
-        CheckResultAo cr = checkLogic(soOrderVo, CheckResultAo.INSERT_CHECK_TYPE);
+    /**
+     * 校验新增业务规则
+     */
+    private void checkInsertLogic(BSoOrderVo BSoOrderVo) {
+        CheckResultAo cr = checkLogic(BSoOrderVo, CheckResultAo.INSERT_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
+    }
 
-        // 1.保存基础信息
+    /**
+     * 保存主表信息
+     */
+    private BSoOrderEntity saveMainEntity(BSoOrderVo BSoOrderVo) {
         BSoOrderEntity bSoOrderEntity = new BSoOrderEntity();
-        BeanUtils.copyProperties(soOrderVo, bSoOrderEntity);
+        BeanUtils.copyProperties(BSoOrderVo, bSoOrderEntity);
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_ONE);
         bSoOrderEntity.setCode(bSoOrderAutoCodeService.autoCode().getCode());
-
-        /** 未删除 */
         bSoOrderEntity.setIs_del(Boolean.FALSE);
-
-        /** 审批流程名称 */
         bSoOrderEntity.setBpm_process_name("新增销售订单审批");
-
-
-        int bPurContract = mapper.insert(bSoOrderEntity);
-        if (bPurContract == 0){
+//        calculateSoorderAmounts(soOrderVo.getDetailListData(), bSoOrderEntity);
+        int bSalOrder = mapper.insert(bSoOrderEntity);
+        if (bSalOrder == 0){
             throw new BusinessException("新增失败");
         }
+        return bSoOrderEntity;
+    }
 
-        // 2.保存销售订单明细表-商品
-        List<SoOrderDetailVo> detailListData = soOrderVo.getDetailListData();
-        for (SoOrderDetailVo detailListDatum : detailListData) {
+    /**
+     * 保存明细信息
+     */
+    private void saveDetailList(BSoOrderVo BSoOrderVo, BSoOrderEntity bSoOrderEntity) {
+        List<BSoOrderDetailVo> detailListData = BSoOrderVo.getDetailListData();
+        for (BSoOrderDetailVo detailListDatum : detailListData) {
             BSoOrderDetailEntity bSoOrderDetailEntity = new BSoOrderDetailEntity();
             BeanUtils.copyProperties(detailListDatum, bSoOrderDetailEntity);
             bSoOrderDetailEntity.setSo_order_id(bSoOrderEntity.getId());
-            int bPurContractDetail = bSoOrderDetailMapper.insert(bSoOrderDetailEntity);
-            if (bPurContractDetail == 0){
+            int bSalOrderDetail = bSoOrderDetailMapper.insert(bSoOrderDetailEntity);
+            if (bSalOrderDetail == 0){
                 throw new BusinessException("新增失败");
             }
         }
+    }
 
-        // 3.保存附件信息
+    /**
+     * 保存附件信息
+     */
+    private void saveAttach(BSoOrderVo BSoOrderVo, BSoOrderEntity bSoOrderEntity) {
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bSoOrderEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_SO_ORDER);
-
-        BSoOrderAttachEntity bSoOrderAttachEntity = insertFile(fileEntity, soOrderVo, new BSoOrderAttachEntity());
+        BSoOrderAttachEntity bSoOrderAttachEntity = insertFile(fileEntity, BSoOrderVo, new BSoOrderAttachEntity());
         bSoOrderAttachEntity.setSo_order_id(bSoOrderEntity.getId());
         int insert = bSoOrderAttachMapper.insert(bSoOrderAttachEntity);
         if (insert == 0) {
             throw new UpdateErrorException("新增失败");
         }
-
-        soOrderVo.setId(bSoOrderEntity.getId());
-        return InsertResultUtil.OK(soOrderVo);
     }
 
+//    /**
+//     * 计算销售订单金额和数量
+//     * @param detailListData 销售订单明细列表
+//     * @param soOrderEntity 销售订单实体
+//     */
+//    private void calculateSoorderAmounts(List<SoOrderDetailVo> detailListData, BSoOrderEntity soOrderEntity) {
+//        if (detailListData == null || detailListData.isEmpty()) {
+//            // 如果明细为空，设置为0
+//            soOrderEntity.setOrder_amount_sum(BigDecimal.ZERO);
+//            soOrderEntity.setOrder_total(BigDecimal.ZERO);
+//            soOrderEntity.setTax_amount_sum(BigDecimal.ZERO);
+//            return;
+//        }
+//
+//        BigDecimal orderAmountSum = BigDecimal.ZERO;    // 订单总金额
+//        BigDecimal orderTotal = BigDecimal.ZERO;        // 总销售数量（吨）
+//        BigDecimal taxAmountSum = BigDecimal.ZERO;      // 总税额
+//
+//        for (SoOrderDetailVo detail : detailListData) {
+//            BigDecimal qty = detail.getQty() != null ? detail.getQty() : BigDecimal.ZERO;
+//            BigDecimal price = detail.getPrice() != null ? detail.getPrice() : BigDecimal.ZERO;
+//            BigDecimal taxRate = detail.getTax_rate() != null ? detail.getTax_rate() : BigDecimal.ZERO;
+//
+//            // 计算订单总金额：sum(明细.qty * 明细.price)
+//            BigDecimal amount = qty.multiply(price);
+//            orderAmountSum = orderAmountSum.add(amount);
+//
+//            // 计算总销售数量（吨）：sum(明细.qty)
+//            orderTotal = orderTotal.add(qty);
+//
+//            // 计算总税额：sum(明细.qty * 明细.price * 明细.tax_rate/100)
+//            BigDecimal taxAmount = amount.multiply(taxRate).divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+//            taxAmountSum = taxAmountSum.add(taxAmount);
+//        }
+//
+//        // 设置计算结果到订单实体
+//        soOrderEntity.setOrder_amount_sum(orderAmountSum);
+//        soOrderEntity.setOrder_total(orderTotal);
+//        soOrderEntity.setTax_amount_sum(taxAmountSum);
+//    }
+
     @Override
-    public CheckResultAo checkLogic(SoOrderVo searchCondition, String checkType) {
+    public CheckResultAo checkLogic(BSoOrderVo searchCondition, String checkType) {
         BSoOrderEntity bSoOrderEntity = null;
         switch (checkType) {
             case CheckResultAo.INSERT_CHECK_TYPE:
@@ -210,9 +342,10 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
                     return CheckResultUtil.NG("至少添加一个商品");
                 }
 
+                // 商品重复校验
                 Map<String, Long> collect = searchCondition.getDetailListData()
                         .stream()
-                        .map(SoOrderDetailVo::getSku_code)
+                        .map(BSoOrderDetailVo::getSku_code)
                         .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
                 List<String> result = new ArrayList<>();
                 collect.forEach((k,v)->{
@@ -225,9 +358,9 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
 
                 // 标准合同下推校验 只能下推一个订单
                 if (ObjectUtil.isNotEmpty(searchCondition.getSo_contract_id())) {
-                    List<SoOrderVo> soOrderVos = mapper.validateDuplicateContractId(searchCondition);
-                    if (CollectionUtil.isNotEmpty(soOrderVos)) {
-                        return CheckResultUtil.NG("标准合同已存在下推订单", soOrderVos);
+                    List<BSoOrderVo> BSoOrderVos = mapper.validateDuplicateContractId(searchCondition);
+                    if (CollectionUtil.isNotEmpty(BSoOrderVos)) {
+                        return CheckResultUtil.NG("标准合同已存在下推订单", BSoOrderVos);
                     }
                 }
 
@@ -241,9 +374,10 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
                 if (bSoOrderEntity == null) {
                     return CheckResultUtil.NG("单据不存在");
                 }
+
                 // 是否待审批或者驳回状态
                 if (!Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_ZERO) && !Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_THREE)) {
-                    return CheckResultUtil.NG(String.format("修改失败，销售订单[%s]不是待审批,驳回状态,无法修改",bSoOrderEntity.getCode()));
+                    return CheckResultUtil.NG(String.format("修改失败，销售订单[%s]不是待审批,驳回状态,无法修改", bSoOrderEntity.getCode()));
                 }
 
                 if (searchCondition.getDetailListData()==null){
@@ -252,7 +386,7 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
 
                 Map<String, Long> collect2 = searchCondition.getDetailListData()
                         .stream()
-                        .map(SoOrderDetailVo::getSku_code)
+                        .map(BSoOrderDetailVo::getSku_code)
                         .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
                 List<String> result2 = new ArrayList<>();
                 collect2.forEach((k,v)->{
@@ -263,6 +397,7 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
                     return CheckResultUtil.NG("商品添加重复",result2);
                 }
                 break;
+            // 删除
             case CheckResultAo.DELETE_CHECK_TYPE:
                 if (searchCondition.getId() == null) {
                     return CheckResultUtil.NG("id不能为空");
@@ -274,8 +409,13 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
                 }
 
                 // 是否待审批或者驳回状态
-                if (!Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_ZERO) && !Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_PO_ORDER_STATUS_THREE)) {
+                if (!Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_ZERO) && !Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_THREE)) {
                     return CheckResultUtil.NG(String.format("删除失败，销售订单[%s]不是待审批,驳回状态,无法删除",bSoOrderEntity.getCode()));
+                }
+
+                List<BArVo> delBArVos = bArMapper.selectBySoCode(searchCondition.getCode());
+                if (CollectionUtil.isNotEmpty(delBArVos)){
+                    return CheckResultUtil.NG("删除失败，存在关联收款管理");
                 }
                 break;
             // 作废校验
@@ -290,17 +430,17 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
                 }
 
                 // 是否已经作废
-                if (Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_FIVE) || Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_FOUR)) {
+                if (Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_FIVE) || Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_CONTRACT_STATUS_FOUR)) {
                     return CheckResultUtil.NG(String.format("作废失败，销售订单[%s]无法重复作废",bSoOrderEntity.getCode()));
                 }
                 if (!Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_TWO)) {
                     return CheckResultUtil.NG(String.format("作废失败，销售订单[%s]审核中，无法作废",bSoOrderEntity.getCode()));
                 }
 
-//                List<BApVo> cancelOrderVos = bApMapper.selByPoCodeNotByStatus(searchCondition.getId(), DictConstant.DICT_B_AP_STATUS_FIVE);
-//                if (CollectionUtil.isNotEmpty(cancelOrderVos)){
-//                    return CheckResultUtil.NG(String.format("作废失败，付款管理[%s]数据未作废，请先完成该付款管理的作废。",cancelOrderVos.stream().map(BApVo::getCode).collect(Collectors.toList())));
-//                }
+                List<BArVo> cancelOrderVos = bArMapper.selBySoCodeNotByStatus(searchCondition.getId(), DictConstant.DICT_B_AR_STATUS_FIVE);
+                if (CollectionUtil.isNotEmpty(cancelOrderVos)){
+                    return CheckResultUtil.NG(String.format("作废失败，收款管理[%s]数据未作废，请先完成该收款管理的作废。",cancelOrderVos.stream().map(BArVo::getCode).collect(Collectors.toList())));
+                }
                 break;
             // todo 完成校验
             case CheckResultAo.FINISH_CHECK_TYPE:
@@ -315,9 +455,11 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
 
                 // 是否已经作废
                 if (Objects.equals(bSoOrderEntity.getStatus(), DictConstant.DICT_B_SO_ORDER_STATUS_TWO)) {
-                    return CheckResultUtil.NG(String.format("完成失败，销售订单[%s]未进入执行状态",bSoOrderEntity.getCode()));
+                    return CheckResultUtil.NG(String.format("完成失败，销售合同[%s]未进入执行状态",bSoOrderEntity.getCode()));
                 }
+
                 break;
+
             default:
         }
         return CheckResultUtil.OK();
@@ -329,9 +471,9 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      * @param searchCondition
      */
     @Override
-    public IPage<SoOrderVo> selectPage(SoOrderVo searchCondition) {
+    public IPage<BSoOrderVo> selectPage(BSoOrderVo searchCondition) {
         // 分页条件
-        Page<SoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        Page<BSoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
 
@@ -340,113 +482,167 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
     }
 
     /**
+     * 按应收退款条件分页查询
+     *
+     * @param searchCondition
+     */
+    @Override
+    public IPage<BSoOrderVo> selectPageByArrefund(BSoOrderVo searchCondition) {
+        // 分页条件
+        Page<BSoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+        return mapper.selectPageByArrefund(pageCondition, searchCondition);
+    }
+
+    /**
      * 销售订单 统计
      *
      * @param searchCondition
      */
     @Override
-    public SoOrderVo querySum(SoOrderVo searchCondition) {
+    public BSoOrderVo querySum(BSoOrderVo searchCondition) {
         return mapper.querySum(searchCondition);
     }
 
+    @Override
+    public BSoOrderVo querySumByArrefund(BSoOrderVo searchCondition) {
+        return mapper.querySumByArrefund(searchCondition);
+    }
+
     /**
-     * 销售订单  新增
+     * 销售订单  更新
      *
      * @param searchCondition
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> startUpdate(SoOrderVo searchCondition) {
-        // 1.保存销售订单
+    public UpdateResultAo<Integer> startUpdate(BSoOrderVo searchCondition) {
+        // 1. 校验业务规则
+        checkUpdateLogic(searchCondition);
+        
+        // 2.保存销售订单
         UpdateResultAo<Integer> insertResultAo = update(searchCondition);
 
-        // 2.启动审批流程
-        startFlowProcess(searchCondition, SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_ORDER);
+        // 3.启动审批流程
+        startFlowProcess(searchCondition,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_ORDER);
 
         return insertResultAo;
     }
 
     /**
      * 审批流程回调
-     *
      * @param searchCondition
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCreateBpm(SoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackCreateBpm(BSoOrderVo searchCondition) {
         log.debug("====》审批流程创建成功，更新开始《====");
-        SoOrderVo soOrderVo = selectById(searchCondition.getId());
+        BSoOrderVo BSoOrderVo = selectById(searchCondition.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
          * bpm_instance_summary:{}  // 合同金额:1000
          */
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("合同金额:", soOrderVo.getOrder_amount_sum());
+        jsonObject.put("合同金额:", BSoOrderVo.getOrder_amount_sum());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
         bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
-        bpmInstanceSummaryEntity.setProcess_definition_business_name(soOrderVo.getBpm_process_name());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(BSoOrderVo.getBpm_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
     }
 
     /**
-     * 更新销售订单信息
-     *
-     * @param soOrderVo
+     * 更新销售订单主流程，分步骤调用各业务方法，便于维护和扩展
      */
-    public UpdateResultAo<Integer> update(SoOrderVo soOrderVo) {
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> update(BSoOrderVo BSoOrderVo) {
+        // 1. 更新主表信息
+        BSoOrderEntity bSoOrderEntity = updateMainEntity(BSoOrderVo);
+        // 2. 更新明细信息
+        updateDetailList(BSoOrderVo, bSoOrderEntity);
+        // 3. 更新附件信息
+        updateAttach(BSoOrderVo, bSoOrderEntity);
+        // 4. 更新订单财务数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(bSoOrderEntity.getId());
+        return UpdateResultUtil.OK(1);
+    }
 
-        // 插入前check
-        CheckResultAo cr = checkLogic(soOrderVo, CheckResultAo.UPDATE_CHECK_TYPE);
+    /**
+     * 校验更新业务规则
+     */
+    private void checkUpdateLogic(BSoOrderVo BSoOrderVo) {
+        CheckResultAo cr = checkLogic(BSoOrderVo, CheckResultAo.UPDATE_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
+    }
 
-        BSoOrderEntity bSoOrderEntity = (BSoOrderEntity) BeanUtilsSupport.copyProperties(soOrderVo, BSoOrderEntity.class);
+    /**
+     * 更新主表信息
+     */
+    private BSoOrderEntity updateMainEntity(BSoOrderVo BSoOrderVo) {
+        BSoOrderEntity bSoOrderEntity = (BSoOrderEntity) BeanUtilsSupport.copyProperties(BSoOrderVo, BSoOrderEntity.class);
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_ONE);
+        bSoOrderEntity.setBpm_process_name("更新销售订单审批");
+//        calculateSoorderAmounts(soOrderVo.getDetailListData(), bSoOrderEntity);
         int updCount = mapper.updateById(bSoOrderEntity);
         if(updCount == 0){
             throw new UpdateErrorException("您提交的数据已经被修改，请查询后重新编辑更新。");
         }
+        return bSoOrderEntity;
+    }
 
-        /** 审批流程名称 */
-        bSoOrderEntity.setBpm_process_name("更新销售订单审批");
-
-        // 2.保存销售订单明细表-商品 全删全增
+    /**
+     * 更新明细信息
+     */
+    private void updateDetailList(BSoOrderVo BSoOrderVo, BSoOrderEntity bSoOrderEntity) {
+        List<BSoOrderDetailVo> detailListData = BSoOrderVo.getDetailListData();
         bSoOrderDetailMapper.delete(new LambdaQueryWrapper<BSoOrderDetailEntity>()
                 .eq(BSoOrderDetailEntity :: getSo_order_id, bSoOrderEntity.getId()));
-        List<SoOrderDetailVo> detailListData = soOrderVo.getDetailListData();
-        for (SoOrderDetailVo detailListDatum : detailListData) {
+        for (BSoOrderDetailVo detailListDatum : detailListData) {
             BSoOrderDetailEntity bSoOrderDetailEntity = new BSoOrderDetailEntity();
             BeanUtils.copyProperties(detailListDatum, bSoOrderDetailEntity);
             bSoOrderDetailEntity.setSo_order_id(bSoOrderEntity.getId());
-            int bPurContractDetail = bSoOrderDetailMapper.insert(bSoOrderDetailEntity);
-            if (bPurContractDetail == 0){
+            int bSalOrderDetail = bSoOrderDetailMapper.insert(bSoOrderDetailEntity);
+            if (bSalOrderDetail == 0){
                 throw new BusinessException("新增销售订单明细表-商品失败");
             }
         }
+    }
 
-        // 3.保存附件信息
+    /**
+     * 更新附件信息
+     */
+    private void updateAttach(BSoOrderVo BSoOrderVo, BSoOrderEntity bSoOrderEntity) {
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bSoOrderEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_SO_ORDER);
-
-        SoOrderAttachVo soOrderAttachVo = bSoOrderAttachMapper.selBySoOrderId(bSoOrderEntity.getId());
-        BSoOrderAttachEntity bSoOrderAttachEntity = (BSoOrderAttachEntity) BeanUtilsSupport.copyProperties(soOrderAttachVo, BSoOrderAttachEntity.class);
-
-        insertFile(fileEntity, soOrderVo, bSoOrderAttachEntity);
-        bSoOrderAttachEntity.setSo_order_id(bSoOrderEntity.getId());
-        int insert = bSoOrderAttachMapper.updateById(bSoOrderAttachEntity);
-        if (insert == 0) {
-            throw new UpdateErrorException("新增附件信息失败");
+        BSoOrderAttachVo BSoOrderAttachVo = bSoOrderAttachMapper.selBySoOrderId(bSoOrderEntity.getId());
+        if (BSoOrderAttachVo != null) {
+            // 更新附件信息
+            BSoOrderAttachEntity bSoOrderAttachEntity = (BSoOrderAttachEntity) BeanUtilsSupport.copyProperties(BSoOrderAttachVo, BSoOrderAttachEntity.class);
+            insertFile(fileEntity, BSoOrderVo, bSoOrderAttachEntity);
+            bSoOrderAttachEntity.setSo_order_id(bSoOrderEntity.getId());
+            int update = bSoOrderAttachMapper.updateById(bSoOrderAttachEntity);
+            if (update == 0) {
+                throw new UpdateErrorException("更新附件信息失败");
+            }
+        } else {
+            // 新增附件信息
+            BSoOrderAttachEntity bSoOrderAttachEntity = new BSoOrderAttachEntity();
+            insertFile(fileEntity, BSoOrderVo, bSoOrderAttachEntity);
+            bSoOrderAttachEntity.setSo_order_id(bSoOrderEntity.getId());
+            int insert = bSoOrderAttachMapper.insert(bSoOrderAttachEntity);
+            if (insert == 0) {
+                throw new UpdateErrorException("新增附件信息失败");
+            }
         }
-
-        return UpdateResultUtil.OK(updCount);
     }
 
     /**
@@ -456,20 +652,20 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DeleteResultAo<Integer> delete(List<SoOrderVo> searchCondition) {
-        for (SoOrderVo soOrderVo : searchCondition) {
+    public DeleteResultAo<Integer> delete(List<BSoOrderVo> searchCondition) {
+        for (BSoOrderVo soContractVo : searchCondition) {
 
-            // 插入前check
-            CheckResultAo cr = checkLogic(soOrderVo, CheckResultAo.DELETE_CHECK_TYPE);
+            // 作废前check
+            CheckResultAo cr = checkLogic(soContractVo, CheckResultAo.DELETE_CHECK_TYPE);
             if (!cr.isSuccess()) {
                 throw new BusinessException(cr.getMessage());
             }
 
             // 逻辑删除
-            BSoOrderEntity bSoOrderEntity = mapper.selectById(soOrderVo.getId());
-            bSoOrderEntity.setIs_del(Boolean.TRUE);
+            BSoOrderEntity bSoContractEntity = mapper.selectById(soContractVo.getId());
+            bSoContractEntity.setIs_del(Boolean.TRUE);
 
-            int delCount = mapper.updateById(bSoOrderEntity);
+            int delCount = mapper.updateById(bSoContractEntity);
             if(delCount == 0){
                 throw new UpdateErrorException("您提交的数据不存在，请查询后重新操作。");
             }
@@ -483,7 +679,7 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      * @param searchCondition
      */
     @Override
-    public SoOrderVo getPrintInfo(SoOrderVo searchCondition) {
+    public BSoOrderVo getPrintInfo(BSoOrderVo searchCondition) {
         /**
          * 获取打印配置信息
          * 1、从s_config中获取到：print_system_config、
@@ -515,12 +711,12 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
     }
 
     /**
-     * 报表导出
+     * 导出查询
      *
      * @param param
      */
     @Override
-    public List<SoOrderVo> selectExportList(SoOrderVo param) {
+    public List<BSoOrderVo> selectExportList(BSoOrderVo param) {
         // 导出限制开关
         SConfigEntity sConfigEntity = isConfigService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
         if (Objects.isNull(param.getIds()) && !Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
@@ -536,7 +732,7 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
     /**
      * 启动审批流
      */
-    public void startFlowProcess(SoOrderVo bean,String type){
+    public void startFlowProcess(BSoOrderVo bean, String type){
         // 未初始化审批流数据，不启动审批流
         if (StringUtils.isNotEmpty(bean.getInitial_process())) {
             // 启动审批流
@@ -567,7 +763,7 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
     /**
      * 附件逻辑 全删全增
      */
-    public BSoOrderAttachEntity insertFile(SFileEntity fileEntity, SoOrderVo vo, BSoOrderAttachEntity extra) {
+    public BSoOrderAttachEntity insertFile(SFileEntity fileEntity, BSoOrderVo vo, BSoOrderAttachEntity extra) {
         //  其他附件附件全删
        /* if (vo.getDoc_att_file()!=null){
             deleteFile(vo.getDoc_att_file());
@@ -586,10 +782,10 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
                 fileInfoMapper.insert(fileInfoEntity);
             }
             // 其他附件id
-            extra.setFour_file(fileEntity.getId());
+            extra.setOne_file(fileEntity.getId());
             fileEntity.setId(null);
         }else {
-            extra.setFour_file(null);
+            extra.setOne_file(null);
         }
         return extra;
     }
@@ -599,9 +795,12 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackApprove(SoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackApprove(BSoOrderVo searchCondition) {
         log.debug("====》销售订单[{}]审批流程通过，更新开始《====",searchCondition.getId());
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
+
+        bSoOrderEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
+        bSoOrderEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
 
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_TWO);
         bSoOrderEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -610,16 +809,19 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
+
         log.debug("====》销售订单[{}]审批流程通过,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
     }
 
     /**
-     * 审批流程拒绝 更新审核状态待审批
+     * 审批流程拒绝 更新审核状态驳回
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackRefuse(SoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackRefuse(BSoOrderVo searchCondition) {
         log.debug("====》销售订单[{}]审批流程拒绝，更新开始《====",searchCondition.getId());
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
 
@@ -629,6 +831,9 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
+
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
 
         log.debug("====》销售订单[{}]审批流程拒绝,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
@@ -641,17 +846,20 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCancel(SoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackCancel(BSoOrderVo searchCondition) {
         log.debug("====》销售订单[{}]审批流程撤销，更新开始《====",searchCondition.getId());
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
 
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_ZERO);
-        bSoOrderEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
+        bSoOrderEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_CANCEL);
         int i = mapper.updateById(bSoOrderEntity);
         if (i == 0) {
             throw new UpdateErrorException("更新审核状态失败");
         }
 
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
+        
         log.debug("====》销售订单[{}]审批流程撤销,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
 
@@ -662,7 +870,7 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackSave(SoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> bpmCallBackSave(BSoOrderVo searchCondition) {
         log.debug("====》销售订单[{}]审批流程更新最新审批人，更新开始《====",searchCondition.getId());
 
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
@@ -675,28 +883,29 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
         return UpdateResultUtil.OK(i);
     }
 
+
     /**
      *  作废审批流程回调
      *  作废审批流程创建时
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(SoOrderVo searchCondition){
+    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BSoOrderVo searchCondition){
         log.debug("====》作废审批流程创建成功，更新开始《====");
-        SoOrderVo soOrderVo = selectById(searchCondition.getId());
+        BSoOrderVo BSoOrderVo = selectById(searchCondition.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
          * bpm_instance_summary:{}  // 作废理由:1000
          */
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("作废理由:", soOrderVo.getCancel_reason());
+        jsonObject.put("作废理由:", BSoOrderVo.getCancel_reason());
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
         bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
-        bpmInstanceSummaryEntity.setProcess_definition_business_name(soOrderVo.getBpm_cancel_process_name());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(BSoOrderVo.getBpm_cancel_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
 
         return UpdateResultUtil.OK(0);
@@ -707,9 +916,12 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackApprove(SoOrderVo searchCondition) {
-        log.debug("====》采购订单[{}]审批流程通过，更新开始《====",searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BSoOrderVo searchCondition) {
+        log.debug("====》销售订单[{}]审批流程通过，更新开始《====",searchCondition.getId());
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
+
+        bSoOrderEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        bSoOrderEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
 
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_FIVE);
         bSoOrderEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -718,7 +930,10 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
             throw new UpdateErrorException("更新审核状态失败");
         }
 
-        log.debug("====》采购订单[{}]审批流程通过,更新结束《====",searchCondition.getId());
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
+
+        log.debug("====》销售订单[{}]审批流程通过,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -727,8 +942,8 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(SoOrderVo searchCondition) {
-        log.debug("====》采购订单[{}]作废审批流程拒绝，更新开始《====",searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BSoOrderVo searchCondition) {
+        log.debug("====》销售订单[{}]作废审批流程拒绝，更新开始《====",searchCondition.getId());
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
 
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_TWO);
@@ -744,7 +959,10 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_SO_ORDER);
         mCancelService.delete(mCancelVo);
 
-        log.debug("====》采购订单[{}]作废审批流程拒绝,更新结束《====",searchCondition.getId());
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
+
+        log.debug("====》销售订单[{}]作废审批流程拒绝,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -753,8 +971,8 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCancel(SoOrderVo searchCondition) {
-        log.debug("====》采购订单[{}]作废审批流程撤销，更新开始《====",searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackCancel(BSoOrderVo searchCondition) {
+        log.debug("====》销售订单[{}]作废审批流程撤销，更新开始《====",searchCondition.getId());
         BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
 
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_TWO);
@@ -770,7 +988,10 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_SO_ORDER);
         mCancelService.delete(mCancelVo);
 
-        log.debug("====》采购订单[{}]作废审批流程撤销,更新结束《====",searchCondition.getId());
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
+        
+        log.debug("====》销售订单[{}]作废审批流程撤销,更新结束《====",searchCondition.getId());
         return UpdateResultUtil.OK(i);
 
     }
@@ -780,42 +1001,42 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackSave(SoOrderVo searchCondition) {
-        log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新开始《====",searchCondition.getId());
-        BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackSave(BSoOrderVo vo) {
+        log.debug("====》销售订单[{}]作废审批流程更新最新审批人，更新开始《====",vo.getId());
+        BSoOrderEntity bSoOrderEntity = mapper.selectById(vo.getId());
 
-        bSoOrderEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
-        bSoOrderEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
-        bSoOrderEntity.setNext_approve_name(searchCondition.getNext_approve_name());
+        bSoOrderEntity.setBpm_cancel_instance_id(vo.getBpm_instance_id());
+        bSoOrderEntity.setBpm_cancel_instance_code(vo.getBpm_instance_code());
+        bSoOrderEntity.setNext_approve_name(vo.getNext_approve_name());
         int i = mapper.updateById(bSoOrderEntity);
 
-        log.debug("====》采购订单[{}]作废审批流程更新最新审批人，更新结束《====",searchCondition.getId());
+        log.debug("====》销售订单[{}]作废审批流程更新最新审批人，更新结束《====",vo.getId());
         return UpdateResultUtil.OK(i);
     }
 
     /**
      * 作废
-     * @param searchCondition
+     * @param vo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> cancel(SoOrderVo searchCondition) {
+    public UpdateResultAo<Integer> cancel(BSoOrderVo vo) {
 
         // 作废前check
-        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.CANCEL_CHECK_TYPE);
+        CheckResultAo cr = checkLogic(vo, CheckResultAo.CANCEL_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
 
-        BSoOrderEntity bSoOrderEntity = mapper.selectById(searchCondition.getId());
+        BSoOrderEntity bSoOrderEntity = mapper.selectById(vo.getId());
 
         // 1.保存附件信息
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bSoOrderEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_SO_ORDER);
-        fileEntity = insertCancelFile(fileEntity, searchCondition);
+        fileEntity = insertCancelFile(fileEntity, vo);
 
-        bSoOrderEntity.setBpm_cancel_process_name("作废采购订单审批");
+        bSoOrderEntity.setBpm_cancel_process_name("作废销售订单审批");
         bSoOrderEntity.setStatus(DictConstant.DICT_B_SO_ORDER_STATUS_FOUR);
         int insert = mapper.updateById(bSoOrderEntity);
         if (insert == 0) {
@@ -824,22 +1045,44 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
 
         // 2.增加作废记录
         MCancelVo mCancelVo = new MCancelVo();
-        mCancelVo.setSerial_id(bSoOrderEntity.getId());
+        mCancelVo.setSerial_id(vo.getId());
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_SO_ORDER);
         mCancelVo.setFile_id(fileEntity.getId());
-        mCancelVo.setRemark(searchCondition.getCancel_reason());
+        mCancelVo.setRemark(vo.getCancel_reason());
         mCancelService.insert(mCancelVo);
 
         // 2.启动审批流程
-        startFlowProcess(searchCondition,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_ORDER_CANCEL);
+        startFlowProcess(vo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_ORDER_CANCEL);
+
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(vo.getId());
 
         return UpdateResultUtil.OK(insert);
     }
 
     /**
+     * 完成
+     * @param searchCondition
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> finish(BSoOrderVo searchCondition) {
+        // 作废前check
+        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
+        if (!cr.isSuccess()) {
+            throw new BusinessException(cr.getMessage());
+        }
+
+        // 重新计算销售订单财务汇总数据 (暂时跳过ICommonSoTotalService)
+        // iCommonSoTotalService.reCalculateAllTotalDataBySoOrderId(searchCondition.getId());
+
+        return null;
+    }
+
+    /**
      * 附件
      */
-    public SFileEntity insertCancelFile(SFileEntity fileEntity, SoOrderVo vo) {
+    public SFileEntity insertCancelFile(SFileEntity fileEntity, BSoOrderVo vo) {
         // 其他附件新增
         if (vo.getCancel_files() != null && vo.getCancel_files().size() > 0) {
             // 主表新增
@@ -855,5 +1098,67 @@ public class BSoOrderServiceImpl extends ServiceImpl<BSoOrderMapper, BSoOrderEnt
             }
         }
         return fileEntity;
+    }
+
+    /**
+     * 分页查询包含结算信息
+     *
+     * @param searchCondition
+     */
+    @Override
+    public IPage<BSoOrderVo> selectOrderListWithSettlePage(BSoOrderVo searchCondition) {
+        // 分页条件
+        Page<BSoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+
+        // 查询入库计划page
+        return mapper.selectOrderListWithSettlePage(pageCondition, searchCondition);
+    }
+
+    /**
+     * 销售订单结算信息统计
+     *
+     * @param searchCondition
+     */
+    @Override
+    public BSoOrderVo queryOrderListWithSettlePageSum(BSoOrderVo searchCondition) {
+        return mapper.queryOrderListWithSettlePageSum(searchCondition);
+    }
+
+    /**
+     * 货权转移专用-分页查询销售订单信息
+     *
+     * @param searchCondition
+     */
+    @Override
+    public IPage<BSoOrderVo> selectOrderListForCargoRightTransferPage(BSoOrderVo searchCondition) {
+        // 分页条件
+        Page<BSoOrderVo> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+
+        // 查询货权转移专用销售订单page
+        return mapper.selectOrderListForCargoRightTransferPage(pageCondition, searchCondition);
+    }
+
+    /**
+     * 货权转移专用-销售订单统计
+     *
+     * @param searchCondition
+     */
+    @Override
+    public BSoOrderVo queryOrderListForCargoRightTransferPageSum(BSoOrderVo searchCondition) {
+        return mapper.queryOrderListForCargoRightTransferPageSum(searchCondition);
+    }
+
+    /**
+     * 货权转移专用-获取销售订单明细数据
+     *
+     * @param searchCondition
+     */
+    @Override
+    public List<BSoOrderDetailVo> selectDetailData(BSoOrderVo searchCondition) {
+        return mapper.selectDetailData(searchCondition);
     }
 }

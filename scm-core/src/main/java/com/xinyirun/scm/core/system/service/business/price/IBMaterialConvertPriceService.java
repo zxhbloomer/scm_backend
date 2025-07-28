@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.price;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.price.BMaterialConvertPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BMaterialConvertPriceEntity;
 
 /**
  * <p>

@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.adjust;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.adjust.BAdjustEntity;
+import com.xinyirun.scm.bean.entity.business.adjust.BAdjustEntity;
 import com.xinyirun.scm.bean.system.vo.business.adjust.BAdjustVo;
 
 import java.util.List;

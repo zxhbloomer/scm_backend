@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.ownerchange;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.ownerchange.BOwnerChangeOrderEntity;
+import com.xinyirun.scm.bean.entity.business.ownerchange.BOwnerChangeOrderEntity;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;

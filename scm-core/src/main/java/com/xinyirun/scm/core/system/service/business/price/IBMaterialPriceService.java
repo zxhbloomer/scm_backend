@@ -4,7 +4,7 @@ package com.xinyirun.scm.core.system.service.business.price;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.api.vo.sync.ApiBMaterialPriceVo;
-import com.xinyirun.scm.bean.entity.busniess.price.BMaterialPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BMaterialPriceEntity;
 import com.xinyirun.scm.bean.system.vo.business.price.BMaterialPriceVo;
 
 import java.util.List;

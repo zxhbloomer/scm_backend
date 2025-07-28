@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.bkmonitor.v2;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.bkmonitor.BBkMonitorSyncLogEntity;
+import com.xinyirun.scm.bean.entity.business.bkmonitor.BBkMonitorSyncLogEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 
 /**

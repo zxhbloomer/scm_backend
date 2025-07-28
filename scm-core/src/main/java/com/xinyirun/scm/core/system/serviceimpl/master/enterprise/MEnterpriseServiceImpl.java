@@ -8,8 +8,8 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.github.promeg.pinyinhelper.Pinyin;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutEntity;
-import com.xinyirun.scm.bean.entity.busniess.wms.out.BOutPlanEntity;
+import com.xinyirun.scm.bean.entity.business.wms.out.BOutEntity;
+import com.xinyirun.scm.bean.entity.business.wms.outplan.BOutPlanEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseAttachEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseHisEntity;
@@ -48,7 +48,7 @@ import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessTemplatesService
 import com.xinyirun.scm.core.system.mapper.business.wms.in.BInMapper;
 import com.xinyirun.scm.core.system.mapper.business.wms.inplan.BInPlanMapper;
 import com.xinyirun.scm.core.system.mapper.business.wms.out.BOutMapper;
-import com.xinyirun.scm.core.system.mapper.business.wms.out.BOutPlanMapper;
+import com.xinyirun.scm.core.system.mapper.business.wms.outplan.BOutPlanMapper;
 import com.xinyirun.scm.core.system.mapper.master.enterpise.MEnterpriseAttachMapper;
 import com.xinyirun.scm.core.system.mapper.master.enterpise.MEnterpriseHisMapper;
 import com.xinyirun.scm.core.system.mapper.master.enterpise.MEnterpriseMapper;
@@ -64,6 +64,7 @@ import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MEnterpriseAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,9 +84,8 @@ import java.util.*;
  * @since 2021-09-23
  */
 @Service
+@Slf4j
 public class MEnterpriseServiceImpl extends BaseServiceImpl<MEnterpriseMapper, MEnterpriseEntity> implements IMEnterpriseService {
-
-    private static final Logger log = LoggerFactory.getLogger(MEnterpriseServiceImpl.class);
 
     @Autowired
     private MEnterpriseMapper mapper;
@@ -892,16 +892,16 @@ public class MEnterpriseServiceImpl extends BaseServiceImpl<MEnterpriseMapper, M
 //                }
 
                 // 出库计划有该企业数据
-                List<BOutPlanEntity> bOutPlanEntities = bOutPlanMapper.selectByCustomerCode(enterpriseEntity.getCode());
-                if (!bOutPlanEntities.isEmpty()) {
-                    return CheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
-                }
+//                List<BOutPlanEntity> bOutPlanEntities = bOutPlanMapper.selectByCustomerCode(enterpriseEntity.getCode());
+//                if (!bOutPlanEntities.isEmpty()) {
+//                    return CheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
+//                }
 
                 // 出库单有该企业数据有该企业数据
-                List<BOutEntity> bOutEntities = bOutMapper.selectByCustomerCode(enterpriseEntity.getCode());
-                if (!bOutEntities.isEmpty()) {
-                    return CheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
-                }
+//                List<BOutEntity> bOutEntities = bOutMapper.selectByCustomerCode(enterpriseEntity.getCode());
+//                if (!bOutEntities.isEmpty()) {
+//                    return CheckResultUtil.NG("删除出错：该企业信息被入库计划使用中", vo.getName());
+//                }
 
                 break;
             default:

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.po.appay;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.appay.BApPayDetailEntity;
+import com.xinyirun.scm.bean.entity.business.po.appay.BApPayDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.po.appay.BApPayDetailVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

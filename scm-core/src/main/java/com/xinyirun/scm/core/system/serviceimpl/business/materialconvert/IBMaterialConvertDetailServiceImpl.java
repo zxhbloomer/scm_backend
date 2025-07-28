@@ -1,6 +1,6 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.materialconvert;
 
-import com.xinyirun.scm.bean.entity.busniess.materialconvert.BMaterialConvertDetailEntity;
+import com.xinyirun.scm.bean.entity.business.materialconvert.BMaterialConvertDetailEntity;
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertVo;
 import com.xinyirun.scm.core.system.mapper.business.materialconvert.BMaterialConvertDetailMapper;

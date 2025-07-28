@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.warehouse;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.wms.warehouse.BWarehouseGroupEntity;
+import com.xinyirun.scm.bean.entity.business.wms.warehouse.BWarehouseGroupEntity;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;

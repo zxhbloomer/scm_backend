@@ -37,7 +37,7 @@ public class BApAttachVo implements Serializable {
     /**
      * 付款附件
      */
-    private Integer oneFile;
+    private Integer one_file;
 
     /**
      * 创建人id

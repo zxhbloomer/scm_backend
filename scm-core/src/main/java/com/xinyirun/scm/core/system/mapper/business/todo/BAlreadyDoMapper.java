@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.todo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.todo.BAlreadyDoEntity;
+import com.xinyirun.scm.bean.entity.business.todo.BAlreadyDoEntity;
 import com.xinyirun.scm.bean.system.vo.business.todo.BAlreadyDoVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;

@@ -11,7 +11,7 @@ import com.vladsch.flexmark.util.data.MutableDataSet;
 import com.xinyirun.scm.bean.bpm.vo.BpmInstanceVo;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceApproveEntity;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceEntity;
-import com.xinyirun.scm.bean.entity.busniess.notice.BNoticeEntity;
+import com.xinyirun.scm.bean.entity.business.notice.BNoticeEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmCommentVo;

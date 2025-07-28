@@ -1,11 +1,8 @@
 package com.xinyirun.scm.core.system.mapper.business.monitor;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 //import com.xinyirun.scm.bean.app.vo.business.monitor.AppBMonitorPickupVo;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorDeliveryEntity;
-import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorDeliveryEntity;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

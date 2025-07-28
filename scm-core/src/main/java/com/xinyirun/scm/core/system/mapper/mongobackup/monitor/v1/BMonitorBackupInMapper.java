@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.mongobackup.monitor.v1;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorInEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorInEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v1.BBkMonitorLogDetailVo;
 import com.xinyirun.scm.bean.system.vo.mongo.monitor.v1.BMonitorInUnloadDataMongoVo;
 import org.apache.ibatis.annotations.Param;

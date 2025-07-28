@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.wo;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.wo.BWoMaterialEntity;
+import com.xinyirun.scm.bean.entity.business.wo.BWoMaterialEntity;
 import com.xinyirun.scm.bean.system.bo.inventory.warehouse.MBLWBo;
 import com.xinyirun.scm.bean.system.vo.business.wo.BWoMaterialVo;
 import com.xinyirun.scm.common.exception.system.BusinessException;

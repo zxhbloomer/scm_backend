@@ -4,7 +4,7 @@ import com.xinyirun.scm.bean.app.bo.inventory.company.AppConsignorBo;
 import com.xinyirun.scm.bean.app.bo.inventory.company.AppOwnerBo;
 import com.xinyirun.scm.bean.app.bo.inventory.warehouse.AppBLWBo;
 import com.xinyirun.scm.bean.app.bo.material.AppSkuBo;
-import com.xinyirun.scm.bean.entity.busniess.wms.in.BInEntity;
+import com.xinyirun.scm.bean.entity.business.wms.in.BInEntity;
 import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.common.enums.InventoryBusinessTypeEnum;
 import com.xinyirun.scm.common.enums.InventoryTypeEnum;

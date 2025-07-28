@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.service.business.notice;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.notice.BNoticeStaffEntity;
+import com.xinyirun.scm.bean.entity.business.notice.BNoticeStaffEntity;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 
 import java.util.List;

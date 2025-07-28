@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.rpd;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.busniess.rpd.RProductDailyAEntity;
+import com.xinyirun.scm.bean.entity.business.rpd.RProductDailyAEntity;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyExportVo;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
 import com.xinyirun.scm.common.annotations.DataScopeAnnotion;

@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.business.alarm;
 
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.xinyirun.scm.bean.entity.busniess.alarm.BAlarmRulesGroupEntity;
+import com.xinyirun.scm.bean.entity.business.alarm.BAlarmRulesGroupEntity;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffGroupTransferVo;
 import com.xinyirun.scm.bean.system.vo.business.alarm.BAlarmStaffTransferVo;
 

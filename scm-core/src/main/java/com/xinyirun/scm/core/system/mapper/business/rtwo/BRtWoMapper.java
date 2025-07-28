@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.business.rtwo;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.busniess.rtwo.BRtWoEntity;
+import com.xinyirun.scm.bean.entity.business.rtwo.BRtWoEntity;
 import com.xinyirun.scm.bean.system.vo.business.rtwo.BRtWoVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;

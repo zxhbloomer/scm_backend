@@ -6,7 +6,7 @@ import com.xinyirun.scm.bean.api.vo.business.inventory.ApiDailyInventoryVo;
 import com.xinyirun.scm.bean.api.vo.business.price.ApiMaterialConvertPriceVo;
 import com.xinyirun.scm.bean.api.vo.sync.ApiDailyInventorySyncVo;
 import com.xinyirun.scm.bean.api.vo.sync.ApiMaterialConvertPriceSyncVo;
-import com.xinyirun.scm.bean.entity.busniess.wms.inventory.BDailyInventoryEntity;
+import com.xinyirun.scm.bean.entity.business.wms.inventory.BDailyInventoryEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SAppConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.mapper.business.po.settlement;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.xinyirun.scm.bean.entity.busniess.po.settlement.BPoSettlementTotalEntity;
+import com.xinyirun.scm.bean.entity.business.po.settlement.BPoSettlementTotalEntity;
 import org.apache.ibatis.annotations.*;
 
 import java.util.LinkedHashSet;

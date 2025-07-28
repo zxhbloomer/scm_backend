@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.serviceimpl.business.price;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.api.vo.business.price.ApiGoodsPriceVo;
-import com.xinyirun.scm.bean.entity.busniess.price.BGoodsPriceEntity;
+import com.xinyirun.scm.bean.entity.business.price.BGoodsPriceEntity;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsSpecVo;
 import com.xinyirun.scm.common.enums.api.ApiResultEnum;
 import com.xinyirun.scm.common.exception.api.ApiBusinessException;

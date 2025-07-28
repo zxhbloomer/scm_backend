@@ -5,7 +5,7 @@ import com.xinyirun.scm.bean.app.vo.business.monitor.AppBMonitorInVo;
 import com.xinyirun.scm.bean.app.vo.business.monitor.AppBMonitorListSizeVo;
 import com.xinyirun.scm.bean.app.vo.business.monitor.AppBMonitorOutVo;
 import com.xinyirun.scm.bean.app.vo.business.monitor.AppBMonitorVo;
-import com.xinyirun.scm.bean.entity.busniess.monitor.BMonitorEntity;
+import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Param;
