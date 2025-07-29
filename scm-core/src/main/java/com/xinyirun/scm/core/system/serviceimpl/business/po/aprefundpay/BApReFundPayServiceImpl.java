@@ -56,10 +56,10 @@ import java.util.List;
  * @since 2025-02-26
  */
 @Service
-public class BApReFundPayServiceImpl extends ServiceImpl<BApRefundPayMapper, BApReFundPayEntity> implements IBApReFundPayService {
+public class BApReFundPayServiceImpl extends ServiceImpl<BApReFundPayMapper, BApReFundPayEntity> implements IBApReFundPayService {
 
     @Autowired
-    private BApRefundPayMapper mapper;
+    private BApReFundPayMapper mapper;
 
     @Autowired
     private BApReFundPayDetailMapper bApReFundPayDetailMapper;

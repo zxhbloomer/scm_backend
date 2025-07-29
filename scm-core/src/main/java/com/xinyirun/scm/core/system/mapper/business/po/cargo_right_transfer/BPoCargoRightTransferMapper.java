@@ -32,14 +32,22 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
      */
     @Select("""
             <script>
+            -- 货权转移单分页查询，包含明细信息、状态翻译、人员信息等
             SELECT
+            	-- tab1.*: 货权转移主表所有字段
             	tab1.*,
+            	-- status_name: 状态显示名称(0-待审批,1-审批中,2-执行中,3-驳回,4-作废审批中,5-已作废,6-已完成)
             	tab3.label as status_name,
+            	-- detailListData: 货权转移明细JSON数组，包含商品、数量、价格等信息
             	tab2.detailListData ,
+            	-- process_code: BPM流程实例编码
             	tab1.bpm_instance_code as process_code,
+            	-- c_name: 创建人姓名
             	tab4.name as c_name,
+            	-- u_name: 修改人姓名
             	tab5.name as u_name
             FROM
+            	-- 主表：货权转移表
             	b_po_cargo_right_transfer tab1
                 LEFT JOIN (select cargo_right_transfer_id,JSON_ARRAYAGG(
                 JSON_OBJECT( 'sku_code', sku_code,
@@ -67,14 +75,22 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
               LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
               LEFT JOIN b_po_contract tab7 ON tab7.id = tab1.po_contract_id
             	WHERE TRUE
+            	 -- is_del = false: 查询未删除的记录
             	 AND tab1.is_del = false
+            	 -- #{p1.status}: 货权转移状态精确匹配或空值
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
+            	 -- #{p1.code}: 货权转移单号模糊查询
             	 AND (tab1.code like CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or #{p1.code} = '')
+            	 -- #{p1.supplier_id}: 供应商ID精确匹配或空值
             	 AND (tab1.supplier_id = #{p1.supplier_id}  or #{p1.supplier_id} is null   )
+            	 -- #{p1.purchaser_id}: 采购员ID精确匹配或空值
             	 AND (tab1.purchaser_id = #{p1.purchaser_id}  or #{p1.purchaser_id} is null   )
+            	 -- #{p1.po_order_id}: 采购订单ID精确匹配或空值
             	 AND (tab1.po_order_id = #{p1.po_order_id}  or #{p1.po_order_id} is null   )
+            	 -- #{p1.po_contract_id}: 采购合同ID精确匹配或空值
             	 AND (tab1.po_contract_id = #{p1.po_contract_id}  or #{p1.po_contract_id} is null   )
 
+               -- 状态列表过滤：支持多状态查询
                <if test='p1.status_list != null and p1.status_list.length!=0' >
                 and tab1.status in
                     <foreach collection='p1.status_list' item='item' index='index' open='(' separator=',' close=')'>
@@ -82,6 +98,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
                     </foreach>
                </if>
 
+               -- 商品名称模糊查询：在明细表中查找匹配的商品或SKU名称
                <if test='p1.goods_name != null' >
                and exists(
                       select
@@ -89,10 +106,12 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
                       from
                         b_po_cargo_right_transfer_detail subt1
                         INNER JOIN b_po_cargo_right_transfer subt2 ON subt1.cargo_right_transfer_id = subt2.id
+                      -- #{p1.goods_name}: 在SKU名称或商品名称中模糊查询
                       where (subt1.sku_name like CONCAT('%', #{p1.goods_name}, '%') or subt1.goods_name like CONCAT('%', #{p1.goods_name}, '%'))
                         and subt2.id = tab1.id
                      )
                </if>
+            -- 按货权转移ID分组，避免明细表JOIN产生重复数据
             GROUP BY
             	tab2.cargo_right_transfer_id
             </script>
@@ -104,7 +123,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
 
 
     /**
-     * id��
+     * 根据ID查询货权转移详细信息
      */
     @Select("""
             SELECT
@@ -141,7 +160,10 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
               LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
               LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
               LEFT JOIN b_po_contract tab7 ON tab7.id = tab1.po_contract_id
-            	WHERE TRUE AND tab1.id = #{p1}
+            	WHERE TRUE 
+            	-- #{p1}: 货权转移主表ID精确匹配
+            	AND tab1.id = #{p1}
+            	-- is_del = false: 查询未删除的记录
             	 AND tab1.is_del = false
             GROUP BY
             	tab2.cargo_right_transfer_id
@@ -156,10 +178,15 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
      */
     @Select("""
             <script>
+            -- 货权转移数量汇总统计，按不同转移状态统计总数量
             SELECT
+            	-- cargo_right_untransfer_qty_total: 未转移数量汇总
             	SUM( IFNULL(tab2.cargo_right_untransfer_qty_total,0) )  as  cargo_right_untransfer_qty_total,
+            	-- cargo_right_transfering_qty_total: 转移中数量汇总
             	SUM( IFNULL(tab2.cargo_right_transfering_qty_total,0) )  as  cargo_right_transfering_qty_total,
+            	-- cargo_right_transferred_qty_total: 已转移数量汇总
             	SUM( IFNULL(tab2.cargo_right_transferred_qty_total,0) )  as  cargo_right_transferred_qty_total,
+            	-- cargo_right_transfer_cancel_qty_total: 取消转移数量汇总
             	SUM( IFNULL(tab2.cargo_right_transfer_cancel_qty_total,0) )  as  cargo_right_transfer_cancel_qty_total
             FROM
             	b_po_cargo_right_transfer tab1
@@ -204,8 +231,13 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
      * !��/&�
      */
     @Select("""
-            select * from b_po_cargo_right_transfer where true and is_del = false
+            -- 验证货权转移单号的唯一性，排除当前记录ID
+            select * from b_po_cargo_right_transfer where true 
+            -- is_del = false: 只检查未删除的记录
+            and is_del = false
+            -- #{p1.id}: 排除当前记录ID（新增时为null，修改时为具体ID）
             and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
+            -- #{p1.code}: 货权转移单号精确匹配
             and code = #{p1.code}
             """)
     List<BPoCargoRightTransferVo> validateDuplicateCode(@Param("p1") BPoCargoRightTransferVo bean);
@@ -285,18 +317,28 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
     Long selectExportCount(@Param("p1") BPoCargoRightTransferVo param);
 
     /**
-     * 9ncode��'Cl�
+     * 根据编号查询货权转移
      */
     @Select("""
-            select * from b_po_cargo_right_transfer where code = #{code} and is_del = false
+            -- 根据货权转移单号查询货权转移信息
+            SELECT * FROM b_po_cargo_right_transfer 
+            -- #{code}: 货权转移单号精确匹配
+            WHERE code = #{code} 
+            -- is_del = false: 查询未删除的记录
+            AND is_del = false
             """)
     BPoCargoRightTransferVo selectByCode(@Param("code") String code);
 
     /**
-     * 9npo_order_code��'Cl�
+     * 根据采购订单编号查询货权转移
      */
     @Select("""
-            select * from b_po_cargo_right_transfer where po_order_code = #{po_order_code} and is_del = false
+            -- 根据采购订单编号查询货权转移信息
+            SELECT * FROM b_po_cargo_right_transfer 
+            -- #{po_order_code}: 采购订单编号精确匹配
+            WHERE po_order_code = #{po_order_code} 
+            -- is_del = false: 查询未删除的记录
+            AND is_del = false
             """)
     BPoCargoRightTransferVo selectByPoOrderCode(@Param("po_order_code") String po_order_code);
 
@@ -304,7 +346,12 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
      * 根据编号查询货权转移ID
      */
     @Select("""
-            select id from b_po_cargo_right_transfer where code = #{code} and is_del = false
+            -- 根据货权转移单号查询对应的主ID
+            SELECT id FROM b_po_cargo_right_transfer 
+            -- #{code}: 货权转移单号精确匹配
+            WHERE code = #{code} 
+            -- is_del = false: 查询未删除的记录
+            AND is_del = false
             """)
     Integer selectIdByCode(@Param("code") String code);
 

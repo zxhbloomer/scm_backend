@@ -18,13 +18,23 @@ public interface BApPaySourceMapper extends BaseMapper<BApPaySourceEntity> {
     /**
      * 根据ap_pay_id查询付款来源表
      */
-    @Select("SELECT * FROM b_ap_pay_source WHERE ap_pay_id = #{apPayId}")
+    @Select("""
+            -- 根据付款单主表ID查询付款来源信息
+            SELECT * FROM b_ap_pay_source 
+            -- #{apPayId}: 付款单主表ID
+            WHERE ap_pay_id = #{apPayId}
+            """)
     List<BApPaySourceVo> selectByApPayId(@Param("apPayId") Integer apPayId);
 
     /**
      * 根据ap_pay_code查询付款来源表
      */
-    @Select("SELECT * FROM b_ap_pay_source WHERE ap_pay_code = #{apPayCode}")
+    @Select("""
+            -- 根据付款单编号查询付款来源信息
+            SELECT * FROM b_ap_pay_source 
+            -- #{apPayCode}: 付款单编号
+            WHERE ap_pay_code = #{apPayCode}
+            """)
     List<BApPaySourceVo> selectByApPayCode(@Param("apPayCode") String apPayCode);
 
 } 

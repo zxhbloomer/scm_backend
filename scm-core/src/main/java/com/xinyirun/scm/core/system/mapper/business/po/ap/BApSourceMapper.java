@@ -25,14 +25,22 @@ public interface BApSourceMapper extends BaseMapper<BApSourceEntity> {
      * 根据应付账款ID删除源单数据
      */
     @Delete("""
-            DELETE FROM b_ap_source t where t.ap_id = #{ap_id}
+            -- 根据应付账款主表ID删除所有相关的源单数据
+            DELETE FROM b_ap_source t 
+            -- #{ap_id}: 应付账款主表ID
+            where t.ap_id = #{ap_id}
             """)
     void deleteByApId(Integer ap_id);
 
     /**
      * 根据ap_id查询源单
      */
-    @Select("SELECT * FROM b_ap_source t WHERE t.ap_id = #{ap_id}")
+    @Select("""
+            -- 根据应付账款主表ID查询源单信息
+            SELECT * FROM b_ap_source t 
+            -- #{ap_id}: 应付账款主表ID
+            WHERE t.ap_id = #{ap_id}
+            """)
     List<BApSourceVo> selectByApId(@Param("ap_id") Integer ap_id);
 
 }

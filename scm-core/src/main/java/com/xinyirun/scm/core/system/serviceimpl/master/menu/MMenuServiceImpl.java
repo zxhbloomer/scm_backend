@@ -478,8 +478,10 @@ public class MMenuServiceImpl extends BaseServiceImpl<MMenuMapper, MMenuEntity> 
             case CheckResultAo.UPDATE_CHECK_TYPE:
                 // 更新场合
                 // url check
-                if(countUrl(entity, moduleType) > 1) {
-                    return CheckResultUtil.NG("更新保存出错：请求地址【"+ entity.getPath() +"】出现重复!", entity.getName());
+                if("P".equals(entity.getType())) {
+                    if(countUrl(entity, moduleType) > 1) {
+                        return CheckResultUtil.NG("更新保存出错：请求地址【"+ entity.getPath() +"】出现重复!", entity.getName());
+                    }
                 }
                 break;
             default:

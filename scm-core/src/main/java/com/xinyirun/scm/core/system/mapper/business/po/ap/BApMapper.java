@@ -115,7 +115,15 @@ public interface BApMapper extends BaseMapper<BApEntity> {
     /**
      * 业务类型查询
      */
-    @Select("select dict_value as dict_id ,label as dict_label from s_dict_data where code = 'b_ap_type' and is_del = false")
+    @Select("""
+            -- 查询应付账款业务类型字典数据
+            select dict_value as dict_id ,label as dict_label 
+            from s_dict_data 
+            -- code = 'b_ap_type': 应付账款类型字典编码
+            where code = 'b_ap_type' 
+            -- is_del = false: 未删除的记录（0-未删除，1-已删除）
+            and is_del = false
+            """)
     List<BApVo> getType();
 
     /**
@@ -124,16 +132,26 @@ public interface BApMapper extends BaseMapper<BApEntity> {
     @Select("""
         <script>
         """ + pageSql + """
+            -- is_del = false: 查询未删除的记录（0-未删除，1-已删除）
             AND tab1.is_del = false
+            -- #{p1.code}: 应付账款编号，支持模糊查询
             AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')
+            -- #{p1.status}: 状态（0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成）
             AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')
+            -- #{p1.type}: 类型（1-应付、2-预付、3-其他支出）
             AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')
+            -- #{p1.pay_status}: 付款状态（0-未付款、1-部分付款、2-已付款、-1-中止付款）
             AND (tab1.pay_status = #{p1.pay_status} or #{p1.pay_status} is null or  #{p1.pay_status} = '')
+            -- #{p1.po_contract_code}: 采购合同编号，支持模糊查询
             AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')
+            -- #{p1.po_order_code}: 采购订单编号，支持模糊查询
             AND (tab1.po_order_code like concat('%', #{p1.po_order_code}, '%') or #{p1.po_order_code} is null or  #{p1.po_order_code} = '')
+            -- #{p1.supplier_id}: 供应商ID
             AND (tab1.supplier_id = #{p1.supplier_id}  or #{p1.supplier_id} is null   )
+            -- #{p1.purchaser_id}: 购买方ID
             AND (tab1.purchaser_id = #{p1.purchaser_id}  or #{p1.purchaser_id} is null   )
             <if test='p1.status_list != null and p1.status_list.length!=0' >
+                -- 状态列表查询：支持多个状态值查询
                 and tab1.status in
                   <foreach collection='p1.status_list' item='item' index='index' open='(' separator=',' close=')'>
                     #{item}
@@ -152,9 +170,12 @@ public interface BApMapper extends BaseMapper<BApEntity> {
      * 根据id查询
      */
     @Select("""
+        -- 根据应付账款ID查询详细信息，包含字典翻译、明细信息、银行账户信息
         SELECT
             tab1.*,
+            -- unpay_amount_total: 未付款总金额
             tabb2.unpay_amount_total as unpay_amount,
+            -- 银行账户相关字段
             tab3.bank_accounts_id,
             tab3.bank_accounts_code,
             tab3.payable_amount,
@@ -163,27 +184,42 @@ public interface BApMapper extends BaseMapper<BApEntity> {
             tab9.bank_name,
             tab9.account_number,
             GROUP_CONCAT(tab10.NAME) AS bank_type_name,
+            -- 创建人和修改人姓名
             tab4.name as c_name,
             tab5.name as u_name,
+            -- 字典翻译字段
             tab6.label as status_name,
             tab7.label as type_name,
             tab8.label as pay_status_name,
+            -- 文档附件
             tabb1.one_file as doc_att_file,
+            -- 付款统计字段
             tabb2.payable_amount_total,
             tabb2.paid_amount_total,
             tabb2.paying_amount_total,
             tabb2.unpay_amount_total        
          FROM b_ap tab1
+         -- 关联应付账款明细表，获取银行账户信息
          LEFT JOIN b_ap_detail tab3 ON tab1.id = tab3.ap_id
+         -- 关联员工表，获取创建人信息
          LEFT JOIN m_staff tab4 ON tab4.id = tab1.c_id
+         -- 关联员工表，获取修改人信息
          LEFT JOIN m_staff tab5 ON tab5.id = tab1.u_id
+         -- 关联状态字典，获取状态名称：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
          LEFT JOIN s_dict_data tab6 ON tab6.code = 'b_ap_status' AND tab6.dict_value = tab1.status
+         -- 关联类型字典，获取类型名称：1-应付、2-预付、3-其他支出
          LEFT JOIN s_dict_data tab7 ON tab7.code = 'b_ap_type' AND tab7.dict_value = tab1.type
+         -- 关联付款状态字典，获取付款状态名称：0-未付款、1-部分付款、2-已付款、-1-中止付款
          LEFT JOIN s_dict_data tab8 ON tab8.code = 'b_ap_pay_status' AND tab8.dict_value = tab1.pay_status
+         -- 关联附件表，获取附件文件
          LEFT JOIN b_ap_attach tabb1 on tab1.id = tabb1.ap_id
+         -- 关联汇总表，获取各种付款金额统计
          LEFT JOIN b_ap_total tabb2 on tab1.id = tabb2.ap_id
+         -- 关联银行账户主表，获取银行账户基本信息
          LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
+         -- 关联银行账户类型表，获取银行账户类型信息
          LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id
+        -- #{p1}: 应付账款主表ID
         WHERE tab1.id = #{p1}
         GROUP BY tab1.code, tab3.code
         """)
@@ -322,13 +358,33 @@ public interface BApMapper extends BaseMapper<BApEntity> {
     /**
      * 查询采购订单下 付款账单
      */
-    @Select("select * from b_ap tab1 left join b_po_order tab2 on tab1.po_order_code = tab2.code where tab2.id = #{p1} and tab1.is_del = false")
+    @Select("""
+            -- 根据采购订单ID查询对应的应付账款信息
+            select * from b_ap tab1 
+            -- 关联采购订单表，通过订单编号关联
+            left join b_po_order tab2 on tab1.po_order_code = tab2.code 
+            -- #{p1}: 采购订单ID
+            where tab2.id = #{p1} 
+            -- is_del = false: 未删除的记录（0-未删除，1-已删除）
+            and tab1.is_del = false
+            """)
     List<BApVo> selectByPoCode(@Param("p1")String code);
 
     /**
      * 查询采购订单下 付款账单
      */
-    @Select("select * from b_ap tab1 left join b_po_order tab2 on tab1.po_order_code = tab2.code where tab2.id = #{p1} and tab1.status != #{p2} and tab1.is_del = false")
+    @Select("""
+            -- 根据采购订单ID查询应付账款信息，排除指定状态
+            select * from b_ap tab1 
+            -- 关联采购订单表，通过订单编号关联
+            left join b_po_order tab2 on tab1.po_order_code = tab2.code 
+            -- #{p1}: 采购订单ID
+            where tab2.id = #{p1} 
+            -- #{p2}: 需要排除的状态（通常为'5'-已作废）
+            and tab1.status != #{p2} 
+            -- is_del = false: 未删除的记录（0-未删除，1-已删除）
+            and tab1.is_del = false
+            """)
     List<BApVo> selByPoCodeNotByStatus(@Param("p1")Integer code,@Param("p2") String dictBApStatusFive);
 
     /**
@@ -432,6 +488,11 @@ public interface BApMapper extends BaseMapper<BApEntity> {
      * @param id 应付账款ID
      * @return 应付账款源单信息
      */
-    @Select("SELECT * FROM b_ap_source WHERE ap_id = #{p1}")
+    @Select("""
+            -- 根据应付账款主表ID查询源单信息
+            SELECT * FROM b_ap_source 
+            -- #{p1}: 应付账款主表ID
+            WHERE ap_id = #{p1}
+            """)
     BApSourceVo getApSource(@Param("p1") Integer id);
 }

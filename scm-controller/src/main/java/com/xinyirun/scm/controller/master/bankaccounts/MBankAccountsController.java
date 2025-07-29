@@ -125,6 +125,13 @@ public class MBankAccountsController {
         return ResponseEntity.ok().body(ResultUtil.OK(vo));
     }
 
+    @SysLogAnnotion("根据查询条件，获取销售方企业银行默认账户")
+    @PostMapping("/get_seller")
+    public ResponseEntity<JsonResultAo<MBankAccountsVo>> getSeller(@RequestBody(required = false) MBankAccountsVo searchCondition) {
+        MBankAccountsVo vo = service.getSeller(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(vo));
+    }
+
     @SysLogAnnotion("根据查询条件，获取款项类型")
     @PostMapping("/get_bankType")
     public ResponseEntity<JsonResultAo<List<MBankAccountsTypeVo>>> getBankType(@RequestBody(required = false) MBankAccountsTypeVo searchCondition) {

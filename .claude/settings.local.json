@@ -1,15 +1,41 @@
 {
+  "env": {
+    "MAX_THINKING_TOKENS": "31999",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "32000"
+  },
   "permissions": {
     "allow": [
       "Bash(rg:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(cat:*)",
+      "mcp__mcp-mysql-server__connect_db",
+      "mcp__mcp-mysql-server__describe_table",
       "mcp__mcp_server_mysql__mysql_query",
       "mcp__dthink__sequentialthinking",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(tail:*)",
-      "Bash(find:*)"
+      "Bash(sed:*)",
+      "Bash(wc:*)",
+      "Bash(rm:*)",
+      "Bash(wc:*)",
+      "Bash(mvn compile:*)",
+      "Bash(head:*)",
+      "Bash(mvn clean:*)",
+      "Bash(file:*)",
+      "Bash(mysql:*)",
+      "Bash(copy:*)",
+      "Bash(del:*)",
+      "Bash(diff:*)",
+      "Bash(npm run lint:*)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "shared-tools"
+  ]
 }

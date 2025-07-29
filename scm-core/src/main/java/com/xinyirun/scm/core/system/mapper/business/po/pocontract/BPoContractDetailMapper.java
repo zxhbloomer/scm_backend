@@ -20,17 +20,23 @@ public interface BPoContractDetailMapper extends BaseMapper<BPoContractDetailEnt
     /**
      * 删除当天数据
      */
-    @Delete(""
-            + " DELETE FROM b_po_contract_detail t where t.po_contract_id =  #{po_contract_id}            "
-            +"    ")
+    @Delete("""
+            -- 根据采购合同主表ID删除明细数据
+            DELETE FROM b_po_contract_detail t 
+            -- #{po_contract_id}: 采购合同主表ID
+            where t.po_contract_id = #{po_contract_id}
+            """)
     void deleteByPoContractId(Integer po_contract_id);
 
 
     /**
-     * 删除当天数据
+     * 查询明细数据
      */
-    @Select(""
-            + " select * FROM b_po_contract_detail t where t.po_contract_id =  #{po_contract_id}            "
-            +"    ")
+    @Select("""
+            -- 根据采购合同主表ID查询明细数据
+            select * FROM b_po_contract_detail t 
+            -- #{po_contract_id}: 采购合同主表ID
+            where t.po_contract_id = #{po_contract_id}
+            """)
     BPoContractDetailEntity selectByPoContractId(Integer po_contract_id);
 }

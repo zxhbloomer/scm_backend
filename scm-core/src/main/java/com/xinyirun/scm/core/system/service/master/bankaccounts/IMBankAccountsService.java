@@ -69,6 +69,11 @@ public interface IMBankAccountsService extends IService<MBankAccountsEntity> {
     MBankAccountsVo getPurchaser(MBankAccountsVo searchCondition);
 
     /**
+     * 获取销售方企业的默认银行账户
+     */
+    MBankAccountsVo getSeller(MBankAccountsVo searchCondition);
+
+    /**
      * 企业银行账户，弹窗获取分页列表
      */
     IPage<MBankAccountsVo> dialogpageList(MBankAccountsVo searchCondition);

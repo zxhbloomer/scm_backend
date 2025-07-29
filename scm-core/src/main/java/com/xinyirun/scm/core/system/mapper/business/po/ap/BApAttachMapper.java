@@ -16,6 +16,11 @@ import org.apache.ibatis.annotations.Select;
  */
 public interface BApAttachMapper extends BaseMapper<BApAttachEntity> {
 
-    @Select("select * from b_ap_attach where ap_id = #{p1}")
+    @Select("""
+            -- 根据应付账款主表ID查询附件信息
+            select * from b_ap_attach 
+            -- #{p1}: 应付账款主表ID
+            where ap_id = #{p1}
+            """)
     BApAttachVo selectByApId(@Param("p1") Integer id);
 }

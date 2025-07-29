@@ -17,6 +17,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BApPayAttachMapper extends BaseMapper<BApPayAttachEntity> {
 
-    @Select("SELECT * FROM b_ap_pay_attach WHERE ap_pay_id = #{id}")
+    @Select("""
+            -- 根据付款单主表ID查询付款单附件信息
+            SELECT * FROM b_ap_pay_attach 
+            -- #{id}: 付款单主表ID
+            WHERE ap_pay_id = #{id}
+            """)
     BApPayAttachVo selectByBApId(Integer id);
 }

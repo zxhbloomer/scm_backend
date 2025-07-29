@@ -40,7 +40,7 @@ import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.bpm.service.business.IBpmInstanceSummaryService;
 import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessTemplatesServiceImpl;
 import com.xinyirun.scm.core.system.mapper.business.po.aprefund.*;
-import com.xinyirun.scm.core.system.mapper.business.po.aprefundpay.BApRefundPayMapper;
+import com.xinyirun.scm.core.system.mapper.business.po.aprefundpay.BApReFundPayMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
@@ -120,7 +120,7 @@ public class BApReFundServiceImpl extends ServiceImpl<BApReFundMapper, BApReFund
     private IBpmInstanceSummaryService iBpmInstanceSummaryService;
 
     @Autowired
-    private BApRefundPayMapper bApRefundPayMapper;
+    private BApReFundPayMapper bApRefundPayMapper;
 
     @Autowired
     private CommonFundServiceImpl commonFundService;

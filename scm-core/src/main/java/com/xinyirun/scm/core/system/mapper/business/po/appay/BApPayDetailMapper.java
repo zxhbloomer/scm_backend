@@ -23,13 +23,23 @@ public interface BApPayDetailMapper extends BaseMapper<BApPayDetailEntity> {
     /**
      * 根据ap_code查询付款单明细
      */
-    @Select("SELECT t1.* FROM b_ap_pay_detail t1 WHERE t1.ap_code = #{code}")
+    @Select("""
+            -- 根据应付账款编号查询付款单明细信息
+            SELECT t1.* FROM b_ap_pay_detail t1 
+            -- #{code}: 应付账款主表编号
+            WHERE t1.ap_code = #{code}
+            """)
     List<BApPayDetailVo> selectByCode(@Param("code") String code);
 
     /**
      * 根据id查询付款单明细
      */
-    @Select("SELECT t1.* FROM b_ap_pay_detail t1 WHERE t1.ap_pay_id = #{id}")
+    @Select("""
+            -- 根据付款单主表ID查询付款单明细信息
+            SELECT t1.* FROM b_ap_pay_detail t1 
+            -- #{id}: 付款单主表ID
+            WHERE t1.ap_pay_id = #{id}
+            """)
     List<BApPayDetailVo> selectById(@Param("id") Integer apPayId);
 
     /**

@@ -23,7 +23,19 @@ public interface BPoOrderDetailMapper extends BaseMapper<BPoOrderDetailEntity> {
      * @param po_order_id 采购订单ID
      * @return 订单明细合计VO
      */
-    @Select("SELECT SUM(amount) AS amount, SUM(tax_amount) AS tax_amount, SUM(qty) AS qty FROM b_po_order_detail WHERE po_order_id = #{po_order_id}")
+    @Select("""
+            -- 计算采购订单明细汇总数据
+            SELECT 
+            -- amount: 总额
+            SUM(amount) AS amount, 
+            -- tax_amount: 税额
+            SUM(tax_amount) AS tax_amount, 
+            -- qty: 数量
+            SUM(qty) AS qty 
+            FROM b_po_order_detail 
+            -- #{po_order_id}: 采购订单主表ID
+            WHERE po_order_id = #{po_order_id}
+            """)
     BPoOrderDetailVo getSumAmount(@Param("po_order_id") Integer po_order_id);
 
 }

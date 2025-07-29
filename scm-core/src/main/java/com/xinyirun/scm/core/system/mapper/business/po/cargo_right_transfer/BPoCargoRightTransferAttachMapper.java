@@ -19,6 +19,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BPoCargoRightTransferAttachMapper extends BaseMapper<BPoCargoRightTransferAttachEntity> {
 
-    @Select("select * from b_po_cargo_right_transfer_attach where cargo_right_transfer_id = #{p1}")
+    @Select("""
+            -- 根据货权转移主表ID查询附件信息
+            select * from b_po_cargo_right_transfer_attach 
+            -- #{p1}: 货权转移主表ID
+            where cargo_right_transfer_id = #{p1}
+            """)
     BPoCargoRightTransferAttachVo selectByCargoRightTransferId(@Param("p1") Integer id);
 }

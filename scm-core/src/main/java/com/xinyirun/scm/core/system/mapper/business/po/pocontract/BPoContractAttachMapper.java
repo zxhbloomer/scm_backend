@@ -19,6 +19,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface BPoContractAttachMapper extends BaseMapper<BPoContractAttachEntity> {
 
-    @Select("select * from b_po_contract_attach where po_contract_id = #{p1}")
+    @Select("""
+            -- 根据采购合同ID查询附件信息
+            select * from b_po_contract_attach 
+            -- #{p1}: 采购合同id
+            where po_contract_id = #{p1}
+            """)
     BPoContractAttachVo selectByPoContractId(@Param("p1") Integer id);
 }

@@ -1,10 +1,12 @@
 # CLAUDE.md
-使用中文和我对话
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+使用中文和我对话
 
 ## Project Overview
 
-This is a Supply Chain Management (SCM) backend system built with Spring Boot 3.1.4 and Java 17. The project follows a modular architecture with multiple Maven modules for different concerns (controllers, services, entities, security, etc.).
+This is a Supply Chain Management (SCM) backend system built with Spring Boot 3.1.4 and Java 17. The project follows a modular Maven architecture designed for enterprise-scale supply chain operations, including purchase orders, inventory management, financial settlements, and business process workflows.
 
 ## Build and Development Commands
 
@@ -36,24 +38,58 @@ mvn spring-boot:run
 # Generate code using the auto-code generator
 cd 00autoCreateCode
 mvn exec:java -Dexec.mainClass="CodeGenerator"
+
+# The generator creates:
+# - Entity classes in scm-bean/src/main/java/com/xinyirun/scm/bean/entity/
+# - MyBatis mappers in scm-core/src/main/java/com/xinyirun/scm/core/system/mapper/
+# - XML mapping files in scm-core/src/main/resources/mapper/
+```
+
+### Development Workflow
+```bash
+# 1. Start development environment
+cd scm-start
+mvn spring-boot:run
+
+# 2. Application runs on http://localhost:8088/scm
+# 3. Check application health: http://localhost:8088/scm/actuator/health
+# 4. Default profile: dev (connects to local MySQL/Redis/MongoDB)
 ```
 
 ## Architecture Overview
 
-### Module Structure
-The project is organized into distinct Maven modules:
+### Module Structure and Dependencies
+The project follows a layered modular architecture with clear separation of concerns:
 
-- **scm-bean**: Entity classes, DTOs, VOs, and data transfer objects
-- **scm-common**: Shared utilities, constants, exceptions, and common configurations
-- **scm-core**: Business logic layer with separate modules for API, App, BPM, and tenant operations
-- **scm-controller**: REST controllers organized by concern (API, App, BPM, tenant)
-- **scm-security**: Security configuration, JWT handling, and authentication
-- **scm-redis**: Redis configuration and session management
-- **scm-excel**: Excel import/export functionality
-- **scm-quartz**: Job scheduling and task management
-- **scm-mq**: Message queue (RabbitMQ) components
-- **scm-framework**: Framework-level configurations and utilities
-- **scm-start**: Main application starter modules
+**Core Data Layer**:
+- **scm-bean**: Entity classes, DTOs, VOs - Used by all other modules
+- **scm-common**: Shared utilities, constants, exceptions - Foundation for all modules
+
+**Business Logic Layer**:
+- **scm-core**: Main business logic with sub-modules:
+  - `scm-core-api`: API-specific business logic
+  - `scm-core-app`: Application business logic  
+  - `scm-core-bpm`: Business Process Management logic
+  - `scm-core-tenant`: Multi-tenant specific logic
+  - `scm-core-mongodb`: MongoDB operations and logging
+
+**Presentation Layer**:
+- **scm-controller**: REST controllers organized by concern:
+  - `scm-controller-api`: External API endpoints
+  - `scm-controller-app`: Web application endpoints
+  - `scm-controller-bpm`: BPM workflow endpoints
+  - `scm-controller-tenant`: Tenant management endpoints
+
+**Infrastructure Layer**:
+- **scm-security**: JWT authentication, Spring Security configuration
+- **scm-redis**: Session management, caching
+- **scm-excel**: Excel import/export with Jxls templates
+- **scm-quartz**: Scheduled jobs and batch processing
+- **scm-mq**: RabbitMQ message handling
+- **scm-framework**: Cross-cutting concerns and utilities
+
+**Application Starter**:
+- **scm-start**: Main application entry point with component scanning
 
 ### Key Technologies
 - **Spring Boot 3.1.4** with Java 17
@@ -78,16 +114,48 @@ Key packages:
 
 ## Database and Data Access
 
-### Multi-Database Support
-The application supports multiple databases through dynamic data source configuration:
-- Primary MySQL database for main business data
-- MongoDB for logging and document storage
-- Redis for caching and session storage
+### Multi-Database Architecture
+The system uses a sophisticated multi-database setup with dynamic data source routing:
 
-### Entity Mapping
-- Entities are located in `scm-bean/src/main/java/com/xinyirun/scm/bean/entity/`
-- MyBatis mappers are in respective `core` modules under `mapper` packages
-- Uses MyBatis Plus for enhanced CRUD operations
+**Primary MySQL Database**:
+- Development: `127.0.0.1:3306/scm_tenant_20250519_001`
+- Production configurations available for different environments
+- Connection pooling via Druid with performance monitoring
+- Tenant-based data isolation through application-level routing
+
+**MongoDB** (Document Storage):
+- Host: `127.0.0.1:27017`
+- Database: `wms`
+- Used for audit logs, operational data, and document storage
+- Configured in `scm-core-mongodb` module
+
+**Redis** (Caching & Sessions):
+- Host: `127.0.0.1:6379`, Database: 13
+- Session namespace: `XINYIRUN_SCM_SESSION_REDIS_KEY`
+- 4-hour session timeout, connection pooling with Lettuce
+
+### Multi-Tenant Data Architecture
+The system implements application-level multi-tenancy:
+- Tenant context managed through `@DataSourceAnnotion` 
+- Dynamic data source switching via `DynamicDataSourceContextHolder`
+- Tenant SQL configuration: queries `s_tenant_manager` table for active tenants
+- Each tenant has isolated data while sharing the same application instance
+
+### Entity and Mapper Organization
+```
+scm-bean/entity/
+├── business/        # Business entities (orders, inventory, etc.)
+├── master/         # Master data (customers, goods, organizations)
+├── bpm/           # Business Process Management entities  
+├── log/           # Logging and audit entities
+└── sys/           # System configuration entities
+
+scm-core/system/mapper/
+├── business/      # Business logic mappers
+├── master/       # Master data mappers  
+├── log/          # Logging mappers
+└── sys/          # System mappers
+```
 
 ## Security and Authentication
 
@@ -128,22 +196,79 @@ The system includes comprehensive BPM capabilities using Flowable:
 
 ## Development Guidelines
 
-### Adding New Features
-1. Create entities in `scm-bean` module
-2. Add mappers and services in appropriate `scm-core-*` module
-3. Implement controllers in corresponding `scm-controller-*` module
-4. Update database schemas as needed
+### Adding New Business Modules
+When implementing new supply chain features (e.g., new order types, inventory operations):
 
-### Code Generation
-Use the automated code generator in `00autoCreateCode` module for:
-- Entity classes
-- Mapper interfaces
-- Basic CRUD operations
-- Controller scaffolding
+1. **Entity Creation** (scm-bean):
+   ```java
+   // Create in scm-bean/src/main/java/com/xinyirun/scm/bean/entity/business/
+   @TableName("b_your_table")
+   public class YourEntity extends BaseEntity {
+       // Use @TableField for custom field mapping
+   }
+   ```
 
-### Testing
-- Tests are configured to be skipped by default in Maven
-- Enable tests by removing `<skipTests>true</skipTests>` configuration
+2. **Mapper Implementation** (scm-core):
+   ```java
+   // Create in scm-core/src/main/java/com/xinyirun/scm/core/system/mapper/business/
+   @Mapper
+   public interface YourMapper extends BaseMapper<YourEntity> {
+       // Custom queries with @Select, @Update annotations
+   }
+   ```
+
+3. **Service Layer** (scm-core):
+   ```java
+   // Service interface and implementation
+   // Implement business logic, data validation, tenant context handling
+   ```
+
+4. **Controller Implementation** (scm-controller):
+   ```java
+   // Create REST endpoints with proper error handling and logging
+   @RestController
+   @RequestMapping("/api/v1/your-module")
+   ```
+
+### Code Generation Workflow
+The automated generator (CodeGenerator.java) streamlines development:
+```bash
+cd 00autoCreateCode
+mvn exec:java -Dexec.mainClass="CodeGenerator"
+# Enter module name when prompted (e.g., "purchase", "inventory")
+# Generator connects to: jdbc:mysql://127.0.0.1:3306/scm_tenant_20250519_001
+```
+
+### Common Development Patterns
+
+**Multi-Tenant Data Access**:
+```java
+@DataSourceAnnotion("tenant") // Switch to tenant-specific data source
+public class YourService {
+    // All operations in this class use tenant data source
+}
+```
+
+**Business Process Integration**:
+```java
+// BPM workflow integration
+@Autowired
+private FlowableProcessEngine processEngine;
+// Start process instances, handle approvals
+```
+
+**Logging and Audit**:
+```java
+@SysLogAnnotion(operType = "CREATE", module = "YOUR_MODULE")
+public void createRecord() {
+    // Automatic logging to MongoDB
+}
+```
+
+### Testing Configuration
+- Tests skipped by default: `<skipTests>true</skipTests>` in pom.xml
+- Enable for development: Remove skipTests or run `mvn test -DskipTests=false`
+- Database connections use H2 in-memory for unit tests (when enabled)
 
 ## Configuration Files
 
@@ -179,23 +304,74 @@ Comprehensive Excel handling:
 - Dynamic Excel generation
 - Import validation and processing
 
+## Environment Configuration
+
+### Local Development Setup
+1. **Database Requirements**:
+   ```bash
+   # MySQL (Primary Database)
+   Host: 127.0.0.1:3306
+   Database: scm_tenant_20250519_001
+   Username: root
+   Password: 123456
+   
+   # Redis (Session & Cache)
+   Host: 127.0.0.1:6379
+   Database: 13
+   
+   # MongoDB (Logging)
+   Host: 127.0.0.1:27017
+   Database: wms
+   Username: wms_db_user
+   Password: WmsMongodb%40Shanghai123
+   
+   # RabbitMQ (Message Queue)
+   Host: 127.0.0.1:5672
+   Username: admin
+   Password: 123456
+   ```
+
+2. **Application Profiles**:
+   - `dev`: Local development (default)
+   - `centos-ys`: Demo environment  
+   - `prod`: Production environment
+   - `zlprod`: Special production environment
+
+### Key Application Endpoints
+- Main Application: `http://localhost:8088/scm`
+- Health Check: `http://localhost:8088/scm/actuator/health`
+- Metrics: `http://localhost:8088/scm/actuator/prometheus`
+
+### Troubleshooting Common Issues
+
+**Database Connection Issues**:
+- Verify MySQL is running and accessible
+- Check tenant configuration in `s_tenant_manager` table
+- Validate Druid connection pool settings
+
+**Multi-Tenant Problems**:
+- Ensure `@DataSourceAnnotion` is properly configured
+- Check tenant context in `DynamicDataSourceContextHolder`
+- Verify tenant_sql query returns active tenants
+
+**Session/Authentication Issues**:
+- Confirm Redis is running and accessible
+- Check JWT secret configuration: `wms.security.jwt.base64-secret`
+- Verify session namespace: `XINYIRUN_SCM_SESSION_REDIS_KEY`
+
+**BPM Workflow Issues**:
+- Check Flowable database tables are created
+- Verify process definitions are deployed
+- Ensure workflow database type is set to 'mysql'
+
 ## Version Information
 Current version: v1.0.39 (as configured in application.yml)
 
-数据库配置信息：
-  - ip：127.0.0.1
-  - port：3306
-  - db:scm_tenant_20250519_001
-  - username:root
-  - password:123456
-
-# 项目开发时的规则说明
-- @~/.claude/java-rule-1.md
-- @~/.claude/java-rule-bpm.instructions.md
-- @~/.claude/java-rule-controller.instructions.md
-- @~/.claude/java-rule-db.instructions.md
-- @~/.claude/java-rule-new-table.instructions.md
-- @~/.claude/java-rule-servcie.instructions.md
-- @~/.claude/java-rule.instructions.md
-- @~/.claude/mcp-rule.instructions.md
-
+## Database Connection (MCP)
+```
+Host: 127.0.0.1
+Port: 3306
+Database: scm_tenant_20250519_001
+Username: root
+Password: 123456
+```

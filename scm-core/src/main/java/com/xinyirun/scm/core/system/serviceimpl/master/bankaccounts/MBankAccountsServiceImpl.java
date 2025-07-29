@@ -323,6 +323,18 @@ public class MBankAccountsServiceImpl extends BaseServiceImpl<MBankAccountsMappe
         return purchaser;
     }
 
+    /**
+     * 获取销售方企业的默认银行账户
+     * @param searchCondition
+     */
+    @Override
+    public MBankAccountsVo getSeller(MBankAccountsVo searchCondition) {
+        MBankAccountsVo seller = mapper.getSeller(searchCondition);
+//        List<MBankAccountsTypeEntity> mBankAccountsTypeEntities = mBankAccountsTypeMapper.selectList(null);
+
+        return seller;
+    }
+
     @Override
     public IPage<MBankAccountsVo> dialogpageList(MBankAccountsVo searchCondition) {
         // 分页条件
