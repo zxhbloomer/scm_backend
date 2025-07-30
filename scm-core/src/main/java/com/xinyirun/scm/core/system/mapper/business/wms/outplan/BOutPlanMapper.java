@@ -158,11 +158,11 @@ public interface BOutPlanMapper extends BaseMapper<BOutPlanEntity> {
                     )                                                                                                                                                 
               </if>                                                                                                                                                   
 
-              <if test='p1.supplier_id != null' >                                                                                                                     
+              <if test='p1.customer_id != null' >                                                                                                                     
               and exists(                                                                                                                                               
                      select 1 from b_out_plan_detail subt1                                                                                                             
                      INNER JOIN b_out_plan subt2 ON subt1.out_plan_id = subt2.id                                                                                       
-                     where subt1.supplier_id = #{p1.supplier_id}                                                                                                     
+                     where subt1.customer_id = #{p1.customer_id}                                                                                                     
                        and subt2.id = tab1.id                                                                                                                         
                     )                                                                                                                                                 
               </if>                                                                                                                                                   

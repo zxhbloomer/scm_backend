@@ -61,7 +61,7 @@ public interface BOutMapper extends BaseMapper<BOutEntity> {
             	LEFT JOIN s_dict_data tab4 ON tab4.code = 'b_out_type' AND tab4.dict_value = tab1.type
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
               LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
-              LEFT JOIN b_out_plan_detail tab16 ON tab16.id = tab1.plan_detail_id
+              LEFT JOIN b_out_plan_detail tab16 ON tab16.id = tab1.out_plan_detail_id
               LEFT JOIN b_out_plan tab15 ON tab15.id = tab16.out_plan_id
             	WHERE TRUE
             	 AND (tab1.status = #{param.status} or #{param.status} is null or #{param.status} = '')
@@ -159,7 +159,7 @@ public interface BOutMapper extends BaseMapper<BOutEntity> {
             	LEFT JOIN s_dict_data tab21 ON tab21.code = 'b_so_order_delivery_type' AND tab21.dict_value = tab19.delivery_type
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
               LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
-              LEFT JOIN b_out_plan_detail tab23 ON tab23.id = tab1.plan_detail_id
+              LEFT JOIN b_out_plan_detail tab23 ON tab23.id = tab1.out_plan_detail_id
               LEFT JOIN b_out_plan tab22 ON tab22.id = tab23.out_plan_id
             	WHERE tab1.id = #{id}
             """)
@@ -203,7 +203,7 @@ public interface BOutMapper extends BaseMapper<BOutEntity> {
             	LEFT JOIN s_dict_data tab4 ON tab4.code = 'b_out_type' AND tab4.dict_value = tab1.type
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
               LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
-              LEFT JOIN b_out_plan_detail tab16 ON tab16.id = tab1.plan_detail_id
+              LEFT JOIN b_out_plan_detail tab16 ON tab16.id = tab1.out_plan_detail_id
               LEFT JOIN b_out_plan tab15 ON tab15.id = tab16.out_plan_id
             	WHERE TRUE
             	 AND (tab1.status = #{param.status} or #{param.status} is null or #{param.status} = '')
