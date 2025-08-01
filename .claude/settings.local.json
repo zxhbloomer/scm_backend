@@ -33,7 +33,9 @@
       "mcp__context7__get-library-docs",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git config:*)",
+      "Bash(git rm:*)"
     ],
     "deny": []
   },
