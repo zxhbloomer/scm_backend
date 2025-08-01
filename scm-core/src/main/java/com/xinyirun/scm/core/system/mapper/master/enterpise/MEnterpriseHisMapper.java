@@ -26,7 +26,9 @@ public interface MEnterpriseHisMapper extends BaseMapper<MEnterpriseHisEntity> {
      * @param id
      * @return
      */
-    @Select("select * from m_enterprise_his where enterprise_id = #{p1} order by c_time desc")
+    @Select("""
+            select * from m_enterprise_his where enterprise_id = #{p1} order by c_time desc
+            """)
     List<MEnterpriseHisVo> selectEnterpriseId(@Param("p1") Integer id);
 
 
@@ -36,25 +38,25 @@ public interface MEnterpriseHisMapper extends BaseMapper<MEnterpriseHisEntity> {
      * @param searchCondition
      * @return
      */
-    @Select("                                                                                                                   "
-            + "      SELECT                                                                                                           "
-            + "      	t1.id,                                                                                                         "
-            + "      	t1.uscc,                                                                                                       "
-            + "      	t1.enterprise_id,                                                                                             "
-            + "      	t1.version,                                                                                                   "
-            + "      	t1.modify_reason,                                                                                             "
-            + "      	t1.enterprise_name,                                                                                          "
-            + "      	JSON_UNQUOTE(JSON_EXTRACT(t1.adjust_info_json, '$.bpm_instance_code')) AS bpm_instance_code,                 "
-            + "      	t1.c_time                                                                                                    "
-            + "      FROM                                                                                                            "
-            + "      	m_enterprise_his t1                                                                                          "
-            + "      JOIN                                                                                                            "
-            + "          m_enterprise t2 ON t1.enterprise_id = t2.id                                                                 "
-            + "      WHERE                                                                                                           "
-            + "          t1.enterprise_id = #{p1.id}                                                                                 "
-            + "      AND t1.version < t2.version                                                                                     "
-            + "      ORDER BY                                                                                                        "
-            + "      	t1.c_time DESC                                                                                               "
-            + "                                                                                                                      ")
+    @Select("""
+            SELECT
+            	t1.id,
+            	t1.uscc,
+            	t1.enterprise_id,
+            	t1.version,
+            	t1.modify_reason,
+            	t1.enterprise_name,
+            	JSON_UNQUOTE(JSON_EXTRACT(t1.adjust_info_json, '$.bpm_instance_code')) AS bpm_instance_code,
+            	t1.c_time
+            FROM
+            	m_enterprise_his t1
+            JOIN
+                m_enterprise t2 ON t1.enterprise_id = t2.id
+            WHERE
+                t1.enterprise_id = #{p1.id}
+            AND t1.version < t2.version
+            ORDER BY
+            	t1.c_time DESC
+            """)
     List<MEnterpriseHisVo> getAdjustList( @Param("p1") MEnterpriseHisVo searchCondition);
 }

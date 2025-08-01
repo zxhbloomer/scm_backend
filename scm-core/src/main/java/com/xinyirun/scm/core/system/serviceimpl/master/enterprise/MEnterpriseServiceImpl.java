@@ -1149,6 +1149,36 @@ public class MEnterpriseServiceImpl extends BaseServiceImpl<MEnterpriseMapper, M
     }
 
     /**
+     * 根据查询条件，获取企业列表（交易对手、供应商、主体企业）
+     * @param searchCondition
+     * @return
+     */
+    @Override
+    public IPage<MEnterpriseVo> getSystemEnterpriseSupplierList(MEnterpriseVo searchCondition) {
+        // 分页条件
+        Page<MEnterpriseVo> pageCondition =
+                new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+        return mapper.getSystemEnterpriseSupplierList(pageCondition, searchCondition);
+    }
+
+    /**
+     * 根据查询条件，获取企业列表（系统企业、买方、经销商）
+     * @param searchCondition
+     * @return
+     */
+    @Override
+    public IPage<MEnterpriseVo> getCounterpartyCustomerList(MEnterpriseVo searchCondition) {
+        // 分页条件
+        Page<MEnterpriseVo> pageCondition =
+                new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
+        // 通过page进行排序
+        PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+        return mapper.getCounterpartyCustomerList(pageCondition, searchCondition);
+    }
+
+    /**
      * 根据组织模块公司数据新增系统企业
      *
      * @param companyEntity 组织模块公司实体

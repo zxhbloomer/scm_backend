@@ -11,6 +11,8 @@ import org.springframework.stereotype.Repository;
 public interface MEnterpriseAttachMapper extends BaseMapper<MEnterpriseAttachEntity> {
 
 
-    @Select("select * from m_enterprise_attach where enterprise_id = #{p1}")
+    @Select("""
+            select * from m_enterprise_attach where enterprise_id = #{p1}
+            """)
     MEnterpriseAttachVo selectEnterpriseId(@Param("p1") Integer id);
 }

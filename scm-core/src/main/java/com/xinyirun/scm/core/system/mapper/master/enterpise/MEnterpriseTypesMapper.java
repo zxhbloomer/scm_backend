@@ -26,6 +26,8 @@ public interface MEnterpriseTypesMapper extends BaseMapper<MEnterpriseTypesEntit
      * 通过customerId查询
      *
      */
-    @Select("select * from m_enterprise_types where enterprise_id = #{p1}")
+    @Select("""
+            select * from m_enterprise_types where enterprise_id = #{p1}
+            """)
     List<MEnterpriseTypesVo> selectEnterpriseId(@Param("p1") Integer id);
 }

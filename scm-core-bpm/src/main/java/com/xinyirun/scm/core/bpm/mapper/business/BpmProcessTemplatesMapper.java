@@ -190,7 +190,7 @@ public interface BpmProcessTemplatesMapper extends BaseMapper<BpmProcessTemplate
             + "             LEFT JOIN m_dept AS t7 ON t7.id = t1.dept_id                                                            "
             + "             LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                                                       "
             + "             LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                       "
-            + "             LEFT JOIN v_dict_info AS t8 ON t8.code = '" + DictConstant.DICT_SYS_DELETE_MAP + "' and t8.dict_value = cast(t1.is_del as char(1)) "
+            + "             LEFT JOIN v_dict_info AS t8 ON t8.code = '" + DictConstant.DICT_SYS_DELETE_MAP + "' and t8.dict_value = CONCAT('', t1.is_del) "
             + "             LEFT JOIN m_user t10 ON t10.staff_id = t1.id                                                            "
             // WMS-444 用户管理，岗位信息后一列增加给用户分配的仓库组，该仓库组列不需穿透，导出也需包含该仓库组列
             + " LEFT JOIN (                                                                                             "

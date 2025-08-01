@@ -306,4 +306,20 @@ public class MEnterpriseController extends SystemBaseController {
         IPage<MEnterpriseVo> list = service.getSystemEnterpriseCustomerList(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
+
+    @SysLogAnnotion("根据查询条件，获取企业列表（交易对手、供应商、主体企业）")
+    @PostMapping("/se/supplier/pagelist")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<IPage<MEnterpriseVo>>> getSystemEnterpriseSupplierList(@RequestBody(required = false) MEnterpriseVo searchCondition) {
+        IPage<MEnterpriseVo> list = service.getSystemEnterpriseSupplierList(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(list));
+    }
+
+    @SysLogAnnotion("根据查询条件，获取企业列表（系统企业、买方、经销商）")
+    @PostMapping("/cp/customer/pagelist")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<IPage<MEnterpriseVo>>> getCounterpartyCustomerList(@RequestBody(required = false) MEnterpriseVo searchCondition) {
+        IPage<MEnterpriseVo> list = service.getCounterpartyCustomerList(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(list));
+    }
 }

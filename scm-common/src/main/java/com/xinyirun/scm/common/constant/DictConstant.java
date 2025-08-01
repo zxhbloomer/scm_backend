@@ -1272,7 +1272,7 @@ public class DictConstant {
     public static final String DICT_SYS_CODE_BPM_INSTANCE_STATUS_REFUSE = "审批驳回";
 
     /**
-     * 项目类型  0 全托 1 代采 2 代销
+     * 项目类型  0 采购、销售 1 采购业务 2 销售业务
      */
     public static final String DICT_B_PROJECT_TYPE = "b_project_type";
     public static final String DICT_B_PROJECT_TYPE_ZERO = "0";

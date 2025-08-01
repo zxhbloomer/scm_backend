@@ -51,7 +51,7 @@ public class BProjectEntity implements Serializable {
     private String name;
 
     /**
-     * 类型 0全托 1代采 2代销
+     * 类型 0采购、销售 1采购业务 2销售业务
      */
     @TableField("type")
     @DataChangeLabelAnnotation(value="类型", dictExtension = "getDictExtension", dictExtensionType = "com.xinyirun.scm.common.constant.DictConstant.DICT_B_PROJECT_TYPE")

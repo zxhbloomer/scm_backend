@@ -151,6 +151,16 @@ public interface IMEnterpriseService extends IService<MEnterpriseEntity> {
     IPage<MEnterpriseVo> getSystemEnterpriseCustomerList(MEnterpriseVo searchCondition) ;
     
     /**
+     * 根据查询条件，获取企业列表（交易对手、供应商、主体企业）
+     */
+    IPage<MEnterpriseVo> getSystemEnterpriseSupplierList(MEnterpriseVo searchCondition) ;
+    
+    /**
+     * 根据查询条件，获取企业列表（系统企业、买方、经销商）
+     */
+    IPage<MEnterpriseVo> getCounterpartyCustomerList(MEnterpriseVo searchCondition) ;
+    
+    /**
      * 根据组织模块公司数据新增系统企业
      * @param companyEntity 组织模块公司实体
      * @return 插入结果
