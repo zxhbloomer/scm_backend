@@ -341,8 +341,21 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         if (StringUtils.isNotEmpty(bean.getInitial_process())) {
             // 启动审批流
             BBpmProcessVo bBpmProcessVo = new BBpmProcessVo();
-            bBpmProcessVo.setCode(iBpmProcessTemplatesService.getBpmFLowCodeByType(SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PROJECT));
-            bBpmProcessVo.setSerial_type(SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PROJECT);
+            // 根据项目类型选择不同的BPM实例类型
+            String bpmInstanceType;
+            if (bean.getType() != null && bean.getType().equals(1)) {
+                // 采购业务
+                bpmInstanceType = SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_PROJECT;
+            } else if (bean.getType() != null && bean.getType().equals(2)) {
+                // 销售业务
+                bpmInstanceType = SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_PROJECT;
+            } else {
+                // 默认使用采购项目类型
+                bpmInstanceType = SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_PROJECT;
+            }
+            
+            bBpmProcessVo.setCode(iBpmProcessTemplatesService.getBpmFLowCodeByType(bpmInstanceType));
+            bBpmProcessVo.setSerial_type(bpmInstanceType);
             bBpmProcessVo.setForm_data(bean.getForm_data());
             bBpmProcessVo.setForm_json(bean);
             bBpmProcessVo.setForm_class(bean.getClass().getName());
@@ -817,8 +830,21 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
     private void startCancelFlowProcess(BProjectVo bean) {
         // 启动作废审批流
         BBpmProcessVo bBpmProcessVo = new BBpmProcessVo();
-        bBpmProcessVo.setCode(iBpmProcessTemplatesService.getBpmFLowCodeByType(SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PROJECT_CANCEL));
-        bBpmProcessVo.setSerial_type(SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PROJECT_CANCEL);
+        // 根据项目类型选择不同的BPM作废实例类型
+        String bpmCancelInstanceType;
+        if (bean.getType() != null && bean.getType().equals(1)) {
+            // 采购业务
+            bpmCancelInstanceType = SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_PROJECT_CANCEL;
+        } else if (bean.getType() != null && bean.getType().equals(2)) {
+            // 销售业务
+            bpmCancelInstanceType = SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_PROJECT_CANCEL;
+        } else {
+            // 默认使用采购项目作废类型
+            bpmCancelInstanceType = SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_PO_PROJECT_CANCEL;
+        }
+        
+        bBpmProcessVo.setCode(iBpmProcessTemplatesService.getBpmFLowCodeByType(bpmCancelInstanceType));
+        bBpmProcessVo.setSerial_type(bpmCancelInstanceType);
         bBpmProcessVo.setForm_data(bean.getForm_data());
         bBpmProcessVo.setForm_json(bean);
         bBpmProcessVo.setForm_class(bean.getClass().getName());

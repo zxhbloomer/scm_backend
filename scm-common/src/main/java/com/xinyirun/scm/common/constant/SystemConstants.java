@@ -1140,11 +1140,17 @@ public class SystemConstants  {
         // 企业管理
         public static final String BPM_INSTANCE_M_ENTERPRISE = "m_enterprise";
 
-        // 项目管理
-        public static final String BPM_INSTANCE_B_PROJECT = "b_project";
+        // 采购项目管理
+        public static final String BPM_INSTANCE_B_PO_PROJECT = "b_po_project";
 
-        // 作废 项目管理
-        public static final String BPM_INSTANCE_B_PROJECT_CANCEL = "b_project_cancel";
+        // 销售项目管理
+        public static final String BPM_INSTANCE_B_SO_PROJECT = "b_so_project";
+
+        // 作废 采购项目管理
+        public static final String BPM_INSTANCE_B_PO_PROJECT_CANCEL = "b_po_project_cancel";
+
+        // 作废 销售项目管理
+        public static final String BPM_INSTANCE_B_SO_PROJECT_CANCEL = "b_so_project_cancel";
 
         // 采购合同
         public static final String BPM_INSTANCE_B_PO_CONTRACT = "b_po_contract";
