@@ -179,15 +179,26 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
      */
     @Select("""
             <script>
+            -- 查询销售合同汇总信息，包含订单金额、收款情况等统计数据
             SELECT
             	SUM( IFNULL(tab2.order_amount_total,0) )  as  order_amount_total,
             	SUM( IFNULL(tab2.order_total,0) )  as  order_total,
-            	SUM( IFNULL(tab2.advance_unpay_total,0) )  as  advance_unpay_total,
-            	SUM( IFNULL(tab2.advance_pay_total,0) )  as  advance_pay_total,
+            	SUM( IFNULL(tab2.advance_unreceive_total,0) )  as  advance_unreceive_total,
+            	SUM( IFNULL(tab2.advance_receive_total,0) )  as  advance_receive_total,
             	SUM( IFNULL(tab2.settle_amount_total,0) )  as  settle_amount_total
             FROM
             	b_so_contract tab1
             	LEFT JOIN b_so_contract_total tab2  ON tab1.id = tab2.so_contract_id
+            	LEFT JOIN s_dict_data  tab3 ON tab3.code = 'b_so_contract_status' AND tab3.dict_value = tab1.status
+            	LEFT JOIN s_dict_data  tab4 ON tab4.code = 'b_so_contract_type' AND tab4.dict_value = tab1.type
+            	LEFT JOIN s_dict_data  tab5 ON tab5.code = 'b_so_contract_delivery_type' AND tab5.dict_value = tab1.delivery_type
+            	LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_so_contract_settle_type' AND tab6.dict_value = tab1.settle_type
+            	LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_so_contract_bill_type' AND tab7.dict_value = tab1.bill_type
+            	LEFT JOIN s_dict_data  tab8 ON tab8.code = 'b_so_contract_payment_type' AND tab8.dict_value = tab1.payment_type
+                    LEFT JOIN b_so_order tab12 on tab12.so_contract_id = tab1.id
+                   and tab12.is_del = false and tab1.type = '0'
+              LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
+              LEFT JOIN m_staff tab14 ON tab14.id = tab1.u_id
             	WHERE TRUE
             	 AND tab1.is_del = false
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')

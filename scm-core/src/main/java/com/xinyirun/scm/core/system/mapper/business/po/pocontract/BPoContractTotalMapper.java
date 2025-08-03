@@ -9,6 +9,8 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 /**
  * <p>
  * 采购合同表-财务数据汇总 Mapper 接口
@@ -23,10 +25,10 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
     /**
      * 根据采购合同主表ID查询采购合同财务信息
      */
-    @Select("""
+    @Select(""" 
             -- 根据采购合同主表ID查询财务汇总数据
             select * from b_po_contract_total 
-            -- #{poContractId}: 采购合同主表ID
+            -- poContractId: 采购合同主表ID
             where po_contract_id = #{poContractId}
             """)
     BPoContractTotalVo selectByPoContractId(@Param("poContractId") Integer poContractId);
@@ -36,7 +38,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
      * @param apId 应付账款ID
      * @return PoContractVo
      */
-    @Select("""
+    @Select(""" 
             -- 根据应付账款ID查询对应的采购合同信息，通过应付预付来源关联
             SELECT 
               t3.* 
@@ -57,7 +59,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
      * @param contractId 合同ID
      * @return 更新记录数
      */
-    @Update("""
+    @Update(""" 
             <script>
             -- 更新采购合同预付款汇总数据，根据下属所有采购订单汇总预付款信息
             UPDATE b_po_contract_total t1
@@ -89,5 +91,48 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
             </script>
             """)
     int updateContractAdvanceTotalData(@Param("contractId") Integer contractId);
+
+    /**
+     * 根据合同状态查询采购合同财务信息示例
+     * 演示如何正确处理status常量条件
+     * @param contractStatus 合同状态
+     * @return 合同财务信息列表
+     */
+    @Select(""" 
+            -- 根据合同状态查询采购合同财务信息
+            -- 状态说明：0-进行中，1-作废，2-已完成，3-中止（对应SystemConstants.API_STATUS_*常量）
+            SELECT 
+                t1.*,
+                t2.contract_code,
+                t2.contract_name,
+                t2.status as contract_status
+            FROM b_po_contract_total t1
+            INNER JOIN b_po_contract t2 ON t1.po_contract_id = t2.id
+            WHERE TRUE
+              -- #{contractStatus}: 合同状态，0-进行中,1-作废,2-已完成,3-中止
+              AND t2.status = #{contractStatus}
+            ORDER BY t2.c_time DESC
+            """)
+    List<BPoContractTotalVo> selectByContractStatus(@Param("contractStatus") String contractStatus);
+
+    /**
+     * 查询进行中的采购合同财务信息
+     * 直接使用常量值"0"，不使用变量
+     */
+    @Select(""" 
+            -- 查询进行中的采购合同财务信息
+            -- status = "0": 进行中状态（对应SystemConstants.API_STATUS_PROGRESS = "0"）
+            SELECT 
+                t1.*,
+                t2.contract_code,
+                t2.contract_name
+            FROM b_po_contract_total t1
+            INNER JOIN b_po_contract t2 ON t1.po_contract_id = t2.id
+            WHERE TRUE
+              -- 直接使用常量值"0"，对应SystemConstants.API_STATUS_PROGRESS
+              AND t2.status = "0"
+            ORDER BY t2.c_time DESC
+            """)
+    List<BPoContractTotalVo> selectProgressContractTotals();
 
 }

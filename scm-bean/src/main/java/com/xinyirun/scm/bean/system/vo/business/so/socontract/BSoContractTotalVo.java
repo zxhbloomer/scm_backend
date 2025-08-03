@@ -48,24 +48,24 @@ public class BSoContractTotalVo implements Serializable {
     private BigDecimal order_total;
 
     /**
-     * 表头 预付未付总金额
+     * 表头 预收款未收总金额
      */
-    private BigDecimal advance_unpay_total;
+    private BigDecimal advance_unreceive_total;
 
     /**
-     * 表头 预付已付款总金额
+     * 表头 预收款已收总金额
      */
-    private BigDecimal advance_paid_total;
+    private BigDecimal advance_received_total;
 
     /**
-     * 表头 预付停付款总金额
+     * 表头 预收款已中止总金额
      */
-    private BigDecimal advance_stoppay_total;
+    private BigDecimal advance_stopreceive_total;
 
     /**
-     * 表头 预付已付款总金额
+     * 表头 预收款计划收款总金额
      */
-    private BigDecimal advance_pay_total;
+    private BigDecimal advance_receive_total;
 
     /**
      * 表头 结算总金额
@@ -73,24 +73,24 @@ public class BSoContractTotalVo implements Serializable {
     private BigDecimal settle_amount_total;
 
     /**
-     * 表头 应付未付总金额
+     * 表头 应收款未收总金额
      */
-    private BigDecimal payable_unpay_total;
+    private BigDecimal receivable_unreceive_total;
 
     /**
-     * 表头 应付已付款总金额
+     * 表头 应收款已收总金额
      */
-    private BigDecimal payable_paid_total;
+    private BigDecimal receivable_received_total;
 
     /**
-     * 表头 应付已付款总金额
+     * 表头 应收款计划收款总金额
      */
-    private BigDecimal payable_pay_total;
+    private BigDecimal receivable_receive_total;
 
     /**
-     * 表头 实付总金额
+     * 表头 已收款总金额
      */
-    private BigDecimal paid_total;
+    private BigDecimal received_total;
 
     /**
      * 表头 未开票总金额
@@ -118,34 +118,34 @@ public class BSoContractTotalVo implements Serializable {
     private BigDecimal refund_advance_total;
 
     /**
-     * 表头 应付退款进行中总金额
+     * 表头 应收退款进行中总金额
      */
-    private BigDecimal refund_payable_doing_total;
+    private BigDecimal refund_receivable_doing_total;
 
     /**
-     * 表头 应付退款已完成总金额
+     * 表头 应收退款已完成总金额
      */
-    private BigDecimal refund_payable_done_total;
+    private BigDecimal refund_receivable_done_total;
 
     /**
-     * 表头 应付退款总金额
+     * 表头 应收退款总金额
      */
-    private BigDecimal refund_payable_total;
+    private BigDecimal refund_receivable_total;
 
     /**
-     * 表头 入库总数量
+     * 表头 出库总数量
      */
-    private BigDecimal inventory_in_total;
+    private BigDecimal inventory_out_total;
 
     /**
-     * 表头 入库计划总数量
+     * 表头 出库计划总数量
      */
-    private BigDecimal inventory_in_plan_total;
+    private BigDecimal inventory_out_plan_total;
 
     /**
-     * 表头 结算入库总数量
+     * 表头 结算出库总数量
      */
-    private BigDecimal settle_inventory_in_total;
+    private BigDecimal settle_inventory_out_total;
 
     /**
      * 创建时间

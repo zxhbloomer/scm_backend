@@ -35,7 +35,9 @@
       "Bash(git push:*)",
       "Bash(git add:*)",
       "Bash(git config:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "mcp__mcp-mysql-server__execute",
+      "mcp__mcp-mysql-server__query"
     ],
     "deny": []
   },

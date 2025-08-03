@@ -447,7 +447,7 @@ wms:
     # session过期后自动获取
     create-new-session: false
     # 开发者模式，可以跳过验证码
-    develop-model: false
+    develop-model: true
     # 首页路径
     index-url: /index
     # 登录路径

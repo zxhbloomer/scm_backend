@@ -227,12 +227,12 @@ public class BSoContractVo extends BaseVo implements Serializable {
     /**
      * 表头 预收未收总金额
      */
-    private BigDecimal advance_unpay_total;
+    private BigDecimal advance_unreceive_total;
 
     /**
      * 表头 预收已收款总金额
      */
-    private BigDecimal advance_pay_total;
+    private BigDecimal advance_receive_total;
 
     /**
      * 表头 结算总金额
