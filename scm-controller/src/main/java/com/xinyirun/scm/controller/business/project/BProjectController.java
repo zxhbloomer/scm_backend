@@ -282,6 +282,34 @@ public class BProjectController extends SystemBaseController {
     }
 
     /**
+     * 项目管理完成操作
+     * 完成指定的项目，需要校验关联的销售合同状态
+     * 
+     * @param searchCondition 完成信息对象
+     *                       - id: 要完成的项目ID（必填）
+     *                       - complete_reason: 完成说明（可选）
+     * @return ResponseEntity<JsonResultAo<BProjectVo>> 完成操作结果
+     *         - 成功时返回完成成功信息
+     *         - 失败时抛出相应异常
+     * @throws UpdateErrorException 当项目状态不允许完成或数据已被修改时抛出
+     * @throws BusinessException 当存在未完成的销售合同时抛出
+     * @apiNote 该接口使用@RepeatSubmitAnnotion注解防止重复提交
+     *          只有状态为"执行中"的项目才能执行完成操作
+     *          需要校验项目下所有销售合同状态（必须全部完成或作废）
+     */
+    @SysLogAnnotion("项目管理，完成")
+    @PostMapping("/complete")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<BProjectVo>> complete(@RequestBody(required = false) BProjectVo searchCondition) {
+        if(ibProjectService.complete(searchCondition).isSuccess()){
+            return ResponseEntity.ok().body(ResultUtil.OK(null,"项目完成成功"));
+        } else {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新操作。");
+        }
+    }
+
+    /**
      * 获取项目管理打印信息
      * 获取指定项目的打印所需信息，包括报表系统参数配置和打印格式化数据
      * 

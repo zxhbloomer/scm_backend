@@ -39,12 +39,15 @@ import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import com.xinyirun.scm.core.bpm.service.business.IBpmInstanceSummaryService;
 import com.xinyirun.scm.core.bpm.service.business.IBpmProcessTemplatesService;
 import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessTemplatesServiceImpl;
 import com.xinyirun.scm.core.system.mapper.business.project.BProjectMapper;
 import com.xinyirun.scm.core.system.mapper.business.project.BProjectGoodsMapper;
 import com.xinyirun.scm.core.system.mapper.business.project.BProjectAttachMapper;
+import com.xinyirun.scm.core.system.mapper.business.so.socontract.BSoContractMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.service.business.project.IBProjectService;
@@ -133,7 +136,12 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
     private ISConfigService isConfigService;
 
     @Autowired
-    private ISPagesService isPagesService;    /**
+    private ISPagesService isPagesService;
+
+    @Autowired
+    private BSoContractMapper bSoContractMapper;
+
+    /**
      * 分页查询项目管理列表
      * 根据查询条件进行分页查询，支持排序功能
      * 
@@ -721,6 +729,34 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
                     return CheckResultUtil.NG("已作废的项目不能重复作废");
                 }
                 break;
+
+            case CheckResultAo.FINISH_CHECK_TYPE:
+                // 完成校验逻辑
+                if (bean.getId() == null) {
+                    return CheckResultUtil.NG("项目ID不能为空");
+                }
+                
+                bProjectEntity = mapper.selectById(bean.getId());
+                if (bProjectEntity == null) {
+                    return CheckResultUtil.NG("项目不存在");
+                }
+                
+                // 检查项目状态，只有执行中的项目才能完成
+                if (!DictConstant.DICT_B_PROJECT_STATUS_TWO.equals(bProjectEntity.getStatus())) {
+                    return CheckResultUtil.NG("只有执行中的项目才能完成");
+                }
+                
+                // 校验关联的销售合同状态
+                List<String> unfinishedContractCodes = bSoContractMapper.selectUnfinishedContractCodesByProjectCode(bProjectEntity.getCode());
+                if (!unfinishedContractCodes.isEmpty()) {
+                    String errorMsg = String.format(
+                        "校验出错：销售项目管理，编号%s的数据存在销售尚未完成的销售合同[%s]。", 
+                        bProjectEntity.getCode(), 
+                        String.join("、", unfinishedContractCodes)
+                    );
+                    return CheckResultUtil.NG(errorMsg);
+                }
+                break;
                 
             default:
                 return CheckResultUtil.NG("未知的校验类型：" + checkType);
@@ -1142,5 +1178,40 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         searchCondition.setQr_code(printUrl);
 
         return searchCondition;
+    }
+
+    /**
+     * 项目管理完成操作
+     * 完成指定的项目，需要校验关联的销售合同状态
+     * 
+     * @param searchCondition 完成信息对象，必须包含项目ID
+     * @return UpdateResultAo<BProjectVo> 完成操作结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<BProjectVo> complete(BProjectVo searchCondition) {
+        // 1. 校验业务规则
+        CheckResultAo checkResult = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
+        if (!checkResult.isSuccess()) {
+            throw new BusinessException(checkResult.getMessage());
+        }
+
+        // 2. 获取项目信息
+        BProjectEntity projectEntity = mapper.selectById(searchCondition.getId());
+        
+        // 3. 更新项目状态为"已完成"
+        BProjectEntity updateEntity = new BProjectEntity();
+        updateEntity.setId(projectEntity.getId());
+        updateEntity.setStatus(DictConstant.DICT_B_PROJECT_STATUS_THREE); // 已完成
+        updateEntity.setU_time(LocalDateTime.now());
+        updateEntity.setU_id(SecurityUtil.getUserId());
+        updateEntity.setDbversion(projectEntity.getDbversion());
+
+        int updateCount = mapper.updateById(updateEntity);
+        if (updateCount == 0) {
+            return UpdateResultUtil.NG("保存的数据已经被修改，请查询后重新操作。");
+        }
+
+        return UpdateResultUtil.OK();
     }
 }

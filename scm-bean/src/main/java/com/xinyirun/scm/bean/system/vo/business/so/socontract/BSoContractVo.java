@@ -54,7 +54,7 @@ public class BSoContractVo extends BaseVo implements Serializable {
     private String project_code;
 
     /**
-     * 审批状态：0-待审批 1-审批中 2-审批通过 3-驳回
+     * 审批状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
      */
     private String status;
     private String status_name;

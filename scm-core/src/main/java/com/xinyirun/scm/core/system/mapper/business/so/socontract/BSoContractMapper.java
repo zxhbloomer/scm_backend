@@ -356,4 +356,18 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
             """)
     BSoContractVo selectByContractCode(@Param("contract_code") String contract_code);
 
+    /**
+     * 根据项目编号查询未完成的销售合同编号列表
+     * 状态不等于5(已作废)、6(已完成)的合同
+     */
+    @Select("""
+            SELECT code 
+            FROM b_so_contract 
+            WHERE project_code = #{projectCode} 
+              AND status NOT IN ('5', '6') 
+              AND is_del = false
+              AND enabled = true
+            """)
+    List<String> selectUnfinishedContractCodesByProjectCode(@Param("projectCode") String projectCode);
+
 }
