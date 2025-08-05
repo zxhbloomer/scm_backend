@@ -21,7 +21,7 @@ public interface BApPaySourceMapper extends BaseMapper<BApPaySourceEntity> {
     @Select("""
             -- 根据付款单主表ID查询付款来源信息
             SELECT * FROM b_ap_pay_source 
-            -- #{apPayId}: 付款单主表ID
+            -- apPayId: 付款单主表ID参数
             WHERE ap_pay_id = #{apPayId}
             """)
     List<BApPaySourceVo> selectByApPayId(@Param("apPayId") Integer apPayId);
@@ -32,7 +32,7 @@ public interface BApPaySourceMapper extends BaseMapper<BApPaySourceEntity> {
     @Select("""
             -- 根据付款单编号查询付款来源信息
             SELECT * FROM b_ap_pay_source 
-            -- #{apPayCode}: 付款单编号
+            -- apPayCode: 付款单编号参数
             WHERE ap_pay_code = #{apPayCode}
             """)
     List<BApPaySourceVo> selectByApPayCode(@Param("apPayCode") String apPayCode);

@@ -428,7 +428,7 @@ public interface BInPlanMapper extends BaseMapper<BInPlanEntity> {
      */
     @Select("""
             select * from b_in_plan where true and is_del = false                           
-            and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)         
+            and (id != #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)         
             and code = #{p1.code}                                            
             """)
     List<BInPlanVo> validateDuplicateCode(@Param("p1")BInPlanVo bean);

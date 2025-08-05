@@ -499,7 +499,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             SELECT * FROM b_po_order tab1 LEFT JOIN b_po_contract tab2 ON tab1.po_contract_id = tab2.id
             -- is_del = FALSE: 删除0-未删除，1-已删除
             -- tab2.type = '0': 合同类型，标准合同
-            -- #{p1.po_contract_id}: 采购合同ID
+            -- p1.po_contract_id: 采购合同ID参数
             WHERE tab1.is_del = FALSE AND tab2.type = '"""+ DictConstant.DICT_B_PO_CONTRACT_TYPE_ZERO +"' AND tab2.id = #{p1.po_contract_id}       ")
     List<BPoOrderVo> validateDuplicateContractId(@Param("p1") BPoOrderVo searchCondition);
 
@@ -512,9 +512,9 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		WHERE TRUE
             		 -- is_del = false: 删除0-未删除，1-已删除
             		 AND tab1.is_del = false
-            		 -- #{p1.status}: status: 状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
+            		 -- p1.status: status参数: 状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
             		 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
-            		 -- #{p1.po_contract_code}: po_contract_code: 采购合同编号
+            		 -- p1.po_contract_code: po_contract_code参数: 采购合同编号
             		 AND (tab1.po_contract_code = #{p1.po_contract_code} or #{p1.po_contract_code} is null or #{p1.po_contract_code} = '')
             		""")
     Long selectExportCount(@Param("p1") BPoOrderVo param);
@@ -593,9 +593,9 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Select("""
             -- 根据采购合同id和状态查询采购订单，排除指定状态
             select * from b_po_order 
-            -- #{p1}: 采购合同ID
+            -- p1: 采购合同ID参数
             where po_contract_id = #{p1} 
-            -- #{p2}: 要排除的状态值
+            -- p2: 要排除的状态值参数
             and status != #{p2} 
             -- is_del = false: 删除0-未删除，1-已删除
             and is_del = false
@@ -608,7 +608,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Select("""
             -- 根据采购合同id查询采购订单
             select * from b_po_order 
-            -- #{p1}: 采购合同ID
+            -- p1: 采购合同ID参数
             where po_contract_id = #{p1} 
             -- is_del = false: 删除0-未删除，1-已删除
             and is_del = false
@@ -621,7 +621,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Select("""
             -- 根据采购合同id查询有效的采购订单（排除已作废和已完成状态）
             select * from b_po_order 
-            -- #{p1}: 采购合同ID
+            -- p1: 采购合同ID参数
             where po_contract_id = #{p1} 
             -- is_del = false: 删除0-未删除，1-已删除
               and is_del = false 
@@ -636,7 +636,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     @Select("""
             -- 根据code查询采购订单
             select * from b_po_order 
-            -- #{code}: 编号自动生成编号
+            -- code: 编号自动生成编号参数
             where code = #{code} 
             -- is_del = false: 删除0-未删除，1-已删除
             and is_del = false
@@ -1064,7 +1064,7 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
                 t1.amount
             FROM b_po_order_detail t1 
             INNER JOIN b_po_order t2 ON t1.po_order_id = t2.id
-            -- #{p1.id}: 采购订单主表ID
+            -- p1.id: 采购订单主表ID参数
             WHERE t2.id = #{p1.id} 
             -- is_del = false: 删除0-未删除，1-已删除
             AND t2.is_del = false

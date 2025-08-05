@@ -33,7 +33,7 @@ public interface BPoOrderDetailMapper extends BaseMapper<BPoOrderDetailEntity> {
             -- qty: 数量
             SUM(qty) AS qty 
             FROM b_po_order_detail 
-            -- #{po_order_id}: 采购订单主表ID
+            -- po_order_id: 采购订单主表ID参数
             WHERE po_order_id = #{po_order_id}
             """)
     BPoOrderDetailVo getSumAmount(@Param("po_order_id") Integer po_order_id);

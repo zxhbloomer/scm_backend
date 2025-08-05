@@ -20,7 +20,7 @@ public interface BApPayAttachMapper extends BaseMapper<BApPayAttachEntity> {
     @Select("""
             -- 根据付款单主表ID查询付款单附件信息
             SELECT * FROM b_ap_pay_attach 
-            -- #{id}: 付款单主表ID
+            -- id: 付款单主表ID参数
             WHERE ap_pay_id = #{id}
             """)
     BApPayAttachVo selectByBApId(Integer id);

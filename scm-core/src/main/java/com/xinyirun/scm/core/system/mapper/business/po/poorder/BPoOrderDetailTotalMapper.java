@@ -61,7 +61,7 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
             WHERE t2.order_detail_id IN (
                 SELECT pod.id 
                 FROM b_po_order_detail pod 
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE pod.po_order_id IN 
                 <foreach collection="po_order_id" item="id" open="(" close=")" separator=",">
                     #{id}
@@ -102,7 +102,7 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
         UPDATE b_po_order_detail_total
         -- settle_can_qty_total: 待结算数量，cargo_right_transferred_qty_total: 货权转移-已处理移数量，inventory_in_total: 实际入库汇总，settle_planned_qty_total: 应结算-数量汇总
         SET settle_can_qty_total = IFNULL(cargo_right_transferred_qty_total,0) + IFNULL(inventory_in_total, 0) - IFNULL(settle_planned_qty_total, 0)
-        -- #{id}: 采购订单主表ID
+        -- id: 采购订单主表ID参数
         WHERE po_order_id IN
         <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
             #{id}
@@ -126,7 +126,7 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
         FROM b_po_order_detail t2
         -- 左连接汇总表，找出汇总表中不存在的明细记录
         LEFT JOIN b_po_order_detail_total t3 ON t2.id = t3.po_order_detail_id
-        -- #{id}: 采购订单主表ID
+        -- id: 采购订单主表ID参数
         WHERE t2.po_order_id IN
         <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
             #{id}
@@ -168,7 +168,7 @@ public interface BPoOrderDetailTotalMapper extends BaseMapper<BPoOrderDetailTota
             WHERE t2.po_order_detail_id IN (
                 SELECT pod.id 
                 FROM b_po_order_detail pod 
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE pod.po_order_id IN 
                 <foreach collection="po_order_id" item="id" open="(" close=")" separator=",">
                     #{id}

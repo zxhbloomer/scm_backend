@@ -61,13 +61,13 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
             -- 关联银行账户表，获取银行账户详细信息
             LEFT JOIN m_bank_accounts tab8 ON tab8.id = tab7.bank_accounts_id
         WHERE 1=1
-          -- #{p1.purchaser_id}: 购买方ID
+          -- p1.purchaser_id: 购买方ID参数
           <if test='p1.purchaser_id != null'> AND tab1.purchaser_id = #{p1.purchaser_id} </if>
-          -- #{p1.supplier_id}: 供应商ID
+          -- p1.supplier_id: 供应商ID参数
           <if test='p1.supplier_id != null'> AND tab1.supplier_id = #{p1.supplier_id} </if>
-          -- #{p1.ap_code}: 应付账款主表编号，支持模糊查询
+          -- p1.ap_code: 应付账款主表编号参数，支持模糊查询
           <if test='p1.ap_code != null and p1.ap_code != ""'> AND tab1.ap_code like concat('%', #{p1.ap_code}, '%') </if>
-          -- #{p1.code}: 付款单编号，支持模糊查询
+          -- p1.code: 付款单编号参数，支持模糊查询
           <if test='p1.code != null and p1.code != ""'> AND tab1.code like concat('%', #{p1.code}, '%') </if>
           <if test='p1.status_list != null and p1.status_list.length != 0'>
             -- 付款单状态列表查询：支持多个状态值查询
@@ -113,7 +113,7 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
             LEFT JOIN b_ap_detail tab7 On tab7.ap_id = tab1.ap_id
             -- 关联银行账户表，获取银行账户详细信息
             LEFT JOIN m_bank_accounts tab8 ON tab8.id = tab7.bank_accounts_id
-        -- #{p1}: 付款单主表ID
+        -- p1: 付款单主表ID参数
         WHERE tab1.id = #{p1}
         """)
     BApPayVo selById(@Param("p1") Integer id);
@@ -124,9 +124,9 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
     @Select("""
         -- 根据应付账款ID和状态查询付款单
         select * from b_ap_pay 
-        -- #{p1}: 应付账款主表ID
+        -- p1: 应付账款主表ID参数
         where ap_id = #{p1} 
-        -- #{p2}: 付款单状态（0-待付款、1-已付款、2-作废、-1-中止付款）
+        -- p2: 付款单状态参数（0-待付款、1-已付款、2-作废、-1-中止付款）
         and status = #{p2}
         """)
     List<BApPayVo> selectApPayByStatus(@Param("p1")  Integer apId, @Param("p2") String status);
@@ -138,9 +138,9 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
     @Select("""
         -- 根据应付账款ID查询付款单，排除指定状态
         select * from b_ap_pay 
-        -- #{p1}: 应付账款主表ID
+        -- p1: 应付账款主表ID参数
         where ap_id = #{p1} 
-        -- #{p2}: 需要排除的付款单状态（通常为'2'-作废）
+        -- p2: 需要排除的付款单状态参数（通常为'2'-作废）
         and status != #{p2}
         """)
     List<BApPayVo> selectApPayByNotStatus(@Param("p1")  Integer apId, @Param("p2") String status);
@@ -188,7 +188,7 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
         FROM b_ap_pay_detail t1 
         -- 关联银行账户表，获取银行账户基本信息
         LEFT JOIN m_bank_accounts t2 ON t1.bank_accounts_id = t2.id 
-        -- #{p1}: 付款单主表ID
+        -- p1: 付款单主表ID参数
         WHERE t1.ap_pay_id = #{p1}
         """)
     List<BApPayDetailVo> getApPayDetail(@Param("p1") Integer id);
@@ -233,9 +233,9 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
           -- paying_amount_total: 付款单付款中总金额
           sum(t1.paying_amount_total) as paying_amount_total
         FROM b_ap_pay t1
-        -- #{ap_id}: 应付账款主表ID
+        -- ap_id: 应付账款主表ID参数
         WHERE t1.ap_id = #{ap_id}
-          -- #{status}: 付款单状态，为空时查询所有状态
+          -- status: 付款单状态参数，为空时查询所有状态
           AND (t1.status = #{status} OR #{status} = '' OR #{status} IS NULL)
         """)
     BApPayVo getSumAmount(@Param("ap_id") Integer ap_id, @Param("status") String status);
@@ -267,7 +267,7 @@ public interface BApPayMapper extends BaseMapper<BApPayEntity> {
             t1.paying_amount_total = CASE WHEN t1.status = '0' THEN t2.total_amount ELSE 0 END,
             -- 更新作废付款金额：状态为'2'-作废时为作废金额，否则为0
             t1.cancel_amount_total = CASE WHEN t1.status = '2' THEN t2.cancel_amount_total ELSE 0 END
-        -- #{id}: 应付账款主表ID列表
+        -- id: 应付账款主表ID列表参数
         WHERE t1.ap_id IN
         <foreach collection='apIds' item='id' open='(' separator=',' close=')'>
           #{id}

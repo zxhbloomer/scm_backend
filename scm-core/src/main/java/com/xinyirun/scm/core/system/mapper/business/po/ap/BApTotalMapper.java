@@ -26,7 +26,7 @@ public interface BApTotalMapper extends BaseMapper<BApTotalEntity> {
     @Select("""
             -- 根据应付账款主表ID查询应付账款财务汇总信息
             select * from b_ap_total 
-            -- #{apId}: 应付账款主表ID
+            -- apId: 应付账款主表ID参数
             where ap_id = #{apId}
             """)
     BApTotalVo selectByApId(@Param("apId") Integer apId);

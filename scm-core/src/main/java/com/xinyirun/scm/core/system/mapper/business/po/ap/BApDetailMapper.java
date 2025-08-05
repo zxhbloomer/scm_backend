@@ -24,7 +24,7 @@ public interface BApDetailMapper extends BaseMapper<BApDetailEntity> {
     @Select("""
             -- 根据应付账款主表ID查询应付账款明细信息
             select * from b_ap_detail 
-            -- #{p1}: 应付账款主表ID
+            -- p1: 应付账款主表ID参数
             where ap_id = #{p1}
             """)
     List<BApDetailEntity> selectByApId(@Param("p1") Integer ap_id);
@@ -35,7 +35,7 @@ public interface BApDetailMapper extends BaseMapper<BApDetailEntity> {
     @Delete("""
             -- 根据应付账款主表ID删除所有相关明细记录
             DELETE FROM b_ap_detail t 
-            -- #{ap_id}: 应付账款主表ID
+            -- ap_id: 应付账款主表ID参数
             where t.ap_id = #{ap_id}
             """)
     void deleteByApId(Integer ap_id);
@@ -74,7 +74,7 @@ public interface BApDetailMapper extends BaseMapper<BApDetailEntity> {
             "      t1.paying_amount = IFNULL(t2.total_paying_amount, 0),                       ",
             "      -- 计算未付款金额：应付款金额 - 已付款金额 - 付款中金额                       ",
             "      t1.unpay_amount = t1.payable_amount - IFNULL(t2.total_paid_amount, 0) - IFNULL(t2.total_paying_amount, 0) ",
-            "  -- #{item}: 应付账款主表ID列表                                                 ",
+            "  -- item: 应付账款主表ID列表参数                                                 ",
             "  WHERE t1.ap_id in                                                               ",
             "  <foreach collection='apIds' item='item' open='(' separator=',' close=')'>       ",
             "      #{item}                                                                     ",

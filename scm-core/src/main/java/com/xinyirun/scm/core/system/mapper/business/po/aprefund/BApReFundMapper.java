@@ -113,19 +113,19 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
             	WHERE TRUE
               -- is_del = false: 查询未删除的记录
               AND tab1.is_del = false                                                                                                                                                                                                    
-              -- #{p1.code}: 应付退款编号模糊查询
+              -- p1.code: 应付退款编号参数模糊查询
               AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')                                                                                                                                                     
-              -- #{p1.status}: 应付退款状态精确匹配
+              -- p1.status: 应付退款状态参数精确匹配
               AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                                             
-              -- #{p1.type}: 应付退款类型精确匹配
+              -- p1.type: 应付退款类型参数精确匹配
               AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                                                     
-              -- #{p1.refund_status}: 应付退款支付状态精确匹配
+              -- p1.refund_status: 应付退款支付状态参数精确匹配
               AND (tab1.refund_status = #{p1.refund_status} or #{p1.refund_status} is null or  #{p1.refund_status} = '')                                                                                                                             
-              -- #{p1.po_contract_code}: 采购合同编号模糊查询
+              -- p1.po_contract_code: 采购合同编号参数模糊查询
               AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                                                
-              -- #{p1.purchaser_name}: 购买方名称模糊查询
+              -- p1.purchaser_name: 购买方名称参数模糊查询
               AND (tab1.purchaser_name like concat('%', #{p1.purchaser_name}, '%') or #{p1.purchaser_name} is null or  #{p1.purchaser_name} = '')                                                            
-              -- #{p1.supplier_name}: 供应商名称模糊查询
+              -- p1.supplier_name: 供应商名称参数模糊查询
               AND (tab1.supplier_name like concat('%', #{p1.supplier_name}, '%') or #{p1.supplier_name} is null or  #{p1.supplier_name} = '')
               -- GROUP BY: 按应付退款编号和明细编号分组，避免重复数据
               GROUP BY tab1.code, tab3.code                                               
@@ -210,7 +210,7 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
                 -- 关联附件表：获取应付退款附件文件信息
                 LEFT JOIN b_ap_refund_attach tabb1 on tab1.id = tabb1.ap_refund_id
             	WHERE TRUE
-              -- #{p1}: 应付退款主表ID精确匹配
+              -- p1: 应付退款主表ID参数精确匹配
               AND tab1.id = #{p1}
               -- GROUP BY: 按应付退款编号和明细编号分组，避免重复数据
               GROUP BY tab1.code, tab3.code
@@ -225,7 +225,7 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
     @Select("""
             -- 根据退款编号查询退款ID
             SELECT id FROM b_ap_refund 
-            -- #{p1}: 退款编号
+            -- p1: 退款编号参数
             WHERE code = #{p1} 
             -- is_del = false: 未删除的记录（0-未删除，1-已删除）
             AND is_del = false
@@ -304,19 +304,19 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
               -- is_del = false: 查询未删除的记录
               AND tab1.is_del = false                                                                                                                                                                          
               -- 查询条件：支持空值和空字符串的处理
-              -- #{p1.code}: 应付退款编号模糊查询
+              -- p1.code: 应付退款编号参数模糊查询
               AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')                                                                                                                           
-              -- #{p1.status}: 应付退款状态精确匹配
+              -- p1.status: 应付退款状态参数精确匹配
               AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                   
-              -- #{p1.type}: 应付退款类型精确匹配
+              -- p1.type: 应付退款类型参数精确匹配
               AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                           
-              -- #{p1.refund_status}: 应付退款支付状态精确匹配
+              -- p1.refund_status: 应付退款支付状态参数精确匹配
               AND (tab1.refund_status = #{p1.refund_status} or #{p1.refund_status} is null or  #{p1.refund_status} = '')                                                                                                   
-              -- #{p1.po_contract_code}: 采购合同编号模糊查询
+              -- p1.po_contract_code: 采购合同编号参数模糊查询
               AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                      
-              -- #{p1.purchaser_name}: 购买方名称模糊查询
+              -- p1.purchaser_name: 购买方名称参数模糊查询
               AND (tab1.purchaser_name like concat('%', #{p1.purchaser_name}, '%') or #{p1.purchaser_name} is null or  #{p1.purchaser_name} = '')                                  
-              -- #{p1.supplier_name}: 供应商名称模糊查询
+              -- p1.supplier_name: 供应商名称参数模糊查询
               AND (tab1.supplier_name like concat('%', #{p1.supplier_name}, '%') or #{p1.supplier_name} is null or  #{p1.supplier_name} = '')                      
                -- MyBatis动态SQL：当p1.ids非空时，按ID集合过滤
                <if test='p1.ids != null and p1.ids.length != 0' >                                                                                                                                              
@@ -348,19 +348,19 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
               -- is_del = false: 查询未删除的记录
               AND tab1.is_del = false                                                                                                                                                                           
               -- 查询条件：与导出查询保持一致，支持空值和空字符串处理
-              -- #{p1.code}: 应付退款编号模糊查询
+              -- p1.code: 应付退款编号参数模糊查询
               AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')                                                                                                                            
-              -- #{p1.status}: 应付退款状态精确匹配
+              -- p1.status: 应付退款状态参数精确匹配
               AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')                                                                                                                    
-              -- #{p1.type}: 应付退款类型精确匹配
+              -- p1.type: 应付退款类型参数精确匹配
               AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')                                                                                                                            
-              -- #{p1.refund_status}: 应付退款支付状态精确匹配
+              -- p1.refund_status: 应付退款支付状态参数精确匹配
               AND (tab1.refund_status = #{p1.refund_status} or #{p1.refund_status} is null or  #{p1.refund_status} = '')                                                                                                    
-              -- #{p1.po_contract_code}: 采购合同编号模糊查询
+              -- p1.po_contract_code: 采购合同编号参数模糊查询
               AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')                                                       
-              -- #{p1.purchaser_name}: 购买方名称模糊查询
+              -- p1.purchaser_name: 购买方名称参数模糊查询
               AND (tab1.purchaser_name like concat('%', #{p1.purchaser_name}, '%') or #{p1.purchaser_name} is null or  #{p1.purchaser_name} = '')                                   
-              -- #{p1.supplier_name}: 供应商名称模糊查询
+              -- p1.supplier_name: 供应商名称参数模糊查询
               AND (tab1.supplier_name like concat('%', #{p1.supplier_name}, '%') or #{p1.supplier_name} is null or  #{p1.supplier_name} = '')                       
                -- MyBatis动态SQL：当p1.ids非空时，按ID集合过滤
                <if test='p1.ids != null and p1.ids.length != 0' >                                                                                                                                               
@@ -381,7 +381,7 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
             select * from b_ap_refund tab1 
             -- 关联采购订单表，通过订单编号关联
             left join b_po_order tab2 on tab1.po_order_code = tab2.code 
-            -- #{p1}: 采购订单ID
+            -- p1: 采购订单ID参数
             where tab2.id = #{p1} 
             -- is_del = false: 未删除的记录（0-未删除，1-已删除）
             and tab1.is_del = false
@@ -396,9 +396,9 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
             select * from b_ap_refund tab1 
             -- 关联采购订单表，通过订单编号关联
             left join b_po_order tab2 on tab1.po_order_code = tab2.code 
-            -- #{p1}: 采购订单ID
+            -- p1: 采购订单ID参数
             where tab2.id = #{p1} 
-            -- #{p2}: 需要排除的状态（通常为'5'-已作废）
+            -- p2: 需要排除的状态参数（通常为'5'-已作废）
             and tab1.status != #{p2} 
             -- is_del = false: 未删除的记录（0-未删除，1-已删除）
             and tab1.is_del = false
@@ -413,7 +413,7 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
             SELECT tab1.* FROM b_ap_refund tab1 
             -- is_del = false: 未删除的记录（0-未删除，1-已删除）
             WHERE tab1.is_del = false 
-            -- #{p1.po_order_code}: 采购订单编号
+            -- p1.po_order_code: 采购订单编号参数
             AND tab1.po_order_code = #{p1.po_order_code}
             """)
     BApReFundVo getApRefund(@Param("p1")BApReFundVo searchCondition);
@@ -444,19 +444,19 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
                 -- is_del = false: 查询未删除的记录
                 AND tab1.is_del = false 
                 -- 查询条件：支持空值判断和空字符串处理
-                -- #{p1.id}: 应付退款主ID精确匹配
+                -- p1.id: 应付退款主ID参数精确匹配
                 AND (tab1.id = #{p1.id} OR #{p1.id} IS NULL) 
-                -- #{p1.status}: 应付退款状态精确匹配
+                -- p1.status: 应付退款状态参数精确匹配
                 AND (tab1.status = #{p1.status} OR #{p1.status} IS NULL OR #{p1.status} = '') 
-                -- #{p1.type}: 应付退款类型精确匹配
+                -- p1.type: 应付退款类型参数精确匹配
                 AND (tab1.type = #{p1.type} OR #{p1.type} IS NULL OR #{p1.type} = '') 
-                -- #{p1.refund_status}: 应付退款支付状态精确匹配
+                -- p1.refund_status: 应付退款支付状态参数精确匹配
                 AND (tab1.refund_status = #{p1.refund_status} OR #{p1.refund_status} IS NULL OR #{p1.refund_status} = '') 
-                -- #{p1.code}: 应付退款编号模糊查询
+                -- p1.code: 应付退款编号参数模糊查询
                 AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') OR #{p1.code} IS NULL OR #{p1.code} = '') 
-                -- #{p1.po_contract_code}: 采购合同编号模糊查询
+                -- p1.po_contract_code: 采购合同编号参数模糊查询
                 AND (tab1.po_contract_code LIKE CONCAT('%', #{p1.po_contract_code}, '%') OR #{p1.po_contract_code} IS NULL OR #{p1.po_contract_code} = '') 
-                -- #{p1.po_order_code}: 采购订单编号模糊查询
+                -- p1.po_order_code: 采购订单编号参数模糊查询
                 AND (tab1.po_order_code LIKE CONCAT('%', #{p1.po_order_code}, '%') OR #{p1.po_order_code} IS NULL OR #{p1.po_order_code} = '') 
                 -- MyBatis动态SQL：当p1.status_list非空时，按状态列表过滤
                 <if test='p1.status_list != null and p1.status_list.length!=0' > 
@@ -494,7 +494,7 @@ public interface BApReFundMapper extends BaseMapper<BApReFundEntity> {
         -- 关联银行账户类型表：获取账户用途类型
         LEFT JOIN m_bank_accounts_type t3 ON t2.id = t3.bank_id
         WHERE 
-            -- #{p1}: 应付退款主ID，精确匹配对应的退款明细
+            -- p1: 应付退款主ID参数，精确匹配对应的退款明细
             t1.ap_refund_id = #{p1}
         -- GROUP BY: 按退款明细的主要字段分组，防止GROUP_CONCAT造成的数据重复
         GROUP BY t1.id, t1.code, t1.ap_refund_id, t1.ap_refund_code, t1.bank_accounts_id, t1.bank_accounts_code, 

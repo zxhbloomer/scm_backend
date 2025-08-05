@@ -21,7 +21,7 @@ public interface BApPaySourceAdvanceMapper extends BaseMapper<BApPaySourceAdvanc
     @Select("""
             -- 根据采购合同ID查询付款来源预付信息
             SELECT * FROM b_ap_pay_source_advance 
-            -- #{po_contract_id}: 采购合同ID
+            -- 参数：采购合同ID
             WHERE po_contract_id = #{po_contract_id}
             """)
     List<BApPaySourceAdvanceVo> selectByContractId(@Param("po_contract_id") Integer po_contract_id);
@@ -34,16 +34,16 @@ public interface BApPaySourceAdvanceMapper extends BaseMapper<BApPaySourceAdvanc
     @Select("""
             -- 根据付款单ID查询聚合的付款来源预付数据
             SELECT ap_pay_id, 
-                   -- po_contract_id: 采购合同ID，使用GROUP_CONCAT聚合
+                   -- 采购合同ID，使用GROUP_CONCAT聚合
                    GROUP_CONCAT(po_contract_id) as po_contract_id_gc, 
-                   -- po_contract_code: 采购合同编号，使用GROUP_CONCAT聚合
+                   -- 采购合同编号，使用GROUP_CONCAT聚合
                    GROUP_CONCAT(po_contract_code) as po_contract_code_gc, 
-                   -- po_order_code: 采购订单编号，使用GROUP_CONCAT聚合
+                   -- 采购订单编号，使用GROUP_CONCAT聚合
                    GROUP_CONCAT(po_order_code) as po_order_code_gc, 
-                   -- po_order_id: 采购订单ID，使用GROUP_CONCAT聚合
+                   -- 采购订单ID，使用GROUP_CONCAT聚合
                    GROUP_CONCAT(po_order_id) as po_order_id_gc 
             FROM b_ap_pay_source_advance 
-            -- #{apPayId}: 付款单主表ID
+            -- 参数：付款单主表ID
             WHERE ap_pay_id = #{apPayId}
             """)
     BApPaySourceAdvanceVo selectAggregatedByApPayId(@Param("apPayId") Integer apPayId);

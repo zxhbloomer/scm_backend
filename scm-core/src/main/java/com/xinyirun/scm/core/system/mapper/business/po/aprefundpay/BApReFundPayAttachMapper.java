@@ -20,7 +20,7 @@ public interface BApReFundPayAttachMapper extends BaseMapper<BApReFundPayAttachE
     @Select("""
             -- 根据退款单支付主表ID查询退款单支付附件信息
             SELECT * FROM b_ap_refund_pay_attach 
-            -- #{id}: 退款单支付主表ID
+            -- id: 退款单支付主表ID参数
             WHERE ap_refund_pay_id = #{id}
             """)
     BApReFundPayAttachVo selectByBApId(Integer id);

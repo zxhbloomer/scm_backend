@@ -22,7 +22,7 @@ public interface BPoCargoRightTransferAttachMapper extends BaseMapper<BPoCargoRi
     @Select("""
             -- 根据货权转移主表ID查询附件信息
             select * from b_po_cargo_right_transfer_attach 
-            -- #{p1}: 货权转移主表ID
+            -- p1: 货权转移主表ID参数
             where cargo_right_transfer_id = #{p1}
             """)
     BPoCargoRightTransferAttachVo selectByCargoRightTransferId(@Param("p1") Integer id);

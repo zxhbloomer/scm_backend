@@ -77,17 +77,17 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
             	WHERE TRUE
             	 -- is_del = false: 查询未删除的记录
             	 AND tab1.is_del = false
-            	 -- #{p1.status}: 货权转移状态精确匹配或空值
+            	 -- p1.status: 货权转移状态参数精确匹配或空值
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
-            	 -- #{p1.code}: 货权转移单号模糊查询
+            	 -- p1.code: 货权转移单号参数模糊查询
             	 AND (tab1.code like CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or #{p1.code} = '')
-            	 -- #{p1.supplier_id}: 供应商ID精确匹配或空值
+            	 -- p1.supplier_id: 供应商ID参数精确匹配或空值
             	 AND (tab1.supplier_id = #{p1.supplier_id}  or #{p1.supplier_id} is null   )
-            	 -- #{p1.purchaser_id}: 采购员ID精确匹配或空值
+            	 -- p1.purchaser_id: 采购员ID参数精确匹配或空值
             	 AND (tab1.purchaser_id = #{p1.purchaser_id}  or #{p1.purchaser_id} is null   )
-            	 -- #{p1.po_order_id}: 采购订单ID精确匹配或空值
+            	 -- p1.po_order_id: 采购订单ID参数精确匹配或空值
             	 AND (tab1.po_order_id = #{p1.po_order_id}  or #{p1.po_order_id} is null   )
-            	 -- #{p1.po_contract_id}: 采购合同ID精确匹配或空值
+            	 -- p1.po_contract_id: 采购合同ID参数精确匹配或空值
             	 AND (tab1.po_contract_id = #{p1.po_contract_id}  or #{p1.po_contract_id} is null   )
 
                -- 状态列表过滤：支持多状态查询
@@ -106,7 +106,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
                       from
                         b_po_cargo_right_transfer_detail subt1
                         INNER JOIN b_po_cargo_right_transfer subt2 ON subt1.cargo_right_transfer_id = subt2.id
-                      -- #{p1.goods_name}: 在SKU名称或商品名称中模糊查询
+                      -- p1.goods_name: 在SKU名称或商品名称中模糊查询参数
                       where (subt1.sku_name like CONCAT('%', #{p1.goods_name}, '%') or subt1.goods_name like CONCAT('%', #{p1.goods_name}, '%'))
                         and subt2.id = tab1.id
                      )
@@ -161,7 +161,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
               LEFT JOIN b_po_order tab6 ON tab6.id = tab1.po_order_id
               LEFT JOIN b_po_contract tab7 ON tab7.id = tab1.po_contract_id
             	WHERE TRUE 
-            	-- #{p1}: 货权转移主表ID精确匹配
+            	-- p1: 货权转移主表ID参数精确匹配
             	AND tab1.id = #{p1}
             	-- is_del = false: 查询未删除的记录
             	 AND tab1.is_del = false
@@ -235,9 +235,9 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
             select * from b_po_cargo_right_transfer where true 
             -- is_del = false: 只检查未删除的记录
             and is_del = false
-            -- #{p1.id}: 排除当前记录ID（新增时为null，修改时为具体ID）
-            and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
-            -- #{p1.code}: 货权转移单号精确匹配
+            -- 参数：排除当前记录ID（新增时为null，修改时为具体ID）
+            and (id != #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
+            -- 参数：货权转移单号精确匹配
             and code = #{p1.code}
             """)
     List<BPoCargoRightTransferVo> validateDuplicateCode(@Param("p1") BPoCargoRightTransferVo bean);
@@ -322,7 +322,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
     @Select("""
             -- 根据货权转移单号查询货权转移信息
             SELECT * FROM b_po_cargo_right_transfer 
-            -- #{code}: 货权转移单号精确匹配
+            -- code: 货权转移单号参数精确匹配
             WHERE code = #{code} 
             -- is_del = false: 查询未删除的记录
             AND is_del = false
@@ -335,7 +335,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
     @Select("""
             -- 根据采购订单编号查询货权转移信息
             SELECT * FROM b_po_cargo_right_transfer 
-            -- #{po_order_code}: 采购订单编号精确匹配
+            -- po_order_code: 采购订单编号参数精确匹配
             WHERE po_order_code = #{po_order_code} 
             -- is_del = false: 查询未删除的记录
             AND is_del = false
@@ -348,7 +348,7 @@ public interface BPoCargoRightTransferMapper extends BaseMapper<BPoCargoRightTra
     @Select("""
             -- 根据货权转移单号查询对应的主ID
             SELECT id FROM b_po_cargo_right_transfer 
-            -- #{code}: 货权转移单号精确匹配
+            -- code: 货权转移单号参数精确匹配
             WHERE code = #{code} 
             -- is_del = false: 查询未删除的记录
             AND is_del = false

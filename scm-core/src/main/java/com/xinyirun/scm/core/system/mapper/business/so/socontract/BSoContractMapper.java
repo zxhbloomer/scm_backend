@@ -255,7 +255,7 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
      */
     @Select("""
             select * from b_so_contract where true and is_del = false
-            and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
+            and (id != #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
             and contract_code = #{p1.contract_code}
             """)
     List<BSoContractVo> validateDuplicateContractCode(@Param("p1")BSoContractVo bean);

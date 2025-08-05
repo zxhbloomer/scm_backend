@@ -22,7 +22,7 @@ public interface BPoOrderAttachMapper extends BaseMapper<BPoOrderAttachEntity> {
     @Select("""
             -- 根据采购订单ID查询附件信息
             select * from b_po_order_attach 
-            -- #{p1}: 采购合同id
+            -- p1: 采购订单ID参数
             where po_order_id = #{p1}
             """)
     BPoOrderAttachVo selByPoOrderId(@Param("p1") Integer id);

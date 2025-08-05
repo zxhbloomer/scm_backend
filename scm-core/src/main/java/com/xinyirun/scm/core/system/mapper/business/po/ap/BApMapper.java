@@ -134,21 +134,21 @@ public interface BApMapper extends BaseMapper<BApEntity> {
         """ + pageSql + """
             -- is_del = false: 查询未删除的记录（0-未删除，1-已删除）
             AND tab1.is_del = false
-            -- #{p1.code}: 应付账款编号，支持模糊查询
+            -- p1.code: 应付账款编号参数，支持模糊查询
             AND (tab1.code LIKE CONCAT('%', #{p1.code}, '%') or #{p1.code} is null or  #{p1.code} = '')
-            -- #{p1.status}: 状态（0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成）
+            -- p1.status: 状态参数（0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成）
             AND (tab1.status = #{p1.status} or #{p1.status} is null or  #{p1.status} = '')
-            -- #{p1.type}: 类型（1-应付、2-预付、3-其他支出）
+            -- p1.type: 类型参数（1-应付、2-预付、3-其他支出）
             AND (tab1.type = #{p1.type} or #{p1.type} is null or  #{p1.type} = '')
-            -- #{p1.pay_status}: 付款状态（0-未付款、1-部分付款、2-已付款、-1-中止付款）
+            -- p1.pay_status: 付款状态参数（0-未付款、1-部分付款、2-已付款、-1-中止付款）
             AND (tab1.pay_status = #{p1.pay_status} or #{p1.pay_status} is null or  #{p1.pay_status} = '')
-            -- #{p1.po_contract_code}: 采购合同编号，支持模糊查询
+            -- p1.po_contract_code: 采购合同编号参数，支持模糊查询
             AND (tab1.po_contract_code like concat('%', #{p1.po_contract_code}, '%') or #{p1.po_contract_code} is null or  #{p1.po_contract_code} = '')
-            -- #{p1.po_order_code}: 采购订单编号，支持模糊查询
+            -- p1.po_order_code: 采购订单编号参数，支持模糊查询
             AND (tab1.po_order_code like concat('%', #{p1.po_order_code}, '%') or #{p1.po_order_code} is null or  #{p1.po_order_code} = '')
-            -- #{p1.supplier_id}: 供应商ID
+            -- p1.supplier_id: 供应商ID参数
             AND (tab1.supplier_id = #{p1.supplier_id}  or #{p1.supplier_id} is null   )
-            -- #{p1.purchaser_id}: 购买方ID
+            -- p1.purchaser_id: 购买方ID参数
             AND (tab1.purchaser_id = #{p1.purchaser_id}  or #{p1.purchaser_id} is null   )
             <if test='p1.status_list != null and p1.status_list.length!=0' >
                 -- 状态列表查询：支持多个状态值查询
@@ -219,7 +219,7 @@ public interface BApMapper extends BaseMapper<BApEntity> {
          LEFT JOIN m_bank_accounts tab9 ON tab3.bank_accounts_id = tab9.id
          -- 关联银行账户类型表，获取银行账户类型信息
          LEFT JOIN m_bank_accounts_type tab10 ON tab9.id = tab10.bank_id
-        -- #{p1}: 应付账款主表ID
+        -- p1: 应付账款主表ID参数
         WHERE tab1.id = #{p1}
         GROUP BY tab1.code, tab3.code
         """)
@@ -363,7 +363,7 @@ public interface BApMapper extends BaseMapper<BApEntity> {
             select * from b_ap tab1 
             -- 关联采购订单表，通过订单编号关联
             left join b_po_order tab2 on tab1.po_order_code = tab2.code 
-            -- #{p1}: 采购订单ID
+            -- p1: 采购订单ID参数
             where tab2.id = #{p1} 
             -- is_del = false: 未删除的记录（0-未删除，1-已删除）
             and tab1.is_del = false
@@ -378,9 +378,9 @@ public interface BApMapper extends BaseMapper<BApEntity> {
             select * from b_ap tab1 
             -- 关联采购订单表，通过订单编号关联
             left join b_po_order tab2 on tab1.po_order_code = tab2.code 
-            -- #{p1}: 采购订单ID
+            -- p1: 采购订单ID参数
             where tab2.id = #{p1} 
-            -- #{p2}: 需要排除的状态（通常为'5'-已作废）
+            -- p2: 需要排除的状态参数（通常为'5'-已作废）
             and tab1.status != #{p2} 
             -- is_del = false: 未删除的记录（0-未删除，1-已删除）
             and tab1.is_del = false
@@ -491,7 +491,7 @@ public interface BApMapper extends BaseMapper<BApEntity> {
     @Select("""
             -- 根据应付账款主表ID查询源单信息
             SELECT * FROM b_ap_source 
-            -- #{p1}: 应付账款主表ID
+            -- p1: 应付账款主表ID参数
             WHERE ap_id = #{p1}
             """)
     BApSourceVo getApSource(@Param("p1") Integer id);

@@ -28,7 +28,7 @@ public interface BApSourceAdvanceMapper extends BaseMapper<BApSourceAdvanceEntit
     @Delete("""
             -- 根据应付账款主表ID删除所有相关的预收款数据
             DELETE FROM b_ap_source_advance t 
-            -- #{ap_id}: 应付账款主表ID
+            -- ap_id: 应付账款主表ID参数
             where t.ap_id = #{ap_id}
             """)
     void deleteByApId(Integer ap_id);
@@ -39,7 +39,7 @@ public interface BApSourceAdvanceMapper extends BaseMapper<BApSourceAdvanceEntit
     @Select("""
             -- 根据应付账款编号查询预付款业务信息
             SELECT t1.* FROM b_ap_source_advance t1 
-            -- #{code}: 应付账款主表编号
+            -- code: 应付账款主表编号参数
             WHERE t1.ap_code = #{code}
             """)
     List<BApSourceAdvanceVo> selectByCode(@Param("code") String code);
@@ -50,7 +50,7 @@ public interface BApSourceAdvanceMapper extends BaseMapper<BApSourceAdvanceEntit
     @Select("""
             -- 根据应付账款主表ID查询预收款源单信息
             SELECT * FROM b_ap_source_advance t 
-            -- #{ap_id}: 应付账款主表ID
+            -- ap_id: 应付账款主表ID参数
             WHERE t.ap_id = #{ap_id}
             """)
     List<BApSourceAdvanceVo> selectByApId(@Param("ap_id") Integer ap_id);
@@ -63,7 +63,7 @@ public interface BApSourceAdvanceMapper extends BaseMapper<BApSourceAdvanceEntit
     @Select("""
             -- 根据应付账款主表ID统计本次付款金额的合计值
             SELECT COALESCE(SUM(order_amount),0) FROM b_ap_source_advance 
-            -- #{ap_id}: 应付账款主表ID
+            -- ap_id: 应付账款主表ID参数
             -- order_amount: 本次申请金额
             WHERE ap_id = #{ap_id}
             """)
@@ -77,7 +77,7 @@ public interface BApSourceAdvanceMapper extends BaseMapper<BApSourceAdvanceEntit
     @Select("""
             -- 根据采购合同ID查询预付款关联单据信息
             SELECT * FROM b_ap_source_advance 
-            -- #{po_contract_id}: 采购合同ID
+            -- po_contract_id: 采购合同ID参数
             WHERE po_contract_id = #{po_contract_id}
             """)
     List<BApSourceAdvanceVo> selectByContractId(@Param("po_contract_id") Integer po_contract_id);

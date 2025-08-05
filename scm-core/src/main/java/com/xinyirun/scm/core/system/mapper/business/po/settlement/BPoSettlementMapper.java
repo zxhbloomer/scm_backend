@@ -360,7 +360,7 @@ public interface BPoSettlementMapper extends BaseMapper<BPoSettlementEntity> {
      */
     @Select("""
             select * from b_po_settlement where true and is_del = false
-             and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
+             and (id != #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
              and code = #{p1.code}
             """)
     List<BPoSettlementVo> validateDuplicateCode(@Param("p1")BPoSettlementVo bean);

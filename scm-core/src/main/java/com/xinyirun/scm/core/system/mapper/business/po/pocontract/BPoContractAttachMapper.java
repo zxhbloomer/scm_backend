@@ -22,7 +22,7 @@ public interface BPoContractAttachMapper extends BaseMapper<BPoContractAttachEnt
     @Select("""
             -- 根据采购合同ID查询附件信息
             select * from b_po_contract_attach 
-            -- #{p1}: 采购合同id
+            -- p1: 采购合同ID参数
             where po_contract_id = #{p1}
             """)
     BPoContractAttachVo selectByPoContractId(@Param("p1") Integer id);

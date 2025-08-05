@@ -19,7 +19,7 @@ public interface BApAttachMapper extends BaseMapper<BApAttachEntity> {
     @Select("""
             -- 根据应付账款主表ID查询附件信息
             select * from b_ap_attach 
-            -- #{p1}: 应付账款主表ID
+            -- p1: 应付账款主表ID参数
             where ap_id = #{p1}
             """)
     BApAttachVo selectByApId(@Param("p1") Integer id);

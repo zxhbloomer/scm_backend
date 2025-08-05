@@ -159,7 +159,7 @@ public interface BProjectMapper extends BaseMapper<BProjectEntity> {
      * @param code 项目编号
      * @return 重复的项目记录
      */
-    @Select("select * from b_project where is_del = false and (id <> #{id} or #{id} is null) and code = #{code}")
+    @Select("select * from b_project where is_del = false and (id != #{id} or #{id} is null) and code = #{code}")
     List<BProjectEntity> validateDuplicateProjectCode(@Param("id") Integer id, @Param("code") String code);
 
     /**
@@ -168,7 +168,7 @@ public interface BProjectMapper extends BaseMapper<BProjectEntity> {
      * @param name 项目名称
      * @return 重复的项目记录
      */
-    @Select("select * from b_project where is_del = false and (id <> #{id} or #{id} is null) and name = #{name}")    List<BProjectEntity> validateDuplicateProjectName(@Param("id") Integer id, @Param("name") String name);
+    @Select("select * from b_project where is_del = false and (id != #{id} or #{id} is null) and name = #{name}")    List<BProjectEntity> validateDuplicateProjectName(@Param("id") Integer id, @Param("name") String name);
     
     /**
      * 按项目管理合计查询

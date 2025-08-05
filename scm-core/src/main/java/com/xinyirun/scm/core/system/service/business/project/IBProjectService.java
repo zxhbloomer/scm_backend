@@ -208,15 +208,14 @@ public interface IBProjectService extends IService<BProjectEntity>,
      * 完成指定的项目，需要校验关联的销售合同状态
      * 
      * @param searchCondition 完成信息对象，必须包含项目ID
-     * @return UpdateResultAo<BProjectVo> 完成操作结果
+     * @return UpdateResultAo<String> 完成操作结果
      *         - 成功时返回success=true
      *         - 失败时抛出BusinessException或返回success=false
-     * @throws BusinessException 当存在未完成的销售合同或项目状态不允许完成时抛出
      * @apiNote 该方法会执行以下校验和操作：
      *          1. 检查项目状态是否为"执行中"
      *          2. 校验项目下所有销售合同状态（必须全部完成或作废）
      *          3. 更新项目状态为"已完成"
      *          4. 记录完成时间和完成人信息
      */
-    UpdateResultAo<BProjectVo> complete(BProjectVo searchCondition);
+    UpdateResultAo<String> complete(BProjectVo searchCondition);
 }

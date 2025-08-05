@@ -167,7 +167,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	LEFT JOIN s_dict_data  tab9 ON tab9.code = 'b_po_contract_settle_type' AND tab9.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab10 ON tab10.code = 'b_po_contract_bill_type' AND tab10.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab11 ON tab11.code = 'b_po_contract_payment_type' AND tab11.dict_value = tab1.payment_type
-            	-- #{p1}: 采购合同主表ID
+            	-- p1: 采购合同主表ID参数
             	WHERE TRUE AND tab1.id = #{p1}
             	 -- is_del = false: 删除0-未删除，1-已删除
             	 AND tab1.is_del = false
@@ -251,9 +251,9 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             select * from b_po_contract where true 
             -- is_del = false: 删除0-未删除，1-已删除
             and is_del = false
-            -- #{p1.id}: 当前记录ID，新增时为null，修改时传入当前ID进行排除
-            and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)
-            -- #{p1.contract_code}: 合同编号，为用户手写编号，如果页面未输入，等于code自动编号
+            -- 当前记录ID，新增时为null，修改时传入当前ID进行排除
+            and (id != #{p1.id} or #{p1.id} is null)
+            -- 合同编号，为用户手写编号，如果页面未输入，等于code自动编号
             and contract_code = #{p1.contract_code}
             """)
     List<BPoContractVo> validateDuplicateContractCode(@Param("p1") BPoContractVo bean);
@@ -335,9 +335,9 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	WHERE TRUE
             	 -- is_del = false: 删除0-未删除，1-已删除
             	 AND tab1.is_del = false
-            	 -- #{p1.status}: 状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
+            	 -- p1.status: 状态参数：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
             	 AND (tab1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
-            	 -- #{p1.contract_code}: 合同编号，为用户手写编号，如果页面未输入，等于code自动编号
+            	 -- p1.contract_code: 合同编号参数，为用户手写编号，如果页面未输入，等于code自动编号
             	 AND (tab1.contract_code = #{p1.contract_code} or #{p1.contract_code} is null or #{p1.contract_code} = '')
             """)
     Long selectExportCount(@Param("p1") BPoContractVo param);
@@ -348,7 +348,7 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
     @Select("""
             -- 根据自动生成编号查询采购合同
             select * from b_po_contract 
-            -- #{code}: 编号自动生成编号
+            -- code: 编号自动生成编号参数
             where code = #{code} 
             -- is_del = false: 删除0-未删除，1-已删除
             and is_del = false
@@ -361,11 +361,28 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
     @Select("""
             -- 根据合同编号查询采购合同
             select * from b_po_contract 
-            -- #{contract_code}: 合同编号，为用户手写编号，如果页面未输入，等于code自动编号
+            -- contract_code: 合同编号参数，为用户手写编号，如果页面未输入，等于code自动编号
             where contract_code = #{contract_code} 
             -- is_del = false: 删除0-未删除，1-已删除
             and is_del = false
             """)
     BPoContractVo selectByContractCode(@Param("contract_code") String contract_code);
+
+    /**
+     * 根据项目编号查询未完成的采购合同编号列表
+     * 用于项目完成时校验，只有当项目下所有采购合同都已完成或作废时，项目才能完成
+     * 
+     * @param projectCode 项目编号
+     * @return List<String> 未完成的采购合同编号列表
+     * 状态不等于5(已作废)、6(已完成)的合同
+     */
+    @Select("""
+            SELECT code 
+            FROM b_po_contract 
+            WHERE project_code = #{projectCode} 
+              AND status NOT IN ('5', '6') 
+              AND is_del = false
+            """)
+    List<String> selectUnfinishedContractCodesByProjectCode(@Param("projectCode") String projectCode);
 
 }

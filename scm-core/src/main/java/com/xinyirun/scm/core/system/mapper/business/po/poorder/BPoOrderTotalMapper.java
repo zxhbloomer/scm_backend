@@ -28,7 +28,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
     @Select("""
             -- 根据采购订单主表ID查询采购订单财务汇总信息
             select * from b_po_order_total 
-            -- #{poId}: 采购订单主表ID
+            -- poId: 采购订单主表ID参数
             where po_order_id = #{poId}
             """)
     BPoOrderTotalVo selectByPoId(@Param("poId") Integer poId);
@@ -49,7 +49,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
               -- 通过订单编号关联采购订单，code: 编号自动生成编号，po_order_code: 采购订单编号
               LEFT JOIN b_po_order t3 ON t3.code = t2.po_order_code 
             WHERE TRUE 
-              -- #{apId}: 应付账款ID
+              -- apId: 应付账款ID参数
               AND t1.ap_id = #{apId}
             """)
     BPoOrderVo getPoOrderTotalByApId(@Param("apId") Integer apId);
@@ -76,7 +76,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                         SUM(t2.qty) AS total_qty
                     FROM b_po_order_detail t2
                     JOIN b_po_order t1 ON t1.id = t2.po_order_id
-                    -- #{id}: 采购订单主表ID
+                    -- id: 采购订单主表ID参数
                     WHERE t1.id IN
                     <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                         #{id}
@@ -93,7 +93,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                     SELECT 1
                     FROM b_po_order t1
                     WHERE t1.id = t3.po_order_id
-                    -- #{id}: 采购订单主表ID
+                    -- id: 采购订单主表ID参数
                     AND t1.id IN
                     <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                         #{id}
@@ -131,7 +131,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                         -- cancelpay_amount_total: 取消付款金额总计
                         SUM(cancelpay_amount_total) AS cancel_amount
                     FROM b_ap_source_advance
-                    -- #{id}: 采购订单主表ID
+                    -- id: 采购订单主表ID参数
                     WHERE po_order_id IN
                     <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                         #{id}
@@ -146,7 +146,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                     t1.advance_pay_total = COALESCE(tab.total_payable, 0),
                     t1.advance_stoppay_total = COALESCE(tab.stoppay_amount, 0),
                     t1.advance_cancelpay_total = COALESCE(tab.cancel_amount, 0)
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE t1.po_order_id IN
                 <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                     #{id}
@@ -173,7 +173,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                         -- paid_amount_total: 已付款金额总计
                         SUM(IFNULL(paid_amount_total, 0)) as total_paid_amount
                     FROM b_ap_source_advance t3
-                    -- #{id}: 采购订单主表ID
+                    -- id: 采购订单主表ID参数
                     WHERE t3.po_order_id IN
                     <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                         #{id}
@@ -182,7 +182,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                 ) t3 ON t1.po_order_id = t3.po_order_id
                 -- 更新已付款总金额字段
                 SET t1.paid_total = t3.total_paid_amount
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE t2.id IN
                 <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                     #{id}
@@ -242,7 +242,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                 -- cargo_right_transfer_cancel_qty_total: 货权转移取消数量总计
                 SUM(IFNULL(t2.cargo_right_transfer_cancel_qty_total, 0)) AS sum_cargo_right_transfer_cancel_qty_total
             FROM b_po_order_detail_total t2
-            -- #{id}: 采购订单主表ID
+            -- id: 采购订单主表ID参数
             WHERE t2.po_order_id IN
             <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                 #{id}
@@ -289,7 +289,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                 -- inventory_in_total: 实际入库汇总
                 -- settle_planned_qty_total: 应结算数量汇总
                 SET settle_can_qty_total =  IFNULL(cargo_right_transferred_qty_total,0) + IFNULL(inventory_in_total, 0) - IFNULL(settle_planned_qty_total, 0)
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE po_order_id IN
                 <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                     #{id}
@@ -323,7 +323,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                         -- cancelrefund_amount_total: 取消退款金额总计
                         SUM(IFNULL(cancelrefund_amount_total, 0)) AS total_cancelrefund
                     FROM b_ap_refund_total
-                    -- #{id}: 采购订单主表ID
+                    -- id: 采购订单主表ID参数
                     WHERE po_order_id IN
                     <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                         #{id}
@@ -337,7 +337,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                     t1.advance_refunding_total = COALESCE(t2.total_refunding, 0),
                     t1.advance_unrefund_total = COALESCE(t2.total_unrefund, 0),
                     t1.advance_cancelrefund_total = COALESCE(t2.total_cancelrefund, 0)
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE t1.po_order_id IN
                 <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                     #{id}
@@ -369,7 +369,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                         -- cargo_right_transfer_cancel_qty_total: 货权转移取消数量总计
                         SUM(IFNULL(cargo_right_transfer_cancel_qty_total, 0)) AS total_transfer_cancel_qty
                     FROM b_po_order_detail_total
-                    -- #{id}: 采购订单主表ID
+                    -- id: 采购订单主表ID参数
                     WHERE po_order_id IN
                     <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                         #{id}
@@ -382,7 +382,7 @@ public interface BPoOrderTotalMapper extends BaseMapper<BPoOrderTotalEntity> {
                     t1.cargo_right_transfering_qty_total = COALESCE(t2.total_transfering_qty, 0),
                     t1.cargo_right_transferred_qty_total = COALESCE(t2.total_transferred_qty, 0),
                     t1.cargo_right_transfer_cancel_qty_total = COALESCE(t2.total_transfer_cancel_qty, 0)
-                -- #{id}: 采购订单主表ID
+                -- id: 采购订单主表ID参数
                 WHERE t1.po_order_id IN
                 <foreach collection='po_order_id' item='id' open='(' separator=',' close=')'>
                     #{id}

@@ -63,9 +63,9 @@ public interface BApReFundPayMapper extends BaseMapper<BApReFundPayEntity> {
             -- 关联银行账户表：用于查询条件过滤
             LEFT JOIN m_bank_accounts tab8 ON tab8.id = tab7.bank_accounts_id
             WHERE TRUE
-            -- #{p1.account_name}: 银行账户名称模糊查询
+            -- p1.account_name: 银行账户名称参数模糊查询
             AND (tab8.name LIKE CONCAT('%',#{p1.account_name},'%') OR #{p1.account_name} IS NULL OR  #{p1.account_name} = '' )
-            -- #{p1.bank_name}: 银行名称模糊查询
+            -- p1.bank_name: 银行名称参数模糊查询
             AND (tab8.bank_name LIKE CONCAT('%',#{p1.bank_name},'%') OR #{p1.bank_name} IS NULL OR  #{p1.bank_name} = '' )
         """)
     IPage<BApReFundPayVo> selectPage(Page page, @Param("p1") BApReFundPayVo searchCondition);
@@ -76,9 +76,9 @@ public interface BApReFundPayMapper extends BaseMapper<BApReFundPayEntity> {
     @Select("""
             -- 根据退款主ID和状态查询退款单支付记录
             SELECT * FROM b_ap_refund_pay 
-            -- #{p1}: 应付退款主表ID
+            -- p1: 应付退款主表ID参数
             WHERE ap_refund_id = #{p1} 
-            -- #{p2}: 退款单状态（0-待付款、1-已付款、2-作废）
+            -- p2: 退款单状态参数（0-待付款、1-已付款、2-作废）
             AND status = #{p2}
             """)
     List<BApReFundPayEntity> selectApPayByStatus(@Param("p1")  Integer apId, @Param("p2") String status);
@@ -90,9 +90,9 @@ public interface BApReFundPayMapper extends BaseMapper<BApReFundPayEntity> {
     @Select("""
             -- 根据退款主ID查询非指定状态的退款单支付记录
             SELECT * FROM b_ap_refund_pay 
-            -- #{p1}: 应付退款主表ID
+            -- p1: 应付退款主表ID参数
             WHERE ap_refund_id = #{p1} 
-            -- #{p2}: 需要排除的退款单状态
+            -- p2: 需要排除的退款单状态参数
             AND status != #{p2}
             """)
     List<BApReFundPayVo> selectApPayByNotStatus(@Param("p1")  Integer apId, @Param("p2") String status);
@@ -229,7 +229,7 @@ public interface BApReFundPayMapper extends BaseMapper<BApReFundPayEntity> {
             -- 关联退款单支付附件表：获取附件文件信息
             LEFT JOIN b_ap_refund_pay_attach tab11 ON tab1.id = tab11.ap_refund_pay_id
         WHERE TRUE
-            -- #{p1}: 退款单支付主表ID精确匹配
+            -- p1: 退款单支付主表ID参数精确匹配
             AND tab1.id = #{p1}
         -- GROUP BY: 按退款单编号和支付明细编号分组，避免重复数据
         GROUP BY tab1.code, tab3.ap_refund_pay_code
@@ -288,9 +288,9 @@ public interface BApReFundPayMapper extends BaseMapper<BApReFundPayEntity> {
             sum(t1.refunding_amount_total) as refunding_amount_total
         FROM b_ap_refund_pay t1
         WHERE 
-            -- #{ap_refund_id}: 应付退款主表ID精确匹配
+            -- ap_refund_id: 应付退款主表ID参数精确匹配
             t1.ap_refund_id = #{ap_refund_id}
-            -- #{status}: 退款单状态过滤，支持空值和空字符串
+            -- status: 退款单状态参数过滤，支持空值和空字符串
             AND (t1.status = #{status} OR #{status} = '' OR #{status} IS NULL)
         """)
     BApReFundPayVo getSumAmount(@Param("ap_refund_id") Integer ap_refund_id, @Param("status") String status);

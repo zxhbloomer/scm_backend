@@ -428,7 +428,7 @@ public interface BOutPlanMapper extends BaseMapper<BOutPlanEntity> {
      */
     @Select("""
             select * from b_out_plan where true and is_del = false                           
-            and (id <> #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)         
+            and (id != #{p1.id,jdbcType=INTEGER} or #{p1.id,jdbcType=INTEGER} is null)         
             and code = #{p1.code}                                            
             """)
     List<BOutPlanVo> validateDuplicateCode(@Param("p1")BOutPlanVo bean);

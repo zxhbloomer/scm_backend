@@ -49,7 +49,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
               -- 通过合同编号关联采购合同，contract_code: 合同编号，为用户手写编号，如果页面未输入，等于code自动编号
               LEFT JOIN b_po_contract t3 ON t3.contract_code = t2.po_contract_code 
             WHERE TRUE 
-              -- #{apId}: 应付账款ID
+              -- apId: 应付账款ID参数
               AND t1.ap_id = #{apId}
             """)
     BPoContractVo getPoContractTotalByApId(@Param("apId") Integer apId);    /**
@@ -77,7 +77,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
                     COALESCE(SUM(t2.advance_stoppay_total), 0) AS sum_advance_stoppay_total
                 FROM b_po_order_total t2
                 INNER JOIN b_po_order t3 ON t2.po_order_id = t3.id
-                -- #{contractId}: 合同ID
+                -- contractId: 合同ID参数
                 WHERE t3.po_contract_id = #{contractId}
                 GROUP BY t3.po_contract_id
             ) AS summary ON t1.po_contract_id = summary.po_contract_id
@@ -86,7 +86,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
                 t1.advance_paid_total = summary.sum_advance_paid_total,
                 t1.advance_pay_total = summary.sum_advance_pay_total,
                 t1.advance_stoppay_total = summary.sum_advance_stoppay_total
-            -- #{contractId}: 合同ID
+            -- contractId: 合同ID参数
             WHERE t1.po_contract_id = #{contractId}
             </script>
             """)
@@ -109,7 +109,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
             FROM b_po_contract_total t1
             INNER JOIN b_po_contract t2 ON t1.po_contract_id = t2.id
             WHERE TRUE
-              -- #{contractStatus}: 合同状态，0-进行中,1-作废,2-已完成,3-中止
+              -- contractStatus: 合同状态参数，0-进行中,1-作废,2-已完成,3-中止
               AND t2.status = #{contractStatus}
             ORDER BY t2.c_time DESC
             """)

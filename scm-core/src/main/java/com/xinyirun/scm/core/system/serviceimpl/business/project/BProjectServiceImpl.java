@@ -48,6 +48,7 @@ import com.xinyirun.scm.core.system.mapper.business.project.BProjectMapper;
 import com.xinyirun.scm.core.system.mapper.business.project.BProjectGoodsMapper;
 import com.xinyirun.scm.core.system.mapper.business.project.BProjectAttachMapper;
 import com.xinyirun.scm.core.system.mapper.business.so.socontract.BSoContractMapper;
+import com.xinyirun.scm.core.system.mapper.business.po.pocontract.BPoContractMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.service.business.project.IBProjectService;
@@ -140,6 +141,9 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
 
     @Autowired
     private BSoContractMapper bSoContractMapper;
+
+    @Autowired
+    private BPoContractMapper bPoContractMapper;
 
     /**
      * 分页查询项目管理列表
@@ -617,6 +621,9 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         bProjectEntity.setNext_approve_name(searchCondition.getNext_approve_name());
         
         int i = mapper.updateById(bProjectEntity);
+        if (i == 0) {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新操作。");
+        }
 
         log.debug("====》项目管理[{}]审批流程更新最新审批人，更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(i);
@@ -746,11 +753,11 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
                     return CheckResultUtil.NG("只有执行中的项目才能完成");
                 }
                 
-                // 校验关联的销售合同状态
-                List<String> unfinishedContractCodes = bSoContractMapper.selectUnfinishedContractCodesByProjectCode(bProjectEntity.getCode());
+                // 校验关联的采购合同状态
+                List<String> unfinishedContractCodes = bPoContractMapper.selectUnfinishedContractCodesByProjectCode(bProjectEntity.getCode());
                 if (!unfinishedContractCodes.isEmpty()) {
                     String errorMsg = String.format(
-                        "校验出错：销售项目管理，编号%s的数据存在销售尚未完成的销售合同[%s]。", 
+                        "校验出错：采购项目管理，编号%s的数据存在采购尚未完成的采购合同[%s]。", 
                         bProjectEntity.getCode(), 
                         String.join("、", unfinishedContractCodes)
                     );
@@ -1027,6 +1034,9 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         bProjectEntity.setNext_approve_name(searchCondition.getNext_approve_name());
         
         int i = mapper.updateById(bProjectEntity);
+        if (i == 0) {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新操作。");
+        }
 
         log.debug("====》项目管理[{}]作废审批流程更新最新审批人，更新结束《====", searchCondition.getId());
         return UpdateResultUtil.OK(i);
@@ -1189,7 +1199,7 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<BProjectVo> complete(BProjectVo searchCondition) {
+    public UpdateResultAo<String> complete(BProjectVo searchCondition) {
         // 1. 校验业务规则
         CheckResultAo checkResult = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
         if (!checkResult.isSuccess()) {
@@ -1204,14 +1214,14 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         updateEntity.setId(projectEntity.getId());
         updateEntity.setStatus(DictConstant.DICT_B_PROJECT_STATUS_THREE); // 已完成
         updateEntity.setU_time(LocalDateTime.now());
-        updateEntity.setU_id(SecurityUtil.getUserId());
+        updateEntity.setU_id(SecurityUtil.getStaff_id());
         updateEntity.setDbversion(projectEntity.getDbversion());
 
         int updateCount = mapper.updateById(updateEntity);
         if (updateCount == 0) {
-            return UpdateResultUtil.NG("保存的数据已经被修改，请查询后重新操作。");
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新操作。");
         }
 
-        return UpdateResultUtil.OK();
+        return UpdateResultUtil.OK("OK");
     }
 }
