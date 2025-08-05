@@ -671,7 +671,6 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.tax_amount_total,
             		tab16.qty_total,
             		tab16.settle_amount_total,
-            		tab16.settle_can_qty_total,
             		tab16.advance_unpay_total,
             		tab16.advance_refund_amount_total,
             		tab16.advance_paid_total,
@@ -879,7 +878,6 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             		tab16.advance_paid_total,
             		tab16.advance_cancelpay_total,
             		tab16.settle_amount_total,
-            		tab16.settle_can_qty_total,
             		tab16.advance_unpay_total,
             		tab16.settle_can_qty_total
             	FROM
