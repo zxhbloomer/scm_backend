@@ -186,10 +186,10 @@ public class BPoOrderServiceImpl extends ServiceImpl<BPoOrderMapper, BPoOrderEnt
 
         // 添加合同信息
         if (BPoOrderVo.getPo_contract_id() != null) {
-            BPoContractVo BPoContractVo = bPoContractMapper.selectId(BPoOrderVo.getPo_contract_id());
-            List<SFileInfoVo> contract_doc_att_files = isFileService.selectFileInfo(BPoContractVo.getDoc_att_file());
-            BPoContractVo.setDoc_att_files(contract_doc_att_files);
-            BPoOrderVo.setPo_contract(BPoContractVo);
+            BPoContractVo bPoContractVo = bPoContractMapper.selectId(BPoOrderVo.getPo_contract_id());
+            List<SFileInfoVo> contract_doc_att_files = isFileService.selectFileInfo(bPoContractVo.getDoc_att_file());
+            bPoContractVo.setDoc_att_files(contract_doc_att_files);
+            BPoOrderVo.setPo_contract(bPoContractVo);
         }
 
         return BPoOrderVo;

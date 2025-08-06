@@ -148,6 +148,11 @@ public class BPoContractTotalVo implements Serializable {
     private BigDecimal settle_inventory_in_total;
 
     /**
+     * 订单笔数
+     */
+    private Integer order_count;
+
+    /**
      * 创建时间
      */
     private LocalDateTime c_time;
@@ -171,5 +176,11 @@ public class BPoContractTotalVo implements Serializable {
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;
+
+    /**
+     * 执行进度（百分比）
+     * 计算公式：实际入库汇总/总采购数量*100
+     */
+    private BigDecimal progress;
 
 }

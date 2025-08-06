@@ -45,6 +45,9 @@ public interface BpmInstanceMapper extends BaseMapper<BpmInstanceEntity> {
     @Select("select * from bpm_instance where process_instance_id = #{p1} and process_definition_id = #{p2}")
     BpmInstanceEntity selectByInstanceIdAndDefId(@Param("p1") String processInstanceId,@Param("p2") String processDefinitionId);
 
+    @Select("select process_instance_id from bpm_instance where process_code = #{processCode}")
+    String selectProcessInstanceIdByCode(@Param("processCode") String processCode);
+
 
     /**
      * 查看我发起的实例（流程）

@@ -1411,5 +1411,13 @@ public class CommonSoTotalServiceImpl extends ServiceImpl<BSoContractTotalMapper
         } else {
             log.warn("SQL汇总更新销售合同总计数据失败，so_contract_id: {}", contractId);
         }
+
+        // 3. 更新销售合同订单笔数
+        int orderCountUpdateResult = bSoContractTotalMapper.updateContractOrderCount(contractId);
+        if (orderCountUpdateResult > 0) {
+            log.debug("更新销售合同订单笔数成功，so_contract_id: {}, 更新记录数: {}", contractId, orderCountUpdateResult);
+        } else {
+            log.warn("更新销售合同订单笔数失败，so_contract_id: {}", contractId);
+        }
     }
 }

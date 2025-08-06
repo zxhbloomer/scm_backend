@@ -93,6 +93,27 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
     int updateContractAdvanceTotalData(@Param("contractId") Integer contractId);
 
     /**
+     * 更新采购合同订单笔数
+     * 根据合同ID统计其下所有采购订单的数量并更新到合同汇总表
+     * @param contractId 合同ID
+     * @return 更新记录数
+     */
+    @Update(""" 
+            -- 更新采购合同订单笔数，统计合同下所有采购订单数量
+            UPDATE b_po_contract_total t1
+            SET t1.order_count = (
+                -- 子查询：统计指定合同下的采购订单数量
+                SELECT COUNT(1)
+                FROM b_po_order t2
+                -- contractId: 合同ID参数
+                WHERE t2.po_contract_id = #{contractId}
+                AND t2.is_deleted = 0
+            )
+            WHERE t1.po_contract_id = #{contractId}
+            """)
+    int updateContractOrderCount(@Param("contractId") Integer contractId);
+
+    /**
      * 根据合同状态查询采购合同财务信息示例
      * 演示如何正确处理status常量条件
      * @param contractStatus 合同状态

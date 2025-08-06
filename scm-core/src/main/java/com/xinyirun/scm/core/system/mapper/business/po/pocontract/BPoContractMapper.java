@@ -46,7 +46,9 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	tab1.bpm_instance_code as process_code,
             	iF(tab12.id,false,true) existence_order,
             	tab13.name as c_name,
-            	tab14.name as u_name
+            	tab14.name as u_name,
+            	-- 执行进度：从财务汇总表获取虚拟列计算结果
+            	tab15.progress as progress
             FROM
             	b_po_contract tab1
                 LEFT JOIN (select po_contract_id,JSON_ARRAYAGG(
@@ -67,6 +69,8 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_contract_settle_type' AND tab6.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_contract_bill_type' AND tab7.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab8 ON tab8.code = 'b_po_contract_payment_type' AND tab8.dict_value = tab1.payment_type
+            	-- 关联财务汇总表获取执行进度虚拟列
+            	LEFT JOIN b_po_contract_total tab15 ON tab15.po_contract_id = tab1.id
                     LEFT JOIN b_po_order tab12 on tab12.po_contract_id = tab1.id
                    and tab12.is_del = false and tab1.type = '0'
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id
@@ -303,6 +307,8 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	LEFT JOIN s_dict_data  tab6 ON tab6.code = 'b_po_contract_settle_type' AND tab6.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab7 ON tab7.code = 'b_po_contract_bill_type' AND tab7.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab8 ON tab8.code = 'b_po_contract_payment_type' AND tab8.dict_value = tab1.payment_type
+            	-- 关联财务汇总表获取执行进度虚拟列
+            	LEFT JOIN b_po_contract_total tab15 ON tab15.po_contract_id = tab1.id
                     LEFT JOIN b_po_order tab12 on tab12.po_contract_id = tab1.id
                    and tab12.is_del = false and tab1.type = '0'
               LEFT JOIN m_staff tab13 ON tab13.id = tab1.c_id

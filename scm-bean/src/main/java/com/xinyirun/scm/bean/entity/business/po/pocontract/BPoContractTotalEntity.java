@@ -178,6 +178,12 @@ public class BPoContractTotalEntity implements Serializable {
     private BigDecimal settle_inventory_in_total;
 
     /**
+     * 订单笔数
+     */
+    @TableField("order_count")
+    private Integer order_count;
+
+    /**
      * 创建时间
      */
     @TableField(value="c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

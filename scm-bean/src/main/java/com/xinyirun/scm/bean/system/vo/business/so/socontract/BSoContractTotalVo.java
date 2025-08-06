@@ -148,6 +148,11 @@ public class BSoContractTotalVo implements Serializable {
     private BigDecimal settle_inventory_out_total;
 
     /**
+     * 订单笔数
+     */
+    private Integer order_count;
+
+    /**
      * 创建时间
      */
     private LocalDateTime c_time;

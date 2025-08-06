@@ -95,6 +95,9 @@ public class BpmTodoServiceImpl extends ServiceImpl<BpmTodoMapper, BpmTodoEntity
     @Autowired
     private IBpmInstanceService iBpmInstanceService;
 
+    @Autowired
+    private BpmInstanceMapper bpmInstanceMapper;
+
 
     /**
      * 查看我的待办，我的已办
@@ -562,9 +565,26 @@ public class BpmTodoServiceImpl extends ServiceImpl<BpmTodoMapper, BpmTodoEntity
         // 1.查询任务
         HistoricTaskInstance task = null;
         if(null == param.getTask_id()){
+            // 获取流程实例ID
+            String processInstanceId = param.getProcess_instance_id();
+            
+            // 如果流程实例ID为空，通过流程编号查询bpm_instance表获取
+            if(StringUtils.isBlank(processInstanceId)){
+                if(StringUtils.isBlank(param.getProcess_code())){
+                    throw new BusinessException("task_id、process_instance_id、process_code至少需要提供一个参数");
+                }
+                
+                // 通过process_code查询bpm_instance获取process_instance_id
+                processInstanceId = bpmInstanceMapper.selectProcessInstanceIdByCode(param.getProcess_code());
+                
+                if(StringUtils.isBlank(processInstanceId)){
+                    throw new BusinessException("根据流程编号未找到对应的流程实例");
+                }
+            }
+            
             //通过流程实例id找最新的taskId
             List<HistoricTaskInstance> list = historyService.createHistoricTaskInstanceQuery()
-                    .processInstanceId(param.getProcess_instance_id()).orderByTaskId().desc().list();
+                    .processInstanceId(processInstanceId).orderByTaskId().desc().list();
             if(CollUtil.isNotEmpty(list)){
                 task = list.get(0);
             }
