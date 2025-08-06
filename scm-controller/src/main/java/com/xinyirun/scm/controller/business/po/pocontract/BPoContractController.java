@@ -156,10 +156,10 @@ public class BPoContractController extends SystemBaseController {
     }
 
     @SysLogAnnotion("采购合同，完成")
-    @PostMapping("/finish")
+    @PostMapping("/complete")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<BPoContractVo>> finish(@RequestBody(required = false) BPoContractVo searchCondition) {
-        if(service.finish(searchCondition).isSuccess()){
+    public ResponseEntity<JsonResultAo<BPoContractVo>> complete(@RequestBody(required = false) BPoContractVo searchCondition) {
+        if(service.complete(searchCondition).isSuccess()){
             return ResponseEntity.ok().body(ResultUtil.OK(null,"更新成功"));
         } else {
             throw new UpdateErrorException("保存的数据已经被修改，请查询后重新编辑更新。");
@@ -173,13 +173,13 @@ public class BPoContractController extends SystemBaseController {
         // 创建导出的数据列表
         List<BPoContractExportVo> exportDataList = new ArrayList<>();
 
-        for (BPoContractVo BPoContractVo : result) {
-            List<BPoContractDetailVo> productList =JSON.parseArray(BPoContractVo.getDetailListData().toString(), BPoContractDetailVo.class);
+        for (BPoContractVo bPoContractVo : result) {
+            List<BPoContractDetailVo> productList =JSON.parseArray(bPoContractVo.getDetailListData().toString(), BPoContractDetailVo.class);
 
             for (int i = 0; i < productList.size(); i++) {
                 BPoContractDetailVo BPoContractDetailVo = productList.get(i);
                 BPoContractExportVo BPoContractExportVo = new BPoContractExportVo();
-                BeanUtils.copyProperties(BPoContractVo, BPoContractExportVo);
+                BeanUtils.copyProperties(bPoContractVo, BPoContractExportVo);
                 BeanUtils.copyProperties(BPoContractDetailVo, BPoContractExportVo);
                 exportDataList.add(BPoContractExportVo);
             }

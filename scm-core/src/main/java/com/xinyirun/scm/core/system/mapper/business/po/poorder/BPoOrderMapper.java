@@ -603,6 +603,21 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
     List<BPoOrderVo> selectByPoContractIdNotByStatus(@Param("p1")Integer id, @Param("p2") String dictBPoOrderStatusFive);
 
     /**
+     * 根据采购合同id查询未完成的采购订单（排除已作废、已完成状态）
+     */
+    @Select("""
+            -- 根据采购合同id查询未完成的采购订单，排除已作废和已完成状态
+            select * from b_po_order 
+            -- p1: 采购合同ID参数
+            where po_contract_id = #{p1} 
+            -- 排除已作废状态和已完成状态
+            and status not in ('5', '6')
+            -- is_del = false: 删除0-未删除，1-已删除
+            and is_del = false
+            """)
+    List<BPoOrderVo> selectUnfinishedOrdersByPoContractId(@Param("p1")Integer id);
+
+    /**
      * 根据采购合同id 查询采购订单
      */
     @Select("""

@@ -29,7 +29,7 @@ public interface IBPoContractService extends IService<BPoContractEntity> ,
     /**
      * 采购合同  新增
      */
-    InsertResultAo<BPoContractVo> startInsert(BPoContractVo BPoContractVo);
+    InsertResultAo<BPoContractVo> startInsert(BPoContractVo bPoContractVo);
 
     /**
      * 分页查询
@@ -44,7 +44,7 @@ public interface IBPoContractService extends IService<BPoContractEntity> ,
     /**
      * 更新采购合同信息
      */
-    UpdateResultAo<Integer> startUpdate(BPoContractVo BPoContractVo);
+    UpdateResultAo<Integer> startUpdate(BPoContractVo bPoContractVo);
 
     /**
      * 删除采购合同信息
@@ -81,7 +81,12 @@ public interface IBPoContractService extends IService<BPoContractEntity> ,
     /**
      * 完成
      */
-    UpdateResultAo<Integer> finish(BPoContractVo searchCondition);
+    UpdateResultAo<Integer> complete(BPoContractVo searchCondition);
+    
+    /**
+     * 完成校验
+     */
+    CheckResultAo validateComplete(BPoContractVo contractVo);
 
     /**
      * 导入数据
