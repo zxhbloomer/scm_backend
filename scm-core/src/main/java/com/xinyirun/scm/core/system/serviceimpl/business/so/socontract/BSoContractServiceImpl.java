@@ -677,9 +677,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCreateBpm(BSoContractVo searchCondition){
+    public UpdateResultAo<Integer> bpmCallBackCreateBpm(BSoContractVo bSoContractVo1){
         log.debug("====》审批流程创建成功，更新开始《====");
-        BSoContractVo bSoContractVo = selectById(searchCondition.getId());
+        BSoContractVo bSoContractVo = selectById(bSoContractVo1.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
@@ -692,7 +692,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
-        bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
+        bpmInstanceSummaryEntity.setProcessCode(bSoContractVo1.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
         bpmInstanceSummaryEntity.setProcess_definition_business_name(bSoContractVo.getBpm_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
@@ -704,12 +704,12 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackApprove(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]审批流程通过，更新开始《====", searchCondition.getId());
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCallBackApprove(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]审批流程通过，更新开始《====", bSoContractVo.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
-        bSoContractEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
-        bSoContractEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
+        bSoContractEntity.setBpm_instance_id(bSoContractVo.getBpm_instance_id());
+        bSoContractEntity.setBpm_instance_code(bSoContractVo.getBpm_instance_code());
 
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_TWO);
         bSoContractEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -718,12 +718,12 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
             throw new UpdateErrorException("更新审核状态失败");
         }
 
-        log.debug("====》销售合同[{}]审批流程通过,更新结束《====", searchCondition.getId());
+        log.debug("====》销售合同[{}]审批流程通过,更新结束《====", bSoContractVo.getId());
 
         /**
          * 根据审批后自动生成订单，自动生成的订单-已经审批
          */
-        BSoContractVo vo = selectById(searchCondition.getId());
+        BSoContractVo vo = selectById(bSoContractVo.getId());
         if (vo.getAuto_create_order() != null && vo.getAuto_create_order()) {
             log.debug("====》开始自动创建销售订单《====");
             createAutoOrder(vo, bSoContractEntity);
@@ -739,9 +739,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackRefuse(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]审批流程拒绝，更新开始《====", searchCondition.getId());
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCallBackRefuse(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]审批流程拒绝，更新开始《====", bSoContractVo.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_THREE);
         bSoContractEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_REFUSE);
@@ -750,7 +750,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
             throw new UpdateErrorException("更新审核状态失败");
         }
 
-        log.debug("====》销售合同[{}]审批流程拒绝,更新结束《====", searchCondition.getId());
+        log.debug("====》销售合同[{}]审批流程拒绝,更新结束《====", bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
 
     }
@@ -761,9 +761,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackCancel(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]审批流程撤销，更新开始《====", searchCondition.getId());
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCallBackCancel(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]审批流程撤销，更新开始《====", bSoContractVo.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_ZERO);
         bSoContractEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_CANCEL);
@@ -772,7 +772,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
             throw new UpdateErrorException("更新审核状态失败");
         }
 
-        log.debug("====》销售合同[{}]审批流程撤销,更新结束《====", searchCondition.getId());
+        log.debug("====》销售合同[{}]审批流程撤销,更新结束《====", bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
 
     }
@@ -782,16 +782,16 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCallBackSave(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]审批流程更新最新审批人，更新开始《====", searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCallBackSave(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]审批流程更新最新审批人，更新开始《====", bSoContractVo.getId());
 
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
-        bSoContractEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
-        bSoContractEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
-        bSoContractEntity.setNext_approve_name(searchCondition.getNext_approve_name());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
+        bSoContractEntity.setBpm_instance_id(bSoContractVo.getBpm_instance_id());
+        bSoContractEntity.setBpm_instance_code(bSoContractVo.getBpm_instance_code());
+        bSoContractEntity.setNext_approve_name(bSoContractVo.getNext_approve_name());
         int i = mapper.updateById(bSoContractEntity);
 
-        log.debug("====》销售合同[{}]审批流程更新最新审批人,更新结束《====", searchCondition.getId());
+        log.debug("====》销售合同[{}]审批流程更新最新审批人,更新结束《====", bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -884,9 +884,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BSoContractVo searchCondition){
+    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(BSoContractVo bSoContractVo1){
         log.debug("====》作废审批流程创建成功，更新开始《====");
-        BSoContractVo bSoContractVo = selectById(searchCondition.getId());
+        BSoContractVo bSoContractVo = selectById(bSoContractVo1.getId());
 
         /**
          * 1、更新bpm_instance的摘要数据:
@@ -897,7 +897,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
 
         String json = jsonObject.toString();
         BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
-        bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
+        bpmInstanceSummaryEntity.setProcessCode(bSoContractVo1.getBpm_instance_code());
         bpmInstanceSummaryEntity.setSummary(json);
         bpmInstanceSummaryEntity.setProcess_definition_business_name(bSoContractVo.getBpm_cancel_process_name());
         iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
@@ -910,12 +910,12 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]审批流程通过，更新开始《====",searchCondition.getId());
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackApprove(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]审批流程通过，更新开始《====",bSoContractVo.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
-        bSoContractEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
-        bSoContractEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        bSoContractEntity.setBpm_cancel_instance_id(bSoContractVo.getBpm_instance_id());
+        bSoContractEntity.setBpm_cancel_instance_code(bSoContractVo.getBpm_instance_code());
 
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_FIVE);
         bSoContractEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -924,7 +924,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
             throw new UpdateErrorException("更新审核状态失败");
         }
 
-        log.debug("====》销售合同[{}]审批流程通过,更新结束《====",searchCondition.getId());
+        log.debug("====》销售合同[{}]审批流程通过,更新结束《====",bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -933,9 +933,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]作废审批流程拒绝，更新开始《====",searchCondition.getId());
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]作废审批流程拒绝，更新开始《====",bSoContractVo.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_TWO);
         bSoContractEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -950,7 +950,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_SO_CONTRACT);
         mCancelService.delete(mCancelVo);
 
-        log.debug("====》销售合同[{}]作废审批流程拒绝,更新结束《====",searchCondition.getId());
+        log.debug("====》销售合同[{}]作废审批流程拒绝,更新结束《====",bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
     }
 
@@ -959,9 +959,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackCancel(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]作废审批流程撤销，更新开始《====",searchCondition.getId());
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackCancel(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]作废审批流程撤销，更新开始《====",bSoContractVo.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_TWO);
         bSoContractEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
@@ -976,7 +976,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_SO_CONTRACT);
         mCancelService.delete(mCancelVo);
 
-        log.debug("====》销售合同[{}]作废审批流程撤销,更新结束《====",searchCondition.getId());
+        log.debug("====》销售合同[{}]作废审批流程撤销,更新结束《====",bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
 
     }
@@ -986,41 +986,41 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> bpmCancelCallBackSave(BSoContractVo searchCondition) {
-        log.debug("====》销售合同[{}]作废审批流程更新最新审批人，更新开始《====",searchCondition.getId());
+    public UpdateResultAo<Integer> bpmCancelCallBackSave(BSoContractVo bSoContractVo) {
+        log.debug("====》销售合同[{}]作废审批流程更新最新审批人，更新开始《====",bSoContractVo.getId());
 
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
-        bSoContractEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
-        bSoContractEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
-        bSoContractEntity.setNext_approve_name(searchCondition.getNext_approve_name());
+        bSoContractEntity.setBpm_cancel_instance_id(bSoContractVo.getBpm_instance_id());
+        bSoContractEntity.setBpm_cancel_instance_code(bSoContractVo.getBpm_instance_code());
+        bSoContractEntity.setNext_approve_name(bSoContractVo.getNext_approve_name());
         int i = mapper.updateById(bSoContractEntity);
 
-        log.debug("====》销售合同[{}]作废审批流程更新最新审批人，更新结束《====",searchCondition.getId());
+        log.debug("====》销售合同[{}]作废审批流程更新最新审批人，更新结束《====",bSoContractVo.getId());
         return UpdateResultUtil.OK(i);
     }
 
     /**
      * 作废
-     * @param searchCondition
+     * @param bSoContractVo
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> cancel(BSoContractVo searchCondition) {
+    public UpdateResultAo<Integer> cancel(BSoContractVo bSoContractVo) {
 
         // 作废前check
-        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.CANCEL_CHECK_TYPE);
+        CheckResultAo cr = checkLogic(bSoContractVo, CheckResultAo.CANCEL_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
 
-        BSoContractEntity bSoContractEntity = mapper.selectById(searchCondition.getId());
+        BSoContractEntity bSoContractEntity = mapper.selectById(bSoContractVo.getId());
 
         // 1.保存附件信息
         SFileEntity fileEntity = new SFileEntity();
         fileEntity.setSerial_id(bSoContractEntity.getId());
         fileEntity.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_B_SO_CONTRACT);
-        fileEntity = insertCancelFile(fileEntity, searchCondition);
+        fileEntity = insertCancelFile(fileEntity, bSoContractVo);
 
         bSoContractEntity.setBpm_cancel_process_name("作废销售合同审批");
         bSoContractEntity.setStatus(DictConstant.DICT_B_SO_CONTRACT_STATUS_FOUR);
@@ -1034,11 +1034,11 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
         mCancelVo.setSerial_id(bSoContractEntity.getId());
         mCancelVo.setSerial_type(SystemConstants.SERIAL_TYPE.B_SO_CONTRACT);
         mCancelVo.setFile_id(fileEntity.getId());
-        mCancelVo.setRemark(searchCondition.getCancel_reason());
+        mCancelVo.setRemark(bSoContractVo.getCancel_reason());
         mCancelService.insert(mCancelVo);
 
         // 2.启动审批流程
-        startFlowProcess(searchCondition,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_CONTRACT_CANCEL);
+        startFlowProcess(bSoContractVo,SystemConstants.BPM_INSTANCE_TYPE.BPM_INSTANCE_B_SO_CONTRACT_CANCEL);
 
         return UpdateResultUtil.OK(insert);
     }
@@ -1049,9 +1049,9 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public UpdateResultAo<Integer> finish(BSoContractVo searchCondition) {
-        // 作废前check
-        CheckResultAo cr = checkLogic(searchCondition, CheckResultAo.FINISH_CHECK_TYPE);
+    public UpdateResultAo<Integer> complete(BSoContractVo searchCondition) {
+        // 完成前校验
+        CheckResultAo cr = validateComplete(searchCondition);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
         }
@@ -1064,6 +1064,33 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
         }
 
         return UpdateResultUtil.OK(update);
+    }
+
+    /**
+     * 完成校验
+     * @param contractVo
+     * @return
+     */
+    @Override
+    public CheckResultAo validateComplete(BSoContractVo contractVo) {
+        if (contractVo.getId() == null) {
+            return CheckResultUtil.NG("id不能为空");
+        }
+
+        BSoContractEntity bSoContractEntity = mapper.selectById(contractVo.getId());
+        if (bSoContractEntity == null) {
+            return CheckResultUtil.NG("销售合同不存在");
+        }
+
+        // 查询销售合同下是否存在未完成的销售订单
+        List<BSoOrderVo> unfinishedOrders = bSoOrderMapper.selectUnfinishedOrdersBySoContractId(contractVo.getId());
+        if (CollectionUtil.isNotEmpty(unfinishedOrders)) {
+            List<String> orderCodes = unfinishedOrders.stream().map(BSoOrderVo::getCode).collect(Collectors.toList());
+            return CheckResultUtil.NG(String.format("校验出错：销售合同管理，编号%s的数据存在尚未完成的销售订单[%s]。", 
+                    bSoContractEntity.getCode(), String.join("、", orderCodes)));
+        }
+
+        return CheckResultUtil.OK();
     }
 
     /**
@@ -1420,7 +1447,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
         MEnterpriseVo seller = new MEnterpriseVo();
         seller.setName(vo.getSeller_name());
         seller.setIsSysCompany(true); // 设置为主体企业查询
-        List<MEnterpriseVo> result = mEnterpriseMapper.validateDuplicateName(mEnterpriseVo);
+        List<MEnterpriseVo> result = mEnterpriseMapper.validateDuplicateName(seller);
         vo.setSeller_id(result.get(0).getId());
 
         // 物料名称（必填）：查询商品表，获取id

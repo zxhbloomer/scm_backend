@@ -610,6 +610,19 @@ public interface BSoOrderMapper extends BaseMapper<BSoOrderEntity> {
     List<BSoOrderVo> selectLiveSoBySoContractId(@Param("p1")Integer id);
 
     /**
+     * 根据销售合同id查询未完成的销售订单
+     * 销售订单状态：0-待审批 1-审批中 2-执行中 3-驳回 4-作废审批中 5-已作废 6-已完成
+     * 排除状态5-已作废、6-已完成的订单
+     */
+    @Select("""
+            select * from b_so_order 
+            where so_contract_id = #{p1} 
+            and status not in ('5', '6')
+            and is_del = false
+            """)
+    List<BSoOrderVo> selectUnfinishedOrdersBySoContractId(@Param("p1")Integer id);
+
+    /**
      * 根据code查询销售订单
      */
     @Select("select * from b_so_order where code = #{code} and is_del = false")

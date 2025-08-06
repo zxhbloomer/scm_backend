@@ -156,10 +156,10 @@ public class BSoContractController extends SystemBaseController {
     }
 
     @SysLogAnnotion("销售合同，完成")
-    @PostMapping("/finish")
+    @PostMapping("/complete")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<BSoContractVo>> finish(@RequestBody(required = false) BSoContractVo searchCondition) {
-        if(service.finish(searchCondition).isSuccess()){
+    public ResponseEntity<JsonResultAo<BSoContractVo>> complete(@RequestBody(required = false) BSoContractVo searchCondition) {
+        if(service.complete(searchCondition).isSuccess()){
             return ResponseEntity.ok().body(ResultUtil.OK(null,"更新成功"));
         } else {
             throw new UpdateErrorException("保存的数据已经被修改，请查询后重新编辑更新。");

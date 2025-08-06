@@ -81,7 +81,12 @@ public interface IBSoContractService extends IService<BSoContractEntity> ,
     /**
      * 完成
      */
-    UpdateResultAo<Integer> finish(BSoContractVo searchCondition);
+    UpdateResultAo<Integer> complete(BSoContractVo searchCondition);
+
+    /**
+     * 完成校验
+     */
+    CheckResultAo validateComplete(BSoContractVo contractVo);
 
     /**
      * 导入数据
