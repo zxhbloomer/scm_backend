@@ -181,6 +181,6 @@ public class BSoContractTotalVo implements Serializable {
      * 执行进度（百分比）
      * 计算公式：实际出库汇总/总销售数量
      */
-    private BigDecimal progress;
+    private BigDecimal virtual_progress;
 
 }
