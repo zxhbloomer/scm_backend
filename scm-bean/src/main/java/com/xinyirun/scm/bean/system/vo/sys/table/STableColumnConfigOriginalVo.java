@@ -139,4 +139,19 @@ public class STableColumnConfigOriginalVo implements Serializable {
      */
     private List<STableColumnConfigOriginalEntity> itemList;
 
+    /**
+     * 分组名称
+     */
+    private String group_name;
+
+    /**
+     * 分组内排序
+     */
+    private Integer group_sort;
+
+    /**
+     * 是否为组头
+     */
+    private Integer is_group_header;
+
 }

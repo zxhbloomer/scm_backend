@@ -205,14 +205,14 @@ public class BSoContractVo extends BaseVo implements Serializable {
     private BigDecimal already_invoice_price;
 
     /**
-     * 订单量
+     * 订单笔数
      */
-    private Integer order_volume;
+    private Integer order_count;
 
     /**
-     * 执行进度
+     * 执行进度（虚拟列）
      */
-    private Integer execution_progress;
+    private BigDecimal virtual_progress;
 
     /**
      * 表头 合同总金额
@@ -238,6 +238,51 @@ public class BSoContractVo extends BaseVo implements Serializable {
      * 表头 结算总金额
      */
     private BigDecimal settle_amount_total;
+
+    /**
+     * 待结算数量汇总
+     */
+    private BigDecimal settle_can_qty_total;
+
+    /**
+     * 应结算-数量汇总
+     */
+    private BigDecimal settle_planned_qty_total;
+
+    /**
+     * 应结算-金额汇总
+     */
+    private BigDecimal settle_planned_amount_total;
+
+    /**
+     * 实际结算-数量汇总
+     */
+    private BigDecimal settled_qty_total;
+
+    /**
+     * 实际结算-金额汇总
+     */
+    private BigDecimal settled_amount_total;
+
+    /**
+     * 作废-应结算-数量汇总
+     */
+    private BigDecimal settle_cancel_planned_qty_total;
+
+    /**
+     * 作废-应结算-金额汇总
+     */
+    private BigDecimal settle_cancel_planned_amount_total;
+
+    /**
+     * 作废-实际结算-数量汇总
+     */
+    private BigDecimal settled_cancel_qty_total;
+
+    /**
+     * 作废-实际结算-金额汇总
+     */
+    private BigDecimal settled_cancel_amount_total;
 
     /**
      * 初始化审批流程
@@ -411,4 +456,26 @@ public class BSoContractVo extends BaseVo implements Serializable {
      * 项目数据
      */
     private BProjectVo project;
+
+    /**
+     * 结算出库数量汇总
+     */
+    private BigDecimal settle_inventory_out_total;
+
+    /**
+     * 累计实收金额（虚拟列）
+     * 计算公式：预收款已收总金额+应收款已收总金额
+     */
+    private BigDecimal virtual_total_received_amount;
+
+    /**
+     * 未收金额（虚拟列）
+     * 计算公式：预收款未收总金额+应收款未收总金额
+     */
+    private BigDecimal virtual_unreceived_amount;
+
+    /**
+     * 预收款已收总金额
+     */
+    private BigDecimal advance_received_total;
 }

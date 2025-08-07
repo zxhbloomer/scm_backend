@@ -47,7 +47,35 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
             	tab13.name as c_name,
             	tab14.name as u_name,
             	-- 执行进度：从财务汇总表获取虚拟列计算结果
-            	tab15.progress
+            	tab15.virtual_progress,
+            	-- 订单笔数：从财务汇总表获取订单数量
+            	tab15.order_count,
+            	-- 结算金额汇总
+            	tab15.settle_amount_total,
+            	-- 待结算数量汇总
+            	tab15.settle_can_qty_total,
+            	-- 应结算-数量汇总
+            	tab15.settle_planned_qty_total,
+            	-- 应结算-金额汇总
+            	tab15.settle_planned_amount_total,
+            	-- 实际结算-数量汇总：已结算数量（吨）
+            	tab15.settled_qty_total,
+            	-- 实际结算-金额汇总：结算金额
+            	tab15.settled_amount_total,
+            	-- 作废-应结算-数量汇总
+            	tab15.settle_cancel_planned_qty_total,
+            	-- 作废-应结算-金额汇总
+            	tab15.settle_cancel_planned_amount_total,
+            	-- 作废-实际结算-数量汇总
+            	tab15.settled_cancel_qty_total,
+            	-- 作废-实际结算-金额汇总
+            	tab15.settled_cancel_amount_total,
+            	-- 累计实收金额（虚拟列）
+            	tab15.virtual_total_received_amount,
+            	-- 未收金额（虚拟列）
+            	tab15.virtual_unreceived_amount,
+            	-- 预收款已收总金额
+            	tab15.advance_received_total
             FROM
             	b_so_contract tab1
                 LEFT JOIN (select so_contract_id,JSON_ARRAYAGG(
@@ -144,7 +172,9 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
             	tab9.label as settle_type_name,
             	tab10.label as bill_type_name,
             	tab11.label as payment_type_name,
-            	iF(tab1.auto_create_order,'是','否') auto_create_name
+            	iF(tab1.auto_create_order,'是','否') auto_create_name,
+            	-- 订单笔数：从财务汇总表获取订单数量
+            	tab15.order_count as order_volume
             FROM
             	b_so_contract tab1
                 LEFT JOIN (select so_contract_id,JSON_ARRAYAGG(
@@ -169,6 +199,9 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
             	LEFT JOIN s_dict_data  tab9 ON tab9.code = 'b_so_contract_settle_type' AND tab9.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab10 ON tab10.code = 'b_so_contract_bill_type' AND tab10.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab11 ON tab11.code = 'b_so_contract_payment_type' AND tab11.dict_value = tab1.payment_type
+            	-- 关联财务汇总表获取订单笔数
+            	LEFT JOIN b_so_contract_total tab15 ON tab15.so_contract_id = tab1.id
+            	-- p1: 销售合同主表ID参数
             	WHERE TRUE AND tab1.id = #{p1}
             	 AND tab1.is_del = false
             GROUP BY
@@ -189,7 +222,33 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
             	SUM( IFNULL(tab2.order_total,0) )  as  order_total,
             	SUM( IFNULL(tab2.advance_unreceive_total,0) )  as  advance_unreceive_total,
             	SUM( IFNULL(tab2.advance_receive_total,0) )  as  advance_receive_total,
-            	SUM( IFNULL(tab2.settle_amount_total,0) )  as  settle_amount_total
+            	SUM( IFNULL(tab2.settle_amount_total,0) )  as  settle_amount_total,
+            	-- 订单笔数汇总：统计所有合同的订单总笔数
+            	SUM( IFNULL(tab2.order_count,0) )  as  order_count,
+            	-- 待结算数量汇总：统计所有合同的待结算数量
+            	SUM( IFNULL(tab2.settle_can_qty_total,0) )  as  settle_can_qty_total,
+            	-- 应结算-数量汇总：统计所有合同的应结算数量
+            	SUM( IFNULL(tab2.settle_planned_qty_total,0) )  as  settle_planned_qty_total,
+            	-- 应结算-金额汇总：统计所有合同的应结算金额
+            	SUM( IFNULL(tab2.settle_planned_amount_total,0) )  as  settle_planned_amount_total,
+            	-- 实际结算-数量汇总：统计所有合同的已结算数量
+            	SUM( IFNULL(tab2.settled_qty_total,0) )  as  settled_qty_total,
+            	-- 实际结算-金额汇总：统计所有合同的结算金额
+            	SUM( IFNULL(tab2.settled_amount_total,0) )  as  settled_amount_total,
+            	-- 作废-应结算-数量汇总：统计所有合同的作废应结算数量
+            	SUM( IFNULL(tab2.settle_cancel_planned_qty_total,0) )  as  settle_cancel_planned_qty_total,
+            	-- 作废-应结算-金额汇总：统计所有合同的作废应结算金额
+            	SUM( IFNULL(tab2.settle_cancel_planned_amount_total,0) )  as  settle_cancel_planned_amount_total,
+            	-- 作废-实际结算-数量汇总：统计所有合同的作废实际结算数量
+            	SUM( IFNULL(tab2.settled_cancel_qty_total,0) )  as  settled_cancel_qty_total,
+            	-- 作废-实际结算-金额汇总：统计所有合同的作废实际结算金额
+            	SUM( IFNULL(tab2.settled_cancel_amount_total,0) )  as  settled_cancel_amount_total,
+            	-- 累计实收金额汇总：统计所有合同的累计实收金额
+            	SUM( IFNULL(tab2.advance_received_total,0) + IFNULL(tab2.receivable_received_total,0) )  as  virtual_total_received_amount,
+            	-- 未收金额汇总：统计所有合同的未收金额
+            	SUM( IFNULL(tab2.advance_unreceive_total,0) + IFNULL(tab2.receivable_unreceive_total,0) )  as  virtual_unreceived_amount,
+            	-- 预收款已收总金额汇总：统计所有合同的预收款已收总金额
+            	SUM( IFNULL(tab2.advance_received_total,0) )  as  advance_received_total
             FROM
             	b_so_contract tab1
             	LEFT JOIN b_so_contract_total tab2  ON tab1.id = tab2.so_contract_id
@@ -286,7 +345,9 @@ public interface BSoContractMapper extends BaseMapper<BSoContractEntity> {
             	tab1.bpm_instance_code as process_code,
             	iF(tab12.id,false,true) existence_order,
             	tab13.name as c_name,
-            	tab14.name as u_name
+            	tab14.name as u_name,
+            	-- 订单笔数：从财务汇总表获取订单数量
+            	tab15.order_count
             FROM
             	b_so_contract tab1
                 LEFT JOIN (select so_contract_id,JSON_ARRAYAGG(

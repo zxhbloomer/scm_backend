@@ -212,14 +212,14 @@ public class BPoContractVo extends BaseVo implements Serializable {
     private BigDecimal already_invoice_price;
 
     /**
-     * 订单量
+     * 订单笔数
      */
-    private Integer order_volume;
+    private Integer order_count;
 
     /**
-     * 执行进度
+     * 执行进度（虚拟列）
      */
-    private Integer execution_progress;
+    private BigDecimal virtual_progress;
 
 
     /**
@@ -241,12 +241,6 @@ public class BPoContractVo extends BaseVo implements Serializable {
      * 表头 预付已付款总金额
      */
     private BigDecimal advance_pay_total;
-
-    /**
-     * 表头 结算总金额
-     */
-    private BigDecimal settle_amount_total;
-
 
     /**
      * 初始化审批流程
@@ -425,4 +419,66 @@ public class BPoContractVo extends BaseVo implements Serializable {
      * 项目数据
      */
     private BProjectVo project;
+
+    /**
+     * 待结算数量
+     */
+    private BigDecimal settle_can_qty_total;
+
+    /**
+     * 应结算-数量汇总
+     */
+    private BigDecimal settle_planned_qty_total;
+
+    /**
+     * 应结算-金额汇总
+     */
+    private BigDecimal settle_planned_amount_total;
+
+    /**
+     * 实际结算-数量汇总
+     */
+    private BigDecimal settled_qty_total;
+
+    /**
+     * 实际结算-金额汇总
+     */
+    private BigDecimal settled_amount_total;
+
+    /**
+     * 作废-应结算-数量汇总
+     */
+    private BigDecimal settle_cancel_planned_qty_total;
+
+    /**
+     * 作废-应结算-金额汇总
+     */
+    private BigDecimal settle_cancel_planned_amount_total;
+
+    /**
+     * 作废-实际结算-数量汇总
+     */
+    private BigDecimal settled_cancel_qty_total;
+
+    /**
+     * 作废-实际结算-金额汇总
+     */
+    private BigDecimal settled_cancel_amount_total;
+
+    /**
+     * 累计实付金额（虚拟列）
+     * 计算公式：预付款已付款总金额+应付款已付总金额
+     */
+    private BigDecimal virtual_total_paid_amount;
+
+    /**
+     * 未付金额（虚拟列）
+     * 计算公式：预付款未付总金额+应付款未付总金额
+     */
+    private BigDecimal virtual_unpaid_amount;
+
+    /**
+     * 预付款已付款总金额
+     */
+    private BigDecimal advance_paid_total;
 }

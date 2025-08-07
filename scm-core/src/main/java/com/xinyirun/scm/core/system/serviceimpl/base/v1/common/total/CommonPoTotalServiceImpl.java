@@ -1246,7 +1246,15 @@ public class CommonPoTotalServiceImpl extends ServiceImpl<BPoContractTotalMapper
             log.warn("SQL汇总更新采购合同总计数据失败，po_contract_id: {}", contractId);
         }
         
-        // 3. 更新采购合同订单笔数
+        // 3. 使用SQL批量汇总和更新合同级结算数据
+        int settlementUpdateResult = bPoContractTotalMapper.updateContractSettlementTotalData(contractId);
+        if (settlementUpdateResult > 0) {
+            log.debug("SQL汇总更新采购合同结算数据成功，po_contract_id: {}, 更新记录数: {}", contractId, settlementUpdateResult);
+        } else {
+            log.warn("SQL汇总更新采购合同结算数据失败，po_contract_id: {}", contractId);
+        }
+        
+        // 4. 更新采购合同订单笔数
         int orderCountUpdateResult = bPoContractTotalMapper.updateContractOrderCount(contractId);
         if (orderCountUpdateResult > 0) {
             log.debug("更新采购合同订单笔数成功，po_contract_id: {}, 更新记录数: {}", contractId, orderCountUpdateResult);

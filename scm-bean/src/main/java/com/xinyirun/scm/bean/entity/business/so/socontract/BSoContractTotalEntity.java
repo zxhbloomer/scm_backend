@@ -197,11 +197,67 @@ public class BSoContractTotalEntity implements Serializable {
     private BigDecimal inventory_out_plan_total;
 
     /**
-     * 表头 结算出库总数量
+     * 待结算数量汇总
      */
-    @TableField("settle_inventory_out_total")
-    @DataChangeLabelAnnotation(value="表头 结算出库总数量")
-    private BigDecimal settle_inventory_out_total;
+    @TableField("settle_can_qty_total")
+    @DataChangeLabelAnnotation(value="待结算数量汇总")
+    private BigDecimal settle_can_qty_total;
+
+    /**
+     * 应结算-数量汇总
+     */
+    @TableField("settle_planned_qty_total")
+    @DataChangeLabelAnnotation(value="应结算-数量汇总")
+    private BigDecimal settle_planned_qty_total;
+
+    /**
+     * 应结算-金额汇总
+     */
+    @TableField("settle_planned_amount_total")
+    @DataChangeLabelAnnotation(value="应结算-金额汇总")
+    private BigDecimal settle_planned_amount_total;
+
+    /**
+     * 实际结算-数量汇总
+     */
+    @TableField("settled_qty_total")
+    @DataChangeLabelAnnotation(value="实际结算-数量汇总")
+    private BigDecimal settled_qty_total;
+
+    /**
+     * 实际结算-金额汇总
+     */
+    @TableField("settled_amount_total")
+    @DataChangeLabelAnnotation(value="实际结算-金额汇总")
+    private BigDecimal settled_amount_total;
+
+    /**
+     * 作废-应结算-数量汇总
+     */
+    @TableField("settle_cancel_planned_qty_total")
+    @DataChangeLabelAnnotation(value="作废-应结算-数量汇总")
+    private BigDecimal settle_cancel_planned_qty_total;
+
+    /**
+     * 作废-应结算-金额汇总
+     */
+    @TableField("settle_cancel_planned_amount_total")
+    @DataChangeLabelAnnotation(value="作废-应结算-金额汇总")
+    private BigDecimal settle_cancel_planned_amount_total;
+
+    /**
+     * 作废-实际结算-数量汇总
+     */
+    @TableField("settled_cancel_qty_total")
+    @DataChangeLabelAnnotation(value="作废-实际结算-数量汇总")
+    private BigDecimal settled_cancel_qty_total;
+
+    /**
+     * 作废-实际结算-金额汇总
+     */
+    @TableField("settled_cancel_amount_total")
+    @DataChangeLabelAnnotation(value="作废-实际结算-金额汇总")
+    private BigDecimal settled_cancel_amount_total;
 
     /**
      * 订单笔数

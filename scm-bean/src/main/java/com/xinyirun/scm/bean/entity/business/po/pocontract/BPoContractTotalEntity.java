@@ -81,12 +81,6 @@ public class BPoContractTotalEntity implements Serializable {
     private BigDecimal advance_pay_total;
 
     /**
-     * 结算总金额
-     */
-    @TableField("settle_amount_total")
-    private BigDecimal settle_amount_total;
-
-    /**
      * 应付款未付总金额
      */
     @TableField("payable_unpay_total")
@@ -172,10 +166,58 @@ public class BPoContractTotalEntity implements Serializable {
     private BigDecimal inventory_in_plan_total;
 
     /**
-     * 入库结算汇总
+     * 待结算数量
      */
-    @TableField("settle_inventory_in_total")
-    private BigDecimal settle_inventory_in_total;
+    @TableField("settle_can_qty_total")
+    private BigDecimal settle_can_qty_total;
+
+    /**
+     * 应结算-数量汇总
+     */
+    @TableField("settle_planned_qty_total")
+    private BigDecimal settle_planned_qty_total;
+
+    /**
+     * 应结算-金额汇总
+     */
+    @TableField("settle_planned_amount_total")
+    private BigDecimal settle_planned_amount_total;
+
+    /**
+     * 实际结算-数量汇总
+     */
+    @TableField("settled_qty_total")
+    private BigDecimal settled_qty_total;
+
+    /**
+     * 实际结算-金额汇总
+     */
+    @TableField("settled_amount_total")
+    private BigDecimal settled_amount_total;
+
+    /**
+     * 作废-应结算-数量汇总
+     */
+    @TableField("settle_cancel_planned_qty_total")
+    private BigDecimal settle_cancel_planned_qty_total;
+
+    /**
+     * 作废-应结算-金额汇总
+     */
+    @TableField("settle_cancel_planned_amount_total")
+    private BigDecimal settle_cancel_planned_amount_total;
+
+    /**
+     * 作废-实际结算-数量汇总
+     */
+    @TableField("settled_cancel_qty_total")
+    private BigDecimal settled_cancel_qty_total;
+
+    /**
+     * 作废-实际结算-金额汇总
+     */
+    @TableField("settled_cancel_amount_total")
+    private BigDecimal settled_cancel_amount_total;
 
     /**
      * 订单笔数

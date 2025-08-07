@@ -203,7 +203,7 @@ public class BPoContractImportVo extends BaseVo implements Serializable {
     /**
      * 订单量
      */
-    private Integer order_volume;
+    private Integer order_count;
 
     /**
      * 执行进度

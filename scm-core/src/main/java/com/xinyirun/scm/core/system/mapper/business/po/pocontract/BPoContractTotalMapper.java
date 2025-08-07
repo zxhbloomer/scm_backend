@@ -93,6 +93,60 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
     int updateContractAdvanceTotalData(@Param("contractId") Integer contractId);
 
     /**
+     * 更新采购合同结算汇总数据
+     * 根据合同ID汇总其下所有采购订单的结算数据到合同级别
+     * @param contractId 合同ID
+     * @return 更新记录数
+     */
+    @Update(""" 
+            <script>
+            -- 更新采购合同结算汇总数据，根据下属所有采购订单汇总结算信息
+            UPDATE b_po_contract_total t1
+            INNER JOIN (
+                -- 子查询：汇总指定合同下所有采购订单的结算数据
+                SELECT
+                    t3.po_contract_id,
+                    -- settle_can_qty_total: 待结算数量汇总
+                    COALESCE(SUM(t2.settle_can_qty_total), 0) AS sum_settle_can_qty_total,
+                    -- settle_planned_qty_total: 应结算-数量汇总
+                    COALESCE(SUM(t2.settle_planned_qty_total), 0) AS sum_settle_planned_qty_total,
+                    -- settle_planned_amount_total: 应结算-金额汇总
+                    COALESCE(SUM(t2.settle_planned_amount_total), 0) AS sum_settle_planned_amount_total,
+                    -- settled_qty_total: 实际结算-数量汇总
+                    COALESCE(SUM(t2.settled_qty_total), 0) AS sum_settled_qty_total,
+                    -- settled_amount_total: 实际结算-金额汇总
+                    COALESCE(SUM(t2.settled_amount_total), 0) AS sum_settled_amount_total,
+                    -- settle_cancel_planned_qty_total: 作废-应结算-数量汇总
+                    COALESCE(SUM(t2.settle_cancel_planned_qty_total), 0) AS sum_settle_cancel_planned_qty_total,
+                    -- settle_cancel_planned_amount_total: 作废-应结算-金额汇总
+                    COALESCE(SUM(t2.settle_cancel_planned_amount_total), 0) AS sum_settle_cancel_planned_amount_total,
+                    -- settled_cancel_qty_total: 作废-实际结算-数量汇总
+                    COALESCE(SUM(t2.settled_cancel_qty_total), 0) AS sum_settled_cancel_qty_total,
+                    -- settled_cancel_amount_total: 作废-实际结算-金额汇总
+                    COALESCE(SUM(t2.settled_cancel_amount_total), 0) AS sum_settled_cancel_amount_total
+                FROM b_po_order_total t2
+                INNER JOIN b_po_order t3 ON t2.po_order_id = t3.id
+                -- contractId: 合同ID参数
+                WHERE t3.po_contract_id = #{contractId}
+                GROUP BY t3.po_contract_id
+            ) AS summary ON t1.po_contract_id = summary.po_contract_id
+            SET
+                t1.settle_can_qty_total = summary.sum_settle_can_qty_total,
+                t1.settle_planned_qty_total = summary.sum_settle_planned_qty_total,
+                t1.settle_planned_amount_total = summary.sum_settle_planned_amount_total,
+                t1.settled_qty_total = summary.sum_settled_qty_total,
+                t1.settled_amount_total = summary.sum_settled_amount_total,
+                t1.settle_cancel_planned_qty_total = summary.sum_settle_cancel_planned_qty_total,
+                t1.settle_cancel_planned_amount_total = summary.sum_settle_cancel_planned_amount_total,
+                t1.settled_cancel_qty_total = summary.sum_settled_cancel_qty_total,
+                t1.settled_cancel_amount_total = summary.sum_settled_cancel_amount_total
+            -- contractId: 合同ID参数
+            WHERE t1.po_contract_id = #{contractId}
+            </script>
+            """)
+    int updateContractSettlementTotalData(@Param("contractId") Integer contractId);
+
+    /**
      * 更新采购合同订单笔数
      * 根据合同ID统计其下所有采购订单的数量并更新到合同汇总表
      * @param contractId 合同ID
@@ -107,7 +161,7 @@ public interface BPoContractTotalMapper extends BaseMapper<BPoContractTotalEntit
                 FROM b_po_order t2
                 -- contractId: 合同ID参数
                 WHERE t2.po_contract_id = #{contractId}
-                AND t2.is_deleted = 0
+                AND t2.is_del = 0
             )
             WHERE t1.po_contract_id = #{contractId}
             """)

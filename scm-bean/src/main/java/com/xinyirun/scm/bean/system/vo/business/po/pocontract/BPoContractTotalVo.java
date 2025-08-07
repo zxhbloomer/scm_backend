@@ -183,4 +183,16 @@ public class BPoContractTotalVo implements Serializable {
      */
     private BigDecimal virtual_progress;
 
+    /**
+     * 累计实付金额（虚拟列）
+     * 计算公式：预付款已付款总金额+应付款已付总金额
+     */
+    private BigDecimal virtual_total_paid_amount;
+
+    /**
+     * 未付金额（虚拟列）
+     * 计算公式：预付款未付总金额+应付款未付总金额
+     */
+    private BigDecimal virtual_unpaid_amount;
+
 }

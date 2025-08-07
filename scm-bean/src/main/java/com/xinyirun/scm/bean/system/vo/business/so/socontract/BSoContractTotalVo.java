@@ -183,4 +183,16 @@ public class BSoContractTotalVo implements Serializable {
      */
     private BigDecimal virtual_progress;
 
+    /**
+     * 累计实收金额（虚拟列）
+     * 计算公式：预收款已收总金额+应收款已收总金额
+     */
+    private BigDecimal virtual_total_received_amount;
+
+    /**
+     * 未收金额（虚拟列）
+     * 计算公式：预收款未收总金额+应收款未收总金额
+     */
+    private BigDecimal virtual_unreceived_amount;
+
 }

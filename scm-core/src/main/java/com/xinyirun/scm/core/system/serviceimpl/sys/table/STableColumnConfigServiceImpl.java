@@ -11,12 +11,14 @@ import com.xinyirun.scm.core.system.mapper.sys.table.STableColumnConfigMapper;
 import com.xinyirun.scm.core.system.mapper.sys.table.STableColumnConfigOriginalMapper;
 import com.xinyirun.scm.core.system.mapper.sys.table.STableConfigMapper;
 import com.xinyirun.scm.core.system.service.sys.table.ISTableColumnConfigService;
-import com.xinyirun.scm.core.system.serviceimpl.common.autocode.BAllocateAutoCodeServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.common.autocode.STableAutoCodeServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -39,7 +41,7 @@ public class STableColumnConfigServiceImpl extends ServiceImpl<STableColumnConfi
     private STableConfigMapper sTableConfigMapper;
 
     @Autowired
-    private BAllocateAutoCodeServiceImpl autoCode;
+    private STableAutoCodeServiceImpl autoCode;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -103,11 +105,58 @@ public class STableColumnConfigServiceImpl extends ServiceImpl<STableColumnConfi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void saveList(List<STableColumnConfigVo> list) {
+        // 重新计算sort和group_sort，确保数据一致性
+        reorderSortAndGroupSort(list);
+        
         for (STableColumnConfigVo vo: list) {
             STableColumnConfigEntity entity = mapper.selectById(vo.getId());
+            // 基础字段更新
             entity.setIs_enable(vo.getIs_enable());
             entity.setSort(vo.getSort());
+            
+            // 分组相关字段更新
+            entity.setGroup_name(vo.getGroup_name());
+            entity.setGroup_sort(vo.getGroup_sort());
+            entity.setIs_group_header(vo.getIs_group_header());
+            
             mapper.updateById(entity);
+        }
+    }
+    
+    /**
+     * 重新计算sort和group_sort值
+     * 业务规则：
+     * 1. 按前端传来的list顺序重新分配全局sort值：0, 1, 2, 3...
+     * 2. 组按一个元素处理，组内group_sort从1开始
+     * 3. 组头的group_sort保持null
+     */
+    private void reorderSortAndGroupSort(List<STableColumnConfigVo> list) {
+        // 按前端传来的顺序重新分配sort值和group_sort值
+        Map<String, Integer> groupCounters = new HashMap<>();
+        
+        for (int i = 0; i < list.size(); i++) {
+            STableColumnConfigVo vo = list.get(i);
+            
+            // 重新分配全局sort值：按list顺序 0, 1, 2, 3...
+            vo.setSort(i);
+            
+            // 处理分组元素的group_sort
+            String groupName = vo.getGroup_name();
+            if (groupName != null && !groupName.trim().isEmpty()) {
+                if (vo.getIs_group_header() != null && vo.getIs_group_header() == 1) {
+                    // 组头：group_sort保持null，重置该组的计数器
+                    vo.setGroup_sort(null);
+                    groupCounters.put(groupName, 0);
+                } else {
+                    // 组内元素：从1开始编号
+                    int groupCounter = groupCounters.getOrDefault(groupName, 0) + 1;
+                    vo.setGroup_sort(groupCounter);
+                    groupCounters.put(groupName, groupCounter);
+                }
+            } else {
+                // 普通元素：不设置group_sort
+                vo.setGroup_sort(null);
+            }
         }
     }
 }

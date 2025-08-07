@@ -121,4 +121,19 @@ public class STableColumnConfigVo implements Serializable {
      */
     private Integer dbversion;
 
+    /**
+     * 分组名称
+     */
+    private String group_name;
+
+    /**
+     * 分组内排序
+     */
+    private Integer group_sort;
+
+    /**
+     * 是否为组头
+     */
+    private Integer is_group_header;
+
 }

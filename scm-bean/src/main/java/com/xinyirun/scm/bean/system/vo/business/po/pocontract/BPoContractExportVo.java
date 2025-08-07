@@ -47,7 +47,7 @@ public class BPoContractExportVo implements Serializable {
     private String type_name;
 
     @ExcelProperty(value = "订单量", index = 5)
-    private String order_volume;
+    private String order_count;
 
     @ExcelProperty(value = "状态", index = 6)
     private String status_name;
@@ -58,8 +58,6 @@ public class BPoContractExportVo implements Serializable {
     @ExcelProperty(value = "主体企业", index = 8)
     private String purchaser_name;
 
-    @ExcelProperty(value = "执行进度", index = 9)
-    private String execution_progress;
 
     @ExcelProperty(value = "签约日期", index = 10)
     @ColumnWidth(20)

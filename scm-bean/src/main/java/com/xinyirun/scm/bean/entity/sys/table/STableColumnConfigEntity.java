@@ -76,4 +76,22 @@ public class STableColumnConfigEntity implements Serializable {
      */
     @TableField("is_delete")
     private Boolean is_delete;
+
+    /**
+     * 分组名称
+     */
+    @TableField("group_name")
+    private String group_name;
+
+    /**
+     * 分组内排序
+     */
+    @TableField("group_sort")
+    private Integer group_sort;
+
+    /**
+     * 是否为组头
+     */
+    @TableField("is_group_header")
+    private Integer is_group_header;
 }

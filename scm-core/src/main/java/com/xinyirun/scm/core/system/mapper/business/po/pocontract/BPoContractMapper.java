@@ -48,7 +48,19 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	tab13.name as c_name,
             	tab14.name as u_name,
             	-- 执行进度：从财务汇总表获取虚拟列计算结果
-            	tab15.progress as progress
+            	tab15.virtual_progress as virtual_progress,
+            	-- 订单笔数：从财务汇总表获取订单数量
+            	tab15.order_count,
+            	-- 累计实付金额（虚拟列）：advance_paid_total + payable_paid_total
+            	tab15.virtual_total_paid_amount,
+            	-- 未付金额（虚拟列）：advance_unpay_total + payable_unpay_total  
+            	tab15.virtual_unpaid_amount,
+            	-- 预付款已付款总金额
+            	tab15.advance_paid_total as advance_paid_total,
+            	-- 实际结算-数量汇总：已结算数量（吨）
+            	tab15.settled_qty_total,
+            	-- 实际结算-金额汇总：结算金额
+            	tab15.settled_amount_total
             FROM
             	b_po_contract tab1
                 LEFT JOIN (select po_contract_id,JSON_ARRAYAGG(
@@ -146,7 +158,9 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	tab9.label as settle_type_name,
             	tab10.label as bill_type_name,
             	tab11.label as payment_type_name,
-            	iF(tab1.auto_create_order,'是','否') auto_create_name
+            	iF(tab1.auto_create_order,'是','否') auto_create_name,
+            	-- 订单笔数：从财务汇总表获取订单数量
+            	tab15.order_count
             FROM
             	b_po_contract tab1
                 LEFT JOIN (select po_contract_id,JSON_ARRAYAGG(
@@ -171,6 +185,8 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	LEFT JOIN s_dict_data  tab9 ON tab9.code = 'b_po_contract_settle_type' AND tab9.dict_value = tab1.settle_type
             	LEFT JOIN s_dict_data  tab10 ON tab10.code = 'b_po_contract_bill_type' AND tab10.dict_value = tab1.bill_type
             	LEFT JOIN s_dict_data  tab11 ON tab11.code = 'b_po_contract_payment_type' AND tab11.dict_value = tab1.payment_type
+            	-- 关联财务汇总表获取订单笔数
+            	LEFT JOIN b_po_contract_total tab15 ON tab15.po_contract_id = tab1.id
             	-- p1: 采购合同主表ID参数
             	WHERE TRUE AND tab1.id = #{p1}
             	 -- is_del = false: 删除0-未删除，1-已删除
@@ -192,7 +208,18 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	SUM( IFNULL(tab2.order_total,0) )  as  order_total,
             	SUM( IFNULL(tab2.advance_unpay_total,0) )  as  advance_unpay_total,
             	SUM( IFNULL(tab2.advance_pay_total,0) )  as  advance_pay_total,
-            	SUM( IFNULL(tab2.settle_amount_total,0) )  as  settle_amount_total
+            	-- 订单笔数汇总：统计所有合同的订单总笔数
+            	SUM( IFNULL(tab2.order_count,0) )  as  order_count,
+            	-- 累计实付金额汇总：统计所有合同的累计实付金额
+            	SUM( IFNULL(tab2.advance_paid_total,0) + IFNULL(tab2.payable_paid_total,0) )  as  virtual_total_paid_amount,
+            	-- 未付金额汇总：统计所有合同的未付金额
+            	SUM( IFNULL(tab2.advance_unpay_total,0) + IFNULL(tab2.payable_unpay_total,0) )  as  virtual_unpaid_amount,
+            	-- 预付款已付款总金额汇总：统计所有合同的预付款已付总金额
+            	SUM( IFNULL(tab2.advance_paid_total,0) )  as  advance_paid_total,
+            	-- 实际结算-数量汇总：统计所有合同的已结算数量
+            	SUM( IFNULL(tab2.settled_qty_total,0) )  as  settled_qty_total,
+            	-- 实际结算-金额汇总：统计所有合同的结算金额
+            	SUM( IFNULL(tab2.settled_amount_total,0) )  as  settled_amount_total
             FROM
             	b_po_contract tab1
             	LEFT JOIN b_po_contract_total tab2  ON tab1.id = tab2.po_contract_id
@@ -282,7 +309,19 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
             	tab1.bpm_instance_code as process_code,
             	iF(tab12.id,false,true) existence_order,
             	tab13.name as c_name,
-            	tab14.name as u_name
+            	tab14.name as u_name,
+            	-- 订单笔数：从财务汇总表获取订单数量
+            	tab15.order_count,
+            	-- 累计实付金额（虚拟列）：advance_paid_total + payable_paid_total
+            	tab15.virtual_total_paid_amount,
+            	-- 未付金额（虚拟列）：advance_unpay_total + payable_unpay_total  
+            	tab15.virtual_unpaid_amount,
+            	-- 预付款已付款总金额
+            	tab15.advance_paid_total as advance_paid_total,
+            	-- 实际结算-数量汇总：已结算数量（吨）
+            	tab15.settled_qty_total,
+            	-- 实际结算-金额汇总：结算金额
+            	tab15.settled_amount_total
             FROM
             	b_po_contract tab1
                 LEFT JOIN (select po_contract_id,JSON_ARRAYAGG(
