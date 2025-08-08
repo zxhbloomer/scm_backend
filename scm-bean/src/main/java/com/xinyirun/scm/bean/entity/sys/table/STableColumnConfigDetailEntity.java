@@ -8,38 +8,46 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
  * <p>
- * 
+ * 表格列配置详情表
  * </p>
  *
  * @author xinyirun
- * @since 2022-08-29
+ * @since 2025-01-08
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("s_table_column_config_original")
-public class STableColumnConfigOriginalEntity implements Serializable {
+@TableName("s_table_column_config_detail")
+public class STableColumnConfigDetailEntity implements Serializable {
 
-    private static final long serialVersionUID = -4052425568883412326L;
+    @Serial
+    private static final long serialVersionUID = -4387624534762946584L;
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 
     /**
-     * 表code
+     * 关联config表ID
+     */
+    @TableField("config_id")
+    private Integer config_id;
+
+    /**
+     * 表格code
      */
     @TableField("table_code")
     private String table_code;
 
     /**
-     * 页面code
+     * 表格id
      */
-    @TableField("page_code")
-    private String page_code;
+    @TableField("table_id")
+    private Integer table_id;
 
     /**
      * 字段名
@@ -54,18 +62,6 @@ public class STableColumnConfigOriginalEntity implements Serializable {
     private String label;
 
     /**
-     * 排序
-     */
-    @TableField("sort")
-    private Integer sort;
-
-    /**
-     * 不可排序
-     */
-    @TableField("fix")
-    private Boolean fix;
-
-    /**
      * 是否显示
      */
     @TableField("is_enable")
@@ -76,11 +72,4 @@ public class STableColumnConfigOriginalEntity implements Serializable {
      */
     @TableField("is_delete")
     private Boolean is_delete;
-
-    /**
-     * 是否为分组：0-普通列，1-分组
-     */
-    @TableField("is_group")
-    private Integer is_group;
-
 }

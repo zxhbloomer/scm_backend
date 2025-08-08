@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper=false)
 public class STableConfigVo implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -983751599560780293L;
 
     private Integer id;

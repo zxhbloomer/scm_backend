@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=false)
 public class STableColumnConfigOriginalVo implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -7018973519503040720L;
 
     private Integer id;
@@ -140,18 +142,13 @@ public class STableColumnConfigOriginalVo implements Serializable {
     private List<STableColumnConfigOriginalEntity> itemList;
 
     /**
-     * 分组名称
+     * 是否为分组：0-普通列，1-分组
      */
-    private String group_name;
+    private Integer is_group;
 
     /**
-     * 分组内排序
+     * 分组子项列表 - 当is_group=1时，包含该分组内的所有列配置
      */
-    private Integer group_sort;
-
-    /**
-     * 是否为组头
-     */
-    private Integer is_group_header;
+    private List<STableColumnConfigOriginalVo> groupChildren;
 
 }
