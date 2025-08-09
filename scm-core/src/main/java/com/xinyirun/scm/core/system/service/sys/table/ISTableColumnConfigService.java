@@ -24,10 +24,18 @@ public interface ISTableColumnConfigService extends IService<STableColumnConfigE
     List<STableColumnConfigVo> list(STableColumnConfigVo vo);
 
     /**
-     * 重置表格配置信息
+     * 重置表格配置信息，返回原始配置数据用于前端预览
      * @param vo
+     * @return 原始配置数据列表
      */
-    void reset(STableColumnConfigVo vo);
+    List<STableColumnConfigVo> reset(STableColumnConfigVo vo);
+    
+    /**
+     * 获取原始配置数据用于重置功能
+     * @param vo
+     * @return 原始配置数据列表，包含分组和子项
+     */
+    List<STableColumnConfigVo> getOriginalDataForReset(STableColumnConfigVo vo);
 
     /**
      * 重置表格配置信息

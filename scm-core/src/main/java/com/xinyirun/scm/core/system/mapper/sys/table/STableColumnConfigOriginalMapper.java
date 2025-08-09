@@ -34,6 +34,7 @@ public interface STableColumnConfigOriginalMapper extends BaseMapper<STableColum
             + "			t1.is_delete,                                                                                   "
             + "			#{p1.table_code,jdbcType=VARCHAR} table_code,                                                   "
             + "			#{p1.table_id,jdbcType=INTEGER} table_id,                                                       "
+            + "			t2.NAME table_name,                                                                             "
             + "			t2.page_code,                                                                                   "
             + "			t2.type,                                                                                        "
             + "			t2.start_column_index,                                                                          "

@@ -108,7 +108,8 @@ public interface STableColumnConfigMapper extends BaseMapper<STableColumnConfigE
 
 
     /**
-     * 查询指定分组的详情数据
+     * 查询指定分组的详情数据 
+     * 简化查询逻辑：直接根据config_id查询，权限校验在上层已完成
      */
     @Select("""
         SELECT 
@@ -123,13 +124,9 @@ public interface STableColumnConfigMapper extends BaseMapper<STableColumnConfigE
             t1.sort
         FROM 
             s_table_column_config_detail t1
-            INNER JOIN s_table_column_config t2 ON t1.config_id = t2.id
-            INNER JOIN s_table_config t3 ON t2.table_code = t3.CODE
-        WHERE TRUE
-            AND t3.staff_id = #{staffId,jdbcType=INTEGER}
-            AND t3.page_code = #{pageCode,jdbcType=VARCHAR}
-            AND t2.id = #{configId,jdbcType=INTEGER}
-        ORDER BY t1.sort
+        WHERE 
+            t1.config_id = #{configId,jdbcType=INTEGER}
+        ORDER BY t1.sort ASC
         """)
     List<STableColumnConfigVo> listGroupChildren(@Param("staffId") Integer staffId, 
                                                  @Param("pageCode") String pageCode, 

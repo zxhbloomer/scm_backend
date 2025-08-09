@@ -35,12 +35,12 @@ public class STableColumnConfigController {
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
-    @SysLogAnnotion("根据查询条件，重置列表配置信息")
+    @SysLogAnnotion("获取原始配置数据用于重置预览")
     @PostMapping("/reset")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> reset(@RequestBody(required = false) STableColumnConfigVo vo) {
-        service.reset(vo);
-        return ResponseEntity.ok().body(ResultUtil.OK("ok"));
+    public ResponseEntity<JsonResultAo<List<STableColumnConfigVo>>> reset(@RequestBody(required = false) STableColumnConfigVo vo) {
+        List<STableColumnConfigVo> originalData = service.getOriginalDataForReset(vo);
+        return ResponseEntity.ok().body(ResultUtil.OK(originalData));
     }
 
     @SysLogAnnotion("check用户数据是否与original数据一致")
