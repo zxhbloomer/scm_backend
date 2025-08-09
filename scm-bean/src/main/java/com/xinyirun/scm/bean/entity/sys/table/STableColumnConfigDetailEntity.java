@@ -72,4 +72,10 @@ public class STableColumnConfigDetailEntity implements Serializable {
      */
     @TableField("is_delete")
     private Boolean is_delete;
+    
+    /**
+     * 排序
+     */
+    @TableField("sort")
+    private Integer sort;
 }

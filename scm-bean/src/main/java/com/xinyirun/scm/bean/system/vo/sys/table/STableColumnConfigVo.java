@@ -133,5 +133,10 @@ public class STableColumnConfigVo implements Serializable {
      * 分组子项列表 - 当is_group=1时，包含该分组内的所有列配置
      */
     private List<STableColumnConfigVo> groupChildren;
+    
+    /**
+     * 显示索引 - 用于分组子项排序，前端传递的displayIndex值
+     */
+    private Integer displayIndex;
 
 }
