@@ -171,6 +171,130 @@ public interface BProjectMapper extends BaseMapper<BProjectEntity> {
     @Select("select * from b_project where is_del = false and (id != #{id} or #{id} is null) and name = #{name}")    List<BProjectEntity> validateDuplicateProjectName(@Param("id") Integer id, @Param("name") String name);
     
     /**
+     * 导出项目列表数据
+     * 查询条件与selectPage方法完全一致，确保导出数据与列表显示数据一致
+     * 用于Excel导出功能，返回完整的项目数据包含商品明细
+     * 
+     * @param param 查询条件参数
+     * @return 符合条件的项目列表，包含完整的关联数据
+     */
+    @Select("""
+            <script>
+            """ + common_select + """
+                  where t1.is_del = false
+                  and (t1.name like concat('%', #{p1.name}, '%') or #{p1.name} is null or #{p1.name} = '')
+                  and (t1.code like concat('%', #{p1.code}, '%') or #{p1.code} is null or #{p1.code} = '')
+                  and (t1.type like concat('%', #{p1.type}, '%') or #{p1.type} is null or #{p1.type} = '')
+                  and (t1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
+                  and (t1.supplier_id = #{p1.supplier_id} or #{p1.supplier_id} is null)
+                  and (t1.purchaser_id = #{p1.purchaser_id} or #{p1.purchaser_id} is null)
+               <if test='p1.status_list != null and p1.status_list.length!=0' >
+                and t1.status in
+                    <foreach collection='p1.status_list' item='item' index='index' open='(' separator=',' close=')'>
+                     #{item}
+                    </foreach>
+               </if>
+                  and (t1.delivery_type = #{p1.delivery_type}
+                            or #{p1.delivery_type} is null or #{p1.delivery_type} = '')
+                  and (t1.u_time &gt;= #{p1.start_time,jdbcType=DATE} or #{p1.start_time,jdbcType=DATE} is null)
+                  and (t1.u_time &lt;= #{p1.over_time,jdbcType=DATE} or #{p1.over_time,jdbcType=DATE} is null)
+                  order by t1.u_time desc
+            </script>
+            """)
+    @Results({
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = ProjectDetailListTypeHandler.class),
+    })
+    List<BProjectVo> selectExportList(@Param("p1") BProjectVo param);
+
+    /**
+     * 根据ID列表导出项目数据
+     * 根据传入的项目ID列表查询指定的项目数据，用于选中记录导出
+     * 
+     * @param ids 项目ID列表，不能为空
+     * @return 指定ID的项目列表，包含完整的关联数据
+     */
+    @Select("""
+            <script>
+            """ + common_select + """
+                  where t1.is_del = false
+                  and t1.id in
+                    <foreach collection='ids' item='item' index='index' open='(' separator=',' close=')'>
+                     #{item}
+                    </foreach>
+                  order by t1.u_time desc
+            </script>
+            """)
+    @Results({
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = ProjectDetailListTypeHandler.class),
+    })
+    List<BProjectVo> selectExportListByIds(@Param("ids") List<Integer> ids);
+
+    /**
+     * 根据项目VO列表导出项目数据（按选中条件导出）
+     * 根据传入的项目VO列表查询指定的项目数据，用于选中记录导出
+     * 与现有系统导出模式保持一致，使用VO列表传递参数
+     * 
+     * @param searchConditionList 项目VO列表，每个VO必须包含id字段
+     * @return 指定VO对象中ID的项目列表，包含完整的关联数据
+     */
+    @Select("""
+            <script>
+            """ + common_select + """
+                  where t1.is_del = false
+                  and t1.id in
+                    <foreach collection='searchConditionList' item='item' index='index' open='(' separator=',' close=')'>
+                     #{item.id}
+                    </foreach>
+                  order by t1.u_time desc
+            </script>
+            """)
+    @Results({
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = ProjectDetailListTypeHandler.class),
+    })
+    List<BProjectVo> selectIdsInForExport(@Param("searchConditionList") List<BProjectVo> searchConditionList);
+
+    /**
+     * 统计导出数据条数
+     * 查询条件与selectExportList方法完全一致，用于验证导出数据量
+     * 
+     * @param param 查询条件参数
+     * @return 符合条件的项目数量
+     */
+    @Select("""
+            <script>
+                SELECT COUNT(DISTINCT t1.id)
+                FROM b_project t1
+                LEFT JOIN (select project_id from b_project_goods GROUP BY project_id) tab2 ON t1.id = tab2.project_id
+                left join s_dict_data t8 ON t1.type = t8.dict_value AND t8.code = 'b_project_type'
+                left join s_dict_data t9 ON t1.status = t9.dict_value AND t9.code = 'b_project_status'
+                left join s_dict_data t10 ON t1.payment_method = t10.dict_value AND t10.code = 'b_project_payment_method'
+                left join s_dict_data t11 ON t1.delivery_type = t11.dict_value AND t11.code = 'b_project_delivery_type'
+                left join m_enterprise t14 ON t14.id = t1.finance_id
+                LEFT JOIN m_staff tab13 ON tab13.id = t1.c_id
+                LEFT JOIN m_staff tab14 ON tab14.id = t1.u_id
+                LEFT JOIN b_project_attach tab3 on t1.id = tab3.project_id
+                where t1.is_del = false
+                  and (t1.name like concat('%', #{p1.name}, '%') or #{p1.name} is null or #{p1.name} = '')
+                  and (t1.code like concat('%', #{p1.code}, '%') or #{p1.code} is null or #{p1.code} = '')
+                  and (t1.type like concat('%', #{p1.type}, '%') or #{p1.type} is null or #{p1.type} = '')
+                  and (t1.status = #{p1.status} or #{p1.status} is null or #{p1.status} = '')
+                  and (t1.supplier_id = #{p1.supplier_id} or #{p1.supplier_id} is null)
+                  and (t1.purchaser_id = #{p1.purchaser_id} or #{p1.purchaser_id} is null)
+               <if test='p1.status_list != null and p1.status_list.length!=0' >
+                and t1.status in
+                    <foreach collection='p1.status_list' item='item' index='index' open='(' separator=',' close=')'>
+                     #{item}
+                    </foreach>
+               </if>
+                  and (t1.delivery_type = #{p1.delivery_type}
+                            or #{p1.delivery_type} is null or #{p1.delivery_type} = '')
+                  and (t1.u_time &gt;= #{p1.start_time,jdbcType=DATE} or #{p1.start_time,jdbcType=DATE} is null)
+                  and (t1.u_time &lt;= #{p1.over_time,jdbcType=DATE} or #{p1.over_time,jdbcType=DATE} is null)
+            </script>
+            """)
+    Integer selectExportCount(@Param("p1") BProjectVo param);
+
+    /**
      * 按项目管理合计查询
      * 计算符合条件的项目总金额
      * 查询条件与selectPage方法保持完全一致，确保统计数据与列表数据的一致性

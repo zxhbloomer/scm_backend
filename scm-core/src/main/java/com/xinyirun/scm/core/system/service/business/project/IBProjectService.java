@@ -8,9 +8,12 @@ import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
+import com.xinyirun.scm.bean.system.vo.business.project.BProjectExportVo;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
 import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -204,6 +207,33 @@ public interface IBProjectService extends IService<BProjectEntity>,
     BProjectVo getPrintInfo(BProjectVo searchCondition);
 
     /**
+     * 查询导出项目管理列表数据
+     * 专门用于Excel导出功能的数据查询方法，返回符合条件的完整项目数据
+     * 查询条件与selectPage方法完全一致，确保导出数据与列表显示数据一致
+     * 
+     * @param searchCondition 查询条件对象，支持与列表查询相同的筛选条件：
+     *                       - name: 项目名称模糊查询
+     *                       - code: 项目编号模糊查询  
+     *                       - type: 项目类型筛选
+     *                       - status: 项目状态筛选
+     *                       - status_list: 项目状态数组筛选
+     *                       - supplier_id: 供应商ID筛选
+     *                       - purchaser_id: 采购方ID筛选
+     *                       - delivery_type: 运输方式筛选
+     *                       - start_time: 开始时间筛选
+     *                       - over_time: 结束时间筛选
+     * @return List<BProjectVo> 项目列表，包含完整的项目信息和商品明细
+     *         - 基本信息：项目编号、名称、类型、状态等
+     *         - 商品明细：detailListData包含商品编码、名称、规格、产地、数量、单价、税率等
+     *         - 关联信息：供应商、采购方、字典翻译等
+     *         - 操作信息：创建人、创建时间、更新人、更新时间
+     * @apiNote 该方法专门用于Excel导出，与列表查询使用相同的SQL和查询条件
+     *          返回的数据将在ServiceImpl中转换为扁平化的导出格式
+     *          适用于大批量数据导出，无分页限制
+     */
+    List<BProjectVo> selectExportList(BProjectVo searchCondition);
+
+    /**
      * 项目管理完成操作
      * 完成指定的项目，需要校验关联的销售合同状态
      * 
@@ -218,4 +248,58 @@ public interface IBProjectService extends IService<BProjectEntity>,
      *          4. 记录完成时间和完成人信息
      */
     UpdateResultAo<String> complete(BProjectVo searchCondition);
+
+    /**
+     * 获取全部项目管理导出数据
+     * 根据查询条件获取符合条件的所有项目数据，进行数据转换为扁平化导出格式
+     * 包含导出状态管理、导出数量限制检查、数据转换等业务逻辑
+     * 
+     * @param param 查询条件参数，支持与列表查询相同的筛选条件：
+     *              - name: 项目名称模糊查询
+     *              - code: 项目编号模糊查询  
+     *              - type: 项目类型筛选
+     *              - status: 项目状态筛选
+     *              - status_list: 项目状态数组筛选
+     *              - supplier_id: 供应商ID筛选
+     *              - purchaser_id: 采购方ID筛选
+     *              - delivery_type: 运输方式筛选
+     *              - start_time: 开始时间筛选
+     *              - over_time: 结束时间筛选
+     * @return List<BProjectExportVo> 导出数据列表，已进行扁平化处理
+     *         - 将项目的嵌套商品明细展开为独立记录
+     *         - 每行记录包含项目基础信息 + 单个商品明细信息
+     *         - 如果项目无商品明细，则返回项目基础信息记录
+     * @throws BusinessException 当导出状态冲突、数据量超限、查询数据失败或数据转换异常时抛出
+     * @apiNote 业务特点：
+     *          1. 检查导出状态，防止并发导出冲突
+     *          2. 系统配置导出数量限制检查
+     *          3. 将嵌套的商品明细JSON展开为扁平结构
+     *          4. 支持数字格式化、百分比格式化等数据处理
+     *          5. 导出完成后自动恢复导出状态
+     */
+    List<BProjectExportVo> exportAll(BProjectVo param) throws IOException;
+
+    /**
+     * 获取选中的项目管理导出数据
+     * 根据传入的项目VO列表获取指定的项目数据，进行数据转换为扁平化导出格式
+     * 包含导出状态管理、导出数量限制检查、数据转换等业务逻辑
+     * 
+     * @param searchConditionList 要导出的项目VO列表，不能为空
+     *                           - 每个BProjectVo对象必须包含id字段
+     *                           - 支持单条记录导出（list中只有一个VO）
+     *                           - 支持多条记录批量导出（list中包含多个VO）
+     * @return List<BProjectExportVo> 导出数据列表，已进行扁平化处理
+     *         - 将项目的嵌套商品明细展开为独立记录
+     *         - 每行记录包含项目基础信息 + 单个商品明细信息
+     *         - 如果项目无商品明细，则返回项目基础信息记录
+     * @throws BusinessException 当导出状态冲突、数据量超限、VO列表为空、查询数据失败或数据转换异常时抛出
+     * @apiNote 业务特点：
+     *          1. 检查导出状态，防止并发导出冲突
+     *          2. 系统配置导出数量限制检查
+     *          3. 将嵌套的商品明细JSON展开为扁平结构
+     *          4. 支持数字格式化、百分比格式化等数据处理
+     *          5. 导出完成后自动恢复导出状态
+     *          6. 前端使用场景：选中单条记录导出、多条记录批量导出、全选当前页导出
+     */
+    List<BProjectExportVo> exportByIds(List<BProjectVo> searchConditionList) throws IOException;
 }

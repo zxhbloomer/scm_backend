@@ -7,18 +7,25 @@ import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
+import com.xinyirun.scm.bean.system.vo.business.project.BProjectExportVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.core.system.service.business.project.IBProjectService;
+import com.xinyirun.scm.excel.export.EasyExcelUtil;
+import com.xinyirun.scm.excel.merge.ProjectMergeStrategy;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -330,6 +337,109 @@ public class BProjectController extends SystemBaseController {
     public ResponseEntity<JsonResultAo<BProjectVo>> print(@RequestBody(required = false) BProjectVo searchCondition) {
         BProjectVo printInfo = ibProjectService.getPrintInfo(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(printInfo));
+    }
+
+    /**
+     * 导出项目管理数据到Excel（全部导出）
+     * 根据查询条件导出符合条件的项目数据，支持多级表头和商品明细展开
+     * 导出数据与列表查询结果完全一致，确保数据准确性
+     * 
+     * @param param 查询条件参数，支持与列表查询相同的筛选条件：
+     *              - name: 项目名称模糊查询
+     *              - code: 项目编号模糊查询  
+     *              - type: 项目类型筛选
+     *              - status: 项目状态筛选
+     *              - status_list: 项目状态数组筛选
+     *              - supplier_id: 供应商ID筛选
+     *              - purchaser_id: 采购方ID筛选
+     *              - delivery_type: 运输方式筛选
+     *              - start_time: 开始时间筛选
+     *              - over_time: 结束时间筛选
+     * @param response HTTP响应对象，用于设置下载文件的响应头
+     * @throws IOException 当文件写入失败时抛出
+     * @throws BusinessException 当查询数据失败或数据转换异常时抛出
+     * @apiNote 导出功能特点：
+     *          1. 使用EasyExcel进行高性能Excel生成
+     *          2. 支持多级表头，商品信息使用"商品"作为父级表头
+     *          3. 将项目的嵌套商品明细展开为扁平结构，每行包含一个商品明细
+     *          4. 支持数字格式化、日期格式化、货币格式化
+     *          5. 自动调整列宽以适应内容长度
+     *          6. 文件名包含时间戳，避免重复下载冲突
+     */
+    @PostMapping("/exportall")
+    @SysLogAnnotion("全部导出")
+    public void exportAll(@RequestBody(required = false) BProjectVo param, HttpServletResponse response) throws IOException {
+        log.info("开始执行项目管理全部导出，查询条件：{}", param);
+        
+        try {
+            // 1. 调用Service获取导出数据
+            List<BProjectExportVo> exportDataList = ibProjectService.exportAll(param);
+            
+            // 2. 创建项目合并策略（临时启用调试模式）
+            ProjectMergeStrategy mergeStrategy = new ProjectMergeStrategy(true);
+            log.info("启用项目合并策略：{}", mergeStrategy.getStrategyInfo());
+            
+            // 3. 使用带合并策略的EasyExcelUtil进行Excel生成
+            String fileName = "项目管理导出_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            String sheetName = "项目管理数据";
+            
+            EasyExcelUtil<BProjectExportVo> excelUtil = new EasyExcelUtil<>(BProjectExportVo.class);
+            excelUtil.exportExcelWithMergeStrategy(fileName, sheetName, exportDataList, response, mergeStrategy);
+            
+            log.info("项目管理全部导出完成（含单元格合并），文件名：{}，记录数：{}", fileName, exportDataList.size());
+            
+        } catch (Exception e) {
+            log.error("项目管理全部导出失败：{}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * 导出项目管理数据到Excel（选中导出）
+     * 根据传入的项目VO列表导出指定的项目数据，支持多级表头和商品明细展开
+     * 适用于前端选中单条或多条记录的导出需求
+     * 
+     * @param searchConditionList 要导出的项目VO列表，包含项目ID等信息
+     *                           - 每个BProjectVo对象必须包含id字段
+     *                           - 支持单条记录导出（list中只有一个VO）
+     *                           - 支持多条记录批量导出（list中包含多个VO）
+     * @param response HTTP响应对象，用于设置下载文件的响应头
+     * @throws IOException 当文件写入失败时抛出
+     * @throws BusinessException 当VO列表为空、查询数据失败或数据转换异常时抛出
+     * @apiNote 导出功能特点：
+     *          1. 使用EasyExcel进行高性能Excel生成
+     *          2. 支持多级表头，商品信息使用"商品"作为父级表头
+     *          3. 将项目的嵌套商品明细展开为扁平结构，每行包含一个商品明细
+     *          4. 支持数字格式化、日期格式化、货币格式化
+     *          5. 文件名包含时间戳，避免重复下载冲突
+     *          6. 前端使用场景：选中单条记录导出、多条记录批量导出、全选当前页导出
+     */
+    @PostMapping("/export")
+    @SysLogAnnotion("选中导出")
+    public void export(@RequestBody(required = false) List<BProjectVo> searchConditionList, HttpServletResponse response) throws IOException {
+        log.info("开始执行项目管理选中导出，VO列表：{}", searchConditionList != null ? searchConditionList.size() + "条记录" : "null");
+        
+        try {
+            // 1. 调用Service获取导出数据
+            List<BProjectExportVo> exportDataList = ibProjectService.exportByIds(searchConditionList);
+            
+            // 2. 创建项目合并策略（临时启用调试模式）
+            ProjectMergeStrategy mergeStrategy = new ProjectMergeStrategy(true);
+            log.info("启用项目合并策略：{}", mergeStrategy.getStrategyInfo());
+            
+            // 3. 使用带合并策略的EasyExcelUtil进行Excel生成
+            String fileName = "项目管理导出_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+            String sheetName = "项目管理数据";
+            
+            EasyExcelUtil<BProjectExportVo> excelUtil = new EasyExcelUtil<>(BProjectExportVo.class);
+            excelUtil.exportExcelWithMergeStrategy(fileName, sheetName, exportDataList, response, mergeStrategy);
+            
+            log.info("项目管理选中导出完成（含单元格合并），文件名：{}，记录数：{}", fileName, exportDataList.size());
+            
+        } catch (Exception e) {
+            log.error("项目管理选中导出失败：{}", e.getMessage(), e);
+            throw e;
+        }
     }
 
 }

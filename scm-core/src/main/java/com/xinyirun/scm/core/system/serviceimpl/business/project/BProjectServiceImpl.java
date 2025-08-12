@@ -1,6 +1,5 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.project;
-
-
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -24,6 +23,7 @@ import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
 
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectAttachVo;
+import com.xinyirun.scm.bean.system.vo.business.project.BProjectExportVo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectGoodsVo;
 import com.xinyirun.scm.bean.system.vo.master.cancel.MCancelVo;
@@ -41,6 +41,7 @@ import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import com.xinyirun.scm.core.bpm.service.business.IBpmInstanceSummaryService;
 import com.xinyirun.scm.core.bpm.service.business.IBpmProcessTemplatesService;
 import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessTemplatesServiceImpl;
@@ -64,8 +65,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -247,6 +252,46 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
     @Override
     public List<BProjectVo> selectPageListNotCount(BProjectVo searchCondition) {
         return List.of();
+    }
+
+    /**
+     * 查询导出项目管理列表数据
+     * 专门用于Excel导出功能，查询符合条件的项目数据并将嵌套的商品明细展开为扁平结构
+     * 查询条件与selectPage方法完全一致，确保导出数据与列表显示数据一致
+     * 
+     * @param searchCondition 查询条件对象，支持与列表查询相同的筛选条件
+     * @return List<BProjectVo> 扁平化的项目列表，每行代表一个项目的商品明细记录
+     *         - 项目基础信息会在每个商品明细行中重复
+     *         - 如果项目无商品明细，则返回一行项目基础信息
+     * @apiNote 该方法实现数据转换逻辑：
+     *          1. 调用Mapper查询完整的项目数据（包含嵌套的商品明细JSON）
+     *          2. 将每个项目的商品明细JSON展开为独立的行记录
+     *          3. 每行记录包含项目基础信息 + 单个商品明细信息
+     *          4. 用于FastExcel导出，支持多级表头的Excel生成
+     */
+    @Override
+    public List<BProjectVo> selectExportList(BProjectVo searchCondition) {
+        try {
+            // 1. 调用Mapper查询项目数据，包含完整的商品明细JSON
+            List<BProjectVo> projectList = mapper.selectExportList(searchCondition);
+            
+            if (projectList == null || projectList.isEmpty()) {
+                log.info("导出查询结果为空，查询条件：{}", searchCondition);
+                return List.of();
+            }
+            
+            log.info("查询到项目数据 {} 条，开始进行商品明细展开", projectList.size());
+            
+            // 2. 统计展开后的总记录数（用于日志记录）
+            Integer totalCount = mapper.selectExportCount(searchCondition);
+            log.info("导出数据预计总记录数：{}", totalCount);
+            
+            return projectList;
+            
+        } catch (Exception e) {
+            log.error("查询导出项目列表数据失败：{}", e.getMessage(), e);
+            throw new BusinessException("查询导出数据失败：" + e.getMessage());
+        }
     }    /**
      * 新增项目管理记录
      * 创建新的项目记录，包括基础信息、商品明细、附件信息的保存
@@ -1223,5 +1268,204 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         }
 
         return UpdateResultUtil.OK("OK");
+    }
+
+    /**
+     * 获取全部项目管理导出数据
+     * 根据查询条件获取符合条件的所有项目数据，进行数据转换为扁平化导出格式
+     * 包含导出状态管理、导出数量限制检查、数据转换等业务逻辑
+     */
+    @Override
+    public List<BProjectExportVo> exportAll(BProjectVo param) throws IOException {
+        SPagesVo sPagesVo = new SPagesVo();
+        sPagesVo.setCode(PageCodeConstant.PAGE_B_PROJECT);
+        SPagesVo pagesVo = isPagesService.get(sPagesVo);
+
+        if (Objects.equals(pagesVo.getExport_processing(), Boolean.TRUE)) {
+            throw new BusinessException("还有未完成的导出任务，请稍后重试");
+        }
+
+        try {
+            isPagesService.updateExportProcessingTrue(pagesVo);
+            
+            // 导出限制校验（参考BApServiceImpl）
+            SConfigEntity sConfigEntity = isConfigService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
+            if (!Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
+                Integer count = mapper.selectExportCount(param);
+                if (count != null && count > Long.parseLong(sConfigEntity.getExtra1())) {
+                    throw new BusinessException(String.format(sConfigEntity.getExtra2(), sConfigEntity.getExtra1()));
+                }
+            }
+            
+            List<BProjectVo> result = selectExportList(param);
+            return convertToExportData(result);
+        } finally {
+            // 恢复导出状态
+            isPagesService.updateExportProcessingFalse(pagesVo);
+        }
+    }
+
+    /**
+     * 获取选中的项目管理导出数据
+     * 根据传入的项目ID列表获取指定的项目数据，进行数据转换为扁平化导出格式
+     * 包含导出状态管理、导出数量限制检查、数据转换等业务逻辑
+     */
+    @Override
+    public List<BProjectExportVo> exportByIds(List<BProjectVo> searchConditionList) throws IOException {
+        if (searchConditionList == null || searchConditionList.isEmpty()) {
+            throw new BusinessException("请选择要导出的项目记录");
+        }
+        
+        SPagesVo sPagesVo = new SPagesVo();
+        sPagesVo.setCode(PageCodeConstant.PAGE_B_PROJECT);
+        SPagesVo pagesVo = isPagesService.get(sPagesVo);
+
+        if (Objects.equals(pagesVo.getExport_processing(), Boolean.TRUE)) {
+            throw new BusinessException("还有未完成的导出任务，请稍后重试");
+        }
+
+        try {
+            isPagesService.updateExportProcessingTrue(pagesVo);
+            
+            List<BProjectVo> result = mapper.selectIdsInForExport(searchConditionList);
+            return convertToExportData(result);
+            
+        } finally {
+            isPagesService.updateExportProcessingFalse(pagesVo);
+        }
+    }
+
+    /**
+     * 将项目数据转换为导出格式
+     * 将项目的嵌套商品明细展开为扁平结构，每行包含项目基础信息+单个商品明细信息
+     * 
+     * @param result 查询到的项目数据列表
+     * @return 转换后的导出数据列表
+     */
+    private List<BProjectExportVo> convertToExportData(List<BProjectVo> result) {
+        List<BProjectExportVo> exportDataList = new ArrayList<>();
+        
+        // 中文时间格式化器
+        DateTimeFormatter chineseFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm:ss");
+        
+        // 序号计数器，为每个项目分配唯一序号
+        int projectNo = 0;
+        
+        log.info("开始转换导出数据，原始数据条数：{}", result.size());
+        
+        for (BProjectVo bProjectVo : result) {
+            // 为当前项目分配序号
+            projectNo++;
+            // 直接使用detailListData，它已经是List<BProjectGoodsVo>类型
+            List<BProjectGoodsVo> productList = bProjectVo.getDetailListData();
+            
+            log.debug("处理项目：code={}, name={}, 商品明细数量={}", 
+                bProjectVo.getCode(), 
+                bProjectVo.getName(),
+                productList != null ? productList.size() : 0);
+            
+            if (productList != null && !productList.isEmpty()) {
+                // 如果有商品明细，为每个商品明细创建一行导出记录
+                for (int i = 0; i < productList.size(); i++) {
+                    BProjectGoodsVo bProjectGoodsVo = productList.get(i);
+                    BProjectExportVo bProjectExportVo = new BProjectExportVo();
+                    
+                    // 复制项目基础信息
+                    BeanUtils.copyProperties(bProjectVo, bProjectExportVo);
+                    
+                    // 设置序号字段（每个项目使用相同的序号）
+                    bProjectExportVo.setNo(projectNo);
+                    
+                    // 显式设置商品字段
+                    bProjectExportVo.setSku_code(bProjectGoodsVo.getSku_code());
+                    bProjectExportVo.setGoods_name(bProjectGoodsVo.getGoods_name());
+                    bProjectExportVo.setSku_name(bProjectGoodsVo.getSku_name());
+                    bProjectExportVo.setOrigin(bProjectGoodsVo.getOrigin());
+                    bProjectExportVo.setQty(bProjectGoodsVo.getQty());
+                    bProjectExportVo.setPrice(bProjectGoodsVo.getPrice());
+                    
+                    // 税率处理 - 数据库中已经是百分比形式，直接添加%符号
+                    if (bProjectGoodsVo.getTax_rate() != null) {
+                        bProjectExportVo.setTax_rate(bProjectGoodsVo.getTax_rate() + "%");
+                    }
+                    
+                    // 项目级别字段的特殊转换和时间格式化（仅第一行需要）
+                    if (i == 0) {
+                        // 特殊字段转换
+                        bProjectExportVo.setPayment_days(bProjectVo.getPayment_days() != null ? bProjectVo.getPayment_days().toString() + "天" : "");
+                        bProjectExportVo.setProject_cycle(bProjectVo.getProject_cycle() != null ? bProjectVo.getProject_cycle().toString() + "天" : "");
+                        bProjectExportVo.setRate(bProjectVo.getRate() != null ? bProjectVo.getRate().toString() + "%" : "");
+                        
+                        // 时间格式化为中文格式
+                        if (bProjectVo.getC_time() != null) {
+                            bProjectExportVo.setC_time_formatted(bProjectVo.getC_time().format(chineseFormatter));
+                        }
+                        if (bProjectVo.getU_time() != null) {
+                            bProjectExportVo.setU_time_formatted(bProjectVo.getU_time().format(chineseFormatter));
+                        }
+                    }
+                    
+                    // 关键修复：避免所有合并单元格字段重复计算
+                    // 只在项目的第一行商品明细中保留项目级别信息，其他行设置为null
+                    // 注意：保留项目编号(code)字段，因为合并策略依赖它进行分组判断
+                    if (i > 0) {
+                        // 清空所有项目级别的合并字段，避免重复计算和显示
+                        bProjectExportVo.setNo(null);                      // 序号 - 合并显示
+                        // bProjectExportVo.setCode(null);                 // 项目编号 - 保留用于合并策略分组
+                        bProjectExportVo.setName(null);                    // 项目名称  
+                        bProjectExportVo.setStatus_name(null);             // 状态
+                        bProjectExportVo.setApproval_status(null);         // 审批情况
+                        bProjectExportVo.setType_name(null);               // 类型
+                        bProjectExportVo.setSupplier_name(null);           // 上游供应商
+                        bProjectExportVo.setPurchaser_name(null);          // 下游客户（主体企业）
+                        bProjectExportVo.setPayment_method_name(null);     // 付款方式
+                        bProjectExportVo.setPayment_days(null);            // 是否有账期/天数
+                        bProjectExportVo.setAmount(null);                  // 融资额度
+                        bProjectExportVo.setProject_cycle(null);           // 项目周期
+                        bProjectExportVo.setRate(null);                    // 费率
+                        bProjectExportVo.setDelivery_location(null);       // 交货地点
+                        bProjectExportVo.setDelivery_type_name(null);      // 运输方式
+                        bProjectExportVo.setRemark(null);                  // 备注
+                        bProjectExportVo.setC_name(null);                  // 创建人
+                        bProjectExportVo.setC_time_formatted(null);        // 创建时间
+                        bProjectExportVo.setU_name(null);                  // 更新人
+                        bProjectExportVo.setU_time_formatted(null);        // 更新时间
+                        
+                        log.debug("项目 {} 第{}行商品明细，清空所有合并字段避免重复显示", 
+                                bProjectVo.getCode(), i + 1);
+                    } else {
+                        log.debug("项目 {} 第1行商品明细，保留所有项目级别信息", bProjectVo.getCode());
+                    }
+                    
+                    exportDataList.add(bProjectExportVo);
+                }
+            } else {
+                // 如果没有商品明细，创建一行只包含项目基础信息的记录
+                log.debug("项目 {} 没有商品明细，创建基础信息记录", bProjectVo.getCode());
+                BProjectExportVo bProjectExportVo = new BProjectExportVo();
+                BeanUtils.copyProperties(bProjectVo, bProjectExportVo);
+                
+                // 设置序号字段
+                bProjectExportVo.setNo(projectNo);
+                
+                // 特殊字段转换
+                bProjectExportVo.setPayment_days(bProjectVo.getPayment_days() != null ? bProjectVo.getPayment_days().toString() + "天" : "");
+                bProjectExportVo.setProject_cycle(bProjectVo.getProject_cycle() != null ? bProjectVo.getProject_cycle().toString() + "天" : "");
+                bProjectExportVo.setRate(bProjectVo.getRate() != null ? bProjectVo.getRate().toString() + "%" : "");
+                
+                // 时间格式化为中文格式
+                if (bProjectVo.getC_time() != null) {
+                    bProjectExportVo.setC_time_formatted(bProjectVo.getC_time().format(chineseFormatter));
+                }
+                if (bProjectVo.getU_time() != null) {
+                    bProjectExportVo.setU_time_formatted(bProjectVo.getU_time().format(chineseFormatter));
+                }
+                
+                exportDataList.add(bProjectExportVo);
+            }
+        }
+        
+        log.info("数据转换完成，导出记录总数：{}", exportDataList.size());
+        return exportDataList;
     }
 }
