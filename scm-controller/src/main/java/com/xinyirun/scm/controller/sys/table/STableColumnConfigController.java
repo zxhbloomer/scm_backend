@@ -9,7 +9,12 @@ import com.xinyirun.scm.core.system.service.sys.table.ISTableColumnConfigService
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.Data;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
 
 /**
@@ -35,12 +40,12 @@ public class STableColumnConfigController {
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
-    @SysLogAnnotion("获取原始配置数据用于重置预览")
+    @SysLogAnnotion("重置表格列配置")
     @PostMapping("/reset")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<List<STableColumnConfigVo>>> reset(@RequestBody(required = false) STableColumnConfigVo vo) {
-        List<STableColumnConfigVo> originalData = service.getOriginalDataForReset(vo);
-        return ResponseEntity.ok().body(ResultUtil.OK(originalData));
+    public ResponseEntity<JsonResultAo<List<STableColumnConfigVo>>> reset(@RequestBody @Valid ResetColumnConfigRequest request) {
+        List<STableColumnConfigVo> resultList = service.resetTableColumnsAndReturn(request.getConfigs(), request.getPageCode());
+        return ResponseEntity.ok().body(ResultUtil.OK(resultList));
     }
 
     @SysLogAnnotion("check用户数据是否与original数据一致")
@@ -59,4 +64,16 @@ public class STableColumnConfigController {
         return ResponseEntity.ok().body(ResultUtil.OK("ok"));
     }
 
+    /**
+     * 重置列配置请求包装类
+     */
+    @Data
+    public static class ResetColumnConfigRequest {
+        @NotNull(message = "列配置不能为空")
+        @Size(min = 1, message = "至少需要一个列配置")
+        private List<STableColumnConfigVo> configs;
+        
+        @NotBlank(message = "页面代码不能为空")
+        private String pageCode;
+    }
 }

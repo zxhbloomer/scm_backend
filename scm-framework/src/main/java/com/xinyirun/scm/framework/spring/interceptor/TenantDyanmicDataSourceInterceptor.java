@@ -30,7 +30,8 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
 
     // 无需租户信息的公共路径集合
     private static final String[] PUBLIC_PATHS = {
-            "/api/v1/imagecode"
+            "/api/v1/imagecode",
+            "/scm/error"
     };
 
     /**
@@ -102,7 +103,7 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
             return false;
         }
         for (String publicPath : PUBLIC_PATHS) {
-            if (requestURI.indexOf(publicPath) >0) {
+            if (requestURI.indexOf(publicPath) >=0) {
                 return true;
             }
         }

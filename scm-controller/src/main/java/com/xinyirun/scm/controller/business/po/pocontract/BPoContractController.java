@@ -29,6 +29,7 @@ import com.xinyirun.scm.core.system.service.log.sys.ISLogImportService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.excel.export.CustomMergeStrategy;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
+import com.xinyirun.scm.excel.merge.PoContractMergeStrategy;
 import com.xinyirun.scm.excel.upload.SystemExcelReader;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import jakarta.servlet.http.HttpServletResponse;
@@ -167,69 +168,35 @@ public class BPoContractController extends SystemBaseController {
     }
 
     @PostMapping("/export")
-    @SysLogAnnotion("导出")
+    @SysLogAnnotion("选中导出")
     public void export(@RequestBody(required = false) BPoContractVo param, HttpServletResponse response) throws IOException {
-        List<BPoContractVo> result = service.selectExportList(param);
-        // 创建导出的数据列表
-        List<BPoContractExportVo> exportDataList = new ArrayList<>();
+        // 使用新的exportByIds方法进行选中导出
+        List<BPoContractExportVo> exportDataList = service.exportByIds(param);
+        
+        // 创建合并策略
+        PoContractMergeStrategy mergeStrategy = new PoContractMergeStrategy(true);
+        
+        // 使用EasyExcelUtil进行导出，应用合并策略
+        String fileName = "采购合同" + DateTimeUtil.getDate();
+        String sheetName = "采购合同";
+        EasyExcelUtil<BPoContractExportVo> excelUtil = new EasyExcelUtil<>(BPoContractExportVo.class);
+        excelUtil.exportExcelWithMergeStrategy(fileName, sheetName, exportDataList, response, mergeStrategy);
+    }
 
-        for (BPoContractVo bPoContractVo : result) {
-            List<BPoContractDetailVo> productList =JSON.parseArray(bPoContractVo.getDetailListData().toString(), BPoContractDetailVo.class);
-
-            for (int i = 0; i < productList.size(); i++) {
-                BPoContractDetailVo BPoContractDetailVo = productList.get(i);
-                BPoContractExportVo BPoContractExportVo = new BPoContractExportVo();
-                BeanUtils.copyProperties(bPoContractVo, BPoContractExportVo);
-                BeanUtils.copyProperties(BPoContractDetailVo, BPoContractExportVo);
-                exportDataList.add(BPoContractExportVo);
-            }
-        }
-
-        List<String> strategy_1 = exportDataList.stream().map(BPoContractExportVo::getCode).collect(Collectors.toList());
-        List<BWoExportUtilVo> strategy_2 = exportDataList.stream().map(item -> new BWoExportUtilVo(item.getCode(), item.getSku_code())).collect(Collectors.toList());
-
-        // 写sheet的时候注册相应的自定义合并单元格策略
-        WriteSheet writeSheet = EasyExcel.writerSheet("采购合同").head(BPoContractExportVo.class)
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 0))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 1))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 2))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 3))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 4))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 5))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 6))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 7))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 8))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 9))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 10))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 11))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 12))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 13))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 14))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 15))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 16))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 17))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 18))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 19))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 20))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 21))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 22))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 23))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 24))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 25))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 26))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 27,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 28,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 29,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 30,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 31,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 32,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_2, 33,"1"))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 34))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 35))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 36))
-                .registerWriteHandler(new CustomMergeStrategy(strategy_1, 37))
-                .build();
-        new EasyExcelUtil<>(BPoContractExportVo.class).exportExcel("采购合同" + DateTimeUtil.getDate(), exportDataList, response, writeSheet);
+    @PostMapping("/exportall")
+    @SysLogAnnotion("全部导出")
+    public void exportAll(@RequestBody(required = false) BPoContractVo param, HttpServletResponse response) throws IOException {
+        // 使用新的exportAll方法进行全部导出
+        List<BPoContractExportVo> exportDataList = service.exportAll(param);
+        
+        // 创建合并策略
+        PoContractMergeStrategy mergeStrategy = new PoContractMergeStrategy(true);
+        
+        // 使用EasyExcelUtil进行导出，应用合并策略
+        String fileName = "采购合同" + DateTimeUtil.getDate();
+        String sheetName = "采购合同";
+        EasyExcelUtil<BPoContractExportVo> excelUtil = new EasyExcelUtil<>(BPoContractExportVo.class);
+        excelUtil.exportExcelWithMergeStrategy(fileName, sheetName, exportDataList, response, mergeStrategy);
     }
 
     @SysLogAnnotion("采购合同数据导入")

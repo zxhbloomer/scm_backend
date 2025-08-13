@@ -93,4 +93,24 @@ public interface IBPoContractService extends IService<BPoContractEntity> ,
      */
     List<BPoContractImportVo> importData(List<BPoContractImportVo
             > beans);
+
+    /**
+     * 全部导出 - 根据查询条件导出所有符合条件的采购合同数据
+     * 用于Excel导出功能，返回完整的采购合同数据包含商品明细
+     * 
+     * @param param 查询条件参数
+     * @return 符合条件的采购合同导出列表，包含完整的关联数据和商品明细展开
+     */
+    List<com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractExportVo> exportAll(BPoContractVo param);
+
+    /**
+     * 选中导出 - 根据ID列表导出指定的采购合同数据
+     * 根据传入的采购合同参数查询指定的采购合同数据，用于选中记录导出
+     * 包含导出状态管理、导出数量限制检查、数据转换等业务逻辑
+     * 
+     * @param param 查询参数，包含要导出的合同ID列表和其他查询条件
+     * @return 指定ID的采购合同导出列表，包含完整的关联数据和商品明细展开
+     * @throws IOException 当查询或数据转换失败时抛出
+     */
+    List<com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractExportVo> exportByIds(BPoContractVo param) throws java.io.IOException;
 }

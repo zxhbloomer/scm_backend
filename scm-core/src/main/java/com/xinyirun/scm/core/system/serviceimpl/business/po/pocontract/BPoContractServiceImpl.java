@@ -1,7 +1,14 @@
 package com.xinyirun.scm.core.system.serviceimpl.business.po.pocontract;
 
 import cn.hutool.core.collection.CollectionUtil;
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import org.springframework.beans.BeanUtils;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.bpm.BpmInstanceSummaryEntity;
@@ -27,6 +34,7 @@ import com.xinyirun.scm.bean.system.vo.business.bpm.BBpmProcessVo;
 import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractAttachVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractDetailVo;
+import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractExportVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractImportVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
 import com.xinyirun.scm.bean.system.vo.business.po.poorder.BPoOrderVo;
@@ -849,6 +857,201 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
             }
         }
         return mapper.selectExportList(param);
+    }
+
+    /**
+     * 全部导出 - 根据查询条件导出所有符合条件的采购合同数据
+     * 参考PO项目管理的导出实现，支持合并单元格和数据展开
+     */
+    @Override
+    public List<BPoContractExportVo> exportAll(BPoContractVo param) {
+        log.info("开始全部导出采购合同，查询条件: {}", param);
+        
+        // 查询符合条件的采购合同数据
+        List<BPoContractVo> result = this.selectExportList(param);
+        
+        log.info("查询到采购合同数据 {} 条，开始数据转换", result.size());
+        
+        // 使用统一的数据转换方法
+        return this.convertToExportData(result);
+    }
+
+    /**
+     * 选中导出 - 根据ID列表导出指定的采购合同数据
+     * 包含导出状态管理、导出数量限制检查、数据转换等业务逻辑
+     * 与SO合同和项目管理模块保持一致的导出状态管理机制
+     */
+    @Override
+    public List<BPoContractExportVo> exportByIds(BPoContractVo param) throws IOException {
+        // 确保IDs参数不为空
+        if (param == null || param.getIds() == null || param.getIds().length == 0) {
+            throw new BusinessException("请选择要导出的合同记录");
+        }
+        
+        SPagesVo sPagesVo = new SPagesVo();
+        sPagesVo.setCode(PageCodeConstant.PAGE_PO_CONTRACT);
+        SPagesVo pagesVo = isPagesService.get(sPagesVo);
+
+        if (Objects.equals(pagesVo.getExport_processing(), Boolean.TRUE)) {
+            throw new BusinessException("还有未完成的导出任务，请稍后重试");
+        }
+
+        try {
+            isPagesService.updateExportProcessingTrue(pagesVo);
+            
+            // 使用selectExportList获取数据，会根据IDs参数进行过滤
+            List<BPoContractVo> result = selectExportList(param);
+            return convertToExportData(result);
+            
+        } catch (Exception e) {
+            log.error("PO合同导出过程中发生错误：{}", e.getMessage(), e);
+            throw new BusinessException("导出失败：" + e.getMessage());
+        } finally {
+            isPagesService.updateExportProcessingFalse(pagesVo);
+        }
+    }
+
+    /**
+     * 将采购合同数据转换为导出格式
+     * 将合同的嵌套商品明细展开为扁平结构，每行包含合同基础信息+单个商品明细信息
+     * 
+     * @param result 查询到的采购合同数据列表
+     * @return 转换后的导出数据列表
+     */
+    private List<BPoContractExportVo> convertToExportData(List<BPoContractVo> result) {
+        List<BPoContractExportVo> exportDataList = new ArrayList<>();
+        
+        // 序号计数器，为每个合同分配唯一序号
+        int contractNo = 0;
+        
+        log.info("开始转换导出数据，原始数据条数：{}", result.size());
+        
+        for (BPoContractVo contractVo : result) {
+            // 为当前合同分配序号
+            contractNo++;
+            
+            // 获取商品明细数据
+            List<BPoContractDetailVo> detailList = contractVo.getDetailListData();
+            
+            log.debug("处理合同：contract_code={}, 商品明细数量={}", 
+                contractVo.getContract_code(),
+                detailList != null ? detailList.size() : 0);
+            
+            if (detailList != null && !detailList.isEmpty()) {
+                // 如果有商品明细，为每个商品明细创建一行导出记录
+                for (int i = 0; i < detailList.size(); i++) {
+                    BPoContractDetailVo detailVo = detailList.get(i);
+                    BPoContractExportVo exportVo = new BPoContractExportVo();
+                    
+                    // 复制合同基础信息
+                    BeanUtils.copyProperties(contractVo, exportVo);
+                    
+                    // 设置序号字段（每个合同使用相同的序号）
+                    exportVo.setNo(contractNo);
+                    
+                    // 复制商品明细信息
+                    exportVo.setSku_code(detailVo.getSku_code());
+                    exportVo.setGoods_name(detailVo.getGoods_name());
+                    exportVo.setSku_name(detailVo.getSku_name());
+                    exportVo.setOrigin(detailVo.getOrigin());
+                    exportVo.setQty(detailVo.getQty());
+                    exportVo.setPrice(detailVo.getPrice());
+                    
+                    // 税率处理 - 转换为百分比格式
+                    if (detailVo.getTax_rate() != null) {
+                        exportVo.setTax_rate(detailVo.getTax_rate() + "%");
+                    }
+                    
+                    // 执行进度格式化
+                    if (contractVo.getVirtual_progress() != null) {
+                        exportVo.setVirtual_progress((contractVo.getVirtual_progress().multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)) + "%");
+                    } else {
+                        exportVo.setVirtual_progress("0.00%");
+                    }
+                    
+                    // 合同级别字段的特殊转换（仅第一行需要）
+                    // 注意：日期字段已通过@DateTimeFormat注解自动格式化，无需手动格式化
+                    if (i == 0) {
+                        // 直接设置日期字段，EasyExcel会根据@DateTimeFormat注解自动格式化
+                        exportVo.setSign_date(contractVo.getSign_date());
+                        exportVo.setExpiry_date(contractVo.getExpiry_date());
+                        exportVo.setDelivery_date(contractVo.getDelivery_date());
+                        exportVo.setC_time(contractVo.getC_time());
+                        exportVo.setU_time(contractVo.getU_time());
+                    }
+                    
+                    // 关键修复：避免所有合并单元格字段重复计算
+                    // 只在合同的第一行商品明细中保留合同级别信息，其他行设置为null
+                    // 注意：保留合同编号(contract_code)字段，因为合并策略依赖它进行分组判断
+                    if (i > 0) {
+                        // 清空所有合同级别的合并字段，避免重复计算和显示
+                        exportVo.setNo(null);                              // 序号 - 合并显示
+                        // exportVo.setContract_code(null);                // 合同编号 - 保留用于合并策略分组
+                        exportVo.setStatus_name(null);                     // 状态
+                        exportVo.setType_name(null);                       // 类型
+                        exportVo.setSupplier_name(null);                   // 供应商
+                        exportVo.setPurchaser_name(null);                  // 采购方
+                        exportVo.setDelivery_type_name(null);              // 交货方式
+                        exportVo.setSettle_type_name(null);                // 结算方式
+                        exportVo.setBill_type_name(null);                  // 结算单据类型
+                        exportVo.setPayment_type_name(null);               // 付款方式
+                        exportVo.setDelivery_location(null);               // 交货地点
+                        exportVo.setAuto_create_name(null);                // 自动生成订单
+                        exportVo.setOrder_count(null);                     // 订单笔数
+                        exportVo.setVirtual_progress(null);                // 执行进度
+                        exportVo.setVirtual_total_paid_amount(null);       // 累计实付金额
+                        exportVo.setVirtual_unpaid_amount(null);           // 未付金额
+                        exportVo.setAdvance_paid_total(null);              // 预付款已付金额
+                        exportVo.setSettled_qty_total(null);               // 已结算数量
+                        exportVo.setSettled_amount_total(null);            // 结算金额
+                        exportVo.setSign_date(null);                       // 签约日期
+                        exportVo.setExpiry_date(null);                     // 到期日期
+                        exportVo.setDelivery_date(null);                   // 交货日期
+                        exportVo.setC_name(null);                          // 创建人
+                        exportVo.setC_time(null);                          // 创建时间
+                        exportVo.setU_name(null);                          // 更新人
+                        exportVo.setU_time(null);                          // 更新时间
+                        exportVo.setRemark(null);                          // 备注
+                        
+                        log.debug("合同 {} 第{}行商品明细，清空所有合并字段避免重复显示", 
+                                contractVo.getContract_code(), i + 1);
+                    } else {
+                        log.debug("合同 {} 第1行商品明细，保留所有合同级别信息", contractVo.getContract_code());
+                    }
+                    
+                    exportDataList.add(exportVo);
+                }
+            } else {
+                // 如果没有商品明细，创建一行只包含合同基础信息的记录
+                log.debug("合同 {} 没有商品明细，创建基础信息记录", contractVo.getContract_code());
+                BPoContractExportVo exportVo = new BPoContractExportVo();
+                
+                // 复制合同基础信息
+                BeanUtils.copyProperties(contractVo, exportVo);
+                
+                // 设置序号
+                exportVo.setNo(contractNo);
+                
+                // 执行进度格式化
+                if (contractVo.getVirtual_progress() != null) {
+                    exportVo.setVirtual_progress((contractVo.getVirtual_progress().multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP)) + "%");
+                } else {
+                    exportVo.setVirtual_progress("0.00%");
+                }
+                
+                // 直接设置日期字段，EasyExcel会根据@DateTimeFormat注解自动格式化
+                exportVo.setSign_date(contractVo.getSign_date());
+                exportVo.setExpiry_date(contractVo.getExpiry_date());
+                exportVo.setDelivery_date(contractVo.getDelivery_date());
+                exportVo.setC_time(contractVo.getC_time());
+                exportVo.setU_time(contractVo.getU_time());
+                
+                exportDataList.add(exportVo);
+            }
+        }
+        
+        log.info("导出数据转换完成，最终导出记录数：{}", exportDataList.size());
+        return exportDataList;
     }
 
     /**

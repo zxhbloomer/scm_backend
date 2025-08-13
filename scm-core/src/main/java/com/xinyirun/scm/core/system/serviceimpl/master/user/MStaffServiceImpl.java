@@ -196,7 +196,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         if(vo.getOne_file() != null) {
             // 查询附件对象
             fileInfoVo = getFileInfo(vo.getOne_file());
-            vo.setOne_fileVo(fileInfoVo);
+            // 如果文件不存在，设置空对象避免空指针异常
+            vo.setOne_fileVo(fileInfoVo != null ? fileInfoVo : new SFileInfoVo());
         } else {
             vo.setOne_fileVo(new SFileInfoVo());
         }
@@ -204,7 +205,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         if(vo.getTwo_file() != null) {
             // 查询附件对象
             fileInfoVo = getFileInfo(vo.getTwo_file());
-            vo.setTwo_fileVo(fileInfoVo);
+            // 如果文件不存在，设置空对象避免空指针异常
+            vo.setTwo_fileVo(fileInfoVo != null ? fileInfoVo : new SFileInfoVo());
         } else {
             vo.setTwo_fileVo(new SFileInfoVo());
         }
@@ -214,8 +216,22 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
      * 查询附件对象
      */
     public SFileInfoVo getFileInfo(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        
         SFileEntity file = fileMapper.selectById(id);
+        if (file == null) {
+            // 文件记录不存在，返回null而不是抛出异常
+            return null;
+        }
+        
         SFileInfoEntity fileInfo = fileInfoMapper.selectFIdEntity(file.getId());
+        if (fileInfo == null) {
+            // 文件详情不存在，返回null
+            return null;
+        }
+        
         SFileInfoVo fileInfoVo = (SFileInfoVo) BeanUtilsSupport.copyProperties(fileInfo, SFileInfoVo.class);
         fileInfoVo.setFileName(fileInfoVo.getFile_name());
         return fileInfoVo;

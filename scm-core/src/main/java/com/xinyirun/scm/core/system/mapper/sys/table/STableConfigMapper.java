@@ -30,7 +30,6 @@ public interface STableConfigMapper extends BaseMapper<STableConfigEntity> {
             + "		FROM                                                                                               "
             + "			s_table_config t1                                                                              "
             + "			WHERE TRUE                                                                                     "
-            + "         AND t1.staff_id = #{p1.staff_id,jdbcType=INTEGER}                                              "
             + "         AND t1.page_code = #{p1.page_code,jdbcType=VARCHAR}                                            "
             + "      ")
     STableConfigVo get(@Param("p1") STableColumnConfigVo searchCondition);

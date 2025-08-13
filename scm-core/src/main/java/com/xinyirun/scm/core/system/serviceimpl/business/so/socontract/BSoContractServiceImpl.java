@@ -28,6 +28,7 @@ import com.xinyirun.scm.bean.system.vo.business.bpm.OrgUserVo;
 import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractAttachVo;
 import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractImportVo;
+import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractExportVo;
 import com.xinyirun.scm.bean.system.vo.business.so.socontract.BSoContractVo;
 import com.xinyirun.scm.bean.system.vo.business.so.soorder.BSoOrderVo;
 import com.xinyirun.scm.bean.system.vo.business.project.BProjectVo;
@@ -79,9 +80,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -842,7 +845,7 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
         // 导出限制开关
         SConfigEntity sConfigEntity = isConfigService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
         if (Objects.isNull(param.getIds()) && !Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
-            Long count = mapper.selectExportCount(param);
+            Integer count = mapper.selectExportCount(param);
 
             if (count != null && count > Long.parseLong(sConfigEntity.getExtra1())) {
                 throw new BusinessException(String.format(sConfigEntity.getExtra2(), sConfigEntity.getExtra1()));
@@ -1611,4 +1614,246 @@ public class BSoContractServiceImpl extends BaseServiceImpl<BSoContractMapper, B
 //            throw new BusinessException("自动创建销售订单失败：" + e.getMessage());
 //        }
     }
+
+    /**
+     * 获取全部销售合同导出数据
+     */
+    @Override
+    public List<BSoContractExportVo> exportAll(BSoContractVo param) throws IOException {
+        SPagesVo sPagesVo = new SPagesVo();
+        sPagesVo.setCode(PageCodeConstant.PAGE_SO_CONTRACT);
+        SPagesVo pagesVo = isPagesService.get(sPagesVo);
+
+        if (Objects.equals(pagesVo.getExport_processing(), Boolean.TRUE)) {
+            throw new BusinessException("还有未完成的导出任务，请稍后重试");
+        }
+
+        try {
+            isPagesService.updateExportProcessingTrue(pagesVo);
+            
+            // 导出限制校验
+            SConfigEntity sConfigEntity = isConfigService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
+            if (!Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
+                Integer count = mapper.selectExportCount(param);
+                if (count != null && count > Long.parseLong(sConfigEntity.getExtra1())) {
+                    throw new BusinessException(String.format(sConfigEntity.getExtra2(), sConfigEntity.getExtra1()));
+                }
+            }
+            
+            List<BSoContractVo> result = selectExportList(param);
+            return convertToExportData(result);
+        } finally {
+            isPagesService.updateExportProcessingFalse(pagesVo);
+        }
+    }
+
+    /**
+     * 获取选中的销售合同导出数据
+     */
+    @Override
+    public List<BSoContractExportVo> exportByIds(List<BSoContractVo> searchConditionList) throws IOException {
+        if (searchConditionList == null || searchConditionList.isEmpty()) {
+            throw new BusinessException("请选择要导出的销售合同记录");
+        }
+        
+        SPagesVo sPagesVo = new SPagesVo();
+        sPagesVo.setCode(PageCodeConstant.PAGE_SO_CONTRACT);
+        SPagesVo pagesVo = isPagesService.get(sPagesVo);
+
+        if (Objects.equals(pagesVo.getExport_processing(), Boolean.TRUE)) {
+            throw new BusinessException("还有未完成的导出任务，请稍后重试");
+        }
+
+        try {
+            isPagesService.updateExportProcessingTrue(pagesVo);
+            
+            List<BSoContractVo> result = mapper.selectIdsInForExport(searchConditionList);
+            return convertToExportData(result);
+            
+        } finally {
+            isPagesService.updateExportProcessingFalse(pagesVo);
+        }
+    }
+
+    /**
+     * 将销售合同数据转换为导出格式
+     */
+    private List<BSoContractExportVo> convertToExportData(List<BSoContractVo> result) {
+        List<BSoContractExportVo> exportDataList = new ArrayList<>();
+        
+        // 中文时间格式化器
+        DateTimeFormatter chineseFormatter = DateTimeFormatter.ofPattern("yyyy年MM月dd日 HH:mm:ss");
+        
+        // 序号计数器
+        int contractNo = 0;
+        
+        log.info("开始转换销售合同导出数据，原始数据条数：{}", result.size());
+        
+        for (BSoContractVo contractVo : result) {
+            contractNo++;
+            List<BSoContractDetailVo> productList = contractVo.getDetailListData();
+            
+            log.debug("处理销售合同：contract_code={}, 商品明细数量={}", 
+                contractVo.getContract_code(), 
+                productList != null ? productList.size() : 0);
+            
+            if (productList != null && !productList.isEmpty()) {
+                // 有商品明细，为每个商品明细创建一行导出记录
+                for (int i = 0; i < productList.size(); i++) {
+                    BSoContractDetailVo detailVo = productList.get(i);
+                    BSoContractExportVo exportVo = new BSoContractExportVo();
+                    
+                    // 复制合同基础信息
+                    BeanUtils.copyProperties(contractVo, exportVo);
+                    
+                    // 设置序号（每个合同使用相同的序号）
+                    exportVo.setNo(contractNo);
+                    
+                    // 显式设置商品字段
+                    exportVo.setSku_code(detailVo.getSku_code());
+                    exportVo.setGoods_name(detailVo.getGoods_name());
+                    exportVo.setSku_name(detailVo.getSku_name());
+                    exportVo.setOrigin(detailVo.getOrigin());
+                    exportVo.setQty(detailVo.getQty());
+                    exportVo.setPrice(detailVo.getPrice());
+                    
+                    // 税率处理 - 添加%符号
+                    if (detailVo.getTax_rate() != null) {
+                        exportVo.setTax_rate(detailVo.getTax_rate() + "%");
+                    }
+                    
+                    // 合同级别字段的特殊转换和时间格式化（仅第一行需要）
+                    if (i == 0) {
+                        // 审批情况
+                        if (contractVo.getNext_approve_name() != null && !contractVo.getNext_approve_name().isEmpty()) {
+                            exportVo.setApproval_status(contractVo.getNext_approve_name());
+                        } else {
+                            exportVo.setApproval_status("待审批");
+                        }
+                        
+                        // 执行进度
+                        if (contractVo.getVirtual_progress() != null) {
+                            exportVo.setVirtual_progress((contractVo.getVirtual_progress().multiply(new BigDecimal("100"))).setScale(2, RoundingMode.HALF_UP) + "%");
+                        } else {
+                            exportVo.setVirtual_progress("0.00%");
+                        }
+                        
+                        // 订单笔数处理
+                        exportVo.setOrder_count(contractVo.getOrder_count() != null ? contractVo.getOrder_count().toString() : "0");
+                        
+                        // 时间格式化为中文格式
+                        if (contractVo.getSign_date() != null) {
+                            exportVo.setSign_date_formatted(contractVo.getSign_date().format(chineseFormatter));
+                        }
+                        if (contractVo.getExpiry_date() != null) {
+                            exportVo.setExpiry_date_formatted(contractVo.getExpiry_date().format(chineseFormatter));
+                        }
+                        if (contractVo.getDelivery_date() != null) {
+                            exportVo.setDelivery_date_formatted(contractVo.getDelivery_date().format(chineseFormatter));
+                        }
+                        if (contractVo.getC_time() != null) {
+                            exportVo.setC_time_formatted(contractVo.getC_time().format(chineseFormatter));
+                        }
+                        if (contractVo.getU_time() != null) {
+                            exportVo.setU_time_formatted(contractVo.getU_time().format(chineseFormatter));
+                        }
+                    }
+                    
+                    // 避免所有合并单元格字段重复计算
+                    // 只在合同的第一行商品明细中保留合同级别信息，其他行设置为null
+                    // 注意：保留合同编号(contract_code)字段，因为合并策略依赖它进行分组判断
+                    if (i > 0) {
+                        // 清空所有合同级别的合并字段，避免重复计算和显示
+                        exportVo.setNo(null);                          // 序号 - 合并显示
+                        exportVo.setProject_code(null);                // 项目编号
+                        // exportVo.setContract_code(null);            // 合同编号 - 保留用于合并策略分组
+                        exportVo.setType_name(null);                   // 类型
+                        exportVo.setOrder_count(null);                 // 订单笔数
+                        exportVo.setStatus_name(null);                 // 状态
+                        exportVo.setApproval_status(null);             // 审批情况
+                        exportVo.setCustomer_name(null);               // 客户
+                        exportVo.setSeller_name(null);                 // 销售方（主体企业）
+                        exportVo.setVirtual_progress(null);            // 执行进度
+                        exportVo.setSign_date_formatted(null);         // 签约日期
+                        exportVo.setExpiry_date_formatted(null);       // 到期日期
+                        exportVo.setDelivery_date_formatted(null);     // 交货日期
+                        exportVo.setDelivery_type_name(null);          // 运输方式
+                        exportVo.setSettle_type_name(null);            // 结算方式
+                        exportVo.setBill_type_name(null);              // 结算单据类型
+                        exportVo.setPayment_type_name(null);           // 付款方式
+                        exportVo.setContract_amount_sum(null);         // 合同总金额
+                        exportVo.setContract_total(null);              // 总销售数量
+                        exportVo.setTax_amount_sum(null);              // 税额
+                        exportVo.setSettled_qty(null);                 // 已结算数量
+                        exportVo.setSettled_price(null);               // 结算金额
+                        exportVo.setAdvance_receive_price(null);       // 预收款金额
+                        exportVo.setAccumulated_act_price(null);       // 累计实收
+                        exportVo.setUnreceived_amount(null);           // 未收
+                        exportVo.setAdvance_receive_rt_price(null);    // 预收款可退金额
+                        exportVo.setAlready_invoice_price(null);       // 可开票金额
+                        exportVo.setC_name(null);                      // 创建人
+                        exportVo.setC_time_formatted(null);            // 创建时间
+                        exportVo.setU_name(null);                      // 更新人
+                        exportVo.setU_time_formatted(null);            // 更新时间
+                        
+                        log.debug("销售合同 {} 第{}行商品明细，清空所有合并字段避免重复显示", 
+                                contractVo.getContract_code(), i + 1);
+                    } else {
+                        log.debug("销售合同 {} 第1行商品明细，保留所有合同级别信息", contractVo.getContract_code());
+                    }
+                    
+                    exportDataList.add(exportVo);
+                }
+            } else {
+                // 如果没有商品明细，创建一行只包含合同基础信息的记录
+                log.debug("销售合同 {} 没有商品明细，创建基础信息记录", contractVo.getContract_code());
+                BSoContractExportVo exportVo = new BSoContractExportVo();
+                BeanUtils.copyProperties(contractVo, exportVo);
+                
+                // 设置序号
+                exportVo.setNo(contractNo);
+                
+                // 特殊字段转换
+                if (contractVo.getNext_approve_name() != null && !contractVo.getNext_approve_name().isEmpty()) {
+                    exportVo.setApproval_status(contractVo.getNext_approve_name());
+                } else {
+                    exportVo.setApproval_status("待审批");
+                }
+                
+                if (contractVo.getVirtual_progress() != null) {
+                    exportVo.setVirtual_progress((contractVo.getVirtual_progress().multiply(new BigDecimal("100"))).setScale(2, RoundingMode.HALF_UP) + "%");
+                } else {
+                    exportVo.setVirtual_progress("0.00%");
+                }
+                
+                exportVo.setOrder_count(contractVo.getOrder_count() != null ? contractVo.getOrder_count().toString() : "0");
+                
+                // 时间格式化为中文格式
+                if (contractVo.getSign_date() != null) {
+                    exportVo.setSign_date_formatted(contractVo.getSign_date().format(chineseFormatter));
+                }
+                if (contractVo.getExpiry_date() != null) {
+                    exportVo.setExpiry_date_formatted(contractVo.getExpiry_date().format(chineseFormatter));
+                }
+                if (contractVo.getDelivery_date() != null) {
+                    exportVo.setDelivery_date_formatted(contractVo.getDelivery_date().format(chineseFormatter));
+                }
+                if (contractVo.getC_time() != null) {
+                    exportVo.setC_time_formatted(contractVo.getC_time().format(chineseFormatter));
+                }
+                if (contractVo.getU_time() != null) {
+                    exportVo.setU_time_formatted(contractVo.getU_time().format(chineseFormatter));
+                }
+                
+                exportDataList.add(exportVo);
+            }
+        }
+        
+        log.info("销售合同导出数据转换完成，导出记录总数：{}", exportDataList.size());
+        return exportDataList;
+    }
+
+
+
+
 }

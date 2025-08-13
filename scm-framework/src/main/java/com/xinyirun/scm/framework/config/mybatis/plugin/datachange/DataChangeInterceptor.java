@@ -341,8 +341,8 @@ public class DataChangeInterceptor implements Interceptor {
             String _code = getSpecifiedColumnValue(boundSql,"CODE").toString();
             String _type = getSpecifiedColumnValue(boundSql,"TYPE").toString();
             String _name = getSpecifiedColumnValue(boundSql,"NAME").toString();
-            LocalDateTime _c_time = (LocalDateTime) getSpecifiedColumnValue(boundSql,"C_TIME");
-            LocalDateTime _u_time = (LocalDateTime) getSpecifiedColumnValue(boundSql,"U_TIME");
+            LocalDateTime _c_time = convertToLocalDateTime(getSpecifiedColumnValue(boundSql,"C_TIME"));
+            LocalDateTime _u_time = convertToLocalDateTime(getSpecifiedColumnValue(boundSql,"U_TIME"));
             String _u_id =  getSpecifiedColumnValue(boundSql,"u_id").toString();
             dataChangeMain.setOrder_code(_code);
             dataChangeMain.setOrder_type(_type);
@@ -419,6 +419,50 @@ public class DataChangeInterceptor implements Interceptor {
             }
             return dataChangeVo;
         }
+    }
+
+    /**
+     * 安全地将对象转换为LocalDateTime
+     */
+    private LocalDateTime convertToLocalDateTime(Object value) {
+        if (value == null || "".equals(value)) {
+            return null;
+        }
+        
+        if (value instanceof LocalDateTime) {
+            return (LocalDateTime) value;
+        }
+        
+        if (value instanceof String) {
+            String strValue = (String) value;
+            if (strValue.trim().isEmpty()) {
+                return null;
+            }
+            try {
+                // 尝试解析常见的日期时间格式
+                if (strValue.length() == 19) { // yyyy-MM-dd HH:mm:ss
+                    return LocalDateTime.parse(strValue, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                } else if (strValue.length() > 19) { // 包含毫秒的格式
+                    return LocalDateTime.parse(strValue.substring(0, 19), java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                }
+                // 其他ISO格式
+                return LocalDateTime.parse(strValue);
+            } catch (Exception e) {
+                log.warn("无法解析日期时间字符串: {}", strValue);
+                return null;
+            }
+        }
+        
+        if (value instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) value).toLocalDateTime();
+        }
+        
+        if (value instanceof java.util.Date) {
+            return LocalDateTime.ofInstant(((java.util.Date) value).toInstant(), java.time.ZoneId.systemDefault());
+        }
+        
+        log.warn("无法将类型 {} 转换为 LocalDateTime: {}", value.getClass().getName(), value);
+        return null;
     }
 
     /**

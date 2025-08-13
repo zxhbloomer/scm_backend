@@ -51,10 +51,6 @@ public class STableConfigVo implements Serializable {
      */
     private Integer start_column_index;
 
-    /**
-     * 员工id
-     */
-    private Integer staff_id;
 
     /**
      * 创建时间

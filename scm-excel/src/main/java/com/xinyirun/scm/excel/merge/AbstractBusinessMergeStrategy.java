@@ -80,14 +80,24 @@ public abstract class AbstractBusinessMergeStrategy extends AbstractMergeStrateg
                 logRowData(currentRow);
             }
             
-            // 只在项目编号列进行分组检测，避免重复检测
-            // 从ProjectMergeStrategy中获取PROJECT_CODE_COLUMN常量
+            // 只在分组字段列进行分组检测，避免重复检测
+            boolean shouldProcessGrouping = false;
+            String columnDescription = "";
+            
             if (this instanceof ProjectMergeStrategy && cell.getColumnIndex() == 1) {
+                shouldProcessGrouping = true;
+                columnDescription = "项目编号列";
+            } else if (this instanceof PoContractMergeStrategy && cell.getColumnIndex() == 2) {
+                shouldProcessGrouping = true;
+                columnDescription = "合同编号列";
+            }
+            
+            if (shouldProcessGrouping) {
                 // 获取当前分组字段值
                 String currentGroupValue = extractGroupFieldValue(currentRow);
                 
                 if (debugEnabled) {
-                    log.info("【项目编号列分组检测】当前分组字段值: {}, 上一个分组字段值: {}", currentGroupValue, previousGroupValue);
+                    log.info("【{}分组检测】当前分组字段值: {}, 上一个分组字段值: {}", columnDescription, currentGroupValue, previousGroupValue);
                 }
                 
                 // 检测分组字段是否发生变化

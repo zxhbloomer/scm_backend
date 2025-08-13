@@ -57,11 +57,6 @@ public class STableConfigEntity implements Serializable {
     @TableField("start_column_index")
     private Integer start_column_index;
 
-    /**
-     * 员工id
-     */
-    @TableField("staff_id")
-    private Integer staff_id;
 
     /**
      * 创建时间

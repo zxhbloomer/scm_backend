@@ -11,9 +11,9 @@ package com.xinyirun.scm.common.constant;
 public class PageCodeConstant {
 
     /** 入库计划 */
-    public static final String PAGE_IN_PLAN = "P00000010";
+    public static final String PAGE_IN_PLAN = "P00000182";
     /** 入库单 */
-    public static final String PAGE_IN = "P00000011";
+    public static final String PAGE_IN = "P00000183";
     /** 出库计划 */
     public static final String PAGE_OUT_PLAN = "P00000013";
     /** 出库单 */
@@ -56,13 +56,40 @@ public class PageCodeConstant {
     /**应收退款管理表 */
     public static final String PAGE_B_AR_REFUND = "待设置";
 
-    /**项目管理 */
+    /** PO项目 */
     public static final String PAGE_B_PROJECT = "P00000170";
 
-    /**采购货权转移 */
+    /** AP付款单 */
+    public static final String PAGE_B_AP_PAYMENT = "P00000177";
+
+    /** AP退款付款 */
+    public static final String PAGE_B_AP_REFUND_PAYMENT = "P00000181";
+
+    /** PO结算 */
+    public static final String PAGE_B_PO_SETTLEMENT = "P00000184";
+
+    /** PO货权转移 */
     public static final String PAGE_B_PO_CARGO_RIGHT_TRANSFER = "P00000185";
 
-    /**销售货权转移 */
-    public static final String PAGE_B_SO_CARGO_RIGHT_TRANSFER = "P00000186";
+    /** SO应收 */
+    public static final String PAGE_B_SO_RECEIVABLE = "P00000186";
+
+    /** SO收款 */
+    public static final String PAGE_B_SO_COLLECTION = "P00000187";
+
+    /** SO退收款 */
+    public static final String PAGE_B_SO_REFUND_COLLECTION = "P00000188";
+
+    /** SO退款收款 */
+    public static final String PAGE_B_SO_REFUND_PAYMENT = "P00000189";
+
+    /** SO结算 */
+    public static final String PAGE_B_SO_SETTLEMENT = "P00000190";
+
+    /** SO货权转移 */
+    public static final String PAGE_B_SO_CARGO_RIGHT_TRANSFER = "P00000191";
+
+    /** SO项目 */
+    public static final String PAGE_B_SO_PROJECT = "P00000192";
 
 }
