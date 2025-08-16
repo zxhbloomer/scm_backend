@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author zhangxh
@@ -193,4 +194,14 @@ public class OrgController extends SystemBaseController {
         MStaffTabVo entity = service.selectStaff(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(entity));
     }
+
+    @SysLogAnnotion("获取组织子节点数量")
+    // @ApiOperation(value = "获取组织子节点数量")
+    @PostMapping("/getsubcount")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<Integer>> getSubCount(@RequestBody MOrgSubCountRequestVo request) {
+            Integer count = service.getSubCount(request.getOrg_id());
+            return ResponseEntity.ok().body(ResultUtil.OK(count));
+    }
+
 }

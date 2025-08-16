@@ -41,6 +41,15 @@ public class OrgGroupController extends SystemBaseController {
     @Autowired
     private RestTemplate restTemplate;
 
+    @SysLogAnnotion("根据id获取集团信息")
+    // @ApiOperation(value = "根据参数id，获取集团主表信息")
+    @PostMapping("/id")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<MGroupVo>> id(@RequestBody(required = false) MGroupVo searchCondition) {
+        MGroupVo entity = service.selectByid(searchCondition.getId());
+        return ResponseEntity.ok().body(ResultUtil.OK(entity));
+    }
+
     @SysLogAnnotion("根据查询条件，获取集团主表信息")
     // @ApiOperation(value = "根据参数id，获取集团主表信息")
     @PostMapping("/list")

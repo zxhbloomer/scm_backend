@@ -729,4 +729,13 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
         + "                                                                                                                                       ")
     IPage<MStaffTabDataVo> getAllOrgStaff(@Param("p2") Page<MStaffTabDataVo> pageCondition, @Param("p1") MStaffTabDataVo searchCondition);
 
+    /**
+     * 获取指定组织的子节点数量（原方法保留兼容性）
+     * @param orgId 组织ID
+     * @return 子节点数量
+     */
+    @Select("SELECT COUNT(*) FROM m_org WHERE parent_id = #{orgId}")
+    Integer getSubCount(@Param("orgId") Long orgId);
+
+
 }

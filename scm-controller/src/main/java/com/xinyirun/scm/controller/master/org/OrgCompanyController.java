@@ -41,6 +41,15 @@ public class OrgCompanyController extends SystemBaseController {
     @Autowired
     private RestTemplate restTemplate;
 
+    @SysLogAnnotion("根据id获取公司信息")
+    // @ApiOperation(value = "根据参数id，获取公司主表信息")
+    @PostMapping("/id")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<MCompanyVo>> id(@RequestBody(required = false) MCompanyVo searchCondition) {
+        MCompanyVo entity = service.selectByid(searchCondition.getId());
+        return ResponseEntity.ok().body(ResultUtil.OK(entity));
+    }
+
     @SysLogAnnotion("根据查询条件，获取公司主表信息")
     // @ApiOperation(value = "根据参数id，获取公司主表信息")
     @PostMapping("/list")

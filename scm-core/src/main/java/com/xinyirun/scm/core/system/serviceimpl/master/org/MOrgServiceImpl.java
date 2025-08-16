@@ -946,4 +946,14 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 //        searchCondition.setCode(_code);
         return mapper.getAllOrgStaffCount(searchCondition);
     }
+
+    /**
+     * 获取组织子节点数量（原方法保留兼容性）
+     */
+    @Override
+    public Integer getSubCount(Long orgId) {
+        return mapper.getSubCount(orgId);
+    }
+
+
 }

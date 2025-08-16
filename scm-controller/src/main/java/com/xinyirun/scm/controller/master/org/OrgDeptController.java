@@ -41,6 +41,15 @@ public class OrgDeptController extends SystemBaseController {
     @Autowired
     private RestTemplate restTemplate;
 
+    @SysLogAnnotion("根据id获取部门信息")
+    // @ApiOperation(value = "根据参数id，获取部门主表信息")
+    @PostMapping("/id")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<MDeptVo>> id(@RequestBody(required = false) MDeptVo searchCondition) {
+        MDeptVo entity = service.selectByid(searchCondition.getId());
+        return ResponseEntity.ok().body(ResultUtil.OK(entity));
+    }
+
     @SysLogAnnotion("根据查询条件，获取部门主表信息")
     // @ApiOperation(value = "根据参数id，获取部门主表信息")
     @PostMapping("/list")

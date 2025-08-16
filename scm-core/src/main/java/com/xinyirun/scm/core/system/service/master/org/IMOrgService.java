@@ -155,4 +155,12 @@ public interface IMOrgService extends IService<MOrgEntity> {
      */
     Integer getAllOrgStaffCount(MStaffTabDataVo searchCondition) ;
 
+    /**
+     * 获取组织子节点数量
+     * @param orgId 组织ID  
+     * @return 子节点数量
+     */
+    Integer getSubCount(Long orgId);
+
+
 }

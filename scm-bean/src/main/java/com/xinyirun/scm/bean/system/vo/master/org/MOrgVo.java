@@ -73,6 +73,11 @@ public class MOrgVo extends BaseVo implements Serializable {
     private LocalDateTime u_time;
 
     /**
+     * 子节点数量（仅集团类型显示）
+     */
+    private Integer sub_count;
+
+    /**
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;
