@@ -162,5 +162,13 @@ public interface IMOrgService extends IService<MOrgEntity> {
      */
     Integer getSubCount(Long orgId);
 
+    /**
+     * 根据组织类型智能获取子节点统计
+     * @param orgId 组织ID
+     * @param orgType 组织类型（可选）
+     * @return 集团类型返回详细分类统计，其他类型返回简单计数
+     */
+    Object getSubCountByType(Long orgId, String orgType);
+
 
 }

@@ -955,5 +955,21 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         return mapper.getSubCount(orgId);
     }
 
+    /**
+     * 根据组织类型智能获取子节点统计
+     * 集团类型返回详细分类统计，其他类型返回简单计数
+     */
+    @Override
+    public Object getSubCountByType(Long orgId, String orgType) {
+        // 集团类型常量：DICT_ORG_SETTING_TYPE_GROUP = "20"
+        if (DictConstant.DICT_ORG_SETTING_TYPE_GROUP.equals(orgType)) {
+            // 集团节点返回详细统计
+            return mapper.getGroupSubCountDetail(orgId);
+        } else {
+            // 其他节点返回简单计数
+            return mapper.getSubCount(orgId);
+        }
+    }
+
 
 }
