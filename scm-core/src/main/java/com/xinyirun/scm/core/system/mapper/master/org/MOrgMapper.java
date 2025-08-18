@@ -748,5 +748,24 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
             "FROM m_org WHERE parent_id = #{orgId}")
     MOrgSubCountDetailVo getGroupSubCountDetail(@Param("orgId") Long orgId);
 
+    /**
+     * 获取企业的部门子节点详细统计
+     * @param orgId 企业组织ID
+     * @return 部门统计详情（部门数量）
+     */
+    @Select("SELECT COUNT(*) as dept_count FROM m_org WHERE parent_id = #{orgId} AND type = '40'")
+    MOrgCompanySubCountVo getCompanySubCountDetail(@Param("orgId") Long orgId);
+
+    /**
+     * 获取部门的分类子节点详细统计
+     * @param orgId 部门组织ID
+     * @return 分类统计详情（子部门数量、岗位数量）
+     */
+    @Select("SELECT " +
+            "SUM(CASE WHEN type = '40' THEN 1 ELSE 0 END) as sub_dept_count, " +
+            "SUM(CASE WHEN type = '50' THEN 1 ELSE 0 END) as position_count " +
+            "FROM m_org WHERE parent_id = #{orgId}")
+    MOrgDeptSubCountVo getDeptSubCountDetail(@Param("orgId") Long orgId);
+
 
 }

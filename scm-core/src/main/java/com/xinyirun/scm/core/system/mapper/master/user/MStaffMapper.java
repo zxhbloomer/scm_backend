@@ -205,9 +205,6 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "     and (concat(ifnull(sub2.name, ''), '_', ifnull(sub2.code, '')) like concat('%', #{p1.position_name}, '%') or #{p1.position_name} is null or #{p1.position_name} = '')"
             + "     and (sub1.staff_id = t1.id or #{p1.position_name} is null or #{p1.position_name} = ''))                                                                              "
             + "      ")
-    @Results({
-            @Result(property = "warehouseGroupList", column = "warehouse_group_list", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
-    })
     IPage<MStaffVo> selectPage(Page page, @Param("p1") MStaffVo searchCondition);
 
     /**

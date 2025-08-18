@@ -49,7 +49,8 @@ public class SColumnSizeServiceImpl extends BaseServiceImpl<SColumnSizeMapper, S
      * 插入or更新
      * @param searchCondition
      */
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_COLUMNS_TYPE, key = "#searchCondition.cache_key")
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_COLUMNS_TYPE, 
+                key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #searchCondition.cache_key")
     @Transactional(rollbackFor = Exception.class)
     @Override
     public UpdateResultAo<Boolean> saveColumnsSize(SColumnSizeVo searchCondition) {
@@ -81,7 +82,8 @@ public class SColumnSizeServiceImpl extends BaseServiceImpl<SColumnSizeMapper, S
      * 插入or更新
      * @param searchCondition
      */
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_COLUMNS_TYPE, key = "#searchCondition.cache_key")
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_COLUMNS_TYPE, 
+                key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #searchCondition.cache_key")
     @Transactional(rollbackFor = Exception.class)
     @Override
     public DeleteResultAo<Boolean> deleteColumnsSize(SColumnSizeVo searchCondition) {

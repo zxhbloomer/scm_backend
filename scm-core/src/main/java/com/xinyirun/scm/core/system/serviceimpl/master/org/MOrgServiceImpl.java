@@ -29,6 +29,7 @@ import com.xinyirun.scm.common.enums.ParameterEnum;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.ArrayPfUtil;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgCompanyDeptMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgDeptPositionMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgGroupCompanyMapper;
@@ -39,6 +40,8 @@ import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.log.operate.SLogOperServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -450,6 +453,8 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             id = "#{entity.id}"
         )
     )
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT, 
+               key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #entity.id + '::' + #entity.type")
     @Transactional(rollbackFor = Exception.class)
     @Override
     public UpdateResultAo<Integer> update(MOrgEntity entity) {
@@ -583,7 +588,6 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             id = "#{entity.id}"
         )
     )
-
     @Transactional(rollbackFor = Exception.class)
     @Override
     public Boolean deleteById(MOrgEntity entity) {
@@ -957,15 +961,28 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
     /**
      * 根据组织类型智能获取子节点统计
-     * 集团类型返回详细分类统计，其他类型返回简单计数
+     * 集团类型返回详细分类统计，企业类型返回部门统计，部门类型返回子部门和岗位统计，其他类型返回简单计数
      */
+    @Cacheable(value = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT, 
+              key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #orgId + '::' + #orgType")
     @Override
     public Object getSubCountByType(Long orgId, String orgType) {
         // 集团类型常量：DICT_ORG_SETTING_TYPE_GROUP = "20"
         if (DictConstant.DICT_ORG_SETTING_TYPE_GROUP.equals(orgType)) {
             // 集团节点返回详细统计
             return mapper.getGroupSubCountDetail(orgId);
-        } else {
+        } 
+        // 企业类型常量：DICT_ORG_SETTING_TYPE_COMPANY = "30"  
+        else if (DictConstant.DICT_ORG_SETTING_TYPE_COMPANY.equals(orgType)) {
+            // 企业节点返回部门统计
+            return mapper.getCompanySubCountDetail(orgId);
+        } 
+        // 部门类型常量：DICT_ORG_SETTING_TYPE_DEPT = "40"
+        else if (DictConstant.DICT_ORG_SETTING_TYPE_DEPT.equals(orgType)) {
+            // 部门节点返回子部门和岗位统计
+            return mapper.getDeptSubCountDetail(orgId);
+        }
+        else {
             // 其他节点返回简单计数
             return mapper.getSubCount(orgId);
         }

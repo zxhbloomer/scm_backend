@@ -25,6 +25,7 @@ import com.xinyirun.scm.core.system.mapper.sys.rbac.role.SRoleMapper;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.rbac.role.ISRoleService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.common.autocode.SRoleAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.master.rbac.permission.role.MRolePositionServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,9 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
 
     @Autowired
     private ISConfigService configService;
+
+    @Autowired
+    private SRoleAutoCodeServiceImpl sRoleAutoCodeService;
 
     /**
      * 获取列表，页面查询
@@ -125,6 +129,12 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
     @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean saveBatches(List<SRoleEntity> entityList) {
+        // 为批量保存中编码为空的记录自动生成编码
+        for (SRoleEntity entity : entityList) {
+            if (StringUtils.isEmpty(entity.getCode())) {
+                entity.setCode(sRoleAutoCodeService.autoCode().getCode());
+            }
+        }
         return super.saveBatch(entityList, 500);
     }
 
@@ -300,6 +310,20 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
         columns.put("u_id", "更新人id");
         columns.put("u_time", "更新时间");
         bean.setColumns(columns);
+    }
+
+    /**
+     * 重写save方法，添加AutoCode逻辑
+     * @param entity
+     * @return
+     */
+    @Override
+    public boolean save(SRoleEntity entity) {
+        // 如果角色编码为空，则自动生成
+        if (StringUtils.isEmpty(entity.getCode())) {
+            entity.setCode(sRoleAutoCodeService.autoCode().getCode());
+        }
+        return super.save(entity);
     }
 
 }

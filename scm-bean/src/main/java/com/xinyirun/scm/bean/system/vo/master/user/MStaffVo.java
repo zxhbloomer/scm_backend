@@ -1,10 +1,8 @@
 package com.xinyirun.scm.bean.system.vo.master.user;
 
 import com.xinyirun.scm.bean.system.config.base.BaseVo;
-import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -241,23 +239,8 @@ public class MStaffVo extends BaseVo implements Serializable {
      */
     private SFileInfoVo two_fileVo;
 
-    private List<Integer> warehouseIds;
-
-    private List<Integer> warehouseGroupIds;
-
-    // 按员工设置的仓库列表
-    private List<MWarehouseVo> warehouseStaffList;
-
-    // 按员工设置的仓库组列表
-    private List<BWarehouseGroupVo> warehouseGroupList;
-    // 按岗位设置的仓库列表
-    private List<MWarehouseVo> warehouseGroupStaffList;
-
     // 权限数信息
     private TreeDataVo permissionTreeData;
-
-    // 仓库权限树信息
-    private TreeDataVo warehouseTreeData;
 
     /**
      * 最后一次登录登出时间

@@ -656,6 +656,8 @@ public class DictConstant {
     public static final String DICT_SYS_CODE_TYPE_S_TENANT  = "s_tenant";
     /** 菜单组编号 */
     public static final String DICT_SYS_CODE_TYPE_S_MENU  = "s_menu";
+    /** 角色编号 */
+    public static final String DICT_SYS_CODE_TYPE_S_ROLE  = "s_role";
     /** 集团主表编号 */
     public static final String DICT_SYS_CODE_TYPE_M_GROUP  = "m_group";
     /** 部门主表编号 */

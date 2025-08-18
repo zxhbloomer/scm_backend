@@ -17,8 +17,6 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.DeleteResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
-import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.BWarehouseRelationVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffPositionCountsVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffPositionVo;
@@ -40,10 +38,8 @@ import com.xinyirun.scm.core.system.mapper.client.user.MUserMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MPositionMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MStaffOrgMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
-import com.xinyirun.scm.core.system.mapper.master.warehouse.MWarehouseMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
-import com.xinyirun.scm.core.system.service.business.warehouse.relation.IBWarehouseRelationService;
 import com.xinyirun.scm.core.system.service.client.user.IMUserLiteService;
 import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
@@ -94,11 +90,6 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
     @Autowired
     private SFileInfoMapper fileInfoMapper;
 
-    @Autowired
-    private MWarehouseMapper mWarehouseMapper;
-
-    @Autowired
-    private IBWarehouseRelationService ibWarehouseRelationService;
 
     /**
      * 获取列表，页面查询
@@ -133,10 +124,6 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         vo.setPositions(positions);
         setFile(vo);
 
-        vo.setWarehouseGroupStaffList(mWarehouseMapper.getWarehouseByGroupStaffId(vo.getId().intValue()));
-        vo.setWarehouseGroupList(mWarehouseMapper.getWarehouseGroupByStaffId(vo.getId().intValue()));
-        vo.setWarehouseStaffList(mWarehouseMapper.getWarehouseByStaffId(vo.getId().intValue()));
-        vo.setWarehouseGroupIds(new ArrayList<>());
 
         MUserVo muservo = mUserMapper.selectUserById(vo.getUser_id());
         vo.setUser(muservo);
@@ -169,23 +156,6 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         mStaffPermissionDataVo.setChildren(positionList);
         vo.setPermissionTreeData(mStaffPermissionDataVo);
 
-        TreeDataVo warehouseTreeDataVo = new TreeDataVo();
-        warehouseTreeDataVo.setSerial_id(vo.getId());
-        warehouseTreeDataVo.setSerial_type("m_staff");
-        warehouseTreeDataVo.setLabel(vo.getName());
-        // 仓库组信息
-        List<TreeDataVo> warehouseGroupList = mUserMapper.selectWarehouseGroupList(vo.getId());
-        for(TreeDataVo warehouseGroupItem:warehouseGroupList) {
-            // 仓库组下的仓库信息
-            List<TreeDataVo> warehouseList = mUserMapper.selectWarehouseListByGroupId(warehouseGroupItem.getSerial_id());
-            warehouseGroupItem.setChildren(warehouseList);
-        }
-        warehouseTreeDataVo.setChildren(warehouseGroupList);
-
-        // 员工下的仓库信息
-        List<TreeDataVo> warehouseStaffList = mUserMapper.selectWarehouseListByStaffId(vo.getId());
-        warehouseTreeDataVo.getChildren().addAll(warehouseStaffList);
-        vo.setWarehouseTreeData(warehouseTreeDataVo);
 
         return vo;
     }
@@ -390,25 +360,7 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(mUserEntity.getId());
 
-        // 用户仓库分组权限
-        for (BWarehouseGroupVo bWarehouseGroupVo: vo.getWarehouseGroupList() ) {
-            BWarehouseRelationVo bWarehouseRelationVo = new BWarehouseRelationVo();
-            bWarehouseRelationVo.setStaff_id(mStaffEntity.getId().intValue());
-            bWarehouseRelationVo.setSerial_id(bWarehouseGroupVo.getId());
-            bWarehouseRelationVo.setSerial_type(DictConstant.DICT_SYS_CODE_WAREHOUSE_GROUP);
 
-            ibWarehouseRelationService.insert(bWarehouseRelationVo);
-        }
-
-        // 用户仓库权限
-        for (MWarehouseVo mWarehouseVo: vo.getWarehouseStaffList()) {
-            BWarehouseRelationVo bWarehouseRelationVo = new BWarehouseRelationVo();
-            bWarehouseRelationVo.setStaff_id(mStaffEntity.getId().intValue());
-            bWarehouseRelationVo.setSerial_id(mWarehouseVo.getId());
-            bWarehouseRelationVo.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_M_WAREHOUSE);
-
-            ibWarehouseRelationService.insert(bWarehouseRelationVo);
-        }
 
         // 返回值确定
         vo.setId(mStaffEntity.getId());
@@ -551,27 +503,7 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(mUserEntity.getId());
 
-        // 全删全插
-        ibWarehouseRelationService.deleteByStaffId(vo.getId().intValue());
-        // 用户仓库分组权限
-        for (BWarehouseGroupVo bWarehouseGroupVo: vo.getWarehouseGroupList() ) {
-            BWarehouseRelationVo bWarehouseRelationVo = new BWarehouseRelationVo();
-            bWarehouseRelationVo.setStaff_id(vo.getId().intValue());
-            bWarehouseRelationVo.setSerial_id(bWarehouseGroupVo.getId());
-            bWarehouseRelationVo.setSerial_type(DictConstant.DICT_SYS_CODE_WAREHOUSE_GROUP);
 
-            ibWarehouseRelationService.insert(bWarehouseRelationVo);
-        }
-
-        // 用户仓库权限
-        for (MWarehouseVo mWarehouseVo: vo.getWarehouseStaffList()) {
-            BWarehouseRelationVo bWarehouseRelationVo = new BWarehouseRelationVo();
-            bWarehouseRelationVo.setStaff_id(vo.getId().intValue());
-            bWarehouseRelationVo.setSerial_id(mWarehouseVo.getId());
-            bWarehouseRelationVo.setSerial_type(DictConstant.DICT_SYS_CODE_TYPE_M_WAREHOUSE);
-
-            ibWarehouseRelationService.insert(bWarehouseRelationVo);
-        }
 
         // 更新逻辑保存
         return UpdateResultUtil.OK(1);

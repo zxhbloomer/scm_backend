@@ -108,8 +108,8 @@ public class UserController extends SystemBaseController {
     @PostMapping("/logout")
     @ResponseBody
     public ResponseEntity<JsonResultAo<String>> logout() {
-        // 更新最后登出时间
-        service.updateLastLogoutDate();
+        // 执行完整的登出流程：更新登出时间 + 清理租户共享缓存
+        service.performLogout();
         return ResponseEntity.ok().body(ResultUtil.OK("登出成功"));
     }
 

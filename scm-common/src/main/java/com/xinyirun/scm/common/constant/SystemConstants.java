@@ -374,6 +374,8 @@ public class SystemConstants  {
         public static final String CACHE_SYSTEM_MENU_SEARCH_TYPE = "CACHE_SYSTEM_MENU_SEARCH_TYPE";
         /** 菜单查询 历史记录 */
         public static final String CACHE_SYSTEM_MENU_SEARCH_HISTORY = "CACHE_SYSTEM_MENU_SEARCH_HISTORY";
+        /** 组织统计 */
+        public static final String CACHE_ORG_SUB_COUNT = "CACHE_ORG_SUB_COUNT";
 
         /** 系统参数 */
         public static final String CACHE_CONFIG = "CACHE_CONFIG";

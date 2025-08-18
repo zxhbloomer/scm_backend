@@ -31,6 +31,8 @@ import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -71,6 +73,9 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
 
     @Autowired
     private ISConfigService configService;
+
+    @Autowired
+    private CacheManager cacheManager;
 
     /**
      * system登录入口
@@ -386,6 +391,81 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         } catch (Exception e) {
             log.error("获取登出人ID 失败");
         }
+    }
+
+    /**
+     * 执行完整的用户登出流程
+     * 包括：更新登出时间 + 清理租户共享缓存
+     * 注意：保留用户个人缓存（菜单收藏、搜索历史等）
+     */
+    @Override
+    public void performLogout() {
+        try {
+            log.info("开始执行用户登出流程");
+            
+            // 1. 更新用户最后登出时间
+            updateLastLogoutDate();
+            
+            // 2. 清理租户级共享缓存（保留用户个人缓存）
+            clearTenantSharedCaches();
+            
+            log.info("用户登出流程完成，租户缓存已清理");
+        } catch (Exception e) {
+            log.error("用户登出时缓存清理失败: {}", e.getMessage(), e);
+            // 不影响登出流程，继续执行
+        }
+    }
+
+    /**
+     * 清理租户级共享缓存
+     * 注意：不清理用户个人缓存（菜单收藏、搜索历史）
+     * 
+     * 清理的缓存包括：
+     * - CACHE_AREAS_CASCADER: 地区级联数据缓存
+     * - CACHE_DICT_TYPE: 数据字典缓存
+     * - CACHE_COLUMNS_TYPE: 表格列配置缓存
+     * - CACHE_SYSTEM_ICON_TYPE: 系统图标缓存
+     * - CACHE_ORG_SUB_COUNT: 组织架构统计缓存
+     * - CACHE_CONFIG: 系统参数配置缓存
+     * 
+     * 保留的用户个人缓存：
+     * - CACHE_SYSTEM_MENU_SEARCH_TYPE: 菜单收藏缓存
+     * - CACHE_SYSTEM_MENU_SEARCH_HISTORY: 菜单搜索历史缓存
+     */
+    private void clearTenantSharedCaches() {
+        String tenantKey = DataSourceHelper.getCurrentDataSourceName();
+        log.info("开始清理租户 [{}] 的共享缓存", tenantKey);
+        
+        // 要清理的租户共享缓存列表
+        List<String> sharedCaches = Arrays.asList(
+            SystemConstants.CACHE_PC.CACHE_AREAS_CASCADER,       // 地区级联数据
+            SystemConstants.CACHE_PC.CACHE_DICT_TYPE,            // 数据字典
+            SystemConstants.CACHE_PC.CACHE_COLUMNS_TYPE,         // 表格列配置  
+            SystemConstants.CACHE_PC.CACHE_SYSTEM_ICON_TYPE,     // 系统图标
+            SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT,        // 组织统计
+            SystemConstants.CACHE_PC.CACHE_CONFIG                // 系统参数
+        );
+        
+        int clearedCount = 0;
+        int totalCaches = sharedCaches.size();
+        
+        // 执行缓存清理
+        for (String cacheName : sharedCaches) {
+            try {
+                Cache cache = cacheManager.getCache(cacheName);
+                if (cache != null) {
+                    cache.clear();
+                    clearedCount++;
+                    log.debug("已清理缓存: {} (租户: {})", cacheName, tenantKey);
+                } else {
+                    log.warn("缓存不存在，跳过清理: {} (租户: {})", cacheName, tenantKey);
+                }
+            } catch (Exception e) {
+                log.error("清理缓存失败: {} (租户: {}), 错误: {}", cacheName, tenantKey, e.getMessage());
+            }
+        }
+        
+        log.info("租户 [{}] 共享缓存清理完成，共清理 {}/{} 个缓存", tenantKey, clearedCount, totalCaches);
     }
 
     /**

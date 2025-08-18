@@ -118,7 +118,8 @@ public class SDictTypeServiceImpl extends BaseServiceImpl<SDictTypeMapper, SDict
      * @param entity 实体对象
      * @return
      */
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_DICT_TYPE, key = "#entity.code")
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_DICT_TYPE, 
+                key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #entity.code")
     @Transactional(rollbackFor = Exception.class)
     @Override
     public InsertResultAo<Integer> insert(SDictTypeEntity entity) {
@@ -137,7 +138,8 @@ public class SDictTypeServiceImpl extends BaseServiceImpl<SDictTypeMapper, SDict
      * @param entity 实体对象
      * @return
      */
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_DICT_TYPE, key = "#entity.code")
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_DICT_TYPE, 
+                key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #entity.code")
     @Transactional(rollbackFor = Exception.class)
     @Override
     public UpdateResultAo<Integer> update(SDictTypeEntity entity) {

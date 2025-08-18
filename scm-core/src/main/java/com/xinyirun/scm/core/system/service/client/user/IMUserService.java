@@ -98,6 +98,13 @@ public interface IMUserService extends IService<MUserEntity> , UserDetailsServic
     void updateLastLogoutDate();
 
     /**
+     * 执行完整的用户登出流程
+     * 包括：更新登出时间 + 清理租户共享缓存
+     * 注意：保留用户个人缓存（菜单收藏、搜索历史等）
+     */
+    void performLogout();
+
+    /**
      * 更新最后登录时间
      */
      void updateLoginDate(Long id);

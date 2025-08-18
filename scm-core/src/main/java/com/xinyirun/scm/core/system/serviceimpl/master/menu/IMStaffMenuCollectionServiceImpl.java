@@ -26,7 +26,8 @@ import java.util.Map;
 public class IMStaffMenuCollectionServiceImpl extends BaseServiceImpl<IMStaffMenuCollectionMapper, MStaffMenuCollectionEntity> implements IMStaffMenuCollectionService {
 
     @Override
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_SYSTEM_MENU_SEARCH_TYPE, key = "#staffId")
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_SYSTEM_MENU_SEARCH_TYPE, 
+                key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #staffId")
     public void saveCollection(Long staffId, MMenuSearchCacheDataVo vo) {
         // 查詢當前用户下的收藏
         List<MStaffMenuCollectionEntity> list = baseMapper.selectList(Wrappers.<MStaffMenuCollectionEntity>lambdaQuery()
