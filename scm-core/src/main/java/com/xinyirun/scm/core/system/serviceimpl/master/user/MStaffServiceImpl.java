@@ -354,8 +354,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 //        mUserEntity.setU_time(null);
         mUserMapper.updateById(mUserEntity);
 
-        // 判断企业、部门字段，对用户组织关系表进行更新
-        updateStaffOrg(mStaffEntity);
+        // 判断企业、部门、岗位字段，对用户组织关系表进行更新
+        updateStaffOrg(mStaffEntity, vo);
 
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(mUserEntity.getId());
@@ -412,6 +412,35 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             deptStaffEntity.setSerial_id(entity.getDept_id());
             deptStaffEntity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE);
             mStaffOrgMapper.insert(deptStaffEntity);
+        }
+    }
+
+    /**
+     * 更新用户组织机构关系表（包含岗位关系）
+     * @param entity 员工实体
+     * @param vo 员工VO（包含岗位信息）
+     */
+    private void updateStaffOrg(MStaffEntity entity, MStaffVo vo) {
+        // 调用原有方法处理企业和部门关系
+        updateStaffOrg(entity);
+        
+        // 删除关系表：岗位（清理现有岗位关系）
+        mStaffOrgMapper.delete(new QueryWrapper<MStaffOrgEntity>()
+                .eq("staff_id", entity.getId())
+                .eq("serial_type", DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE)
+        );
+        
+        // 插入关系表：岗位（根据VO中的岗位信息）
+        if (vo != null && vo.getPositions() != null && !vo.getPositions().isEmpty()) {
+            for (MPositionInfoVo position : vo.getPositions()) {
+                if (position.getPosition_id() != null) {
+                    MStaffOrgEntity positionStaffEntity = new MStaffOrgEntity();
+                    positionStaffEntity.setStaff_id(entity.getId());
+                    positionStaffEntity.setSerial_id(position.getPosition_id());
+                    positionStaffEntity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+                    mStaffOrgMapper.insert(positionStaffEntity);
+                }
+            }
         }
     }
 
@@ -494,8 +523,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 //        mStaffEntity.setU_time(null);
         mapper.updateById(mStaffEntity);
 
-        // 判断企业、部门字段，对用户组织关系表进行更新
-        updateStaffOrg(mStaffEntity);
+        // 判断企业、部门、岗位字段，对用户组织关系表进行更新
+        updateStaffOrg(mStaffEntity, vo);
 
         // 设置返回值
         vo.setId(mStaffEntity.getId());

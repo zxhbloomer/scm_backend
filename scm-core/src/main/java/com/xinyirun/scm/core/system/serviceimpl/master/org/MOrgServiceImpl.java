@@ -375,6 +375,7 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                     updateODPRelation(entity, parentEntity);
                     break;
                 case DictConstant.DICT_ORG_SETTING_TYPE_STAFF:
+                    updateStaffPositionRelation(entity, parentEntity);
                     break;
                 default:
                     log.warn("未知的组织实体类型：{}，跳过关系设置", entity.getType());
@@ -498,6 +499,38 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             
         } catch (Exception e) {
             log.error("设置部门->岗位关系失败 - Current_ID：{}，Parent_ID：{}，错误：{}", 
+                currentEntity.getSerial_id(), parentEntity.getSerial_id(), e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * 设置员工->岗位关系
+     * 当在组织机构管理页面新增员工节点时，自动建立员工与父级岗位的关系
+     */
+    private void updateStaffPositionRelation(MOrgEntity currentEntity, MOrgEntity parentEntity) {
+        try {
+            // 验证父级实体必须是岗位类型
+            if (!DictConstant.DICT_ORG_SETTING_TYPE_POSITION.equals(parentEntity.getType())) {
+                log.warn("员工节点的父级不是岗位类型 - 员工Serial_ID：{}，父级Serial_ID：{}，父级类型：{}", 
+                    currentEntity.getSerial_id(), parentEntity.getSerial_id(), parentEntity.getType());
+                return;
+            }
+
+            // 创建员工-岗位关系实体
+            MStaffOrgEntity staffOrgEntity = new MStaffOrgEntity();
+            staffOrgEntity.setStaff_id(currentEntity.getSerial_id());  // 员工Serial_ID
+            staffOrgEntity.setSerial_id(parentEntity.getSerial_id()); // 岗位Serial_ID
+            staffOrgEntity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+            
+            // 插入员工-岗位关系
+            mStaffOrgService.save(staffOrgEntity);
+            
+            log.info("成功建立员工-岗位关系 - 员工Serial_ID：{}，岗位Serial_ID：{}", 
+                currentEntity.getSerial_id(), parentEntity.getSerial_id());
+                
+        } catch (Exception e) {
+            log.error("设置员工->岗位关系失败 - 员工Serial_ID：{}，岗位Serial_ID：{}，错误：{}", 
                 currentEntity.getSerial_id(), parentEntity.getSerial_id(), e.getMessage(), e);
             throw e;
         }
