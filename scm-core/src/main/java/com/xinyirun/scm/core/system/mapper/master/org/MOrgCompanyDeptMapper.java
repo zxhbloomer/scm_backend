@@ -21,13 +21,15 @@ import org.springframework.stereotype.Repository;
 public interface MOrgCompanyDeptMapper extends BaseMapper<MOrgCompanyDeptEntity> {
 
     /**
-     * 集团关系，集团嵌套count
+     * 集团关系，集团嵌套count - 增加组织类型过滤避免serial_id冲突
      * @return
      */
     @Select("""
-        SELECT *
+        SELECT t1.*
           FROM m_org_company_dept t1
+         INNER JOIN m_org t2 ON t1.current_id = t2.serial_id
          WHERE t1.current_id = #{p1}
+           AND t2.serial_type = 'm_dept'
         """)
     MOrgCompanyDeptEntity getOCDEntityByCurrentId(@Param("p1") Long current_id);
 

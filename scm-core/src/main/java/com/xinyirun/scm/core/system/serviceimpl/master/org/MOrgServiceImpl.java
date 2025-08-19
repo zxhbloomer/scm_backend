@@ -39,6 +39,7 @@ import com.xinyirun.scm.core.system.service.master.org.IMOrgService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.log.operate.SLogOperServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -60,6 +61,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zxh
  * @since 2019-08-23
  */
+@Slf4j
 @Service
 public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> implements IMOrgService {
 
@@ -352,22 +354,32 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
      * 设置组织关系表逻辑
      */
     private void setOrgRelationData(MOrgEntity entity, MOrgEntity parentEntity) {
-        // 判断当前结点
-        switch (entity.getType()) {
-            case DictConstant.DICT_ORG_SETTING_TYPE_GROUP:
-//                updateOTGRelation(entity,parentEntity);
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_COMPANY:
-                updateOGCRelation(entity,parentEntity);
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_DEPT:
-                updateOCDRelation(entity,parentEntity);
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_POSITION:
-                updateODPRelation(entity,parentEntity);
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_STAFF:
-                break;
+        try {
+            // 判断当前结点
+            switch (entity.getType()) {
+                case DictConstant.DICT_ORG_SETTING_TYPE_GROUP:
+    //                updateOTGRelation(entity,parentEntity);
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_COMPANY:
+                    updateOGCRelation(entity, parentEntity);
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_DEPT:
+                    updateOCDRelation(entity, parentEntity);
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_POSITION:
+                    updateODPRelation(entity, parentEntity);
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_STAFF:
+                    break;
+                default:
+                    log.warn("未知的组织实体类型：{}，跳过关系设置", entity.getType());
+                    break;
+            }
+            
+        } catch (Exception e) {
+            log.error("设置组织关系表逻辑失败 - 实体ID：{}，类型：{}，错误信息：{}", 
+                entity.getId(), entity.getType(), e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -375,66 +387,115 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
      * 设置集团->企业关系
      */
     private void updateOGCRelation(MOrgEntity currentEntity, MOrgEntity parentEntity){
-        MOrgGroupCompanyEntity oGCEntity = new MOrgGroupCompanyEntity();
-        oGCEntity.setOrg_id(currentEntity.getId());
-        oGCEntity.setOrg_parent_id(currentEntity.getParent_id());
-        oGCEntity.setCurrent_id(currentEntity.getSerial_id());
-        oGCEntity.setParent_id(parentEntity.getSerial_id());
-        oGCEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_GROUP_SERIAL_TYPE);
-        oGCEntity.setRoot_id(currentEntity.getSerial_id());
-        oGCEntity.setRoot_group_id(parentEntity.getSerial_id());
-        oGCEntity.setCounts(1);
-        oGCEntity.setSort(1);
-        oGCMapper.insert(oGCEntity);
+        try {
+            MOrgGroupCompanyEntity oGCEntity = new MOrgGroupCompanyEntity();
+            oGCEntity.setOrg_id(currentEntity.getId());
+            oGCEntity.setOrg_parent_id(currentEntity.getParent_id());
+            oGCEntity.setCurrent_id(currentEntity.getSerial_id());
+            oGCEntity.setParent_id(parentEntity.getSerial_id());
+            oGCEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_GROUP_SERIAL_TYPE);
+            oGCEntity.setRoot_id(currentEntity.getSerial_id());
+            oGCEntity.setRoot_group_id(parentEntity.getSerial_id());
+            oGCEntity.setCounts(1);
+            oGCEntity.setSort(1);
+            
+            /** 插入操作前先删除可能存在的旧记录，防止重复 */
+            oGCMapper.delOGCRelation(oGCEntity.getCurrent_id());
+            oGCMapper.insert(oGCEntity);
+            
+        } catch (Exception e) {
+            log.error("设置集团->企业关系失败 - Current_ID：{}，Parent_ID：{}，错误：{}", 
+                currentEntity.getSerial_id(), parentEntity.getSerial_id(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
      * 设置企业->部门关系
      */
     private void updateOCDRelation(MOrgEntity currentEntity, MOrgEntity parentEntity){
-        MOrgCompanyDeptEntity oCDEntity = new MOrgCompanyDeptEntity();
-        oCDEntity.setOrg_id(currentEntity.getId());
-        oCDEntity.setOrg_parent_id(currentEntity.getParent_id());
-        oCDEntity.setCurrent_id(currentEntity.getSerial_id());
-        if(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE.equals(parentEntity.getSerial_type())) {
-            /** 查找上级结点如果是部门时，说明存在部门嵌套， */
-            oCDEntity.setParent_id(parentEntity.getSerial_id());
-            oCDEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE);
-            // 查找上级结点获取，root信息
-            MOrgCompanyDeptEntity parentOCDEntity = oCDMapper
-                .getOCDEntityByCurrentId(parentEntity.getSerial_id());
-            oCDEntity.setRoot_id(parentOCDEntity.getRoot_id());
-        } else {
-            /** 查找上级结点如果是企业，则不存在嵌套 */
-            oCDEntity.setParent_id(parentEntity.getSerial_id());
-            oCDEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_COMPANY_SERIAL_TYPE);
-            oCDEntity.setRoot_id(currentEntity.getSerial_id());
+        try {
+            MOrgCompanyDeptEntity oCDEntity = new MOrgCompanyDeptEntity();
+            oCDEntity.setOrg_id(currentEntity.getId());
+            oCDEntity.setOrg_parent_id(currentEntity.getParent_id());
+            oCDEntity.setCurrent_id(currentEntity.getSerial_id());
+            
+            if(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE.equals(parentEntity.getSerial_type())) {
+                /** 查找上级结点如果是部门时，说明存在部门嵌套， */
+                oCDEntity.setParent_id(parentEntity.getSerial_id());
+                oCDEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE);
+                
+                try {
+                    MOrgCompanyDeptEntity parentOCDEntity = oCDMapper
+                        .getOCDEntityByCurrentId(parentEntity.getSerial_id());
+                    
+                    if (parentOCDEntity == null) {
+                        log.error("查询父级部门OCD实体失败，返回null - 父级Serial_ID：{}", parentEntity.getSerial_id());
+                        throw new BusinessException("无法找到父级部门的组织关系信息，Serial_ID：" + parentEntity.getSerial_id());
+                    }
+                    
+                    oCDEntity.setRoot_id(parentOCDEntity.getRoot_id());
+                    
+                } catch (org.apache.ibatis.exceptions.TooManyResultsException e) {
+                    log.error("查询父级部门OCD实体时发生重复记录异常 - 父级Serial_ID：{}，期望返回1条记录但实际返回多条", 
+                        parentEntity.getSerial_id(), e);
+                    
+                    // 查询重复记录的详细信息
+                    log.error("开始查询该Serial_ID的所有相关记录，用于诊断数据重复问题");
+                    throw new BusinessException("父级部门组织关系数据异常，存在重复记录，Serial_ID：" + parentEntity.getSerial_id(), e);
+                }
+                
+            } else {
+                /** 查找上级结点如果是企业，则不存在嵌套 */
+                oCDEntity.setParent_id(parentEntity.getSerial_id());
+                oCDEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_COMPANY_SERIAL_TYPE);
+                oCDEntity.setRoot_id(currentEntity.getSerial_id());
+            }
+            
+            /** 更新sort */
+            int count = oCDMapper.getOCDRelationCount(currentEntity);
+            count = count + 1;
+            oCDEntity.setSort(count);
+            
+            /** 插入操作前先删除可能存在的旧记录，防止重复 */
+            oCDMapper.delOCDRelation(oCDEntity.getCurrent_id());
+            oCDMapper.insert(oCDEntity);
+            
+            /** 更新counts，和sorts */
+            oCDMapper.updateOCDCountAndSort(oCDEntity.getId());
+            oCDMapper.updateOCDParentData();
+            
+        } catch (Exception e) {
+            log.error("设置企业->部门关系失败 - Current_ID：{}，Parent_ID：{}，错误：{}", 
+                currentEntity.getSerial_id(), parentEntity.getSerial_id(), e.getMessage(), e);
+            throw e;
         }
-        /** 更新sort */
-        int count = oCDMapper.getOCDRelationCount(currentEntity);
-        count = count + 1;
-        oCDEntity.setSort(count);
-        /** 插入操作 */
-        oCDMapper.insert(oCDEntity);
-        /** 更新counts，和sorts */
-        oCDMapper.updateOCDCountAndSort(oCDEntity.getId());
-        oCDMapper.updateOCDParentData();
     }
 
     /**
-     * 设置企业->部门关系，不存在嵌套
+     * 设置部门->岗位关系，不存在嵌套
      */
     private void updateODPRelation(MOrgEntity currentEntity, MOrgEntity parentEntity){
-        MOrgDeptPositionEntity oDPEntity = new MOrgDeptPositionEntity();
-        oDPEntity.setOrg_id(currentEntity.getId());
-        oDPEntity.setOrg_parent_id(currentEntity.getParent_id());
-        oDPEntity.setCurrent_id(currentEntity.getSerial_id());
-        oDPEntity.setParent_id(parentEntity.getSerial_id());
-        oDPEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE);
-        oDPEntity.setRoot_id(currentEntity.getSerial_id());
-        oDPEntity.setCounts(1);
-        oDPEntity.setSort(1);
-        oDPMapper.insert(oDPEntity);
+        try {
+            MOrgDeptPositionEntity oDPEntity = new MOrgDeptPositionEntity();
+            oDPEntity.setOrg_id(currentEntity.getId());
+            oDPEntity.setOrg_parent_id(currentEntity.getParent_id());
+            oDPEntity.setCurrent_id(currentEntity.getSerial_id());
+            oDPEntity.setParent_id(parentEntity.getSerial_id());
+            oDPEntity.setParent_type(DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE);
+            oDPEntity.setRoot_id(currentEntity.getSerial_id());
+            oDPEntity.setCounts(1);
+            oDPEntity.setSort(1);
+            
+            /** 插入操作前先删除可能存在的旧记录，防止重复 */
+            oDPMapper.delODPRelation(oDPEntity.getCurrent_id());
+            oDPMapper.insert(oDPEntity);
+            
+        } catch (Exception e) {
+            log.error("设置部门->岗位关系失败 - Current_ID：{}，Parent_ID：{}，错误：{}", 
+                currentEntity.getSerial_id(), parentEntity.getSerial_id(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     /**
@@ -608,6 +669,19 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
      * @param entity
      */
     private void deleteOrgRelation(MOrgEntity entity) {
+        // 防御性编程：检查实体数据完整性
+        if (entity.getType() == null) {
+            log.warn("跳过删除关系记录 - 实体类型为空，实体ID：{}，Serial_ID：{}", 
+                entity.getId(), entity.getSerial_id());
+            return;
+        }
+        
+        if (entity.getSerial_id() == null) {
+            log.warn("跳过删除关系记录 - Serial_ID为空，实体ID：{}，类型：{}", 
+                entity.getId(), entity.getType());
+            return;
+        }
+        
         switch (entity.getType()) {
 //            case DictConstant.DICT_ORG_SETTING_TYPE_TENANT:
 //                entity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_TENANT_SERIAL_TYPE);
@@ -676,30 +750,76 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
     )
     @Transactional(rollbackFor = Exception.class)
     public Boolean dragsave2Db(List<MOrgEntity> list){
-        // 编号重置
-        for (MOrgEntity entity : list) {
-            if(entity.getParent_id() != null){
-                setParentSonCount(list, entity.getParent_id());
+        log.info("开始执行拖拽保存操作，总计待处理实体数量：{}", list.size());
+        
+        try {
+            // 编号重置
+            for (MOrgEntity entity : list) {
+                if(entity.getParent_id() != null){
+                    setParentSonCount(list, entity.getParent_id());
+                }
             }
-        }
-        // 更新开始
-        for (MOrgEntity entity : list) {
-            entity.setSon_count(entity.getSon_count() == null ? 0 : entity.getSon_count());
-            entity.setU_id(SecurityUtil.getLoginUser_id());
-            entity.setU_time(LocalDateTime.now());
-            mapper.updateDragSave(entity);
-        }
+            
+            // 更新开始
+            for (MOrgEntity entity : list) {
+                entity.setSon_count(entity.getSon_count() == null ? 0 : entity.getSon_count());
+                entity.setU_id(SecurityUtil.getLoginUser_id());
+                entity.setU_time(LocalDateTime.now());
+                mapper.updateDragSave(entity);
+            }
 
-        // 设置组织关系表逻辑
-        for (MOrgEntity entity : list) {
-            /** 获取父亲的entity */
-            MOrgEntity currentEntity = getById(entity.getId());
-            MOrgEntity parentEntity = getById(entity.getParent_id());
-            /** 设置组织关系表逻辑 */
-            setOrgRelationData(currentEntity,parentEntity);
-        }
+            // 设置组织关系表逻辑 - 先清理所有实体的旧关系记录，避免重复记录导致TooManyResultsException
+            for (MOrgEntity entity : list) {
+                // 数据完整性检查
+                if (entity.getType() == null || entity.getSerial_id() == null) {
+                    continue;
+                }
+                deleteOrgRelation(entity);
+            }
+            
+            // 重新创建关系记录
+            for (MOrgEntity entity : list) {
+                /** 获取当前实体 */
+                MOrgEntity currentEntity = getById(entity.getId());
+                if (currentEntity == null) {
+                    log.error("无法获取当前实体，ID：{}", entity.getId());
+                    throw new BusinessException("无法获取当前实体，ID：" + entity.getId());
+                }
+                
+                // 检查是否为根节点（租户级别节点，parent_id为null）
+                if (entity.getParent_id() == null) {
+                    log.info("检测到根节点（租户级别），实体ID：{}，跳过父级关系处理", entity.getId());
+                    // 根节点不需要设置组织关系表，直接跳过
+                    continue;
+                }
+                
+                /** 获取父级实体 */
+                MOrgEntity parentEntity = getById(entity.getParent_id());
+                if (parentEntity == null) {
+                    log.error("无法获取父级实体，Parent_ID：{}", entity.getParent_id());
+                    throw new BusinessException("无法获取父级实体，ID：" + entity.getParent_id());
+                }
+                
+                /** 设置组织关系表逻辑 */
+                setOrgRelationData(currentEntity, parentEntity);
+            }
 
-        return true;
+            log.info("拖拽保存操作成功完成，处理实体数量：{}", list.size());
+            return true;
+            
+        } catch (Exception e) {
+            log.error("拖拽保存操作失败，事务将回滚，异常类型：{}，异常信息：{}", 
+                e.getClass().getSimpleName(), e.getMessage(), e);
+            
+            // 特殊处理TooManyResultsException，提供更详细的诊断信息
+            if (e instanceof org.apache.ibatis.exceptions.TooManyResultsException) {
+                log.error("检测到TooManyResultsException异常，这通常表示组织关系表中存在重复记录");
+                log.error("建议检查表：m_org_company_dept 中是否存在current_id重复的记录");
+                log.error("可执行SQL诊断：SELECT current_id, COUNT(*) FROM m_org_company_dept GROUP BY current_id HAVING COUNT(*) > 1");
+            }
+            
+            throw e;
+        }
     }
 
     /**
