@@ -767,5 +767,28 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
             "FROM m_org WHERE parent_id = #{orgId}")
     MOrgDeptSubCountVo getDeptSubCountDetail(@Param("orgId") Long orgId);
 
+    /**
+     * 统计指定岗位的在职员工数量
+     * @param positionId 岗位ID
+     * @return 在职员工数量
+     */
+    @Select("SELECT COUNT(1) " +
+            "FROM m_staff_org t1 " +
+            "INNER JOIN m_staff t2 ON t1.staff_id = t2.id " +
+            "WHERE t1.serial_id = #{positionId} " +
+            "AND t1.serial_type = 'm_position' " +
+            "AND t2.service = '1' " +
+            "AND t2.is_del = false")
+    Long countStaffByPositionId(@Param("positionId") Long positionId);
+
+    /**
+     * 按父节点ID和类型统计子节点数量
+     * @param parentId 父节点ID
+     * @param type 节点类型
+     * @return 子节点数量
+     */
+    @Select("SELECT COUNT(1) FROM m_org WHERE parent_id = #{parentId} AND type = #{type}")
+    Long countByParentIdAndType(@Param("parentId") Long parentId, @Param("type") String type);
+
 
 }

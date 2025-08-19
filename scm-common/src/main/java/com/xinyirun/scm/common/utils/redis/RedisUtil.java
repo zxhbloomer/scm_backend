@@ -91,6 +91,33 @@ public class RedisUtil {
    }
    
    /**
+    * 根据模式匹配删除缓存键
+    * @param pattern 模式，支持通配符 * 和 ?
+    * @return 删除的键数量
+    */
+   public long deleteByPattern(String pattern) {
+       try {
+           if (pattern == null || pattern.trim().isEmpty()) {
+               log.warn("deleteByPattern: pattern不能为空");
+               return 0;
+           }
+           
+           Set<String> keys = redisTemplate.keys(pattern);
+           if (keys != null && !keys.isEmpty()) {
+               Long deletedCount = redisTemplate.delete(keys);
+               log.info("根据模式 '{}' 删除了 {} 个缓存键", pattern, deletedCount);
+               return deletedCount != null ? deletedCount : 0;
+           } else {
+               log.info("根据模式 '{}' 未找到匹配的缓存键", pattern);
+               return 0;
+           }
+       } catch (Exception e) {
+           log.error("deleteByPattern error, pattern: {}", pattern, e);
+           return 0;
+       }
+   }
+   
+   /**
     * 普通缓存获取
     * @param key 键
     * @return 值

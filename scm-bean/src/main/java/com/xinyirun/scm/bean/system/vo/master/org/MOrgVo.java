@@ -78,6 +78,11 @@ public class MOrgVo extends BaseVo implements Serializable {
     private Integer sub_count;
 
     /**
+     * 员工数量（岗位节点统计）
+     */
+    private Long staff_count;
+
+    /**
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;

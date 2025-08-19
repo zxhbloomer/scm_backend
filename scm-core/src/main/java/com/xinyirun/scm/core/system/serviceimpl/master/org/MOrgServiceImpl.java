@@ -30,6 +30,7 @@ import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.ArrayPfUtil;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirun.scm.common.utils.redis.RedisUtil;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgCompanyDeptMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgDeptPositionMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgGroupCompanyMapper;
@@ -87,6 +88,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
     @Autowired
     private SLogOperServiceImpl sLogOperService;
+
+    @Autowired
+    private RedisUtil redisUtil;
 
     @Autowired
     public MOrgServiceImpl(@Lazy MOrgServiceImpl self) {
@@ -804,6 +808,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                 setOrgRelationData(currentEntity, parentEntity);
             }
 
+            // 清除当前租户的组织缓存以确保统计数据准确性
+            self.clearOrgCache();
+
             log.info("拖拽保存操作成功完成，处理实体数量：{}", list.size());
             return true;
             
@@ -1105,6 +1112,58 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         else {
             // 其他节点返回简单计数
             return mapper.getSubCount(orgId);
+        }
+    }
+
+    /**
+     * 重载方法：当未提供orgType时，根据orgId查询类型并统计
+     * @param orgId 组织ID
+     * @return 统计结果
+     */
+    public Object getSubCountByType(Long orgId) {
+        // 查询组织信息获取类型
+        MOrgEntity orgEntity = this.getById(orgId);
+        if (orgEntity == null) {
+            return 0;
+        }
+        
+        String orgType = orgEntity.getType();
+        
+        // 岗位类型常量：DICT_ORG_SETTING_TYPE_POSITION = "50"
+        if (DictConstant.DICT_ORG_SETTING_TYPE_POSITION.equals(orgType)) {
+            // 岗位节点返回在职员工数量
+            return mapper.countStaffByPositionId(orgId);
+        }
+        
+        // 其他类型调用带orgType参数的重载方法
+        return getSubCountByType(orgId, orgType);
+    }
+
+    /**
+     * 清除当前租户的所有组织缓存
+     * 用于在组织结构发生变更后清理缓存，确保统计数据的准确性
+     * 采用Redis模式匹配删除，只匹配DataSourceName前缀
+     */
+    public void clearOrgCache() {
+        try {
+            String dataSourceName = DataSourceHelper.getCurrentDataSourceName();
+            if (dataSourceName != null) {
+                // 构造缓存键模式：CACHE_ORG_SUB_COUNT::DataSourceName::*
+                String cachePattern = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT + "::" + dataSourceName + "::*";
+                
+                // 使用RedisUtil的模式匹配删除
+                long deletedCount = redisUtil.deleteByPattern(cachePattern);
+                
+                if (deletedCount > 0) {
+                    log.info("清除当前租户组织缓存成功，数据源：{}，清除缓存键数量：{}", dataSourceName, deletedCount);
+                } else {
+                    log.info("当前租户无组织缓存需要清除，数据源：{}", dataSourceName);
+                }
+            } else {
+                log.warn("无法获取当前数据源名称，跳过组织缓存清理");
+            }
+        } catch (Exception e) {
+            log.error("清除组织缓存失败：{}", e.getMessage(), e);
         }
     }
 
