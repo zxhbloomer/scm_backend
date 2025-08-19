@@ -170,5 +170,12 @@ public interface IMOrgService extends IService<MOrgEntity> {
      */
     Object getSubCountByType(Long orgId, String orgType);
 
+    /**
+     * 获取根节点统计信息
+     * 包含集团数、主体企业数、岗位数、员工数的综合统计
+     * 
+     * @return 根节点统计数据VO
+     */
+    MOrgCountsVo getRootStatistics();
 
 }

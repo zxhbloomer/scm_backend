@@ -50,6 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -1137,6 +1138,33 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         
         // 其他类型调用带orgType参数的重载方法
         return getSubCountByType(orgId, orgType);
+    }
+
+    /**
+     * 获取根节点统计信息
+     * 包含集团数、主体企业数、岗位数、员工数的综合统计
+     * 
+     * @return 根节点统计数据VO
+     */
+    @Cacheable(value = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT, 
+              key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::root::statistics'")
+    public MOrgCountsVo getRootStatistics() {
+        try {
+            MOrgCountsVo result = mapper.getRootStatistics();
+            if (result != null) {
+                return result;
+            }
+        } catch (Exception e) {
+            log.error("获取根节点统计信息失败：{}", e.getMessage(), e);
+        }
+        
+        // 异常情况返回默认值
+        MOrgCountsVo defaultResult = new MOrgCountsVo();
+        defaultResult.setGroup_count(0L);
+        defaultResult.setCompany_count(0L);
+        defaultResult.setPosition_count(0L);
+        defaultResult.setStaff_count(0L);
+        return defaultResult;
     }
 
     /**

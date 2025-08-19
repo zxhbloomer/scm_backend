@@ -204,4 +204,13 @@ public class OrgController extends SystemBaseController {
             return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 
+    @SysLogAnnotion("获取根节点统计信息")
+    // @ApiOperation(value = "获取根节点统计信息")
+    @GetMapping("/root/count")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<MOrgCountsVo>> getRootStatistics() {
+        MOrgCountsVo statistics = service.getRootStatistics();
+        return ResponseEntity.ok().body(ResultUtil.OK(statistics));
+    }
+
 }
