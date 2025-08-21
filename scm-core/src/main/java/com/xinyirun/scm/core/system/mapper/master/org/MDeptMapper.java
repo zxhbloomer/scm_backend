@@ -65,7 +65,7 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
             and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                              
             and (                                                                                                 
                -- 显示未使用的部门条件
-               case when #{p1.dataModel,jdbcType=VARCHAR} = 'show_unused' then   
+               case when #{p1.dataModel,jdbcType=VARCHAR} = '10' then   
                    not exists(                                                                                    
                              select 1                                                                             
                                from m_org subt1                                                                   

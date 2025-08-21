@@ -8,7 +8,6 @@ import com.xinyirun.scm.bean.entity.sys.rbac.role.MRolePositionEntity;
 import com.xinyirun.scm.bean.entity.sys.rbac.role.SRoleEntity;
 import com.xinyirun.scm.bean.system.bo.log.operate.CustomOperateBo;
 import com.xinyirun.scm.bean.system.bo.log.operate.CustomOperateDetailBo;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionTransferVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MRolePositionTransferVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRolePositionOperationVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRoleTransferVo;
@@ -77,13 +76,8 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
         Page<SRoleEntity> pageCondition = new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
+        // 查询数据，TypeHandler会自动处理permissionList的JSON转换
         IPage<SRoleVo> list = sRoleMapper.selectPage(pageCondition, searchCondition);
-        for (SRoleVo vo : list.getRecords()) {
-            MPermissionTransferVo condition = new MPermissionTransferVo();
-            condition.setRole_id(vo.getId().intValue());
-            List<MPermissionTransferVo> permissionList = mPermissionMapper.getAllPermissionList(condition);
-            vo.setPermissionList(permissionList);
-        }
         return list;
     }
 
@@ -156,23 +150,6 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
         saveOrUpdateBatch(list, 500);
     }
 
-    /**
-     * 批量启用禁用
-     * @param searchCondition
-     * @return
-     */
-    @Transactional(rollbackFor = Exception.class)
-    @Override
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_SYSTEM_MENU_SEARCH_TYPE, allEntries=true)
-    public void enable(List<SRoleVo> searchCondition) {
-        List<SRoleEntity> list = sRoleMapper.selectIdsIn(searchCondition);
-        list.forEach(
-                bean -> {
-                    bean.setIs_enable(!bean.getIs_enable());
-                }
-        );
-        saveOrUpdateBatch(list, 500);
-    }
 
     @Override
     public MRolePositionTransferVo getRoleTransferList(MRoleTransferVo condition) {

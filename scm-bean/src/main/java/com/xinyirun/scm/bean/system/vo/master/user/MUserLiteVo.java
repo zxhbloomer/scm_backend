@@ -59,10 +59,6 @@ public class MUserLiteVo implements Serializable {
      */
     private String name;
 
-    /**
-     * 简称
-     */
-    private String simple_name;
 
     /**
      * 系统用户=10,职员=20,客户=30,供应商=40,其他=50,认证管理员=60,审计管理员=70

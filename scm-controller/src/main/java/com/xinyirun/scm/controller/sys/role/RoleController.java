@@ -145,13 +145,4 @@ public class RoleController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
-    @SysLogAnnotion("角色数据启禁用")
-    // @ApiOperation(value = "根据参数id，角色数据启禁用")
-    @PostMapping("/enable")
-    @ResponseBody
-    @RepeatSubmitAnnotion
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<SRoleVo> searchConditionList) {
-        isRoleService.enable(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 }

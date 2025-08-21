@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.rbac.permission.MPermissionEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MPermissionRoleOperationVo;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionTransferVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MMenuRootNodeListVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MMenuRootNodeVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MPermissionMenuVo;
@@ -117,142 +116,11 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
             + "      ")
     Integer selectPermissionsByStaffId(@Param("p1") Long staff_id);
 
-    /**
-     * 获取全部权限
-     * @param condition
-     * @return
-     */
-    @Select("                                                                        "
-            + "     SELECT                                                               "
-            + "             t1.id AS `key`,                                              "
-            + "             t1.NAME AS label                                            "
-//        + "             t1.tenant_id                                                 "
-            + "       FROM  m_permission t1                                                   "
-            + "      WHERE                                                               "
-            + "             t1.is_del = "+DictConstant.DICT_SYS_DELETE_MAP_NO+"   "
-            + "          AND   t1.serial_type is null  "
-            + "   order by  t1.name                                                      "
-            + "                                                                          ")
-    List<MPermissionTransferVo> getAllPermissionTransferList(@Param("p1") MPermissionTransferVo condition);
 
-    /**
-     * 获取全部权限
-     * @param condition
-     * @return
-     */
-    @Select("                                                                        "
-            + "     SELECT                                                               "
-            + "             t1.id AS `key`,                                              "
-            + "             t1.NAME AS label                                            "
-//        + "             t1.tenant_id                                                 "
-            + "       FROM  m_permission t1                                                   "
-            + "       inner join  m_permission_role t2 on t1.id = t2.permission_id                                                 "
-            + "      WHERE                                                               "
-            + "             t1.is_del = "+DictConstant.DICT_SYS_DELETE_MAP_NO+"   "
-            + "    and (t2.role_id =#{p1.role_id,jdbcType=BIGINT} or #{p1.role_id,jdbcType=BIGINT} is null)                               "
-            + "          AND   t1.serial_type is null  "
-            + "   order by  t1.name                                                      "
-            + "                                                                          ")
-    List<MPermissionTransferVo> getAllPermissionList(@Param("p1") MPermissionTransferVo condition);
 
-    /**
-     * 获取该角色下，全部权限
-     * @param condition
-     * @return
-     */
-    @Select("                                                                                                         "
-            + "     SELECT                                                                                                "
-            + "             t1.permission_id AS `key`                                                                          "
-            + "       FROM  m_permission_role t1                                                                                "
-            + "  LEFT JOIN  m_permission t2 ON t1.permission_id = t2.id                                                             "
-            + "      where  t1.role_id = #{p1.role_id,jdbcType=BIGINT}                                              "
-            + "   order by  t2.`name`                                                                                     "
-            + "                                                                                                           ")
-    List<Integer> getUsedPermissionTransferList(@Param("p1") MPermissionTransferVo condition);
 
-    /**
-     * 获取要删除，权限角色数据
-     * @param bean
-     * @return
-     */
-    @Select("  <script>        "
-            + "       select t1.id ,                                                                                     "
-            + "              t2.name as permission_name ,                                                                     "
-            + "              t3.name as role_name ,                                                                  "
-            + "              t1.c_id,                                                                                    "
-            + "              t1.c_time,                                                                                  "
-            + "              t1.u_id,                                                                                    "
-            + "              t1.u_time                                                                                   "
-            + "         from                                                                                             "
-            + "               m_permission_role t1                                                                             "
-            + "    left join  m_permission t2 on t1.permission_id = t2.id                                                          "
-            + "    left join  s_role t3 on t3.id = t1.role_id                                                      "
-            + "        where                                                                                             "
-            + "               t1.role_id =  #{p1.role_id,jdbcType=BIGINT}                                          "
-            + "   <if test='p1.role_permissions != null and p1.role_permissions.length!=0' >                               "
-            + "         and t1.permission_id not in                                                                           "
-            + "        <foreach collection='p1.role_permissions' item='item' index='index' open='(' separator=',' close=')'>  "
-            + "         #{item}                                                                                          "
-            + "        </foreach>                                                                                        "
-            + "   </if>                                                                                                  "
-            + "   </script>                                                                                              ")
-    List<MPermissionRoleOperationVo> selectDeleteMember(@Param("p1") MPermissionTransferVo bean);
 
-    /**
-     * 获取要新增的权限角色数据
-     * @param bean
-     * @return
-     */
-    @Select("  <script>                                                                                              "
-            + "       select  t1.id                                                                                      "
-            + "         from  m_permission t1                                                                                 "
-            + "        where  not exists (                                                                               "
-            + "                 select true                                                                              "
-            + "                   from m_permission_role t2                                                                    "
-            + "                  where t2.role_id = #{p1.role_id,jdbcType=BIGINT}                                  "
-            + "                    and t1.id = t2.permission_id                                                               "
-            + "              )                                                      "
-            + "     <choose>                                                                                             "
-            + "       <when test='p1.role_permissions != null and p1.role_permissions.length!=0'>                          "
-            + "           and t1.id in                                                                             "
-            + "          <foreach collection='p1.role_permissions' item='item' index='index' open='(' separator=',' close=')'>  "
-            + "           #{item}                                                                                        "
-            + "          </foreach>                                                                                      "
-            + "       </when>                                                                                            "
-            + "       <otherwise>                                                                                        "
-            + "           and false                                                                                      "
-            + "       </otherwise>                                                                                       "
-            + "     </choose>                                                                                            "
-            + "   </script>                                                                                              ")
-    List<MPermissionRoleOperationVo> selectInsertMember(@Param("p1") MPermissionTransferVo bean);
 
-    /**
-     * 查询员工岗位数据
-     * @param bean
-     * @return
-     */
-    @Select("  <script>                                                                                              "
-            + "       select t1.id ,                                                                                     "
-            + "              t2.name as staff_name ,                                                                     "
-            + "              t3.name as position_name,                                                                   "
-            + "              t1.c_id,                                                                                    "
-            + "              t1.c_time,                                                                                  "
-            + "              t1.u_id,                                                                                    "
-            + "              t1.u_time                                                                                   "
-            + "         from                                                                                             "
-            + "               m_permission_role t1                                                                             "
-            + "    left join  m_permission t2 on t1.permission_id = t2.id                                                                            "
-            + "    left join  s_role t3 on t3.id = t1.role_id                                                                            "
-            + "        where                                                                                             "
-            + "               t1.role_id =  #{p1.role_id,jdbcType=INTEGER}                                          "
-            + "   <if test='p1.role_permissions != null and p1.role_permissions.length!=0' >                               "
-            + "         and t1.permission_id in                                                                           "
-            + "        <foreach collection='p1.role_permissions' item='item' index='index' open='(' separator=',' close=')'>  "
-            + "         #{item}                                                                                          "
-            + "        </foreach>                                                                                        "
-            + "   </if>                                                                                                  "
-            + "   </script>                                                                                              ")
-    List<MPermissionRoleOperationVo> selectMember(@Param("p1") MPermissionTransferVo bean);
 
     /**
      * 按条件获取所有数据，没有分页
@@ -333,8 +201,7 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
             + "   select *                                                                                              "
             + "          FROM m_permission_menu t1                                                                      "
             + "   where                                                                                                 "
-            + "   t1.is_enable = true                                                                                   "
-            + "   and t1.permission_id = #{p1}                                                                          "
+            + "   t1.permission_id = #{p1}                                                                          "
             + "                                                                          ")
     List<MPermissionMenuVo> selectPermissionMenu(@Param("p1") Long permission_id);
 
@@ -349,5 +216,17 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
             + "   t1.permission_id = #{p1}                                                                          "
             + "                                                                          ")
     List<MPermissionMenuVo> selectAllPermissionMenu(@Param("p1") Long permission_id);
+
+    /**
+     * 获取角色已分配的权限ID列表
+     * @param roleId 角色ID
+     * @return 权限ID列表
+     */
+    @Select("                                                                                                           "
+            + "   SELECT t2.permission_id                                                                               "
+            + "   FROM m_permission_role t2                                                                             "
+            + "   WHERE t2.role_id = #{p1}                                                                              "
+            + "                                                                          ")
+    List<Integer> selectPermissionIdsByRoleId(@Param("p1") Long roleId);
 
 }

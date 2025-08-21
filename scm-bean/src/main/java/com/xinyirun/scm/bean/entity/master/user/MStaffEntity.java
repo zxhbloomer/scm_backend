@@ -45,17 +45,6 @@ public class MStaffEntity extends BaseEntity<MStaffEntity> implements Serializab
     @TableField("name_py")
     private String name_py;
 
-    /**
-     * 简称
-     */
-    @TableField("simple_name")
-    private String simple_name;
-
-    /**
-     * 简称拼音
-     */
-    @TableField("simple_name_py")
-    private String simple_name_py;
 
     /**
      * 登录用户id，关联id

@@ -9,7 +9,10 @@ import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRoleTransferVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleExportVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleVo;
 import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PermissionItemListTypeHandler;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 
@@ -33,12 +36,14 @@ public interface SRoleMapper extends BaseMapper<SRoleEntity> {
      * @return
      */
     @Select("   "
-        + " select t1.*, t2.permission_count "
+        + " select t1.*, t2.permission_count, t2.permissionList "
         + "   from s_role t1 "
         + "     left join (                                                                                             "
         + "                  select count(1) permission_count,                                                               "
-        + "                         subt.role_id                                                                     "
+        + "                         subt.role_id,                                                                     "
+        + "                         JSON_ARRAYAGG(JSON_OBJECT('id', subt1.id, 'key', subt1.name, 'label', subt1.name)) permissionList                                                  "
         + "                    from m_permission_role subt                                                                    "
+        + "                    INNER JOIN m_permission subt1 ON subt.permission_id = subt1.id                               "
         + "                group by subt.role_id                                                  "
         + "                )  t2 on t2.role_id = t1.id                                                                "
         + "  where (t1.name        like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
@@ -46,6 +51,9 @@ public interface SRoleMapper extends BaseMapper<SRoleEntity> {
         + "    and (t1.simple_name like CONCAT ('%',#{p1.simple_name,jdbcType=VARCHAR},'%') or #{p1.simple_name,jdbcType=VARCHAR} is null) "
         + "    and (t1.is_del = #{p1.is_del} or  #{p1.is_del} is null)                                                  "
     )
+    @Results({
+        @Result(property = "permissionList", column = "permissionList", javaType = List.class, typeHandler = PermissionItemListTypeHandler.class),
+    })
     IPage<SRoleVo> selectPage(Page page, @Param("p1") SRoleVo searchCondition );
 
     /**
@@ -61,7 +69,6 @@ public interface SRoleMapper extends BaseMapper<SRoleEntity> {
             + "     t.name,                                                                                             "
             + "     t.descr,                                                                                            "
             + "     IF(is_del, '已删除', '未删除') is_delete,                                                             "
-            + "     IF(is_enable, '已启用', '已禁用') enable_name,                                                        "
             + "     t2.permissionList,                                                                                  "
             + "     t.u_time                                                                                            "
             + "   FROM s_role t                                                                                         "
@@ -243,7 +250,6 @@ public interface SRoleMapper extends BaseMapper<SRoleEntity> {
             + "     t.name,                                                                                             "
             + "     t.descr,                                                                                            "
             + "     IF(is_del, '已删除', '未删除') is_delete,                                                             "
-            + "     IF(is_enable, '已启用', '已禁用') enable_name,                                                        "
             + "     t2.permissionList,                                                                                  "
             + "     t.u_time                                                                                            "
             + "   FROM s_role t                                                                                         "

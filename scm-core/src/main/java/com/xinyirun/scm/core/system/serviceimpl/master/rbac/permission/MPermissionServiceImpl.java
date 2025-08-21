@@ -18,8 +18,6 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.org.MPermissionRoleOperationVo;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionRoleTransferVo;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionTransferVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.*;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.operation.OperationMenuDataVo;
 import com.xinyirun.scm.common.constant.DictConstant;
@@ -135,131 +133,14 @@ public class MPermissionServiceImpl extends BaseServiceImpl<MPermissionMapper, M
     }
 
     @Override
-    public MPermissionRoleTransferVo getPermissionTransferList(MPermissionTransferVo condition) {
-        MPermissionRoleTransferVo rtn = new MPermissionRoleTransferVo();
-        // 获取全部用户
-        rtn.setPermission_all(mapper.getAllPermissionTransferList(new MPermissionTransferVo()));
-        // 获取该岗位已经设置过得用户
-        List<Integer> rtnList = mapper.getUsedPermissionTransferList(condition);
-        rtn.setRole_permission(rtnList.toArray(new Integer[rtnList.size()]));
-        return rtn;
+    public List<Integer> getRoleAssignedPermissionIds(Long roleId) {
+        return mapper.selectPermissionIdsByRoleId(roleId);
     }
 
-    @Override
-    public MPermissionRoleTransferVo setPermissionTransfer(MPermissionTransferVo bean) {
-        // 操作日志bean初始化
-        CustomOperateBo cobo = new CustomOperateBo();
-        cobo.setName(SystemConstants.OPERATION.M_PERMISSION_ROLE.OPER_ROLE_STAFF);
-        cobo.setPlatform(SystemConstants.PLATFORM.PC);
-        cobo.setType(OperationEnum.BATCH_UPDATE_INSERT_DELETE);
 
 
-        // 查询出需要剔除的权限list
-        List<MPermissionRoleOperationVo> deleteMemberList = mapper.selectDeleteMember(bean);
-        // 查询出需要添加的权限list
-        List<MPermissionRoleOperationVo> insertMemberList = mapper.selectInsertMember(bean);
 
-        // 执行保存逻辑，并返回权限数量
-        return this.saveMemberList(deleteMemberList, insertMemberList, cobo, bean);
-    }
 
-    /**
-     * 保存员工关系，删除剔除的员工，增加选择的员工
-     * @param deleteMemberList
-     * @param insertMemberList
-     * @param cobo
-     * @param bean
-     * @return
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public MPermissionRoleTransferVo saveMemberList(List<MPermissionRoleOperationVo> deleteMemberList, List<MPermissionRoleOperationVo> insertMemberList,CustomOperateBo cobo, MPermissionTransferVo bean) {
-
-        List<CustomOperateDetailBo> detail = new ArrayList<>();
-
-        // ---------------------------------操作日志 新增 start-----------------------------------------------------
-        // 操作日志：记录删除前数据
-        for(MPermissionRoleOperationVo vo : deleteMemberList) {
-            CustomOperateDetailBo<MPermissionRoleOperationVo> bo = new CustomOperateDetailBo<>();
-            bo.setName(cobo.getName());
-            bo.setType(OperationEnum.DELETE);
-            bo.setTable_name(SystemConstants.OPERATION.M_STAFF_ORG.TABLE_NAME);
-            bo.setNewData(null);
-            bo.setOldData(vo);
-            setColumnsMap(bo);
-            detail.add(bo);
-        }
-        // ---------------------------------操作日志 新增 end-----------------------------------------------------
-
-        // 删除剔除的权限
-        List<MPermissionRoleEntity> delete_list = BeanUtilsSupport.copyProperties(deleteMemberList, MPermissionRoleEntity.class, new String[] {"c_time", "u_time"});
-        List<Integer> ids = Lists.newArrayList();
-        delete_list.forEach(beans -> {
-            ids.add(beans.getId());
-        });
-        if (ArrayPfUtil.isNotEmpty(ids)) {
-            permissionRoleService.removeByIds(ids);
-        }
-
-        // 增加选择的权限
-        Integer[] role_permissions = new Integer[insertMemberList.size()];
-        int i = 0;
-        List<MPermissionRoleEntity> mPermissionRoleEntities = new ArrayList<>();
-        for( MPermissionRoleOperationVo vo : insertMemberList ) {
-            MPermissionRoleEntity mPermissionRoleEntity = new MPermissionRoleEntity();
-            mPermissionRoleEntity.setPermission_id(vo.getId());
-            mPermissionRoleEntity.setRole_id(bean.getRole_id());
-            mPermissionRoleEntities.add(mPermissionRoleEntity);
-
-            role_permissions[i] = vo.getId();
-            i = i + 1;
-        }
-
-        permissionRoleService.saveBatch(mPermissionRoleEntities);
-
-        // ---------------------------------操作日志 新增 start-----------------------------------------------------
-        // 记录更新后数据
-        MPermissionTransferVo condition = new MPermissionTransferVo();
-        condition.setRole_id(bean.getRole_id());
-        condition.setRole_permissions(role_permissions);
-        List<MPermissionRoleOperationVo> selectMemberList = mapper.selectMember(bean);
-        for(MPermissionRoleOperationVo vo: selectMemberList) {
-            // 操作日志：记录新增数据
-            CustomOperateDetailBo<MPermissionRoleOperationVo> bo = new CustomOperateDetailBo<>();
-            bo.setName(cobo.getName());
-            bo.setType(OperationEnum.ADD);
-            bo.setTable_name(SystemConstants.OPERATION.M_PERMISSION_ROLE.TABLE_NAME);
-            bo.setNewData(vo);
-            bo.setOldData(new MPermissionRoleOperationVo());
-            setColumnsMap(bo);
-            detail.add(bo);
-        }
-        cobo.setDetail(detail);
-        // ---------------------------------操作日志 新增 end-----------------------------------------------------
-
-        // 保存操作日志
-//        sLogOperService.save(cobo);
-
-        // 查询最新数据并返回
-        // 获取该岗位已经设置过得用户
-        List<Integer> rtnList = mapper.getUsedPermissionTransferList(condition);
-        MPermissionRoleTransferVo mPermissionRoleTransferVo = new MPermissionRoleTransferVo();
-        mPermissionRoleTransferVo.setRole_permission_count(rtnList.size());
-        return mPermissionRoleTransferVo;
-    }
-
-    /**
-     * 设置列相对应的列名称
-     */
-    private void setColumnsMap(CustomOperateDetailBo<MPermissionRoleOperationVo> bean){
-        Map<String, String> columns = new ConcurrentHashMap<>();
-        columns.put("permission_name", "权限名称");
-        columns.put("role_name", "角色名称");
-        columns.put("c_id", "新增人id");
-        columns.put("c_time", "新增时间");
-        columns.put("u_id", "更新人id");
-        columns.put("u_time", "更新时间");
-        bean.setColumns(columns);
-    }
 
     /**
      * 获取列表，根据id查询所有数据
@@ -274,20 +155,6 @@ public class MPermissionServiceImpl extends BaseServiceImpl<MPermissionMapper, M
         return list;
     }
 
-    /**
-     * 批量删除复原
-     * @param searchCondition
-     * @return
-     */
-    @Transactional(rollbackFor = Exception.class)
-    @Override
-    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_SYSTEM_MENU_SEARCH_TYPE, allEntries=true)
-    public void enableById(MPermissionVo searchCondition) {
-        MPermissionVo vo = mapper.selectByid(searchCondition.getId());
-        vo.setIs_enable(!vo.getIs_enable());
-        MPermissionEntity entity = (MPermissionEntity)BeanUtilsSupport.copyProperties(vo, MPermissionEntity.class);
-        saveOrUpdate(entity);
-    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

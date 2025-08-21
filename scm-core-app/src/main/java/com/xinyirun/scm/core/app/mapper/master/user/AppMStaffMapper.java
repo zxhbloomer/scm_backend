@@ -170,33 +170,7 @@ public interface AppMStaffMapper extends BaseMapper<MStaffEntity> {
             + "      ")
     List<MStaffEntity> selectByNameNotEqualId(@Param("p1") String name, @Param("p2") Long not_equal_id);
 
-    /**
-     * 按条件获取所有数据，没有分页
-     * @param name
-     * @return
-     */
-    @Select("    "
-            + " select t.* "
-            + "   from m_staff t "
-            + "  where true "
-            + "    and t.simple_name =  #{p1}   "
-            + "    and (t.id  =  #{p2} or #{p2} is null)   "
-            + "      ")
-    List<MStaffEntity> selectBySimpleName(@Param("p1") String name, @Param("p2") Long equal_id);
 
-    /**
-     * 按条件获取所有数据，没有分页
-     * @param name
-     * @return
-     */
-    @Select("    "
-            + " select t.* "
-            + "   from m_staff t "
-            + "  where true "
-            + "    and t.simple_name =  #{p1}   "
-            + "    and (t.id  <>  #{p2} or #{p2} is null)   "
-            + "      ")
-    List<MStaffEntity> selectBySimpleNameNotEqualId(@Param("p1") String name, @Param("p2") Long not_equal_id);
 
     /**
      * 页面查询列表

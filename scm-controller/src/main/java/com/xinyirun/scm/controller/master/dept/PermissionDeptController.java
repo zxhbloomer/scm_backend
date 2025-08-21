@@ -87,14 +87,6 @@ public class PermissionDeptController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
-    @SysLogAnnotion("部门权限表数据启用禁用")
-    // @ApiOperation(value = "根据参数id，启用禁用")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) MPermissionVo searchConditionList) {
-        service.enableById(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @SysLogAnnotion("部门权限表数据获取系统菜单根节点")
     // @ApiOperation(value = "部门权限表数据获取系统菜单根节点")

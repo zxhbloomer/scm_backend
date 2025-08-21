@@ -54,7 +54,6 @@ public class AppMUserLiteServiceImpl extends AppBaseServiceImpl<AppUserLiteMappe
         if(mStaffEntity !=null) {
             userLiteEntity.setStaff_id(mStaffEntity.getId());
             userLiteEntity.setName(mStaffEntity.getName());
-            userLiteEntity.setSimple_name(mStaffEntity.getSimple_name());
             userLiteEntity.setCompany_id(mStaffEntity.getCompany_id());
             userLiteEntity.setDept_id(mStaffEntity.getDept_id());
         }

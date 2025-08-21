@@ -204,6 +204,16 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "     where true                                                                                          "
             + "     and (concat(ifnull(sub2.name, ''), '_', ifnull(sub2.code, '')) like concat('%', #{p1.position_name}, '%') or #{p1.position_name} is null or #{p1.position_name} = '')"
             + "     and (sub1.staff_id = t1.id or #{p1.position_name} is null or #{p1.position_name} = ''))                                                                              "
+            + "    and (                                                                                                                         "
+            + "       case when #{p1.dataModel,jdbcType=VARCHAR} = '" + DictConstant.DICT_ORG_USED_TYPE_SHOW_UNUSED + "' then   "
+            + "           not exists(                                                                                    "
+            + "                     select 1                                                                             "
+            + "                       from m_staff_org subt1                                                             "
+            + "                      where subt1.staff_id = t1.id                                                       "
+            + "           )                                                                                              "
+            + "       else true                                                                                          "
+            + "       end                                                                                                "
+            + "        )                                                                                                 "
             + "      ")
     IPage<MStaffVo> selectPage(Page page, @Param("p1") MStaffVo searchCondition);
 
@@ -265,33 +275,7 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "      ")
     List<MStaffEntity> selectByNameNotEqualId(@Param("p1") String name, @Param("p2") Long not_equal_id);
 
-    /**
-     * 按条件获取所有数据，没有分页
-     * @param name
-     * @return
-     */
-    @Select("    "
-            + " select t.* "
-            + "   from m_staff t "
-            + "  where true "
-            + "    and t.simple_name =  #{p1}   "
-            + "    and (t.id  =  #{p2} or #{p2} is null)   "
-            + "      ")
-    List<MStaffEntity> selectBySimpleName(@Param("p1") String name, @Param("p2") Long equal_id);
 
-    /**
-     * 按条件获取所有数据，没有分页
-     * @param name
-     * @return
-     */
-    @Select("    "
-            + " select t.* "
-            + "   from m_staff t "
-            + "  where true "
-            + "    and t.simple_name =  #{p1}   "
-            + "    and (t.id  <>  #{p2} or #{p2} is null)   "
-            + "      ")
-    List<MStaffEntity> selectBySimpleNameNotEqualId(@Param("p1") String name, @Param("p2") Long not_equal_id);
 
     /**
      * 页面查询列表

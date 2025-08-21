@@ -36,12 +36,6 @@ public class MStaffExportVo extends BaseVo implements Serializable {
     private String name;
 
 
-    @ExcelAnnotion(name = "姓名简称")
-    private String simple_name;
-
-
-/*    @ExcelAnnotion(name = "员工简称拼音")
-    private String simple_name_py;*/
 
     @ExcelAnnotion(name = "性别")
     private String sex_text;

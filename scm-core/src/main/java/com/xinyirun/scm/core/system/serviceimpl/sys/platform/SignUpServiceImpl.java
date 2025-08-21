@@ -64,7 +64,6 @@ public class SignUpServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         MStaffEntity mStaffEntity = new MStaffEntity();
 //        mStaffEntity.setTenant_id(sTenantEntity.getId());
         mStaffEntity.setName(bean.getAdmin());
-        mStaffEntity.setSimple_name(bean.getAdmin());
         mStaffMapper.insert(mStaffEntity);
 
         // 2.3:m_user插入数据

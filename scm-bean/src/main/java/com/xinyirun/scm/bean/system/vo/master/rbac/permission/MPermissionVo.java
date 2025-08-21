@@ -73,15 +73,6 @@ public class MPermissionVo implements Serializable {
      */
     private Boolean is_del;
 
-    /**
-     * 是否启用(1:true-已启用,0:false-已禁用)
-     */
-    private Boolean is_enable;
-
-    /**
-     * 启用时间
-     */
-    private LocalDateTime is_enable_time;
 
     /**
      * 租户id

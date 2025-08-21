@@ -47,12 +47,6 @@ public interface ISRoleService extends IService<SRoleEntity> {
      */
     void deleteByIdsIn(List<SRoleVo> searchCondition);
 
-    /**
-     * 启用禁用角色
-     * @param searchCondition
-     * @return
-     */
-    void enable(List<SRoleVo> searchCondition);
 
     /**
      * 获取角色清单，为穿梭框服务

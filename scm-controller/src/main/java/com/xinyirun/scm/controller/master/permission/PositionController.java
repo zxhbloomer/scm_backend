@@ -1,4 +1,4 @@
-package com.xinyirun.scm.controller.master.role;
+package com.xinyirun.scm.controller.master.permission;
 
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping(value = "/api/v1/role/position")
 @Slf4j
-public class RolePositionController extends SystemBaseController {
+public class PositionController extends SystemBaseController {
 
     @Autowired
     private ISRoleService service;

@@ -5,8 +5,6 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.entity.master.rbac.permission.MPermissionEntity;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionRoleTransferVo;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionTransferVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MMenuRootNodeListVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MPermissionVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.operation.OperationMenuDataVo;
@@ -44,16 +42,14 @@ public interface IMPermissionService extends IService<MPermissionEntity> {
     Integer selectPermissionsCountByStaffId(Long staff_id);
 
     /**
-     * 获取权限清单，为穿梭框服务
-     * @return
+     * 获取角色已分配的权限ID列表
+     * @param roleId 角色ID
+     * @return 权限ID列表
      */
-    MPermissionRoleTransferVo getPermissionTransferList(MPermissionTransferVo condition);
+    List<Integer> getRoleAssignedPermissionIds(Long roleId);
 
-    /**
-     * 保存穿梭框数据，权限角色设置
-     * @return
-     */
-    MPermissionRoleTransferVo setPermissionTransfer(MPermissionTransferVo bean);
+
+
 
 //    /**
 //     * 获取所有数据
@@ -65,12 +61,6 @@ public interface IMPermissionService extends IService<MPermissionEntity> {
      */
     List<MPermissionVo> selectIdsIn(List<MPermissionVo> searchCondition) ;
 
-    /**
-     * 批量删除复原
-     * @param searchCondition
-     * @return
-     */
-    void enableById(MPermissionVo searchCondition);
 
     /**
      * 设置/取消设置 为管理员

@@ -589,29 +589,7 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         super.saveOrUpdateBatch(entityList, 500);
     }
 
-    /**
-     * 获取列表，查询所有数据
-     *
-     * @param name
-     * @return
-     */
-    public List<MStaffEntity> selectBySimpleName(String name, Long equal_id) {
-        // 查询 数据
-        List<MStaffEntity> list = mapper.selectBySimpleName(name, equal_id);
-        return list;
-    }
 
-    /**
-     * 获取列表，查询所有数据
-     *
-     * @param name
-     * @return
-     */
-    public List<MStaffEntity> selectBySimpleNameNotEqualId(String name, Long not_equal_id) {
-        // 查询 数据
-        List<MStaffEntity> list = mapper.selectBySimpleNameNotEqualId(name, not_equal_id);
-        return list;
-    }
 
     /**
      * 查询by name，返回结果
@@ -648,11 +626,6 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                     return CheckResultUtil.NG("新增保存出错：员工姓名【"+ entity.getName() +"】出现重复", nameList_insertCheck);
                 }
 
-                // 员工简称重复性check
-                List<MStaffEntity> _insertCheck = selectBySimpleName(entity.getSimple_name(), null);
-                if (_insertCheck.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：员工姓名简称【"+ entity.getSimple_name() +"】出现重复", _insertCheck);
-                }
                 break;
             case CheckResultAo.UPDATE_CHECK_TYPE:
                 // 员工姓名重复性check
@@ -661,11 +634,6 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                     return CheckResultUtil.NG("更新保存出错：员工姓名【"+ entity.getName() +"】出现重复", nameList_updCheck);
                 }
 
-                // 员工简称重复性check
-                List<MStaffEntity> simpleNameList_updCheck = selectBySimpleNameNotEqualId(entity.getSimple_name(), entity.getId());
-                if (simpleNameList_updCheck.size() >= 1) {
-                    return CheckResultUtil.NG("更新保存出错：员工姓名简称【"+ entity.getSimple_name() +"】出现重复", simpleNameList_updCheck);
-                }
                 break;
             case CheckResultAo.DELETE_CHECK_TYPE:
                 /** 如果逻辑删除为false，表示为：页面点击了删除操作 */
@@ -675,7 +643,7 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                 // 是否被使用的check，如果被使用则不能删除
                 int count = mapper.isExistsInOrg(entity);
                 if(count > 0){
-                    return CheckResultUtil.NG("删除出错：该员工【"+ entity.getSimple_name() +"】在组织机构中正在使用！", count);
+                    return CheckResultUtil.NG("删除出错：该员工【"+ entity.getName() +"】在组织机构中正在使用！", count);
                 }
                 break;
             case CheckResultAo.UNDELETE_CHECK_TYPE:
@@ -685,11 +653,6 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 //                    CheckResultUtil.NG("复原出错：该员工【"+ entity.getName() +"】在组织机构数据中正在被使用，复原这条数据会造成数据重复！", entity.getName());
 //                }
 //
-//                // 员工简称重复性check
-//                List<MStaffEntity> simpleNameList_undelete_Check = selectBySimpleName(entity.getName(),  null);
-//                if (simpleNameList_undelete_Check.size() >= 1) {
-//                    return CheckResultUtil.NG("复原出错：该员工【"+ entity.getSimple_name() +"】在组织机构数据中正在被使用，复原这条数据会造成数据重复！", entity.getName());
-//                }
                 break;
         }
         return CheckResultUtil.OK();

@@ -1,4 +1,4 @@
-package com.xinyirun.scm.controller.master.role;
+package com.xinyirun.scm.controller.master.permission;
 
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping(value = "/api/v1/permission/operation")
 @Slf4j
 // @Api(tags = "权限操作")
-public class PermissionRoleOperationController extends SystemBaseController {
+public class PermissionOperationController extends SystemBaseController {
 
     @Autowired
     private IMPermissionRoleOperationService service;
@@ -35,7 +35,7 @@ public class PermissionRoleOperationController extends SystemBaseController {
 
     @SysLogAnnotion("根据查询条件，获取角色权限操作数据")
     // @ApiOperation(value = "根据查询条件，获取角色权限操作数据")
-    @PostMapping("/role/list")
+    @PostMapping("/list")
     @ResponseBody
     public ResponseEntity<JsonResultAo<OperationMenuVo>> list(@RequestBody(required = false) OperationMenuDataVo searchCondition) {
         OperationMenuVo entity = service.getTreeData(searchCondition);
@@ -59,7 +59,7 @@ public class PermissionRoleOperationController extends SystemBaseController {
 
     @SysLogAnnotion("保存权限操作数据")
     // @ApiOperation(value = "保存权限操作数据")
-    @PostMapping("/role/save")
+    @PostMapping("/save")
     @ResponseBody
     @RepeatSubmitAnnotion
     public ResponseEntity<JsonResultAo<String>> savePermission(@RequestBody(required = false) MPermissionMenuOperationVo condition) {

@@ -2,7 +2,6 @@ package com.xinyirun.scm.bean.system.vo.sys.rbac.role;
 
 import com.xinyirun.scm.bean.system.ao.fs.UploadFileResultAo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
-import com.xinyirun.scm.bean.system.vo.master.org.MPermissionTransferVo;
 
 // import io.swagger.annotations.ApiModel;
 import lombok.Data;
@@ -57,14 +56,26 @@ public class SRoleVo extends UploadFileResultAo implements Serializable {
     private int permission_count;
 
     /**
+     * 权限列表，用于前端显示
+     */
+    private List<PermissionItem> permissionList;
+
+    /**
+     * 权限项信息
+     */
+    @Data
+    @NoArgsConstructor
+    public static class PermissionItem {
+        private Long id;
+        private String key;
+        private String label;
+    }
+
+    /**
      * 租户代码
      */
     private String corp_code;
 
-    /**
-     * 是否启用(1:true-已启用,0:false-已禁用)
-     */
-    private Boolean is_enable;
 
     /**
      * 是否是已经删除(1:true-已删除,0:false-未删除)
@@ -84,8 +95,6 @@ public class SRoleVo extends UploadFileResultAo implements Serializable {
     private Long u_id;
 
     private LocalDateTime u_time;
-
-    List<MPermissionTransferVo> permissionList;
 
     /**
      * 换页条件

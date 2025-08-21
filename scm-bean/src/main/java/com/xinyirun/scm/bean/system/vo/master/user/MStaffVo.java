@@ -57,15 +57,6 @@ public class MStaffVo extends BaseVo implements Serializable {
      */
     private String name_py;
 
-    /**
-     * 简称
-     */
-    private String simple_name;
-
-    /**
-     * 简称拼音
-     */
-    private String simple_name_py;
 
     /**
      * 登录用户id，关联id
@@ -200,6 +191,11 @@ public class MStaffVo extends BaseVo implements Serializable {
      * 换页条件
      */
     private PageCondition pageCondition;
+
+    /**
+     * 数据模型：组织架构是否使用过滤条件
+     */
+    private String dataModel;
 
     /**
      * 用户主表

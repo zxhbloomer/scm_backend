@@ -47,15 +47,6 @@ public class MStaffTabDataVo extends BaseVo implements Serializable {
      */
     private String name_py;
 
-    /**
-     * 简称
-     */
-    private String simple_name;
-
-    /**
-     * 简称拼音
-     */
-    private String simple_name_py;
 
     /**
      * 登录用户id，关联id
