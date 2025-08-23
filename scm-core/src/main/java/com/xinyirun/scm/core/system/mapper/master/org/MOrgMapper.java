@@ -1135,23 +1135,26 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
     MOrgDeptSubCountVo getDeptSubCountDetail(@Param("orgId") Long orgId);
 
     /**
-     * 统计指定岗位的在职员工数量
-     * @param positionId 岗位ID
-     * @return 在职员工数量
+     * 统计指定岗位组织节点的员工数量（包含在职和离职）
+     * 通过组织节点ID获取实际岗位ID，然后统计员工数量
+     * @param orgNodeId 组织节点ID（岗位类型的组织节点）
+     * @return 员工数量
      */
 @Select("""
-        SELECT COUNT(1)
+        SELECT COUNT(1) as staff_count
         FROM m_staff_org t1
         INNER JOIN m_staff t2 ON t1.staff_id = t2.id
-        WHERE t1.serial_id = #{positionId}
+        WHERE t1.serial_id = (
+            SELECT serial_id 
+            FROM m_org 
+            WHERE id = #{orgNodeId} AND serial_type = 'm_position'
+        )
             -- 岗位序列类型：m_position
             AND t1.serial_type = 'm_position'
-            -- 在职状态：1
-            AND t2.service = '1'
             -- 未删除状态：false
             AND t2.is_del = false
         """)
-    Long countStaffByPositionId(@Param("positionId") Long positionId);
+    Long countStaffByPositionId(@Param("orgNodeId") Long orgNodeId);
 
     /**
      * 按父节点ID和类型统计子节点数量

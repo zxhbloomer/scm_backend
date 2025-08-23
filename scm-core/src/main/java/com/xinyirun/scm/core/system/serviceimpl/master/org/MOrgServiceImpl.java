@@ -31,7 +31,7 @@ import com.xinyirun.scm.common.utils.ArrayPfUtil;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.redis.RedisUtil;
-import com.xinyirun.scm.core.system.mapper.master.org.MOrgCompanyDeptMapper;
+import com.xinyirun.scm.core.system.mapper.master.org   .MOrgCompanyDeptMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgDeptPositionMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgGroupCompanyMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgMapper;
@@ -1128,8 +1128,11 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
               key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::' + #orgId + '::' + #orgType")
     @Override
     public Object getSubCountByType(Long orgId, String orgType) {
+        log.info("=== Service层处理组织统计 === orgId: {}, orgType: {}", orgId, orgType);
+        
         // 集团类型常量：DICT_ORG_SETTING_TYPE_GROUP = "20"
         if (DictConstant.DICT_ORG_SETTING_TYPE_GROUP.equals(orgType)) {
+            log.info("=== 处理集团类型 === orgId: {}", orgId);
             // 集团节点返回详细统计
             return mapper.getGroupSubCountDetail(orgId);
         } 
@@ -1142,6 +1145,12 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         else if (DictConstant.DICT_ORG_SETTING_TYPE_DEPT.equals(orgType)) {
             // 部门节点返回子部门和岗位统计
             return mapper.getDeptSubCountDetail(orgId);
+        }
+        // 岗位类型常量：DICT_ORG_SETTING_TYPE_POSITION = "50"
+        else if (DictConstant.DICT_ORG_SETTING_TYPE_POSITION.equals(orgType)) {
+            // 岗位节点返回员工数量
+            Long staffCount = mapper.countStaffByPositionId(orgId);
+            return staffCount;
         }
         else {
             // 其他节点返回简单计数
@@ -1165,7 +1174,7 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         
         // 岗位类型常量：DICT_ORG_SETTING_TYPE_POSITION = "50"
         if (DictConstant.DICT_ORG_SETTING_TYPE_POSITION.equals(orgType)) {
-            // 岗位节点返回在职员工数量
+            // 岗位节点返回员工数量
             return mapper.countStaffByPositionId(orgId);
         }
         
