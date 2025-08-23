@@ -52,6 +52,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 //        "com.xinyirun.scm.core.whapp.mapper",
         "com.xinyirun.scm.mq.rabbitmq.log.mapper",
         "com.xinyirun.scm.core.bpm.mapper",
+        "com.xinyirun.scm.report.mapper",
             })
 @EnableAsync(proxyTargetClass=true)
 // 启用spring retry

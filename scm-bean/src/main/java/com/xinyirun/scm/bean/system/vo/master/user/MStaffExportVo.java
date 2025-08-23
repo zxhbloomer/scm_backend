@@ -95,6 +95,12 @@ public class MStaffExportVo extends BaseVo implements Serializable {
     @ExcelAnnotion(name = "仓库组")
     private String warehouse_group_list;
 
+    @ExcelAnnotion(name = "排除权限", width=15)
+    private String exclude_permission_count_text;
+
+    @ExcelAnnotion(name = "排除权限信息", width=30)
+    private String exclude_permissions_text;
+
     @ExcelAnnotion(name = "最后登录时间", dateFormat="yyyy-MM-dd HH:mm:ss", width=25)
     private Date last_login_date;
 

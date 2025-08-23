@@ -5,7 +5,6 @@ import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
-import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRoleTransferVo;
 
 // import io.swagger.annotations.ApiModel;
 import lombok.Data;
@@ -126,9 +125,47 @@ public class MPositionVo extends BaseVo implements Serializable {
     private int warehouse_count1;
 
     /**
-     * 角色列表
+     * 角色列表（支持角色点击功能）
      */
-    private List<MRoleTransferVo> roleList;
+    private List<RoleItem> roleList;
+    
+    /**
+     * 该岗位权限数量
+     */
+    private int permission_count;
+    
+    /**
+     * 权限列表（支持权限点击功能）
+     */
+    private List<PermissionItem> permissionList;
+    
+    /**
+     * 角色项数据结构
+     */
+    @Data
+    @NoArgsConstructor
+    public static class RoleItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        
+        private Long id;
+        private String code;
+        private String name;
+        private String key;
+        private String label;
+    }
+    
+    /**
+     * 权限项数据结构
+     */
+    @Data
+    @NoArgsConstructor
+    public static class PermissionItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        
+        private Long id;
+        private String key;
+        private String label;
+    }
 
 
     /**

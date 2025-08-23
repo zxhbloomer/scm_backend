@@ -38,6 +38,7 @@
         <module>./scm-framework</module>
         <module>./scm-mq</module>
         <module>./scm-mq-consumer</module>
+        <module>./scm-report</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -675,6 +676,11 @@
             <dependency>
                 <groupId>com.xinyirun</groupId>
                 <artifactId>scm-mq-consumer</artifactId>
+                <version>${xinyirun.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xinyirun</groupId>
+                <artifactId>scm-report</artifactId>
                 <version>${xinyirun.version}</version>
             </dependency>
             <dependency>

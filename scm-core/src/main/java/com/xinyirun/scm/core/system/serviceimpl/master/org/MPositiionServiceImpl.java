@@ -15,7 +15,6 @@ import com.xinyirun.scm.bean.system.vo.master.org.MPositionExportVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
-import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRoleTransferVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.string.StringUtils;
@@ -74,13 +73,6 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
         IPage<MPositionVo> list = mapper.selectPage(pageCondition, searchCondition);
-        for (MPositionVo vo : list.getRecords()) {
-
-            // 单独查询权限数据， 原本写在一个sql中会导致排序失效
-            MRoleTransferVo condition = new MRoleTransferVo();
-            condition.setPosition_id(vo.getId().intValue());
-            vo.setRoleList(sRoleMapper.getAllRoleList(condition));
-        }
         return  list;
     }
 

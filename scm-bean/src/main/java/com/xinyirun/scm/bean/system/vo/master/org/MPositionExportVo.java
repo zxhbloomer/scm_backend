@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * <p>
@@ -49,6 +50,11 @@ public class MPositionExportVo implements Serializable {
 
     @ExcelProperty(value = "角色信息", index = 7)
     private String role_concat_name;
+    
+    /**
+     * 角色列表（用于前端角色点击功能，不导出到Excel）
+     */
+    private List<MPositionVo.RoleItem> roleList;
 
     @ExcelProperty(value = "是否删除", index=8)
     private String delete_status;

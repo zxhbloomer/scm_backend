@@ -8,9 +8,6 @@ import com.xinyirun.scm.bean.entity.sys.rbac.role.MRolePositionEntity;
 import com.xinyirun.scm.bean.entity.sys.rbac.role.SRoleEntity;
 import com.xinyirun.scm.bean.system.bo.log.operate.CustomOperateBo;
 import com.xinyirun.scm.bean.system.bo.log.operate.CustomOperateDetailBo;
-import com.xinyirun.scm.bean.system.vo.master.org.MRolePositionTransferVo;
-import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRolePositionOperationVo;
-import com.xinyirun.scm.bean.system.vo.sys.rbac.role.MRoleTransferVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleExportVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleVo;
 import com.xinyirun.scm.common.constant.SystemConstants;
@@ -151,34 +148,7 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
     }
 
 
-    @Override
-    public MRolePositionTransferVo getRoleTransferList(MRoleTransferVo condition) {
-        MRolePositionTransferVo rtn = new MRolePositionTransferVo();
-        // 获取全部用户
-        rtn.setRole_all(sRoleMapper.getAllRoleTransferList(new MRoleTransferVo()));
-        // 获取该岗位已经设置过的用户
-        List<Integer> rtnList = sRoleMapper.getUsedRoleTransferList(condition);
-        rtn.setPosition_role(rtnList.toArray(new Integer[rtnList.size()]));
-        return rtn;
-    }
 
-    @Override
-    public MRolePositionTransferVo setRoleTransfer(MRoleTransferVo bean) {
-        // 操作日志bean初始化
-        CustomOperateBo cobo = new CustomOperateBo();
-        cobo.setName(SystemConstants.OPERATION.M_ROLE_POSITION.OPER_POSITION_ROLE);
-        cobo.setPlatform(SystemConstants.PLATFORM.PC);
-        cobo.setType(OperationEnum.BATCH_UPDATE_INSERT_DELETE);
-
-
-        // 查询出需要剔除的权限list
-        List<MRolePositionOperationVo> deleteMemberList = sRoleMapper.selectDeleteMember(bean);
-        // 查询出需要添加的权限list
-        List<MRolePositionOperationVo> insertMemberList = sRoleMapper.selectInsertMember(bean);
-
-        // 执行保存逻辑，并返回权限数量
-        return this.saveMemberList(deleteMemberList, insertMemberList, cobo, bean);
-    }
 
     /**
      * 部分导出
@@ -191,103 +161,7 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
         return sRoleMapper.selectExportList(searchConditionList);
     }
 
-    /**
-     * 保存员工关系，删除剔除的员工，增加选择的员工
-     * @param deleteMemberList
-     * @param insertMemberList
-     * @param cobo
-     * @param bean
-     * @return
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public MRolePositionTransferVo saveMemberList(List<MRolePositionOperationVo> deleteMemberList, List<MRolePositionOperationVo> insertMemberList,CustomOperateBo cobo, MRoleTransferVo bean) {
 
-        List<CustomOperateDetailBo> detail = new ArrayList<>();
-
-        // ---------------------------------操作日志 新增 start-----------------------------------------------------
-        // 操作日志：记录删除前数据
-        for(MRolePositionOperationVo vo : deleteMemberList) {
-            CustomOperateDetailBo<MRolePositionOperationVo> bo = new CustomOperateDetailBo<>();
-            bo.setName(cobo.getName());
-            bo.setType(OperationEnum.DELETE);
-            bo.setTable_name(SystemConstants.OPERATION.M_STAFF_ORG.TABLE_NAME);
-            bo.setNewData(null);
-            bo.setOldData(vo);
-            setColumnsMap(bo);
-            detail.add(bo);
-        }
-        // ---------------------------------操作日志 新增 end-----------------------------------------------------
-
-        // 删除剔除的权限
-        List<MRolePositionEntity> delete_list = BeanUtilsSupport.copyProperties(deleteMemberList, MRolePositionEntity.class, new String[] {"c_time", "u_time"});
-        List<Integer> ids = Lists.newArrayList();
-        delete_list.forEach(beans -> {
-            ids.add(beans.getId());
-        });
-        if (ArrayPfUtil.isNotEmpty(ids)) {
-            rolePositionService.removeByIds(ids);
-        }
-
-        // 增加选择的权限
-        Integer[] position_roles = new Integer[insertMemberList.size()];
-        int i = 0;
-        List<MRolePositionEntity> mRolePositionEntities = new ArrayList<>();
-        for( MRolePositionOperationVo vo : insertMemberList ) {
-            MRolePositionEntity mRolePositionEntity = new MRolePositionEntity();
-            mRolePositionEntity.setRole_id(vo.getId());
-            mRolePositionEntity.setPosition_id(bean.getPosition_id());
-            mRolePositionEntities.add(mRolePositionEntity);
-
-            position_roles[i] = vo.getId();
-            i = i + 1;
-        }
-
-        rolePositionService.saveBatch(mRolePositionEntities);
-
-        // ---------------------------------操作日志 新增 start-----------------------------------------------------
-        // 记录更新后数据
-        MRoleTransferVo condition = new MRoleTransferVo();
-        condition.setPosition_id(bean.getPosition_id());
-        condition.setPosition_roles(position_roles);
-        List<MRolePositionOperationVo> selectMemberList = sRoleMapper.selectMember(bean);
-        for(MRolePositionOperationVo vo: selectMemberList) {
-            // 操作日志：记录新增数据
-            CustomOperateDetailBo<MRolePositionOperationVo> bo = new CustomOperateDetailBo<>();
-            bo.setName(cobo.getName());
-            bo.setType(OperationEnum.ADD);
-            bo.setTable_name(SystemConstants.OPERATION.M_PERMISSION_ROLE.TABLE_NAME);
-            bo.setNewData(vo);
-            bo.setOldData(new MRolePositionOperationVo());
-            setColumnsMap(bo);
-            detail.add(bo);
-        }
-        cobo.setDetail(detail);
-        // ---------------------------------操作日志 新增 end-----------------------------------------------------
-
-        // 保存操作日志
-//        sLogOperService.save(cobo);
-
-        // 查询最新数据并返回
-        // 获取该岗位已经设置过得用户
-        List<Integer> rtnList = sRoleMapper.getUsedRoleTransferList(condition);
-        MRolePositionTransferVo mRolePositionTransferVo = new MRolePositionTransferVo();
-        mRolePositionTransferVo.setPosition_role_count(rtnList.size());
-        return mRolePositionTransferVo;
-    }
-
-    /**
-     * 设置列相对应的列名称
-     */
-    private void setColumnsMap(CustomOperateDetailBo<MRolePositionOperationVo> bean){
-        Map<String, String> columns = new ConcurrentHashMap<>();
-        columns.put("position_name", "岗位名称");
-        columns.put("role_name", "角色名称");
-        columns.put("c_id", "新增人id");
-        columns.put("c_time", "新增时间");
-        columns.put("u_id", "更新人id");
-        columns.put("u_time", "更新时间");
-        bean.setColumns(columns);
-    }
 
     /**
      * 重写save方法，添加AutoCode逻辑
@@ -301,6 +175,16 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
             entity.setCode(sRoleAutoCodeService.autoCode().getCode());
         }
         return super.save(entity);
+    }
+
+    /**
+     * 获取角色选择弹窗列表（无分页，用于角色选择弹窗）
+     * @param searchCondition 查询条件
+     * @return List<SRoleVo>
+     */
+    @Override
+    public List<SRoleVo> selectListForDialog(SRoleVo searchCondition) {
+        return sRoleMapper.selectListForDialog(searchCondition);
     }
 
 }

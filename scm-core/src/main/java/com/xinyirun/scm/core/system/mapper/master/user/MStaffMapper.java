@@ -11,6 +11,9 @@ import com.xinyirun.scm.bean.system.vo.master.user.MStaffExportVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.core.system.config.mybatis.typehandlers.JsonArrayTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.RoleListTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PermissionListTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.ExcludePermissionListTypeHandler;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
@@ -45,7 +48,11 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "             c_staff.name as c_name,                                                                                                                     "
             + "             u_staff.name as u_name,                                                                                                                     "
             + "             t8.label as is_del_name,                                                                                                                    "
-            + "             t9.positions                                                                                                                                "
+            + "             t9.positions,                                                                                                                               "
+            + "             tt_roles.role_count,                                                                                                                        "
+            + "             tt_roles.roleList,                                                                                                                          "
+            + "             tt_permissions.permission_count,                                                                                                            "
+            + "             tt_permissions.permissionList                                                                                                               "
             + "        FROM                                                                                                                                             "
             + "            	m_staff t1                                                                                                                                  "
             + "            	LEFT JOIN v_dict_info AS t2 ON t2.code = '" + DictConstant.DICT_SYS_SEX_TYPE + "' and t2.dict_value = t1.sex                                "
@@ -75,6 +82,22 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "                         ) tab                                                                                                                           "
             + "                   where tab.count_order = tab.count_position                                                                                            "
             + "                       ) t9 on t9.staff_id = t1.id                                                                                                       "
+            + "             LEFT JOIN (                                                                                                                                 "
+            + "               SELECT COUNT(1) role_count,                                                                                                                "
+            + "                      JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) roleList,           "
+            + "                      mrs.staff_id                                                                                                                        "
+            + "               FROM m_role_staff mrs                                                                                                                      "
+            + "               INNER JOIN s_role sr ON sr.id = mrs.role_id AND sr.is_del = false                                                                        "
+            + "               GROUP BY mrs.staff_id                                                                                                                      "
+            + "             ) tt_roles ON tt_roles.staff_id = t1.id                                                                                                     "
+            + "             LEFT JOIN (                                                                                                                                 "
+            + "               SELECT COUNT(1) permission_count,                                                                                                          "
+            + "                      mps.staff_id,                                                                                                                       "
+            + "                      JSON_ARRAYAGG(JSON_OBJECT('id', mp.id, 'key', mp.name, 'label', mp.name)) permissionList                                         "
+            + "               FROM m_permission_staff mps                                                                                                                "
+            + "               INNER JOIN m_permission mp ON mps.permission_id = mp.id                                                                                   "
+            + "               GROUP BY mps.staff_id                                                                                                                      "
+            + "             ) tt_permissions ON tt_permissions.staff_id = t1.id                                                                                         "
             + "             LEFT JOIN m_user t10 ON t10.staff_id = t1.id                                                                                                "
             + "       where true                                                                                                                                        "
             + "          and (t1.code != 'SYSTEMADMIN' or t1.code is null)                                                                                                                   "
@@ -98,7 +121,13 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "             t10.last_login_date,                                                                                    "
             + "             t10.last_logout_date,                                                                                   "
             + "             t8.label as is_del_name,                                                                                "
-            + "             t11.group_list as warehouse_group_list                                                                  "
+            + "             t11.group_list as warehouse_group_list,                                                                 "
+            + "             tt_roles.role_count,                                                                                    "
+            + "             tt_roles.roleList,                                                                                      "
+            + "             tt_permissions.permission_count,                                                                        "
+            + "             tt_permissions.permissionList,                                                                          "
+            + "             tt_exclude_permissions.exclude_permission_count,                                                        "
+            + "             tt_exclude_permissions.excludePermissionList                                                            "
             + "        FROM                                                                                                         "
             + "            	m_staff t1                                                                                              "
             + "            	LEFT JOIN v_dict_info AS t2 ON t2.code = '" + DictConstant.DICT_SYS_SEX_TYPE + "' and t2.dict_value = t1.sex                      "
@@ -120,6 +149,31 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "      b_warehouse_relation t1                                                                            "
             + " 	INNER JOIN b_warehouse_group t2 ON t2.id = t1.serial_id AND t1.serial_type = 'b_warehouse_group'    "
             + " GROUP BY t1.staff_id) t11 ON t11.staff_id = t1.id                                                       "
+            + "             LEFT JOIN (                                                                                 "
+            + "               SELECT COUNT(1) role_count,                                                               "
+            + "                      JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) roleList, "
+            + "                      mrs.staff_id                                                                       "
+            + "               FROM m_role_staff mrs                                                                     "
+            + "               INNER JOIN s_role sr ON sr.id = mrs.role_id AND sr.is_del = false                       "
+            + "               GROUP BY mrs.staff_id                                                                     "
+            + "             ) tt_roles ON tt_roles.staff_id = t1.id                                                    "
+            + "             LEFT JOIN (                                                                                 "
+            + "               SELECT COUNT(1) permission_count,                                                         "
+            + "                      mps.staff_id,                                                                      "
+            + "                      JSON_ARRAYAGG(JSON_OBJECT('id', mp.id, 'key', mp.name, 'label', mp.name)) permissionList "
+            + "               FROM m_permission_staff mps                                                               "
+            + "               INNER JOIN m_permission mp ON mps.permission_id = mp.id                                  "
+            + "               GROUP BY mps.staff_id                                                                     "
+            + "             ) tt_permissions ON tt_permissions.staff_id = t1.id                                        "
+            + "             LEFT JOIN (                                                                                 "
+            + "               SELECT COUNT(1) exclude_permission_count,                                                 "
+            + "                      t2.staff_id,                                                                       "
+            + "                      JSON_ARRAYAGG(JSON_OBJECT('id', t3.id, 'key', t3.name, 'label', t3.name)) excludePermissionList "
+            + "               FROM m_permission_staff_exclude t2                                                        "
+            + "               LEFT JOIN m_permission t3 ON t2.permission_id = t3.id                                     "
+            + "               WHERE (t3.status = 0 OR t3.status IS NULL)                                                "
+            + "               GROUP BY t2.staff_id                                                                      "
+            + "             ) tt_exclude_permissions ON tt_exclude_permissions.staff_id = t1.id                        "
 
             + "       where true                                                                                        "
             + "          and (t1.code != 'SYSTEMADMIN' or t1.code is null)                                              "
@@ -215,6 +269,11 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "       end                                                                                                "
             + "        )                                                                                                 "
             + "      ")
+    @Results({
+        @Result(column = "roleList", property = "roleList", typeHandler = RoleListTypeHandler.class),
+        @Result(column = "permissionList", property = "permissionList", typeHandler = PermissionListTypeHandler.class),
+        @Result(column = "excludePermissionList", property = "excludePermissionList", typeHandler = ExcludePermissionListTypeHandler.class)
+    })
     IPage<MStaffVo> selectPage(Page page, @Param("p1") MStaffVo searchCondition);
 
     /**
@@ -230,6 +289,11 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "         #{item.id}                                                                              "
             + "        </foreach>                                                                               "
             + "  </script>                                                                                      ")
+    @Results({
+        @Result(column = "roleList", property = "roleList", typeHandler = RoleListTypeHandler.class),
+        @Result(column = "permissionList", property = "permissionList", typeHandler = PermissionListTypeHandler.class),
+        @Result(column = "excludePermissionList", property = "excludePermissionList", typeHandler = ExcludePermissionListTypeHandler.class)
+    })
     List<MStaffVo> selectIdsIn(@Param("p1") List<MStaffVo> searchCondition);
 
     /**
@@ -245,6 +309,11 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "         #{item.id}                                                                              "
             + "        </foreach>                                                                               "
             + "  </script>                                                                                      ")
+    @Results({
+        @Result(column = "roleList", property = "roleList", typeHandler = RoleListTypeHandler.class),
+        @Result(column = "permissionList", property = "permissionList", typeHandler = PermissionListTypeHandler.class),
+        @Result(column = "excludePermissionList", property = "excludePermissionList", typeHandler = ExcludePermissionListTypeHandler.class)
+    })
     List<MStaffVo> exportSelectIdsIn(@Param("p1") List<MStaffVo> searchCondition);
 
     /**
@@ -286,6 +355,11 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "    and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)      "
 //        + "    and (t1.tenant_id =#{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)      "
             + "      ")
+    @Results({
+        @Result(column = "roleList", property = "roleList", typeHandler = RoleListTypeHandler.class),
+        @Result(column = "permissionList", property = "permissionList", typeHandler = PermissionListTypeHandler.class),
+        @Result(column = "excludePermissionList", property = "excludePermissionList", typeHandler = ExcludePermissionListTypeHandler.class)
+    })
     MStaffVo selectByid(@Param("p1") MStaffVo searchCondition);
 
     /**
@@ -413,6 +487,11 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + common_select1
             + "             and (t1.id = #{p1})                                                                         "
             + "      ")
+    @Results({
+        @Result(column = "roleList", property = "roleList", typeHandler = RoleListTypeHandler.class),
+        @Result(column = "permissionList", property = "permissionList", typeHandler = PermissionListTypeHandler.class),
+        @Result(column = "excludePermissionList", property = "excludePermissionList", typeHandler = ExcludePermissionListTypeHandler.class)
+    })
     MStaffVo getDetail(@Param("p1") Long staffId);
 
 

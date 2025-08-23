@@ -249,4 +249,62 @@ public class MStaffVo extends BaseVo implements Serializable {
      */
     private Boolean is_enable;
 
+    /**
+     * 该员工角色数量
+     */
+    private int role_count;
+    
+    /**
+     * 角色列表（支持角色点击功能）
+     */
+    private List<RoleItem> roleList;
+    
+    /**
+     * 该员工权限数量
+     */
+    private int permission_count;
+    
+    /**
+     * 权限列表（支持权限点击功能）
+     */
+    private List<PermissionItem> permissionList;
+    
+    /**
+     * 该员工排除权限数量
+     */
+    private int exclude_permission_count;
+    
+    /**
+     * 排除权限列表（支持权限点击功能）
+     */
+    private List<PermissionItem> excludePermissionList;
+    
+    /**
+     * 角色项数据结构
+     */
+    @Data
+    @NoArgsConstructor
+    public static class RoleItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        
+        private Long id;
+        private String code;
+        private String name;
+        private String key;
+        private String label;
+    }
+    
+    /**
+     * 权限项数据结构
+     */
+    @Data
+    @NoArgsConstructor
+    public static class PermissionItem implements Serializable {
+        private static final long serialVersionUID = 1L;
+        
+        private Long id;
+        private String key;
+        private String label;
+    }
+
 }

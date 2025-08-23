@@ -11,8 +11,11 @@ import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.core.system.service.master.org.IMPositionService;
+import com.xinyirun.scm.core.system.service.master.rbac.permission.role.IMRolePositionService;
+import com.xinyirun.scm.core.system.service.master.rbac.permission.IMPermissionPositionService;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +23,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author zhangxh
@@ -33,6 +38,12 @@ public class OrgPositionController extends SystemBaseController {
 
     @Autowired
     private IMPositionService service;
+
+    @Autowired
+    private IMRolePositionService rolePositionService;
+
+    @Autowired
+    private IMPermissionPositionService permissionPositionService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -118,5 +129,123 @@ public class OrgPositionController extends SystemBaseController {
     public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) List<MPositionVo> searchConditionList) {
         service.deleteByIdsIn(searchConditionList);
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    }
+
+    @SysLogAnnotion("获取岗位已分配的角色ID列表")
+    @PostMapping("/role/assigned")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<Integer>>> getPositionAssignedRoleIds(@RequestBody Map<String, Long> request) {
+        Long positionId = request.get("position_id");
+        if (positionId == null) {
+            throw new BusinessException("岗位ID不能为空");
+        }
+        List<Integer> roleIds = rolePositionService.getPositionAssignedRoleIds(positionId);
+        return ResponseEntity.ok().body(ResultUtil.OK(roleIds));
+    }
+
+    @SysLogAnnotion("保存岗位角色关系（全删全插）")
+    @PostMapping("/role/save")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> savePositionRoles(@RequestBody Map<String, Object> request) {
+        Object positionIdObj = request.get("positionId");
+        Object roleIdsObj = request.get("roleIds");
+        
+        // 处理positionId参数
+        Long positionId;
+        if (positionIdObj instanceof Number) {
+            positionId = ((Number) positionIdObj).longValue();
+        } else if (positionIdObj instanceof String) {
+            try {
+                positionId = Long.parseLong((String) positionIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("岗位ID格式错误");
+            }
+        } else {
+            throw new BusinessException("岗位ID不能为空");
+        }
+        
+        // 处理roleIds参数
+        List<Integer> roleIds = new ArrayList<>();
+        if (roleIdsObj instanceof List) {
+            List<?> list = (List<?>) roleIdsObj;
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    roleIds.add(((Number) item).intValue());
+                }
+            }
+        }
+        
+        boolean success = rolePositionService.savePositionRoles(positionId, roleIds);
+        if (success) {
+            return ResponseEntity.ok().body(ResultUtil.OK("岗位角色保存成功"));
+        } else {
+            throw new BusinessException("岗位角色保存失败");
+        }
+    }
+
+    @SysLogAnnotion("获取岗位已分配的权限ID列表")
+    @PostMapping("/permissions/assigned")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<Long>>> getPositionAssignedPermissionIds(@RequestBody Map<String, Object> request) {
+        Object positionIdObj = request.get("position_id");
+        
+        // 处理positionId参数
+        Long positionId;
+        if (positionIdObj instanceof Number) {
+            positionId = ((Number) positionIdObj).longValue();
+        } else if (positionIdObj instanceof String) {
+            try {
+                positionId = Long.parseLong((String) positionIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("岗位ID格式错误");
+            }
+        } else {
+            throw new BusinessException("岗位ID不能为空");
+        }
+        
+        List<Long> permissionIds = permissionPositionService.getAssignedPermissionIds(positionId);
+        return ResponseEntity.ok().body(ResultUtil.OK(permissionIds));
+    }
+
+    @SysLogAnnotion("保存岗位权限关系（全删全插）")
+    @PostMapping("/permissions/save")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> savePositionPermissions(@RequestBody Map<String, Object> request) {
+        Object positionIdObj = request.get("positionId");
+        Object permissionIdsObj = request.get("permissionIds");
+        
+        // 处理positionId参数
+        Long positionId;
+        if (positionIdObj instanceof Number) {
+            positionId = ((Number) positionIdObj).longValue();
+        } else if (positionIdObj instanceof String) {
+            try {
+                positionId = Long.parseLong((String) positionIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("岗位ID格式错误");
+            }
+        } else {
+            throw new BusinessException("岗位ID不能为空");
+        }
+        
+        // 处理permissionIds参数
+        List<Long> permissionIds = new ArrayList<>();
+        if (permissionIdsObj instanceof List) {
+            List<?> list = (List<?>) permissionIdsObj;
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    permissionIds.add(((Number) item).longValue());
+                }
+            }
+        }
+        
+        boolean success = permissionPositionService.savePositionPermissions(positionId, permissionIds);
+        if (success) {
+            return ResponseEntity.ok().body(ResultUtil.OK("岗位权限保存成功"));
+        } else {
+            throw new BusinessException("岗位权限保存失败");
+        }
     }
 }

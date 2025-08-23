@@ -9,7 +9,11 @@ import com.xinyirun.scm.bean.system.vo.master.org.MPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MPositionInfoVo;
 import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.RoleItemListTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PermissionItemListTypeHandler;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 
@@ -39,7 +43,10 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
         + "               tt5.warehouse_count warehouse_count1,                                                         "
         + "               f_get_org_simple_name(vor.code, 'm_group') group_full_simple_name,                            "
         + "               f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name,                         "
-        + "               f_get_org_simple_name ( vor.CODE, 'm_dept' ) dept_full_simple_name                            "
+        + "               f_get_org_simple_name ( vor.CODE, 'm_dept' ) dept_full_simple_name,                           "
+        + "               tt_roles.roleList,                                                                               "
+        + "               tt_permissions.permission_count,                                                               "
+        + "               tt_permissions.permissionList                                                                  "
         + "          FROM m_position t1                                                                                 "
         + "     LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                                                       "
         + "     LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                       "
@@ -47,7 +54,7 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
         + "    and t2.dict_value = CONCAT('', t1.is_del)                                                           "
         + "     left join (                                                                                             "
         + "                  select count(1) staff_count,                                                               "
-        + "                         subt.serial_id,                                                                     "
+        + "                         subt.serial_id,                                                                       "
         + "                         subt.serial_type                                                                    "
         + "                    from m_staff_org subt                                                                    "
         + "                group by subt.serial_id, subt.serial_type                                                    "
@@ -61,7 +68,7 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
         + "	            	s_role subt1                                                                                "
         + "	            	INNER JOIN m_role_position subt2 ON subt1.id = subt2.role_id                                "
         + "	            WHERE                                                                                           "
-        + "	            	subt1.is_del = '0'                                                                          "
+        + "	            	subt1.is_del = false                                                                        "
         + "	            GROUP BY                                                                                        "
         + "	            	subt2.position_id                                                                           "
         + "                )  t4 on t4.position_id = t1.id                                                              "
@@ -101,6 +108,20 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
         + "                          group by ttab.serial_id                                                            "
         + "                )  tt5 on tt5.serial_id = t1.id                                                              "
         + "      LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_position' and vor.serial_id = t1.id               "
+        + "      LEFT JOIN (                                                                                           "
+        + "        SELECT JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) roleList, mrp.position_id "
+        + "        FROM m_role_position mrp                                                                            "
+        + "        INNER JOIN s_role sr ON sr.id = mrp.role_id AND sr.is_del = false                                 "
+        + "        GROUP BY mrp.position_id                                                                           "
+        + "      ) tt_roles ON tt_roles.position_id = t1.id                                                          "
+        + "      LEFT JOIN (                                                                                           "
+        + "        SELECT COUNT(1) permission_count,                                                                  "
+        + "               mpp.position_id,                                                                             "
+        + "               JSON_ARRAYAGG(JSON_OBJECT('id', mp.id, 'key', mp.name, 'label', mp.name)) permissionList   "
+        + "        FROM m_permission_position mpp                                                                      "
+        + "        INNER JOIN m_permission mp ON mpp.permission_id = mp.id                                            "
+        + "        GROUP BY mpp.position_id                                                                            "
+        + "      ) tt_permissions ON tt_permissions.position_id = t1.id                                               "
         + "                                                                            ";
 
 
@@ -129,11 +150,14 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
         + "       end                                                                                                "
         + "        )                                                                                                 "
         + "      ")
+    @Results({
+        @Result(property = "roleList", column = "roleList", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+        @Result(property = "permissionList", column = "permissionList", javaType = List.class, typeHandler = PermissionItemListTypeHandler.class),
+    })
     IPage<MPositionVo> selectPage(Page page, @Param("p1") MPositionVo searchCondition);
 
     /**
      * 页面查询列表
-     * @param page
      * @param searchCondition
      * @return
      */
@@ -142,6 +166,10 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
             + "  where true                                                                                             "
             + "  and t1.id = #{p1.id,jdbcType=BIGINT}                                                                   "
             + "   ")
+    @Results({
+        @Result(property = "roleList", column = "roleList", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+        @Result(property = "permissionList", column = "permissionList", javaType = List.class, typeHandler = PermissionItemListTypeHandler.class),
+    })
     MPositionVo getDetail(@Param("p1") MPositionVo searchCondition);
 
     /**
@@ -197,9 +225,9 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
 //            + "				ttab1.serial_id                                                                                                                                            "
 //            + "			) tt5 ON tt5.serial_id = t1.id                                                                                                                                 "
             + "  LEFT JOIN (                                                                                                                                                               "
-            + "    SELECT GROUP_CONCAT(sr.name) role_name, mrp.position_id                                                                                                             "
+            + "    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) role_name, mrp.position_id                  "
             + "    FROM m_role_position mrp                                                                                                                                            "
-            + "    INNER JOIN s_role sr ON sr.id = mrp.role_id                                                                                                                         "
+            + "    INNER JOIN s_role sr ON sr.id = mrp.role_id AND sr.is_del = false                                                                                                  "
             + "    GROUP BY mrp.position_id"
             + "  ) tt6 ON tt6.position_id = t1.id                                                                                                                                      "
             + "			LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_position' and vor.serial_id = t1.id,                                                                      "
@@ -211,6 +239,9 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
             + "  ORDER BY t1.u_time DESC                                                                                                                                               "
 //        + "    and (t1.tenant_id =#{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)       "
             + "      ")
+    @Results({
+        @Result(property = "roleList", column = "role_name", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+    })
     List<MPositionExportVo> select(@Param("p1") MPositionVo searchCondition);
 
     /**
@@ -267,9 +298,9 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
 //            + "				ttab1.serial_id                                                                                                                                            "
 //            + "			) tt5 ON tt5.serial_id = t1.id                                                                                                                                 "
             + "  LEFT JOIN (                                                                                                                                                               "
-            + "    SELECT GROUP_CONCAT(sr.name) role_name, mrp.position_id                                                                                                             "
+            + "    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) role_name, mrp.position_id                  "
             + "    FROM m_role_position mrp                                                                                                                                            "
-            + "    INNER JOIN s_role sr ON sr.id = mrp.role_id                                                                                                                         "
+            + "    INNER JOIN s_role sr ON sr.id = mrp.role_id AND sr.is_del = false                                                                                                  "
             + "    GROUP BY mrp.position_id"
             + "  ) tt6 ON tt6.position_id = t1.id                                                                                                                                      "
             + "			LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_position' and vor.serial_id = t1.id,                                                                      "
@@ -281,6 +312,9 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
             + "        </foreach>                                                                                                                                                      "
             + "  ORDER BY t1.u_time DESC                                                                                                                                               "
             + "</script>      ")
+    @Results({
+        @Result(property = "roleList", column = "role_name", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+    })
     List<MPositionExportVo> selectIdsInForExport(@Param("p1") List<MPositionVo> searchCondition);
 
     /**
@@ -359,6 +393,10 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
         + "    and (t1.id = #{p1.id,jdbcType=BIGINT})                                                               "
 //        + "    and (t1.tenant_id = #{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)      "
         + "                                                                          ")
+    @Results({
+        @Result(property = "roleList", column = "roleList", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+        @Result(property = "permissionList", column = "permissionList", javaType = List.class, typeHandler = PermissionItemListTypeHandler.class),
+    })
     MPositionVo selectByid(@Param("p1") MPositionVo searchCondition);
 
     /**

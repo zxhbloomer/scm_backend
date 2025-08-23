@@ -13,6 +13,10 @@ import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
+import com.xinyirun.scm.core.system.service.sys.rbac.role.IMRoleStaffService;
+import com.xinyirun.scm.core.system.service.master.rbac.permission.IMPermissionStaffService;
+import com.xinyirun.scm.core.system.service.master.rbac.permission.IMPermissionStaffExcludeService;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.excel.export.ExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +29,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 
 /**
  * @author zhangxh
@@ -37,6 +43,15 @@ public class MasterStaffController extends SystemBaseController {
 
     @Autowired
     private IMStaffService service;
+
+    @Autowired
+    private IMRoleStaffService roleStaffService;
+
+    @Autowired
+    private IMPermissionStaffService permissionStaffService;
+
+    @Autowired
+    private IMPermissionStaffExcludeService permissionStaffExcludeService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -160,6 +175,191 @@ public class MasterStaffController extends SystemBaseController {
     public ResponseEntity<AppJsonResultAo<String>> saveAvatar(String url) {
         service.saveAvatar(url);
         return ResponseEntity.ok().body(AppResultUtil.OK("OK"));
+    }
+
+    // ===================【员工角色权限管理API】===================
+    
+    @SysLogAnnotion("获取员工已分配的角色ID列表")
+    @PostMapping("/role/assigned")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<Integer>>> getStaffAssignedRoleIds(@RequestBody Map<String, Long> request) {
+        Long staffId = request.get("staff_id");
+        if (staffId == null) {
+            throw new BusinessException("员工ID不能为空");
+        }
+        List<Integer> roleIds = roleStaffService.getStaffAssignedRoleIds(staffId);
+        return ResponseEntity.ok().body(ResultUtil.OK(roleIds));
+    }
+
+    @SysLogAnnotion("保存员工角色关系（全删全插）")
+    @PostMapping("/role/save")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> saveStaffRoles(@RequestBody Map<String, Object> request) {
+        Object staffIdObj = request.get("staffId");
+        Object roleIdsObj = request.get("roleIds");
+        
+        // 处理staffId参数
+        Long staffId;
+        if (staffIdObj instanceof Number) {
+            staffId = ((Number) staffIdObj).longValue();
+        } else if (staffIdObj instanceof String) {
+            try {
+                staffId = Long.parseLong((String) staffIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("员工ID格式错误");
+            }
+        } else {
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        // 处理roleIds参数
+        List<Integer> roleIds = new ArrayList<>();
+        if (roleIdsObj instanceof List) {
+            List<?> list = (List<?>) roleIdsObj;
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    roleIds.add(((Number) item).intValue());
+                }
+            }
+        }
+        
+        boolean success = roleStaffService.saveStaffRoles(staffId, roleIds);
+        if (success) {
+            return ResponseEntity.ok().body(ResultUtil.OK("员工角色保存成功"));
+        } else {
+            throw new BusinessException("员工角色保存失败");
+        }
+    }
+
+    @SysLogAnnotion("获取员工已分配的权限ID列表")
+    @PostMapping("/permissions/assigned")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<Long>>> getStaffAssignedPermissionIds(@RequestBody Map<String, Object> request) {
+        Object staffIdObj = request.get("staff_id");
+        
+        // 处理staffId参数
+        Long staffId;
+        if (staffIdObj instanceof Number) {
+            staffId = ((Number) staffIdObj).longValue();
+        } else if (staffIdObj instanceof String) {
+            try {
+                staffId = Long.parseLong((String) staffIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("员工ID格式错误");
+            }
+        } else {
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        List<Long> permissionIds = permissionStaffService.getAssignedPermissionIds(staffId);
+        return ResponseEntity.ok().body(ResultUtil.OK(permissionIds));
+    }
+
+    @SysLogAnnotion("保存员工权限关系（全删全插）")
+    @PostMapping("/permissions/save")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> saveStaffPermissions(@RequestBody Map<String, Object> request) {
+        Object staffIdObj = request.get("staffId");
+        Object permissionIdsObj = request.get("permissionIds");
+        
+        // 处理staffId参数
+        Long staffId;
+        if (staffIdObj instanceof Number) {
+            staffId = ((Number) staffIdObj).longValue();
+        } else if (staffIdObj instanceof String) {
+            try {
+                staffId = Long.parseLong((String) staffIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("员工ID格式错误");
+            }
+        } else {
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        // 处理permissionIds参数
+        List<Long> permissionIds = new ArrayList<>();
+        if (permissionIdsObj instanceof List) {
+            List<?> list = (List<?>) permissionIdsObj;
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    permissionIds.add(((Number) item).longValue());
+                }
+            }
+        }
+        
+        boolean success = permissionStaffService.saveStaffPermissions(staffId, permissionIds);
+        if (success) {
+            return ResponseEntity.ok().body(ResultUtil.OK("员工权限保存成功"));
+        } else {
+            throw new BusinessException("员工权限保存失败");
+        }
+    }
+
+    @SysLogAnnotion("获取员工已排除的权限ID列表")
+    @PostMapping("/permissions/excluded")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<Long>>> getStaffExcludedPermissionIds(@RequestBody Map<String, Object> request) {
+        Object staffIdObj = request.get("staff_id");
+        
+        // 处理staffId参数
+        Long staffId;
+        if (staffIdObj instanceof Number) {
+            staffId = ((Number) staffIdObj).longValue();
+        } else if (staffIdObj instanceof String) {
+            try {
+                staffId = Long.parseLong((String) staffIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("员工ID格式错误");
+            }
+        } else {
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        List<Long> excludePermissionIds = permissionStaffExcludeService.getStaffExcludedPermissionIds(staffId);
+        return ResponseEntity.ok().body(ResultUtil.OK(excludePermissionIds));
+    }
+
+    @SysLogAnnotion("保存员工排除权限关系（全删全插）")
+    @PostMapping("/permissions/exclude/save")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> saveStaffExcludePermissions(@RequestBody Map<String, Object> request) {
+        Object staffIdObj = request.get("staffId");
+        Object excludePermissionIdsObj = request.get("excludePermissionIds");
+        
+        // 处理staffId参数
+        Long staffId;
+        if (staffIdObj instanceof Number) {
+            staffId = ((Number) staffIdObj).longValue();
+        } else if (staffIdObj instanceof String) {
+            try {
+                staffId = Long.parseLong((String) staffIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("员工ID格式错误");
+            }
+        } else {
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        // 处理excludePermissionIds参数
+        List<Long> excludePermissionIds = new ArrayList<>();
+        if (excludePermissionIdsObj instanceof List) {
+            List<?> list = (List<?>) excludePermissionIdsObj;
+            for (Object item : list) {
+                if (item instanceof Number) {
+                    excludePermissionIds.add(((Number) item).longValue());
+                }
+            }
+        }
+        
+        boolean success = permissionStaffExcludeService.saveStaffExcludePermissions(staffId, excludePermissionIds);
+        if (success) {
+            return ResponseEntity.ok().body(ResultUtil.OK("员工排除权限保存成功"));
+        } else {
+            throw new BusinessException("员工排除权限保存失败");
+        }
     }
 
 }

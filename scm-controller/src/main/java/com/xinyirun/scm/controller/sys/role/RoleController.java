@@ -145,4 +145,16 @@ public class RoleController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
+    @SysLogAnnotion("获取所有角色列表，为角色选择弹窗服务")
+    @PostMapping("/all")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<SRoleVo>>> getAllRoles(@RequestBody(required = false) SRoleVo searchCondition) {
+        if (searchCondition == null) {
+            searchCondition = new SRoleVo();
+        }
+        searchCondition.setIs_del(false); // 只查询未删除的角色
+        List<SRoleVo> roleList = isRoleService.selectListForDialog(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK(roleList));
+    }
+
 }
