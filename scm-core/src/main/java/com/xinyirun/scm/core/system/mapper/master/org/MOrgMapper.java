@@ -7,7 +7,11 @@ import com.xinyirun.scm.bean.entity.master.org.MOrgEntity;
 import com.xinyirun.scm.bean.system.vo.common.component.NameAndValueVo;
 import com.xinyirun.scm.bean.system.vo.master.org.*;
 import com.xinyirun.scm.common.constant.DictConstant;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.RoleItemListTypeHandler;
+import com.xinyirun.scm.core.system.config.mybatis.typehandlers.PermissionItemListTypeHandler;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
@@ -27,7 +31,7 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
 
 
     /**
-     * 左侧树查询，过滤用户节点，只显示组织架构
+     * 左侧树查询
      */
     @Select("""
         <script>
@@ -47,25 +51,22 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
           inner join m_org t2 on t1.id = t2.id
            left join v_org_name t3 on t3.serial_type = t2.serial_type and t3.serial_id = t2.serial_id
            left join v_dict_info t4 on t4.dict_value = t2.type and t4.code = 'org_setting_type'
-          where true
-            -- 用户类型：60
-            and t2.type != '60'
-            and (t2.code like CONCAT (#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
-           <if test='p1.codes != null and p1.codes.length!=0' >
-            and t3.serial_type in
-                <foreach collection='p1.codes' item='item' index='index' open='(' separator=',' close=')'>
-                 #{item}
-                </foreach>
-           </if>
-           <if test='p1.current_code != null ' >
-            and (
-                  case when length(t2.code) >= length(#{p1.current_code,jdbcType=VARCHAR}) then
-                                      t2.code like CONCAT (#{p1.current_code,jdbcType=VARCHAR},'%')
-                  else true
-                   end
-                 )
-           </if>
-          order by t2.code
+              where true
+                and (t2.code like CONCAT (#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
+               <if test='p1.codes != null and p1.codes.length!=0' >
+                and t3.serial_type in
+                    <foreach collection='p1.codes' item='item' index='index' open='(' separator=',' close=')'>
+                     #{item}
+                    </foreach>
+               </if>
+               <if test='p1.current_code != null ' >
+                and (
+                      case when length(t2.code) >= length(#{p1.current_code,jdbcType=VARCHAR}) then
+                                          t2.code like CONCAT (#{p1.current_code,jdbcType=VARCHAR},'%')
+                      else true
+                       end
+                     )
+               </if>
         </script>
         """)
     List<MOrgTreeVo> getTreeList(@Param("p1") MOrgTreeVo searchCondition);
@@ -368,6 +369,10 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
                	  t1.*,
                    t7.warehouse_count,
                    t3.staff_count,
+                   tt_roles.role_count,
+                   tt_roles.roleList,
+                   tt_permissions.permission_count,
+                   tt_permissions.permissionList,
                    f_get_org_full_name(vor.code, 'm_group') group_full_name,
                    f_get_org_simple_name(vor.code, 'm_group') group_full_simple_name,
                    f_get_org_full_name(vor.CODE, 'm_company') company_name,
@@ -404,8 +409,28 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
                                ) ttab
                               group by ttab.serial_id
                     ) t7 on t7.serial_id = t1.id
+       LEFT JOIN (
+           SELECT COUNT(1) role_count, 
+                  subt1.position_id,
+                  JSON_ARRAYAGG(JSON_OBJECT('id', subt2.id, 'code', subt2.code, 'name', subt2.name, 'key', subt2.name, 'label', subt2.name)) roleList
+           FROM m_role_position subt1
+           INNER JOIN s_role subt2 ON subt2.id = subt1.role_id AND subt2.is_del = false
+           GROUP BY subt1.position_id
+       ) tt_roles ON tt_roles.position_id = t1.id
+       LEFT JOIN (
+           SELECT COUNT(1) permission_count,
+                  subt3.position_id,
+                  JSON_ARRAYAGG(JSON_OBJECT('id', subt4.id, 'key', subt4.name, 'label', subt4.name)) permissionList
+           FROM m_permission_position subt3
+           INNER JOIN m_permission subt4 ON subt3.permission_id = subt4.id
+           GROUP BY subt3.position_id
+       ) tt_permissions ON tt_permissions.position_id = t1.id
       where true
                                                                                                              """)
+    @Results({
+        @Result(property = "roleList", column = "roleList", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+        @Result(property = "permissionList", column = "permissionList", javaType = List.class, typeHandler = PermissionItemListTypeHandler.class),
+    })
     IPage<MPositionVo> getPositionList(Page page, @Param("p1") MOrgTreeVo searchCondition);
 
 
