@@ -28,60 +28,64 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param searchCondition
      * @return
      */
-    @Select("    "
-        + "     SELECT                                                                                                                  "
-        + "         t1.id,                                                                                                              "
-        + "         t1.`code`,                                                                                                          "
-        + "         t1.company_no,                                                                                                      "
-        + "         t1.`name`,                                                                                                          "
-        + "         t1.simple_name,                                                                                                     "
-        + "         t1.address_id,                                                                                                      "
-        + "         t1.juridical_name,                                                                                                  "
-        + "         t1.register_capital,                                                                                                "
-        + "         t1.type,                                                                                                            "
-        + "         t1.setup_date,                                                                                                      "
-        + "         t1.end_date,                                                                                                        "
-        + "         t1.descr,                                                                                                           "
-        + "         t1.is_del,                                                                                                          "
-        + "         t1.c_id,                                                                                                            "
-        + "         t1.c_time,                                                                                                          "
-        + "         t1.u_id,                                                                                                            "
-        + "         t1.u_time,                                                                                                          "
-        + "         t1.dbversion,                                                                                                       "
-        + "         t2.postal_code,                                                                                                     "
-        + "         t2.province_code,                                                                                                   "
-        + "         t2.city_code,                                                                                                       "
-        + "         t2.area_code,                                                                                                       "
-        + "         t2.detail_address,                                                                                                  "
-        + "         c_staff.name as c_name,                                                                                             "
-        + "         u_staff.name as u_name,                                                                                             "
-        + "         t3.label as type_name,                                                                                              "
-        + "         f_get_org_full_name(vor.code, 'm_group') group_full_name,                                                           "
-        + "         f_get_org_simple_name(vor.code, 'm_group') group_full_simple_name                                                   "
-        + "     FROM                                                                                                                    "
-        + "         m_company AS t1                                                                                                     "
-        + "         LEFT JOIN m_address AS t2 ON t1.address_id = t2.id                                                                  "
-        + "         LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                                                                   "
-        + "         LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                                   "
-        + "         LEFT JOIN v_dict_info AS t3 ON t3.code = '" + DictConstant.DICT_SYS_COMPANY_TYPE + "' and t3.dict_value = t1.type   "
-        + "         LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_company' and vor.serial_id = t1.id                             "
-        + "  where true                                                                                                                 "
-        + "    and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)                   "
-        + "    and (t1.company_no like CONCAT ('%',#{p1.company_no,jdbcType=VARCHAR},'%') or #{p1.company_no,jdbcType=VARCHAR} is null) "
-        + "    and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                                  "
-        + "    and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                                                "
-        + "    and (                                                                                                                    "
-        + "       case when #{p1.dataModel,jdbcType=VARCHAR} = '"+ DictConstant.DICT_ORG_USED_TYPE_SHOW_UNUSED +"' then                 "
-        + "           not exists(                                                                                                       "
-        + "                     select 1                                                                                                "
-        + "                       from m_org subt1                                                                                      "
-        + "                      where subt1.serial_type = '"+ DictConstant.DICT_SYS_CODE_TYPE_M_COMPANY +"'                            "
-        + "                        and t1.id = subt1.serial_id                                                                          "
-        + "           )                                                                                                                 "
-        + "       else true                                                                                                             "
-        + "       end                                                                                                                   "
-        + "        )                                                                                                                    "
-        + "      ")
+    @Select("""
+        SELECT 
+            t1.id,
+            t1.code,
+            t1.company_no,
+            t1.name,
+            t1.simple_name,
+            t1.address_id,
+            t1.juridical_name,
+            t1.register_capital,
+            t1.type,
+            t1.setup_date,
+            t1.end_date,
+            t1.descr,
+            t1.is_del,
+            t1.c_id,
+            t1.c_time,
+            t1.u_id,
+            t1.u_time,
+            t1.dbversion,
+            t2.postal_code,
+            t2.province_code,
+            t2.city_code,
+            t2.area_code,
+            t2.detail_address,
+            c_staff.name as c_name,
+            u_staff.name as u_name,
+            t3.label as type_name,
+            f_get_org_simple_name(t4.code, 'm_group') group_simple_name
+        FROM 
+            m_company AS t1
+            LEFT JOIN m_address AS t2 ON t1.address_id = t2.id
+            LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id
+            LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id
+            -- 企业类型字典代码：sys_company_type
+            LEFT JOIN v_dict_info AS t3 ON t3.code = 'sys_company_type' and t3.dict_value = t1.type
+            LEFT JOIN v_org_relation t4 ON t4.serial_type = 'm_company' and t4.serial_id = t1.id
+        WHERE true
+            AND (t1.name LIKE CONCAT('%', #{p1.name,jdbcType=VARCHAR}, '%') OR #{p1.name,jdbcType=VARCHAR} IS NULL)
+            AND (t1.company_no LIKE CONCAT('%', #{p1.company_no,jdbcType=VARCHAR}, '%') OR #{p1.company_no,jdbcType=VARCHAR} IS NULL)
+            AND (#{p1.group_name,jdbcType=VARCHAR} IS NULL OR #{p1.group_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(t4.code, 'm_group') LIKE CONCAT('%', #{p1.group_name,jdbcType=VARCHAR}, '%'))
+            AND (t1.is_del = #{p1.is_del,jdbcType=VARCHAR} OR #{p1.is_del,jdbcType=VARCHAR} IS NULL)
+            AND (t1.id = #{p1.id,jdbcType=BIGINT} OR #{p1.id,jdbcType=BIGINT} IS NULL)
+            AND (
+                CASE 
+                    -- dataModel为'10'时显示组织架构中未使用的企业
+                    WHEN #{p1.dataModel,jdbcType=VARCHAR} = '10' THEN
+                        NOT EXISTS (
+                            SELECT 1 
+                            FROM m_org subt1 
+                            -- 企业序列类型代码：m_company
+                            WHERE subt1.serial_type = 'm_company'
+                              AND t1.id = subt1.serial_id
+                        )
+                    ELSE true 
+                END
+            )
+        """)
     IPage<MCompanyVo> selectPage(Page page, @Param("p1") MCompanyVo searchCondition);
 
     /**
@@ -89,47 +93,47 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param searchCondition
      * @return
      */
-    @Select("    "
-        + "     SELECT                                                                                                  "
-        + "         t1.id,                                                                                              "
-        + "         t1.`code`,                                                                                          "
-        + "         t1.`name`,                                                                                          "
-        + "         t1.simple_name,                                                                                     "
-        + "         t1.address_id,                                                                                      "
-        + "         t1.juridical_name,                                                                                  "
-        + "         t1.register_capital,                                                                                "
-        + "         t1.type,                                                                                            "
-        + "         t1.setup_date,                                                                                      "
-        + "         t1.end_date,                                                                                        "
-        + "         t1.descr,                                                                                           "
-        + "         t1.is_del,                                                                                          "
-//        + "         t1.tenant_id,                                                                                       "
-        + "         t1.c_id,                                                                                            "
-        + "         t1.c_time,                                                                                          "
-        + "         t1.u_id,                                                                                            "
-        + "         t1.u_time,                                                                                          "
-        + "         t1.dbversion,                                                                                       "
-        + "         t2.postal_code,                                                                                     "
-        + "         t2.province_code,                                                                                   "
-        + "         t2.city_code,                                                                                       "
-        + "         t2.area_code,                                                                                       "
-        + "         t2.detail_address,                                                                                  "
-        + "         c_staff.name as c_name,                                                                             "
-        + "         u_staff.name as u_name,                                                                             "
-        + "         t3.label as is_del_name,                                                                            "
-        + "         t4.label as type_name                                                                               "
-        + "     FROM                                                                                                    "
-        + "         m_company AS t1                                                                                     "
-        + "         LEFT JOIN m_address AS t2 ON t1.address_id = t2.id                                                  "
-        + "         LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                                                   "
-        + "         LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                   "
-        + "         LEFT JOIN v_dict_info AS t3 ON t3.code = '" + DictConstant.DICT_SYS_DELETE_MAP + "' and t3.dict_value = CONCAT('', t1.is_del)      "
-        + "         LEFT JOIN v_dict_info AS t4 ON t4.code = '" + DictConstant.DICT_SYS_COMPANY_TYPE + "' and t4.dict_value = t1.type    "
-        + "  where true                                                                                                 "
-        + "    and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)   "
-        + "    and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                  "
-//        + "    and (t1.tenant_id =#{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)           "
-        + "                                                                                                             ")
+    @Select("""
+        SELECT 
+            t1.id,
+            t1.code,
+            t1.name,
+            t1.simple_name,
+            t1.address_id,
+            t1.juridical_name,
+            t1.register_capital,
+            t1.type,
+            t1.setup_date,
+            t1.end_date,
+            t1.descr,
+            t1.is_del,
+            t1.c_id,
+            t1.c_time,
+            t1.u_id,
+            t1.u_time,
+            t1.dbversion,
+            t2.postal_code,
+            t2.province_code,
+            t2.city_code,
+            t2.area_code,
+            t2.detail_address,
+            c_staff.name as c_name,
+            u_staff.name as u_name,
+            t3.label as is_del_name,
+            t4.label as type_name
+        FROM 
+            m_company AS t1
+            LEFT JOIN m_address AS t2 ON t1.address_id = t2.id
+            LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id
+            LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id
+            -- 删除状态字典代码：sys_delete_map
+            LEFT JOIN v_dict_info AS t3 ON t3.code = 'sys_delete_map' and t3.dict_value = CONCAT('', t1.is_del)
+            -- 企业类型字典代码：sys_company_type  
+            LEFT JOIN v_dict_info AS t4 ON t4.code = 'sys_company_type' and t4.dict_value = t1.type
+        WHERE true
+            AND (t1.name LIKE CONCAT('%', #{p1.name,jdbcType=VARCHAR}, '%') OR #{p1.name,jdbcType=VARCHAR} IS NULL)
+            AND (t1.is_del = #{p1.is_del,jdbcType=VARCHAR} OR #{p1.is_del,jdbcType=VARCHAR} IS NULL)
+        """)
     List<MCompanyVo> select(@Param("p1") MCompanyVo searchCondition);
 
     /**
@@ -137,46 +141,48 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param searchCondition
      * @return
      */
-    @Select("<script>                                                                                                   "
-        + "     SELECT                                                                                                  "
-        + "         t1.id,                                                                                              "
-        + "         t1.`code`,                                                                                          "
-        + "         t1.`name`,                                                                                          "
-        + "         t1.simple_name,                                                                                     "
-        + "         t1.address_id,                                                                                      "
-        + "         t1.juridical_name,                                                                                  "
-        + "         t1.register_capital,                                                                                "
-        + "         t1.type,                                                                                            "
-        + "         t1.setup_date,                                                                                      "
-        + "         t1.end_date,                                                                                        "
-        + "         t1.descr,                                                                                           "
-        + "         t1.is_del,                                                                                          "
-//        + "         t1.tenant_id,                                                                                       "
-        + "         t1.c_id,                                                                                            "
-        + "         t1.c_time,                                                                                          "
-        + "         t1.u_id,                                                                                            "
-        + "         t1.u_time,                                                                                          "
-        + "         t1.dbversion,                                                                                       "
-        + "         t2.postal_code,                                                                                     "
-        + "         t2.province_code,                                                                                   "
-        + "         t2.city_code,                                                                                       "
-        + "         t2.area_code,                                                                                       "
-        + "         t2.detail_address,                                                                                  "
-        + "         c_staff.name as c_name,                                                                             "
-        + "         u_staff.name as u_name,                                                                             "
-        + "         t3.label as is_del_name                                                                             "
-        + "     FROM                                                                                                    "
-        + "         m_company AS t1                                                                                     "
-        + "         LEFT JOIN m_address AS t2 ON t1.address_id = t2.id                                                  "
-        + "         LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                                                   "
-        + "         LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                   "
-        + "         LEFT JOIN v_dict_info AS t3 ON t3.code = '" + DictConstant.DICT_SYS_DELETE_MAP + "' and t3.dict_value = CONCAT('', t1.is_del)      "
-        + "  where true                                                                                                 "
-//        + "    and (t1.tenant_id = #{p2} or #{p2} is null  )                                                            "
-        + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>                 "
-        + "         #{item.id}                                                                                          "
-        + "        </foreach>                                                                                           "
-        + "  </script>")
+    @Select("""
+        <script>
+            SELECT 
+                t1.id,
+                t1.code,
+                t1.name,
+                t1.simple_name,
+                t1.address_id,
+                t1.juridical_name,
+                t1.register_capital,
+                t1.type,
+                t1.setup_date,
+                t1.end_date,
+                t1.descr,
+                t1.is_del,
+                t1.c_id,
+                t1.c_time,
+                t1.u_id,
+                t1.u_time,
+                t1.dbversion,
+                t2.postal_code,
+                t2.province_code,
+                t2.city_code,
+                t2.area_code,
+                t2.detail_address,
+                c_staff.name as c_name,
+                u_staff.name as u_name,
+                t3.label as is_del_name
+            FROM 
+                m_company AS t1
+                LEFT JOIN m_address AS t2 ON t1.address_id = t2.id
+                LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id
+                LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id
+                -- 删除状态字典代码：sys_delete_map
+                LEFT JOIN v_dict_info AS t3 ON t3.code = 'sys_delete_map' and t3.dict_value = CONCAT('', t1.is_del)
+            WHERE true
+                AND t1.id IN
+                <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>
+                    #{item.id}
+                </foreach>
+        </script>
+        """)
     List<MCompanyVo> selectIdsInForExport(@Param("p1") List<MCompanyVo> searchCondition);
 
     /**
@@ -184,16 +190,17 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param searchCondition
      * @return
      */
-    @Select("<script>                                                                                                   "
-        + " select t.*                                                                                                 "
-        + "   from m_company t                                                                                          "
-        + "  where true                                                                                                 "
-        + "  and t.id in                                                                                                "
-//        + "    and (t.tenant_id = #{p2} or #{p2} is null  )                                                             "
-        + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>                 "
-        + "         #{item.id}                                                                                          "
-        + "        </foreach>                                                                                           "
-        + "  </script>")
+    @Select("""
+        <script>
+            SELECT t.*
+            FROM m_company t
+            WHERE true
+                AND t.id IN
+                <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>
+                    #{item.id}
+                </foreach>
+        </script>
+        """)
     List<MCompanyEntity> selectIdsIn(@Param("p1") List<MCompanyVo> searchCondition);
 
     /**
@@ -201,13 +208,13 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param code
      * @return
      */
-    @Select("                                                                        "
-        + " select t.*                                                               "
-        + "   from m_company t                                                       "
-        + "  where true                                                              "
-        + "    and t.code =  #{p1}                                                   "
-        + "    and (t.id  <>  #{p2} or #{p2} is null)                                 "
-        + "                                                                          ")
+    @Select("""
+        SELECT t.*
+        FROM m_company t
+        WHERE true
+            AND t.code = #{p1}
+            AND (t.id <> #{p2} OR #{p2} IS NULL)
+        """)
     List<MCompanyEntity> selectByCode(@Param("p1") String code, @Param("p2") Long equal_id );
 
     /**
@@ -215,13 +222,13 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param name
      * @return
      */
-    @Select("                                                                        "
-        + " select t.*                                                               "
-        + "   from m_company t                                                       "
-        + "  where true                                                              "
-        + "    and t.name =  #{p1}                                                   "
-        + "    and (t.id  <>  #{p2} or #{p2} is null)                                 "
-        + "                                                                          ")
+    @Select("""
+        SELECT t.*
+        FROM m_company t
+        WHERE true
+            AND t.name = #{p1}
+            AND (t.id <> #{p2} OR #{p2} IS NULL)
+        """)
     List<MCompanyEntity> selectByName(@Param("p1") String name, @Param("p2") Long equal_id);
 
     /**
@@ -229,13 +236,13 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param name
      * @return
      */
-    @Select("                                                                      "
-        + " select t.*                                                             "
-        + "   from m_company t                                                     "
-        + "  where true                                                            "
-        + "    and t.simple_name =  #{p1}                                          "
-        + "    and (t.id  <>  #{p2} or #{p2} is null)                               "
-        + "                                                                        ")
+    @Select("""
+        SELECT t.*
+        FROM m_company t
+        WHERE true
+            AND t.simple_name = #{p1}
+            AND (t.id <> #{p2} OR #{p2} IS NULL)
+        """)
     List<MCompanyEntity> selectBySimpleName(@Param("p1") String name, @Param("p2") Long equal_id);
 
     /**
@@ -243,13 +250,14 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param searchCondition
      * @return
      */
-    @Select("                                                                                                   "
-        + " select count(1)                                                                                          "
-        + "   from m_org t                                                                                      "
-        + "  where true                                                                                         "
-        + "    and t.serial_type = '" + DictConstant.DICT_ORG_SETTING_TYPE_COMPANY_SERIAL_TYPE + "'      "
-        + "    and t.serial_id = #{p1.id,jdbcType=BIGINT}                                                       "
-        + "                                                                                                     ")
+    @Select("""
+        SELECT COUNT(1)
+        FROM m_org t
+        WHERE true
+            -- 企业序列类型代码：m_company
+            AND t.serial_type = 'm_company'
+            AND t.serial_id = #{p1.id,jdbcType=BIGINT}
+        """)
     int isExistsInOrg(@Param("p1") MCompanyEntity searchCondition);
 
     /**
@@ -259,40 +267,40 @@ public interface MCompanyMapper extends BaseMapper<MCompanyEntity> {
      * @param id
      * @return
      */
-    @Select("    "
-        + "     SELECT                                                                                                "
-        + "         t1.id,                                                                                            "
-        + "         t1.`code`,                                                                                        "
-        + "         t1.`name`,                                                                                        "
-        + "         t1.company_no,                                                                                    "
-        + "         t1.simple_name,                                                                                   "
-        + "         t1.address_id,                                                                                    "
-        + "         t1.juridical_name,                                                                                "
-        + "         t1.register_capital,                                                                              "
-        + "         t1.type,                                                                                          "
-        + "         t1.setup_date,                                                                                    "
-        + "         t1.end_date,                                                                                      "
-        + "         t1.descr,                                                                                         "
-        + "         t1.is_del,                                                                                        "
-        + "         t1.c_id,                                                                                          "
-        + "         t1.c_time,                                                                                        "
-        + "         t1.u_id,                                                                                          "
-        + "         t1.u_time,                                                                                        "
-        + "         t1.dbversion,                                                                                     "
-        + "         t2.postal_code,                                                                                   "
-        + "         t2.province_code,                                                                                 "
-        + "         t2.city_code,                                                                                     "
-        + "         t2.area_code,                                                                                     "
-        + "         t2.detail_address,                                                                                "
-        + "         c_staff.name as c_name,                                                                           "
-        + "         u_staff.name as u_name                                                                            "
-        + "     FROM                                                                                                  "
-        + "         m_company AS t1                                                                                   "
-        + "         LEFT JOIN m_address AS t2 ON t1.address_id = t2.id                                                "
-        + "         LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                                                 "
-        + "         LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                 "
-        + "  where true                                                                                               "
-        + "    and t1.id =#{p1}                                                                                       "
-        + "      ")
+    @Select("""
+        SELECT 
+            t1.id,
+            t1.code,
+            t1.name,
+            t1.company_no,
+            t1.simple_name,
+            t1.address_id,
+            t1.juridical_name,
+            t1.register_capital,
+            t1.type,
+            t1.setup_date,
+            t1.end_date,
+            t1.descr,
+            t1.is_del,
+            t1.c_id,
+            t1.c_time,
+            t1.u_id,
+            t1.u_time,
+            t1.dbversion,
+            t2.postal_code,
+            t2.province_code,
+            t2.city_code,
+            t2.area_code,
+            t2.detail_address,
+            c_staff.name as c_name,
+            u_staff.name as u_name
+        FROM 
+            m_company AS t1
+            LEFT JOIN m_address AS t2 ON t1.address_id = t2.id
+            LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id
+            LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id
+        WHERE true
+            AND t1.id = #{p1}
+        """)
     MCompanyVo selectId(@Param("p1") Long id);
 }

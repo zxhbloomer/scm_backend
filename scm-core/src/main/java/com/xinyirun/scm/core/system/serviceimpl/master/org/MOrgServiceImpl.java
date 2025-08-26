@@ -42,6 +42,8 @@ import com.xinyirun.scm.core.system.serviceimpl.log.operate.SLogOperServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
@@ -50,6 +52,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +95,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
     @Autowired
     private RedisUtil redisUtil;
+
+    @Autowired
+    private CacheManager cacheManager;
 
     @Autowired
     public MOrgServiceImpl(@Lazy MOrgServiceImpl self) {
@@ -319,6 +325,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
         // 设置组织关系表逻辑
         setOrgRelationData(entity,parentEntity);
+
+        // 清理所有组织架构相关缓存
+        clearAllOrgCaches();
 
         return InsertResultUtil.OK(insert_result);
     }
@@ -587,7 +596,13 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         // 更新逻辑保存
 //        entity.setU_id(null);
 //        entity.setU_time(null);
-        return UpdateResultUtil.OK(mapper.updateById(entity));
+        
+        UpdateResultAo<Integer> result = UpdateResultUtil.OK(mapper.updateById(entity));
+        
+        // 清理所有组织架构相关缓存
+        clearAllOrgCaches();
+        
+        return result;
     }
 
     /**
@@ -698,6 +713,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             // 删除 数据
             mapper.deleteById(bean.getId());
         });
+
+        // 清理所有组织架构相关缓存
+        clearAllOrgCaches();
 
         return true;
     }
@@ -820,8 +838,8 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                 /** 获取当前实体 */
                 MOrgEntity currentEntity = getById(entity.getId());
                 if (currentEntity == null) {
-                    log.error("无法获取当前实体，ID：{}", entity.getId());
-                    throw new BusinessException("无法获取当前实体，ID：" + entity.getId());
+                    log.warn("跳过不存在的实体，ID：{}，可能已被删除或前端缓存过期", entity.getId());
+                    continue; // 跳过不存在的实体，继续处理其他实体
                 }
                 
                 // 检查是否为根节点（租户级别节点，parent_id为null）
@@ -834,16 +852,17 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                 /** 获取父级实体 */
                 MOrgEntity parentEntity = getById(entity.getParent_id());
                 if (parentEntity == null) {
-                    log.error("无法获取父级实体，Parent_ID：{}", entity.getParent_id());
-                    throw new BusinessException("无法获取父级实体，ID：" + entity.getParent_id());
+                    log.warn("跳过父级不存在的实体，实体ID：{}，父级ID：{}，可能已被删除或前端缓存过期", 
+                            entity.getId(), entity.getParent_id());
+                    continue; // 跳过父级不存在的实体，继续处理其他实体
                 }
                 
                 /** 设置组织关系表逻辑 */
                 setOrgRelationData(currentEntity, parentEntity);
             }
 
-            // 清除当前租户的组织缓存以确保统计数据准确性
-            self.clearOrgCache();
+            // 清理所有组织架构相关缓存
+            clearAllOrgCaches();
 
             log.info("拖拽保存操作成功完成，处理实体数量：{}", list.size());
             return true;
@@ -1025,6 +1044,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
         // 保存操作日志
         sLogOperService.save(cobo);
+
+        // 清理所有组织架构相关缓存（员工关系变更影响统计）
+        clearAllOrgCaches();
 
         // 查询最新数据并返回
         // 获取该岗位已经设置过得用户
@@ -1210,30 +1232,63 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
     }
 
     /**
-     * 清除当前租户的所有组织缓存
-     * 用于在组织结构发生变更后清理缓存，确保统计数据的准确性
-     * 采用Redis模式匹配删除，只匹配DataSourceName前缀
+     * 清理所有组织架构相关缓存
+     * 模仿logout中的clearTenantSharedCaches方法
+     * 在组织架构数据发生变化时调用，确保缓存一致性
+     * 
+     * 清理的缓存包括：
+     * - CACHE_ORG_SUB_COUNT: 组织架构统计缓存（部门岗位数等）
+     * - CACHE_DICT_TYPE: 数据字典缓存（可能包含组织类型等）
+     * - CACHE_COLUMNS_TYPE: 表格列配置缓存（组织架构相关页面的列配置）
+     * - CACHE_SYSTEM_ICON_TYPE: 系统图标缓存（组织架构图标）
+     * - CACHE_CONFIG: 系统参数配置缓存（可能包含组织配置参数）
      */
-    public void clearOrgCache() {
+    public void clearAllOrgCaches() {
         try {
-            String dataSourceName = DataSourceHelper.getCurrentDataSourceName();
-            if (dataSourceName != null) {
-                // 构造缓存键模式：CACHE_ORG_SUB_COUNT::DataSourceName::*
-                String cachePattern = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT + "::" + dataSourceName + "::*";
-                
-                // 使用RedisUtil的模式匹配删除
-                long deletedCount = redisUtil.deleteByPattern(cachePattern);
-                
-                if (deletedCount > 0) {
-                    log.info("清除当前租户组织缓存成功，数据源：{}，清除缓存键数量：{}", dataSourceName, deletedCount);
-                } else {
-                    log.info("当前租户无组织缓存需要清除，数据源：{}", dataSourceName);
+            String tenantKey = DataSourceHelper.getCurrentDataSourceName();
+            log.info("开始清理租户 [{}] 的组织架构相关缓存", tenantKey);
+            
+            // 要清理的组织架构相关缓存列表
+            List<String> orgRelatedCaches = Arrays.asList(
+                SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT,        // 组织统计缓存
+                SystemConstants.CACHE_PC.CACHE_DICT_TYPE,            // 数据字典缓存
+                SystemConstants.CACHE_PC.CACHE_COLUMNS_TYPE,         // 表格列配置缓存
+                SystemConstants.CACHE_PC.CACHE_SYSTEM_ICON_TYPE,     // 系统图标缓存
+                SystemConstants.CACHE_PC.CACHE_CONFIG                // 系统参数配置缓存
+            );
+            
+            int clearedCount = 0;
+            int totalCaches = orgRelatedCaches.size();
+            
+            // 执行缓存清理
+            for (String cacheName : orgRelatedCaches) {
+                try {
+                    Cache cache = cacheManager.getCache(cacheName);
+                    if (cache != null) {
+                        cache.clear();
+                        clearedCount++;
+                        log.debug("已清理组织相关缓存: {} (租户: {})", cacheName, tenantKey);
+                    } else {
+                        log.warn("缓存不存在，跳过清理: {} (租户: {})", cacheName, tenantKey);
+                    }
+                } catch (Exception e) {
+                    log.error("清理组织缓存失败: {} (租户: {}), 错误: {}", cacheName, tenantKey, e.getMessage());
                 }
-            } else {
-                log.warn("无法获取当前数据源名称，跳过组织缓存清理");
             }
+            
+            // 额外清理Redis中的组织统计缓存（兼容现有逻辑）
+            if (tenantKey != null) {
+                String cachePattern = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT + "::" + tenantKey + "::*";
+                long deletedCount = redisUtil.deleteByPattern(cachePattern);
+                if (deletedCount > 0) {
+                    log.debug("额外清理Redis组织统计缓存成功，租户: {}，清除键数量: {}", tenantKey, deletedCount);
+                }
+            }
+            
+            log.info("租户 [{}] 组织架构缓存清理完成，共清理 {}/{} 个Spring缓存", tenantKey, clearedCount, totalCaches);
         } catch (Exception e) {
-            log.error("清除组织缓存失败：{}", e.getMessage(), e);
+            log.error("组织架构缓存清理失败: {}", e.getMessage(), e);
+            // 不影响主要业务流程，继续执行
         }
     }
 

@@ -88,11 +88,11 @@ public class MPositionVo extends BaseVo implements Serializable {
      * 所属数据
      */
     private String group_full_name;
-    private String group_full_simple_name;
+    private String group_simple_name;
     private String company_name;
     private String company_simple_name;
     private String dept_full_name;
-    private String dept_full_simple_name;
+    private String parent_dept_simple_name;
 
     /**
      * 岗位下员工id

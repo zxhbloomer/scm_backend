@@ -29,20 +29,22 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      * @return
      */
     @Select("""
-        select t.*,
-               c_staff.name as c_name,
-               u_staff.name as u_name,
-               vor.parent_name parent_group_name,
-               vor.parent_simple_name parent_group_simple_name
-          from m_group t
-         LEFT JOIN m_staff c_staff ON t.c_id = c_staff.id
-         LEFT JOIN m_staff u_staff ON t.u_id = u_staff.id
-         LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_group' and vor.serial_id = t.id and vor.parent_serial_type = 'm_group'
+        select t1.*,
+               t2.name as c_name,
+               t3.name as u_name,
+               f_get_org_simple_name(t5.code, 'm_group') as parent_group_simple_name
+          from m_group t1
+         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
+         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
+         LEFT JOIN v_org_relation t5 ON t5.serial_type = 'm_group' and t5.serial_id = t1.id and t5.parent_serial_type = 'm_group'
          where true
-           and (t.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
-           and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
-           and (t.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
-           and (t.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
+           and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
+           and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
+           and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
+           and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
+           and (#{p1.parent_group_name,jdbcType=VARCHAR} IS NULL 
+                OR #{p1.parent_group_name,jdbcType=VARCHAR} = '' 
+                OR f_get_org_simple_and_full_name(t5.code, 'm_group') LIKE CONCAT('%', #{p1.parent_group_name,jdbcType=VARCHAR}, '%'))
            and (
               /* dataModel='10'时查询组织架构中未使用的集团，对应DICT_ORG_USED_TYPE_SHOW_UNUSED常量 */
               case when #{p1.dataModel,jdbcType=VARCHAR} = '10' then
@@ -51,7 +53,7 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
                               from m_org subt1
                              /* serial_type='m_group'对应DICT_SYS_CODE_TYPE_M_GROUP常量 */
                              where subt1.serial_type = 'm_group'
-                               and t.id = subt1.serial_id
+                               and t1.id = subt1.serial_id
                   )
               else true
               end
@@ -65,20 +67,25 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      * @return
      */
     @Select("""
-        select t.*,
-               c_staff.name as c_name,
-               u_staff.name as u_name,
-               t2.label as is_del_name
-          from m_group t
-         LEFT JOIN m_staff c_staff ON t.c_id = c_staff.id
-         LEFT JOIN m_staff u_staff ON t.u_id = u_staff.id
+        select t1.*,
+               t2.name as c_name,
+               t3.name as u_name,
+               t4.label as is_del_name,
+               f_get_org_simple_name(t5.code, 'm_group') as parent_group_simple_name
+          from m_group t1
+         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
+         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
          /* dict_code='sys_delete_type'获取删除状态字典标签，对应DICT_SYS_DELETE_MAP常量 */
-         LEFT JOIN v_dict_info AS t2 ON t2.code = 'sys_delete_type' and t2.dict_value = CONCAT('', t.is_del)
+         LEFT JOIN v_dict_info AS t4 ON t4.code = 'sys_delete_type' and t4.dict_value = CONCAT('', t1.is_del)
+         LEFT JOIN v_org_relation t5 ON t5.serial_type = 'm_group' and t5.serial_id = t1.id and t5.parent_serial_type = 'm_group'
          where true
-           and (t.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
-           and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
-           and (t.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
-           and (t.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
+           and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
+           and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
+           and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
+           and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
+           and (#{p1.parent_group_name,jdbcType=VARCHAR} IS NULL 
+                OR #{p1.parent_group_name,jdbcType=VARCHAR} = '' 
+                OR f_get_org_simple_and_full_name(t5.code, 'm_group') LIKE CONCAT('%', #{p1.parent_group_name,jdbcType=VARCHAR}, '%'))
         """)
     List<MGroupVo> select(@Param("p1") MGroupVo searchCondition);
 
@@ -89,17 +96,17 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      */
     @Select("""
         <script>
-        select t.*,
-               c_staff.name as c_name,
-               u_staff.name as u_name,
-               t2.label as is_del_name
-          from m_group t
-         LEFT JOIN m_staff c_staff ON t.c_id = c_staff.id
-         LEFT JOIN m_staff u_staff ON t.u_id = u_staff.id
+        select t1.*,
+               t2.name as c_name,
+               t3.name as u_name,
+               t4.label as is_del_name
+          from m_group t1
+         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
+         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
          /* dict_code='sys_delete_type'获取删除状态字典标签，对应DICT_SYS_DELETE_MAP常量 */
-         LEFT JOIN v_dict_info AS t2 ON t2.code = 'sys_delete_type' and t2.dict_value = CONCAT('', t.is_del)
+         LEFT JOIN v_dict_info AS t4 ON t4.code = 'sys_delete_type' and t4.dict_value = CONCAT('', t1.is_del)
          where true
-           and t.id in
+           and t1.id in
            <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>
                 #{item.id}
            </foreach>
@@ -114,10 +121,10 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      */
     @Select("""
         <script>
-        select t.*
-          from m_group t
+        select t1.*
+          from m_group t1
          where true
-           and t.id in
+           and t1.id in
            <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>
                 #{item.id}
            </foreach>
@@ -131,11 +138,11 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      * @return
      */
     @Select("""
-        select t.*
-          from m_group t
+        select t1.*
+          from m_group t1
          where true
-           and t.code = #{p1}
-           and (t.id <> #{p2} or #{p2} is null)
+           and t1.code = #{p1}
+           and (t1.id <> #{p2} or #{p2} is null)
         """)
     List<MGroupEntity> selectByCode(@Param("p1") String code, @Param("p2") Long equal_id);
 
@@ -145,11 +152,11 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      * @return
      */
     @Select("""
-        select t.*
-          from m_group t
+        select t1.*
+          from m_group t1
          where true
-           and t.name = #{p1}
-           and (t.id <> #{p2} or #{p2} is null)
+           and t1.name = #{p1}
+           and (t1.id <> #{p2} or #{p2} is null)
         """)
     List<MGroupEntity> selectByName(@Param("p1") String name, @Param("p2") Long equal_id);
 
@@ -159,11 +166,11 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      * @return
      */
     @Select("""
-        select t.*
-          from m_group t
+        select t1.*
+          from m_group t1
          where true
-           and (t.simple_name = #{p1} or #{p1} is null or #{p1} = '')
-           and (t.id <> #{p2} or #{p2} is null)
+           and (t1.simple_name = #{p1} or #{p1} is null or #{p1} = '')
+           and (t1.id <> #{p2} or #{p2} is null)
         """)
     List<MGroupEntity> selectBySimpleName(@Param("p1") String name, @Param("p2") Long equal_id);
 
@@ -174,11 +181,11 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      */
     @Select("""
         select count(1)
-          from m_org t
+          from m_org t1
          where true
            /* serial_type='m_group'检查集团在组织架构中的使用情况，对应DICT_ORG_SETTING_TYPE_GROUP_SERIAL_TYPE常量 */
-           and t.serial_type = 'm_group'
-           and t.serial_id = #{p1.id,jdbcType=BIGINT}
+           and t1.serial_type = 'm_group'
+           and t1.serial_id = #{p1.id,jdbcType=BIGINT}
         """)
     int isExistsInOrg(@Param("p1") MGroupEntity searchCondition);
 
@@ -190,14 +197,14 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
      * @return
      */
     @Select("""
-        select t.*,
-               c_staff.name as c_name,
-               u_staff.name as u_name
-          from m_group t
-         LEFT JOIN m_staff c_staff ON t.c_id = c_staff.id
-         LEFT JOIN m_staff u_staff ON t.u_id = u_staff.id
+        select t1.*,
+               t2.name as c_name,
+               t3.name as u_name
+          from m_group t1
+         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
+         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
          where true
-           and (t.id = #{p1})
+           and (t1.id = #{p1})
         """)
     MGroupVo selectId(@Param("p1") Long id);
 }

@@ -22,8 +22,16 @@ import java.util.List;
 @Repository
 public interface MDeptMapper extends BaseMapper<MDeptEntity> {
 
-    String COMMON_SELECT = """
-                                                                                      
+
+
+    /**
+     * 页面查询列表
+     * @param page
+     * @param searchCondition
+     * @return
+     */
+    // 删除状态字典类型：sys_delete_type
+    @Select("""
            SELECT                                                                   
            	t1.* ,                                                                 
            	t2.`name` as handler_id_name,                                          
@@ -33,7 +41,7 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
              c_staff.name as c_name,                                                
              u_staff.name as u_name,                                                
              t6.label as is_del_name,                                               
-             f_get_org_simple_name(vor.code, 'm_group') group_full_simple_name,     
+             f_get_org_simple_name(vor.code, 'm_group') group_simple_name,     
              f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name,  
              f_get_org_simple_name ( vor.CODE, 'm_dept' ) parent_dept_simple_name   
            FROM                                                                     
@@ -44,21 +52,12 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
            	LEFT JOIN m_staff t5 on t1.response_leader_id = t5.id                  
              LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                      
              LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                      
-             -- 删除状态字典
-             LEFT JOIN v_dict_info AS t6 ON t6.code = 'SYS_DELETE_MAP' and t6.dict_value = CONCAT('', t1.is_del)  
+             LEFT JOIN v_dict_info AS t6 ON t6.code = 'sys_delete_type' and t6.dict_value = CONCAT('', t1.is_del)  
              LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_dept' and vor.serial_id = t1.id      
-                                                                          """;
-
-
-    /**
-     * 页面查询列表
-     * @param page
-     * @param searchCondition
-     * @return
-     */
-    @Select("""
-        """ + COMMON_SELECT + """
           where true                                                              
+            and (#{p1.group_name,jdbcType=VARCHAR} IS NULL OR #{p1.group_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(vor.code, 'm_group') LIKE CONCAT('%', #{p1.group_name,jdbcType=VARCHAR}, '%'))
+            and (#{p1.company_name,jdbcType=VARCHAR} IS NULL OR #{p1.company_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(vor.code, 'm_company') LIKE CONCAT('%', #{p1.company_name,jdbcType=VARCHAR}, '%'))
+            and (#{p1.parent_dept_name,jdbcType=VARCHAR} IS NULL OR #{p1.parent_dept_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(vor.code, 'm_dept') LIKE CONCAT('%', #{p1.parent_dept_name,jdbcType=VARCHAR}, '%'))
             and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)  
             and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)  
             and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                 
@@ -84,9 +83,34 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
      * @param searchCondition
      * @return
      */
+    // 删除状态字典类型：sys_delete_type
     @Select("""
-        """ + COMMON_SELECT + """
+           SELECT                                                                   
+           	t1.* ,                                                                 
+           	t2.`name` as handler_id_name,                                          
+           	t3.`name` as sub_handler_id_name,                                      
+           	t4.`name` as leader_id_name,                                           
+           	t5.`name` as response_leader_id_name,                                  
+             c_staff.name as c_name,                                                
+             u_staff.name as u_name,                                                
+             t6.label as is_del_name,                                               
+             f_get_org_simple_name(vor.code, 'm_group') group_simple_name,     
+             f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name,  
+             f_get_org_simple_name ( vor.CODE, 'm_dept' ) parent_dept_simple_name   
+           FROM                                                                     
+           	m_dept t1                                                              
+           	LEFT JOIN m_staff t2 on t1.handler_id = t2.id                          
+           	LEFT JOIN m_staff t3 on t1.sub_handler_id = t3.id                      
+           	LEFT JOIN m_staff t4 on t1.leader_id = t4.id                           
+           	LEFT JOIN m_staff t5 on t1.response_leader_id = t5.id                  
+             LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                      
+             LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                      
+             LEFT JOIN v_dict_info AS t6 ON t6.code = 'sys_delete_type' and t6.dict_value = CONCAT('', t1.is_del)  
+             LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_dept' and vor.serial_id = t1.id      
           where true                                                                                                
+            and (#{p1.group_name,jdbcType=VARCHAR} IS NULL OR #{p1.group_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(vor.code, 'm_group') LIKE CONCAT('%', #{p1.group_name,jdbcType=VARCHAR}, '%'))
+            and (#{p1.company_name,jdbcType=VARCHAR} IS NULL OR #{p1.company_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(vor.code, 'm_company') LIKE CONCAT('%', #{p1.company_name,jdbcType=VARCHAR}, '%'))
+            and (#{p1.parent_dept_name,jdbcType=VARCHAR} IS NULL OR #{p1.parent_dept_name,jdbcType=VARCHAR} = '' OR f_get_org_simple_and_full_name(vor.code, 'm_dept') LIKE CONCAT('%', #{p1.parent_dept_name,jdbcType=VARCHAR}, '%'))
             and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)  
             and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)  
             and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                 
@@ -115,8 +139,30 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
      * @param searchCondition
      * @return
      */
+    // 删除状态字典类型：sys_delete_type  
     @Select("<script>"
-        + COMMON_SELECT
+        + " SELECT                                                                   "
+        + " 	t1.* ,                                                                 "
+        + " 	t2.`name` as handler_id_name,                                          "
+        + " 	t3.`name` as sub_handler_id_name,                                      "
+        + " 	t4.`name` as leader_id_name,                                           "
+        + " 	t5.`name` as response_leader_id_name,                                  "
+        + "   c_staff.name as c_name,                                                "
+        + "   u_staff.name as u_name,                                                "
+        + "   t6.label as is_del_name,                                               "
+        + "   f_get_org_simple_name(vor.code, 'm_group') group_simple_name,         "
+        + "   f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name, "
+        + "   f_get_org_simple_name ( vor.CODE, 'm_dept' ) parent_dept_simple_name  "
+        + " FROM                                                                     "
+        + " 	m_dept t1                                                              "
+        + " 	LEFT JOIN m_staff t2 on t1.handler_id = t2.id                          "
+        + " 	LEFT JOIN m_staff t3 on t1.sub_handler_id = t3.id                      "
+        + " 	LEFT JOIN m_staff t4 on t1.leader_id = t4.id                           "
+        + " 	LEFT JOIN m_staff t5 on t1.response_leader_id = t5.id                  "
+        + "   LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                      "
+        + "   LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                      "
+        + "   LEFT JOIN v_dict_info AS t6 ON t6.code = 'sys_delete_type' and t6.dict_value = CONCAT('', t1.is_del) "
+        + "   LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_dept' and vor.serial_id = t1.id "
         + "  where true                                                                                   "
         + "    and t1.id in                                                                                "
         + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>   "
@@ -137,7 +183,7 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
             and t.code =  #{p1}   
             and (t.id  <>  #{p2} or #{p2} is null)   
             -- 未删除状态
-            and t.is_del =  0   
+            and t.is_del =  false   
               """)
     List<MDeptEntity> selectByCode(@Param("p1") String code, @Param("p2") Long equal_id);
 
@@ -153,7 +199,7 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
             and t.name =  #{p1}   
             and (t.id  =  #{p2} or #{p2} is null)   
             -- 未删除状态
-            and t.is_del =  0   
+            and t.is_del =  false   
               """)
     List<MDeptEntity> selectByName(@Param("p1") String name, @Param("p2") Long equal_id);
 
@@ -169,7 +215,7 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
             and t.simple_name =  #{p1}   
             and (t.id  =  #{p2} or #{p2} is null)   
             -- 未删除状态
-            and t.is_del =  0   
+            and t.is_del =  false   
               """)
     List<MDeptEntity> selectBySimpleName(@Param("p1") String name, @Param("p2") Long equal_id);
 
@@ -178,8 +224,30 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
      * @param id
      * @return
      */
+    // 删除状态字典类型：sys_delete_type
     @Select("""
-        """ + COMMON_SELECT + """
+           SELECT                                                                   
+           	t1.* ,                                                                 
+           	t2.`name` as handler_id_name,                                          
+           	t3.`name` as sub_handler_id_name,                                      
+           	t4.`name` as leader_id_name,                                           
+           	t5.`name` as response_leader_id_name,                                  
+             c_staff.name as c_name,                                                
+             u_staff.name as u_name,                                                
+             t6.label as is_del_name,                                               
+             f_get_org_simple_name(vor.code, 'm_group') group_simple_name,     
+             f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name,  
+             f_get_org_simple_name ( vor.CODE, 'm_dept' ) parent_dept_simple_name   
+           FROM                                                                     
+           	m_dept t1                                                              
+           	LEFT JOIN m_staff t2 on t1.handler_id = t2.id                          
+           	LEFT JOIN m_staff t3 on t1.sub_handler_id = t3.id                      
+           	LEFT JOIN m_staff t4 on t1.leader_id = t4.id                           
+           	LEFT JOIN m_staff t5 on t1.response_leader_id = t5.id                  
+             LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                      
+             LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                      
+             LEFT JOIN v_dict_info AS t6 ON t6.code = 'sys_delete_type' and t6.dict_value = CONCAT('', t1.is_del)  
+             LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_dept' and vor.serial_id = t1.id      
           where true                                                              
             and (t1.id = #{p1})                                                   
                                                                           """)

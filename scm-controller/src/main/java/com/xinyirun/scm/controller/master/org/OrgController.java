@@ -200,7 +200,9 @@ public class OrgController extends SystemBaseController {
     @PostMapping("/getsubcount")
     @ResponseBody
     public ResponseEntity<JsonResultAo<Object>> getSubCount(@RequestBody MOrgSubCountRequestVo request) {
+            log.info("=== 获取组织子节点数量 === orgId: {}, orgType: {}", request.getOrg_id(), request.getOrg_type());
             Object result = service.getSubCountByType(request.getOrg_id(), request.getOrg_type());
+            log.info("=== 组织子节点数量结果 === orgId: {}, orgType: {}, result: {}", request.getOrg_id(), request.getOrg_type(), result);
             return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 

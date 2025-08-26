@@ -346,32 +346,16 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
             case CheckResultAo.INSERT_CHECK_TYPE:
                 // 新增场合，不能重复
                 List<MPositionEntity> codeList_insertCheck = selectByCode(entity.getCode(), entity.getId());
-                List<MPositionEntity> nameList_insertCheck = selectByName(entity.getName(), entity.getId());
-                List<MPositionEntity> simple_name_insertCheck = selectBySimpleName(entity.getSimple_name(), entity.getId());
                 if (codeList_insertCheck.size() >= 1) {
                     return CheckResultUtil.NG("新增保存出错：岗位编号【"+ entity.getCode() +"】出现重复", entity.getCode());
-                }
-                if (nameList_insertCheck.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：岗位名称【"+ entity.getName() +"】出现重复", entity.getName());
-                }
-                if (simple_name_insertCheck.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：岗位简称【"+ entity.getSimple_name() +"】出现重复", entity.getSimple_name());
                 }
                 break;
             case CheckResultAo.UPDATE_CHECK_TYPE:
                 // 更新场合，不能重复设置
                 List<MPositionEntity> codeList_updCheck = selectByCode(entity.getCode(), entity.getId());
-                List<MPositionEntity> nameList_updCheck = selectByName(entity.getName(), entity.getId());
-                List<MPositionEntity> simple_name_updCheck = selectBySimpleName(entity.getSimple_name(), entity.getId());
 
                 if (codeList_updCheck.size() >= 1) {
                     return CheckResultUtil.NG("更新保存出错：岗位编号【"+ entity.getCode() +"】出现重复", entity.getCode());
-                }
-                if (nameList_updCheck.size() >= 1) {
-                    return CheckResultUtil.NG("更新保存出错：岗位名称【"+ entity.getName() +"】出现重复", entity.getName());
-                }
-                if (simple_name_updCheck.size() >= 1) {
-                    return CheckResultUtil.NG("更新保存出错：岗位简称【"+ entity.getSimple_name() +"】出现重复", entity.getSimple_name());
                 }
                 break;
             case CheckResultAo.DELETE_CHECK_TYPE:

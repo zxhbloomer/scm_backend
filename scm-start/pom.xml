@@ -187,10 +187,10 @@
             <groupId>com.xinyirun</groupId>
             <artifactId>scm-quartz</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.xinyirun</groupId>
-            <artifactId>scm-report</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.xinyirun</groupId>-->
+<!--            <artifactId>scm-report</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
