@@ -67,6 +67,7 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
                        end
                      )
                </if>
+           order by t2.code
         </script>
         """)
     List<MOrgTreeVo> getTreeList(@Param("p1") MOrgTreeVo searchCondition);
@@ -92,6 +93,7 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
            left join v_org_name t3 on t3.serial_type = t2.serial_type and t3.serial_id = t2.serial_id
            left join v_dict_info t4 on t4.dict_value = t2.type and t4.code = 'org_setting_type'
               where true
+           order by t2.code
         """)
     List<MOrgTreeVo> getList(@Param("p1") MOrgTreeVo searchCondition);
 

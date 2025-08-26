@@ -35,6 +35,7 @@ import com.xinyirun.scm.core.system.mapper.master.org   .MOrgCompanyDeptMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgDeptPositionMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgGroupCompanyMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MOrgMapper;
+import com.xinyirun.scm.core.system.mapper.master.org.MStaffOrgMapper;
 import com.xinyirun.scm.core.system.service.common.ICommonComponentService;
 import com.xinyirun.scm.core.system.service.master.org.IMOrgService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
@@ -56,6 +57,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -81,6 +83,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
     @Autowired
     private MOrgMapper mapper;
+
+    @Autowired
+    private MStaffOrgMapper mStaffOrgMapper;
 
     @Autowired
     private ICommonComponentService iCommonComponentService;
@@ -801,31 +806,73 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             oper_info = "",
             table_name = SystemConstants.OPERATION.M_ORG.TABLE_NAME,
             id_position = ParameterEnum.FIRST,
-            ids = "#{beans.id}"
+            ids = "#{orgList.id}"
         )
     )
     @Transactional(rollbackFor = Exception.class)
     public Boolean dragsave2Db(List<MOrgEntity> list){
         log.info("开始执行拖拽保存操作，总计待处理实体数量：{}", list.size());
         
+        // 验证修复效果 - 检查前3个实体的数据
+        for (int i = 0; i < Math.min(3, list.size()); i++) {
+            MOrgEntity entity = list.get(i);
+            log.info("验证实体[{}]: id={}, type={}, serial_id={}, serial_type={}, parent_id={}", 
+                    i, entity.getId(), entity.getType(), entity.getSerial_id(), 
+                    entity.getSerial_type(), entity.getParent_id());
+        }
+        
+        log.info("员工类型常量：{}", DictConstant.DICT_ORG_SETTING_TYPE_STAFF);
+        
+        // 分离员工节点和组织节点，操作日志只记录组织节点的变更
+        List<MOrgEntity> orgList = list.stream()
+            .filter(entity -> !DictConstant.DICT_ORG_SETTING_TYPE_STAFF.equals(entity.getType()))
+            .collect(Collectors.toList());
+        
+        List<MOrgEntity> staffList = list.stream()
+            .filter(entity -> DictConstant.DICT_ORG_SETTING_TYPE_STAFF.equals(entity.getType()))
+            .collect(Collectors.toList());
+        
+        log.info("分离结果：组织节点{}个，员工节点{}个", orgList.size(), staffList.size());
+        
+        // 显示员工节点详情
+        if (!staffList.isEmpty()) {
+            for (int i = 0; i < Math.min(2, staffList.size()); i++) {
+                MOrgEntity staff = staffList.get(i);
+                log.info("员工节点[{}]: id={}, serial_id={}, parent_id={}", 
+                        i, staff.getId(), staff.getSerial_id(), staff.getParent_id());
+            }
+        }
+        
         try {
-            // 编号重置
-            for (MOrgEntity entity : list) {
+            // 首先处理员工拖拽到岗位（不记录到m_org操作日志）
+            for (MOrgEntity staffEntity : staffList) {
+                handleStaffDragToPosition(staffEntity);
+            }
+            
+            // 如果没有组织节点需要处理，直接返回成功
+            if (orgList.isEmpty()) {
+                log.info("只有员工节点拖拽，组织结构无变化，操作完成");
+                // 清理相关缓存
+                clearAllOrgCaches();
+                return true;
+            }
+            // 编号重置（只处理组织节点）
+            for (MOrgEntity entity : orgList) {
                 if(entity.getParent_id() != null){
-                    setParentSonCount(list, entity.getParent_id());
+                    setParentSonCount(orgList, entity.getParent_id());
                 }
             }
             
-            // 更新开始
-            for (MOrgEntity entity : list) {
+            // 更新开始（只处理组织节点）
+            for (MOrgEntity entity : orgList) {
                 entity.setSon_count(entity.getSon_count() == null ? 0 : entity.getSon_count());
                 entity.setU_id(SecurityUtil.getLoginUser_id());
                 entity.setU_time(LocalDateTime.now());
                 mapper.updateDragSave(entity);
             }
 
-            // 设置组织关系表逻辑 - 先清理所有实体的旧关系记录，避免重复记录导致TooManyResultsException
-            for (MOrgEntity entity : list) {
+            // 设置组织关系表逻辑 - 先清理所有组织实体的旧关系记录，避免重复记录导致TooManyResultsException
+            for (MOrgEntity entity : orgList) {
                 // 数据完整性检查
                 if (entity.getType() == null || entity.getSerial_id() == null) {
                     continue;
@@ -833,8 +880,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                 deleteOrgRelation(entity);
             }
             
-            // 重新创建关系记录
-            for (MOrgEntity entity : list) {
+            // 重新创建关系记录（只处理组织节点）
+            for (MOrgEntity entity : orgList) {
+                
                 /** 获取当前实体 */
                 MOrgEntity currentEntity = getById(entity.getId());
                 if (currentEntity == null) {
@@ -864,7 +912,8 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             // 清理所有组织架构相关缓存
             clearAllOrgCaches();
 
-            log.info("拖拽保存操作成功完成，处理实体数量：{}", list.size());
+            log.info("拖拽保存操作成功完成，总计处理实体数量：{}（组织节点：{}，员工节点：{}）", 
+                    list.size(), orgList.size(), staffList.size());
             return true;
             
         } catch (Exception e) {
@@ -880,6 +929,72 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             
             throw e;
         }
+    }
+
+    /**
+     * 处理员工拖拽到岗位的业务逻辑
+     * @param entity 员工实体（type="60"，id为员工ID，parent_id为目标岗位ID）
+     */
+    private void handleStaffDragToPosition(MOrgEntity entity) {
+        try {
+            // 获取实际的员工ID和目标岗位组织节点ID
+            Long actualStaffId = entity.getSerial_id(); // 使用serial_id作为实际员工ID
+            Long targetOrgNodeId = entity.getParent_id(); // 目标岗位的组织节点ID
+            
+            log.info("开始处理员工拖拽：员工Serial_ID={}，目标岗位组织节点ID={}", actualStaffId, targetOrgNodeId);
+            
+            // 验证目标岗位是否存在
+            MOrgEntity targetPosition = getById(targetOrgNodeId);
+            if (targetPosition == null) {
+                log.warn("目标岗位不存在，岗位组织节点ID：{}，跳过员工拖拽处理", targetOrgNodeId);
+                return;
+            }
+            
+            // 验证目标是岗位类型
+            if (!DictConstant.DICT_ORG_SETTING_TYPE_POSITION.equals(targetPosition.getType())) {
+                log.warn("目标不是岗位节点，类型：{}，跳过员工拖拽处理", targetPosition.getType());
+                return;
+            }
+            
+            // 获取目标岗位的实际岗位ID
+            Long actualPositionId = targetPosition.getSerial_id();
+            log.info("目标岗位实际ID：{}", actualPositionId);
+            
+            // 更新员工-岗位关系 (使用实际的员工ID和岗位ID)
+            updateStaffPositionRelation(actualStaffId, actualPositionId);
+            
+            log.info("员工拖拽处理成功：员工ID={} 已调整到岗位ID={}", actualStaffId, actualPositionId);
+            
+        } catch (Exception e) {
+            log.error("处理员工拖拽失败，员工Serial_ID：{}，目标岗位组织节点ID：{}，错误：{}", 
+                    entity.getSerial_id(), entity.getParent_id(), e.getMessage(), e);
+            throw new BusinessException("员工岗位调整失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新员工-岗位关系
+     * @param staffId 员工ID
+     * @param newPositionId 新岗位ID
+     */
+    private void updateStaffPositionRelation(Long staffId, Long newPositionId) {
+        // 1. 删除员工原有的岗位关系
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MStaffOrgEntity> deleteWrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        deleteWrapper.eq(MStaffOrgEntity::getStaff_id, staffId)
+                    .eq(MStaffOrgEntity::getSerial_type, DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+        
+        int deletedCount = mStaffOrgMapper.delete(deleteWrapper);
+        log.info("删除员工原有岗位关系，员工ID：{}，删除记录数：{}", staffId, deletedCount);
+        
+        // 2. 建立员工与新岗位的关系
+        MStaffOrgEntity newRelation = new MStaffOrgEntity();
+        newRelation.setStaff_id(staffId);
+        newRelation.setSerial_id(newPositionId);
+        newRelation.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+        
+        mStaffOrgMapper.insert(newRelation);
+        log.info("建立员工新岗位关系，员工ID：{}，新岗位ID：{}", staffId, newPositionId);
     }
 
     /**
@@ -909,6 +1024,14 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             MOrgEntity entity = new MOrgEntity();
             entity.setId(bean.getId());
             entity.setParent_id(bean.getParent_id());
+            
+            if (bean instanceof MOrgTreeVo) {
+                MOrgTreeVo treeVo = (MOrgTreeVo) bean;
+                entity.setType(treeVo.getType());
+                entity.setSerial_id(treeVo.getSerial_id());
+                entity.setSerial_type(treeVo.getSerial_type());
+            }
+            
             if(parent_bean == null) {
                 entity.setCode(String.format("%04d", code));
             } else {
