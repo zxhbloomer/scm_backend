@@ -1366,6 +1366,7 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
      * - CACHE_SYSTEM_ICON_TYPE: 系统图标缓存（组织架构图标）
      * - CACHE_CONFIG: 系统参数配置缓存（可能包含组织配置参数）
      */
+    @Override
     public void clearAllOrgCaches() {
         try {
             String tenantKey = DataSourceHelper.getCurrentDataSourceName();

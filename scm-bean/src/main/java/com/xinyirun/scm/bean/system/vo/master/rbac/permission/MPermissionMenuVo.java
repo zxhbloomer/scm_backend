@@ -137,10 +137,6 @@ public class MPermissionMenuVo implements Serializable {
      */
     private String descr;
 
-    /**
-     * 租户id
-     */
-//    private Long tenant_id;
 
     private Long c_id;
 

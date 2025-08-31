@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -20,9 +21,11 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
 public class MRoleStaffVo extends BaseVo implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
+
+
+    @Serial
+    private static final long serialVersionUID = -4281845721203190926L;
+
     /**
      * 主键ID
      */

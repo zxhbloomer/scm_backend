@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.org.MDeptEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MDeptVo;
+import com.xinyirun.scm.bean.system.vo.master.org.MDeptExportVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
@@ -114,6 +115,20 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
             and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)  
             and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)  
             and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                 
+            and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                              
+            and (                                                                                                 
+               -- 显示未使用的部门条件
+               case when #{p1.dataModel,jdbcType=VARCHAR} = '10' then   
+                   not exists(                                                                                    
+                             select 1                                                                             
+                               from m_org subt1                                                                   
+                              -- 部门类型条件
+                              where subt1.serial_type = 'm_dept'    
+                                and t1.id = subt1.serial_id                                                        
+                   )                                                                                              
+               else true                                                                                          
+               end                                                                                                
+                )                                                                                                 
               """)
     List<MDeptVo> select(@Param("p1") MDeptVo searchCondition);
 
@@ -267,4 +282,83 @@ public interface MDeptMapper extends BaseMapper<MDeptEntity> {
                 and t.serial_id = #{p1.id,jdbcType=BIGINT}                                                       
                                                                                                      """)
     int isExistsInOrg(@Param("p1") MDeptEntity searchCondition);
+
+    /**
+     * 统计指定部门下的子部门数量
+     * 通过组织架构关系查询子部门
+     * @param deptId 部门ID
+     * @return 子部门数量
+     */
+    @Select("""
+             SELECT COUNT(1) 
+               FROM m_org t1
+               JOIN m_dept t2 ON t1.serial_id = t2.id
+              WHERE t1.serial_type = 'm_dept'
+                AND t1.parent_id IN (
+                    SELECT id 
+                      FROM m_org 
+                     WHERE serial_type = 'm_dept' 
+                       AND serial_id = #{deptId}
+                )
+                AND t2.is_del = false
+                                                                                                     """)
+    Long countSubDepts(@Param("deptId") Long deptId);
+
+    /**
+     * 导出专用查询方法，支持动态排序
+     * @param param 查询条件
+     * @param orderByClause 排序子句
+     * @return
+     */
+    @Select("""
+        <script>
+        SELECT (@row_num:= @row_num + 1) as no,
+               t1.*,
+               t2.name as c_name,
+               t3.name as u_name,
+               t4.label as is_del_name,
+               f_get_org_simple_name(t5.code, 'm_group') as group_simple_name,
+               f_get_org_simple_name(t6.code, 'm_company') as company_simple_name,
+               f_get_org_simple_name(t7.code, 'm_dept') as parent_dept_simple_name,
+               t8.name as handler_id_name,
+               t9.name as sub_handler_id_name,
+               t10.name as leader_id_name,
+               t11.name as response_leader_id_name
+          from m_dept t1
+         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
+         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
+         /* dict_code='sys_delete_type'获取删除状态字典标签，对应DICT_SYS_DELETE_MAP常量 */
+         LEFT JOIN v_dict_info AS t4 ON t4.code = 'sys_delete_type' and t4.dict_value = CONCAT('', t1.is_del)
+         LEFT JOIN v_org_relation t5 ON t5.serial_type = 'm_dept' and t5.serial_id = t1.id and t5.parent_serial_type = 'm_group'
+         LEFT JOIN v_org_relation t6 ON t6.serial_type = 'm_dept' and t6.serial_id = t1.id and t6.parent_serial_type = 'm_company'
+         LEFT JOIN v_org_relation t7 ON t7.serial_type = 'm_dept' and t7.serial_id = t1.id and t7.parent_serial_type = 'm_dept'
+         LEFT JOIN m_staff t8 ON t1.handler_id = t8.id
+         LEFT JOIN m_staff t9 ON t1.sub_handler_id = t9.id
+         LEFT JOIN m_staff t10 ON t1.leader_id = t10.id
+         LEFT JOIN m_staff t11 ON t1.response_leader_id = t11.id
+               ,(SELECT @row_num := 0) r
+         where true
+           and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
+           and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
+           and t1.is_del = false
+           and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
+           and (#{p1.group_name,jdbcType=VARCHAR} IS NULL 
+                OR #{p1.group_name,jdbcType=VARCHAR} = '' 
+                OR f_get_org_simple_and_full_name(t5.code, 'm_group') LIKE CONCAT('%', #{p1.group_name,jdbcType=VARCHAR}, '%'))
+           and (#{p1.company_name,jdbcType=VARCHAR} IS NULL 
+                OR #{p1.company_name,jdbcType=VARCHAR} = '' 
+                OR f_get_org_simple_and_full_name(t6.code, 'm_company') LIKE CONCAT('%', #{p1.company_name,jdbcType=VARCHAR}, '%'))
+           and (#{p1.parent_dept_name,jdbcType=VARCHAR} IS NULL 
+                OR #{p1.parent_dept_name,jdbcType=VARCHAR} = '' 
+                OR f_get_org_simple_and_full_name(t7.code, 'm_dept') LIKE CONCAT('%', #{p1.parent_dept_name,jdbcType=VARCHAR}, '%'))
+           <if test='p1.ids != null and p1.ids.length > 0'>
+           and t1.id in
+           <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>
+                #{item}
+           </foreach>
+           </if>
+        ${orderByClause}
+        </script>
+        """)
+    List<MDeptExportVo> selectExportList(@Param("p1") MDeptVo param, @Param("orderByClause") String orderByClause);
 }

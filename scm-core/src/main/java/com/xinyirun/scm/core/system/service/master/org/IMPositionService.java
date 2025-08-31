@@ -50,15 +50,16 @@ public interface IMPositionService extends IService<MPositionEntity> {
     /**
      * 获取列表，页面查询
      *
-     * @param page_code
+     * @param perms
      * @return
      */
     List<MPositionVo> selectPositionByPerms(String perms);
 
     /**
-     * 获取所有数据
+     * 导出专用查询方法，支持动态排序
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
      */
-    List<MPositionExportVo> select(MPositionVo searchCondition) ;
+    List<MPositionExportVo> selectExportList(MPositionVo searchCondition);
 
     /**
      * 获取所选id的数据
@@ -66,16 +67,18 @@ public interface IMPositionService extends IService<MPositionEntity> {
     List<MPositionEntity> selectIdsIn(List<MPositionVo> searchCondition) ;
 
     /**
-     * 获取所选id的数据
-     */
-    List<MPositionExportVo> selectIdsInForExport(List<MPositionVo> searchCondition) ;
-
-    /**
      * 批量删除复原
      * @param searchCondition
      * @return
      */
     void deleteByIdsIn(List<MPositionVo> searchCondition);
+
+    /**
+     * 从组织架构删除岗位（同时删除岗位实体和组织关联关系）
+     * @param searchCondition
+     * @return
+     */
+    void deleteByIdsFromOrg(List<MPositionVo> searchCondition);
 
     /**
      * 插入一条记录（选择字段，策略插入）

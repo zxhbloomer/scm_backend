@@ -16,8 +16,11 @@ import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.workbench.ISSysWorkbenchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
+import com.xinyirun.scm.common.utils.redis.RedisLockUtil;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * <p>
@@ -28,6 +31,7 @@ import java.util.List;
  * @since 2025-02-17
  */
 @Service
+@Slf4j
 public class SSysWorkbenchServiceImpl extends ServiceImpl<SSysWorkbenchMapper, SSysWorkbenchEntity> implements ISSysWorkbenchService {
 
     @Autowired
@@ -55,23 +59,44 @@ public class SSysWorkbenchServiceImpl extends ServiceImpl<SSysWorkbenchMapper, S
          */
         searchCondition.setStaff_id(SecurityUtil.getStaff_id());
 
-        /**
-         * 如果查询不到数据，则从s_config表中获取数据,向s_sys_workbench新数据并返回
-         */
-        SSysWorkbenchVo vo = mapper.getDataByCode(searchCondition);
-        if (vo==null){
-            SConfigEntity _data = sConfigService.selectByKey(SystemConstants.WORK_BENCH_LAYOUT_DEFAULT);
-
-            SSysWorkbenchEntity entity = new SSysWorkbenchEntity();
-            entity.setCode("0001");
-            entity.setStaff_id(SecurityUtil.getStaff_id());
-            entity.setConfig(_data.getValue());
-            mapper.insert(entity);
-
-            vo = (SSysWorkbenchVo) BeanUtilsSupport.copyProperties(entity, SSysWorkbenchVo.class);
+        // 构建分布式锁key
+        String lockKey = "workbench:init:" + searchCondition.getStaff_id() + ":" + searchCondition.getCode();
+        String requestId = UUID.randomUUID().toString();
+        boolean lockSuccess = RedisLockUtil.tryGetDistributedLock(lockKey, requestId, 30, 3L, 1000L);
+        
+        if (!lockSuccess) {
+            log.warn("获取分布式锁失败，可能存在并发操作: staff_id={}, code={}", searchCondition.getStaff_id(), searchCondition.getCode());
+            // 等待后再次查询，避免返回null
+            try {
+                Thread.sleep(200);
+                return mapper.getDataByCode(searchCondition);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
         }
 
-        return vo ;
+        try {
+            /**
+             * 双重检查：获得锁后再次查询，避免重复插入
+             */
+            SSysWorkbenchVo vo = mapper.getDataByCode(searchCondition);
+            if (vo == null) {
+                SConfigEntity _data = sConfigService.selectByKey(SystemConstants.WORK_BENCH_LAYOUT_DEFAULT);
+
+                SSysWorkbenchEntity entity = new SSysWorkbenchEntity();
+                entity.setCode("0001");
+                entity.setStaff_id(SecurityUtil.getStaff_id());
+                entity.setConfig(_data.getValue());
+                mapper.insert(entity);
+
+                vo = (SSysWorkbenchVo) BeanUtilsSupport.copyProperties(entity, SSysWorkbenchVo.class);
+                log.info("成功初始化工作台布局配置: staff_id={}, code={}", searchCondition.getStaff_id(), searchCondition.getCode());
+            }
+            return vo;
+        } finally {
+            RedisLockUtil.releaseDistributedLock(lockKey, requestId);
+        }
     }
 
     /**
@@ -209,23 +234,44 @@ public class SSysWorkbenchServiceImpl extends ServiceImpl<SSysWorkbenchMapper, S
          */
         searchCondition.setStaff_id(SecurityUtil.getStaff_id());
 
-        /**
-         * 如果查询不到数据，则从s_config表中获取数据,向s_sys_workbench新数据并返回
-         */
-        SSysWorkbenchVo vo = mapper.getDataByCode(searchCondition);
-        if (vo==null){
-            SConfigEntity _data = sConfigService.selectByKey(SystemConstants.WORK_BENCH_LAYOUT_DEFAULT);
-
-            SSysWorkbenchEntity entity = new SSysWorkbenchEntity();
-            entity.setCode("0002");
-            entity.setStaff_id(SecurityUtil.getStaff_id());
-            entity.setConfig(_data.getExtra1());
-            mapper.insert(entity);
-
-            vo = (SSysWorkbenchVo) BeanUtilsSupport.copyProperties(entity, SSysWorkbenchVo.class);
+        // 构建分布式锁key
+        String lockKey = "workbench:init:" + searchCondition.getStaff_id() + ":" + searchCondition.getCode();
+        String requestId = UUID.randomUUID().toString();
+        boolean lockSuccess = RedisLockUtil.tryGetDistributedLock(lockKey, requestId, 30, 3L, 1000L);
+        
+        if (!lockSuccess) {
+            log.warn("获取分布式锁失败，可能存在并发操作: staff_id={}, code={}", searchCondition.getStaff_id(), searchCondition.getCode());
+            // 等待后再次查询，避免返回null
+            try {
+                Thread.sleep(200);
+                return mapper.getDataByCode(searchCondition);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
         }
 
-        return vo ;
+        try {
+            /**
+             * 双重检查：获得锁后再次查询，避免重复插入
+             */
+            SSysWorkbenchVo vo = mapper.getDataByCode(searchCondition);
+            if (vo == null) {
+                SConfigEntity _data = sConfigService.selectByKey(SystemConstants.WORK_BENCH_LAYOUT_DEFAULT);
+
+                SSysWorkbenchEntity entity = new SSysWorkbenchEntity();
+                entity.setCode("0002");
+                entity.setStaff_id(SecurityUtil.getStaff_id());
+                entity.setConfig(_data.getExtra1());
+                mapper.insert(entity);
+
+                vo = (SSysWorkbenchVo) BeanUtilsSupport.copyProperties(entity, SSysWorkbenchVo.class);
+                log.info("成功初始化快捷操作配置: staff_id={}, code={}", searchCondition.getStaff_id(), searchCondition.getCode());
+            }
+            return vo;
+        } finally {
+            RedisLockUtil.releaseDistributedLock(lockKey, requestId);
+        }
     }
 
     /**
@@ -246,23 +292,44 @@ public class SSysWorkbenchServiceImpl extends ServiceImpl<SSysWorkbenchMapper, S
          */
         searchCondition.setStaff_id(SecurityUtil.getStaff_id());
 
-        /**
-         * 如果查询不到数据，则从s_config表中获取数据,向s_sys_workbench新数据并返回
-         */
-        SSysWorkbenchVo vo = mapper.getDataByCode(searchCondition);
-        if (vo==null){
-            SConfigEntity _data = sConfigService.selectByKey(SystemConstants.WORK_BENCH_LAYOUT_DEFAULT);
-
-            SSysWorkbenchEntity entity = new SSysWorkbenchEntity();
-            entity.setCode("0003");
-            entity.setStaff_id(SecurityUtil.getStaff_id());
-            entity.setConfig(_data.getExtra2());
-            mapper.insert(entity);
-
-            vo = (SSysWorkbenchVo) BeanUtilsSupport.copyProperties(entity, SSysWorkbenchVo.class);
+        // 构建分布式锁key
+        String lockKey = "workbench:init:" + searchCondition.getStaff_id() + ":" + searchCondition.getCode();
+        String requestId = UUID.randomUUID().toString();
+        boolean lockSuccess = RedisLockUtil.tryGetDistributedLock(lockKey, requestId, 30, 3L, 1000L);
+        
+        if (!lockSuccess) {
+            log.warn("获取分布式锁失败，可能存在并发操作: staff_id={}, code={}", searchCondition.getStaff_id(), searchCondition.getCode());
+            // 等待后再次查询，避免返回null
+            try {
+                Thread.sleep(200);
+                return mapper.getDataByCode(searchCondition);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
         }
 
-        return vo ;
+        try {
+            /**
+             * 双重检查：获得锁后再次查询，避免重复插入
+             */
+            SSysWorkbenchVo vo = mapper.getDataByCode(searchCondition);
+            if (vo == null) {
+                SConfigEntity _data = sConfigService.selectByKey(SystemConstants.WORK_BENCH_LAYOUT_DEFAULT);
+
+                SSysWorkbenchEntity entity = new SSysWorkbenchEntity();
+                entity.setCode("0003");
+                entity.setStaff_id(SecurityUtil.getStaff_id());
+                entity.setConfig(_data.getExtra2());
+                mapper.insert(entity);
+
+                vo = (SSysWorkbenchVo) BeanUtilsSupport.copyProperties(entity, SSysWorkbenchVo.class);
+                log.info("成功初始化常用应用配置: staff_id={}, code={}", searchCondition.getStaff_id(), searchCondition.getCode());
+            }
+            return vo;
+        } finally {
+            RedisLockUtil.releaseDistributedLock(lockKey, requestId);
+        }
     }
 
     /**

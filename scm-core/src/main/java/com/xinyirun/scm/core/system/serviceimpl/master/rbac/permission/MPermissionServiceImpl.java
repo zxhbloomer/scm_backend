@@ -177,6 +177,18 @@ public class MPermissionServiceImpl extends BaseServiceImpl<MPermissionMapper, M
     @Override
     @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_SYSTEM_MENU_SEARCH_TYPE, allEntries=true)
     public void deleteByIdsIn(List<MPermissionVo> searchCondition) {
+        // 提取权限ID列表
+        List<Long> permissionIds = searchCondition.stream()
+                .map(MPermissionVo::getId)
+                .collect(Collectors.toList());
+        
+        // 删除前校验
+        CheckResultAo checkResult = validatePermissionDeletion(permissionIds);
+        if (!checkResult.isSuccess()) {
+            throw new BusinessException(checkResult.getMessage());
+        }
+        
+        // 执行逻辑删除
         List<MPermissionVo> list = mapper.selectIdsIn(searchCondition);
         list.forEach(
             bean -> {
@@ -209,17 +221,32 @@ public class MPermissionServiceImpl extends BaseServiceImpl<MPermissionMapper, M
         int count_insert = mapper.insert(entity);
 
         /** 复制选中系统菜单，和操作权限  */
-        MMenuEntity mMenuEntity = menuMapper.selectOne(new QueryWrapper<MMenuEntity>()
-            .select("distinct root_id")
-//            .eq("tenant_id",operationMenuDataVo.getTenant_id())
-        );
-        operationMenuDataVo.setPermission_id(entity.getId());
-        operationMenuDataVo.setRoot_id(mMenuEntity.getRoot_id());
-        imPermissionDeptOperationService.setSystemMenuData2PermissionData(operationMenuDataVo);
-
-        /** 最后更新m_permission中menu_id */
-        entity.setMenu_id(mMenuEntity.getRoot_id());
-        int count_update = mapper.updateById(entity);
+        // 根据用户选择的menu_id获取对应的根节点ID
+        Long rootId = null;
+        if (entity.getMenu_id() != null) {
+            MMenuEntity selectedMenu = menuMapper.selectById(entity.getMenu_id());
+            if (selectedMenu != null) {
+                rootId = selectedMenu.getRoot_id() != null ? selectedMenu.getRoot_id() : entity.getMenu_id();
+            }
+        } else {
+            // 如果用户未选择菜单，保持原有默认逻辑
+            MMenuEntity mMenuEntity = menuMapper.selectOne(new QueryWrapper<MMenuEntity>()
+                .select("distinct root_id")
+//                .eq("tenant_id",operationMenuDataVo.getTenant_id())
+            );
+            if (mMenuEntity != null) {
+                rootId = mMenuEntity.getRoot_id();
+                entity.setMenu_id(rootId);
+                mapper.updateById(entity);
+            }
+        }
+        
+        // 复制选中系统菜单和操作权限
+        if (rootId != null) {
+            operationMenuDataVo.setPermission_id(entity.getId());
+            operationMenuDataVo.setRoot_id(rootId);
+            imPermissionDeptOperationService.setSystemMenuData2PermissionData(operationMenuDataVo);
+        }
 
         if(count_insert == 0 ){
             throw new InsertErrorException("保存失败，请查询后重新再试。");
@@ -242,9 +269,10 @@ public class MPermissionServiceImpl extends BaseServiceImpl<MPermissionMapper, M
         permissionPagesMapper.deleteByPermissionId(mPermissionVo.getId());
         permissionOperationMapper.deleteByPermissionId(mPermissionVo.getId());
         /** 复制选中系统菜单，和操作权限  */
-        MMenuEntity mMenuEntity = menuMapper.selectOne(new QueryWrapper<MMenuEntity>()
-                        .select("distinct root_id")
-        );
+        MMenuEntity mMenuEntity = mapper.selectMenuByPermissionId(mPermissionVo.getId());
+        if (mMenuEntity == null) {
+            throw new BusinessException("权限未关联有效菜单，无法重置");
+        }
         OperationMenuDataVo operationMenuDataVo = new OperationMenuDataVo();
         operationMenuDataVo.setPermission_id(mPermissionVo.getId());
         operationMenuDataVo.setRoot_id(mMenuEntity.getRoot_id());
@@ -292,6 +320,73 @@ public class MPermissionServiceImpl extends BaseServiceImpl<MPermissionMapper, M
     @Override
     public MPermissionVo selectByid(Long id){
         return mapper.selectByid(id);
+    }
+
+    /**
+     * 权限删除前校验方法
+     * @param permissionIds 要删除的权限ID列表
+     * @return 校验结果
+     */
+    private CheckResultAo validatePermissionDeletion(List<Long> permissionIds) {
+        for (Long permissionId : permissionIds) {
+            // 获取权限信息
+            MPermissionEntity permission = getById(permissionId);
+            if (permission == null || permission.getIs_del()) {
+                continue; // 跳过不存在或已删除的权限
+            }
+            
+            // 1. 检查是否为系统管理员权限
+            if (permission.getIs_admin() != null && permission.getIs_admin()) {
+                return CheckResultUtil.NG(
+                    String.format("系统管理员权限'%s'不能删除", permission.getName()));
+            }
+            
+            // 2. 检查角色关联
+            int roleCount = countPermissionRoleRelations(permissionId);
+            if (roleCount > 0) {
+                return CheckResultUtil.NG(
+                    String.format("权限'%s'被%d个角色使用，请先解除关联", 
+                    permission.getName(), roleCount));
+            }
+            
+            // 3. 检查员工直接关联
+            int staffCount = countPermissionStaffRelations(permissionId);
+            if (staffCount > 0) {
+                return CheckResultUtil.NG(
+                    String.format("权限'%s'被%d个员工直接使用，请先解除关联", 
+                    permission.getName(), staffCount));
+            }
+            
+            // 4. 检查岗位关联
+            int positionCount = countPermissionPositionRelations(permissionId);
+            if (positionCount > 0) {
+                return CheckResultUtil.NG(
+                    String.format("权限'%s'被%d个岗位使用，请先解除关联", 
+                    permission.getName(), positionCount));
+            }
+        }
+        return CheckResultUtil.OK();
+    }
+    
+    /**
+     * 统计权限-角色关联数量
+     */
+    private int countPermissionRoleRelations(Long permissionId) {
+        return mapper.countPermissionRoleRelations(permissionId);
+    }
+    
+    /**
+     * 统计权限-员工关联数量
+     */
+    private int countPermissionStaffRelations(Long permissionId) {
+        return mapper.countPermissionStaffRelations(permissionId);
+    }
+    
+    /**
+     * 统计权限-岗位关联数量
+     */
+    private int countPermissionPositionRelations(Long permissionId) {
+        return mapper.countPermissionPositionRelations(permissionId);
     }
 
     /**

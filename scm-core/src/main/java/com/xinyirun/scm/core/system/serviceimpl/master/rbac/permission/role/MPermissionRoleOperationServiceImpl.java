@@ -215,6 +215,7 @@ public class MPermissionRoleOperationServiceImpl extends BaseServiceImpl<MPermis
 
         // 更新菜单逻辑
         boolean rtn_menu_update = saveMenuPermissionData(menu_data);
+        if(operation_data.size()!=0) {
         // 更新操作权限逻辑
         boolean rtn_operation_update = saveOperationPermissionData(operation_data);
 
@@ -226,8 +227,8 @@ public class MPermissionRoleOperationServiceImpl extends BaseServiceImpl<MPermis
                     .set(MPermissionEntity::getU_time, LocalDateTime.now())
             );
         }
-
-        return rtn_menu_update & rtn_operation_update;
+}
+        return rtn_menu_update ;
     }
 
     /**

@@ -97,7 +97,17 @@ public class SRoleVo extends UploadFileResultAo implements Serializable {
     private LocalDateTime u_time;
 
     /**
+     * 数据版本，乐观锁使用
+     */
+    private Integer dbversion;
+
+    /**
      * 换页条件
      */
     private PageCondition pageCondition;
+
+    /**
+     * 选中导出时的ID数组
+     */
+    private Long[] ids;
 }

@@ -193,7 +193,7 @@ public class BPoContractController extends SystemBaseController {
         PoContractMergeStrategy mergeStrategy = new PoContractMergeStrategy(true);
         
         // 使用EasyExcelUtil进行导出，应用合并策略
-        String fileName = "采购合同" + DateTimeUtil.getDate();
+        String fileName = "采购合同_" + DateTimeUtil.dateTimeNow();
         String sheetName = "采购合同";
         EasyExcelUtil<BPoContractExportVo> excelUtil = new EasyExcelUtil<>(BPoContractExportVo.class);
         excelUtil.exportExcelWithMergeStrategy(fileName, sheetName, exportDataList, response, mergeStrategy);

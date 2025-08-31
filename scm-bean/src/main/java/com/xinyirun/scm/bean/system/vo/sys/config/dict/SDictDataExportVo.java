@@ -22,7 +22,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = false)
 // @ApiModel(value = "资源表导出Bean", description = "资源表导出Bean")
-public class SDictDataExportVo extends BaseVo implements Serializable {
+public class SDictDataExportVo implements Serializable {
 
     private static final long serialVersionUID = 6419636324818821669L;
     @ExcelAnnotion(name = "NO")

@@ -3,6 +3,7 @@ package com.xinyirun.scm.bean.system.vo.master.rbac.permission;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
 
@@ -14,7 +15,9 @@ import java.util.List;
 @NoArgsConstructor
 public class MPermissionSelectionVo implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = 6847760727033204264L;
 
     /** 所有可选权限列表 */
     private List<MPermissionVo> permissions;

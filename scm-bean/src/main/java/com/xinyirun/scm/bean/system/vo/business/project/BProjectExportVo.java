@@ -25,8 +25,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class BProjectExportVo implements Serializable {
 
+
     @Serial
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 7178169190694058248L;
 
     @ExcelProperty(value = "No", index = 0)
     private Integer no;

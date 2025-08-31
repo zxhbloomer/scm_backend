@@ -15,7 +15,7 @@ import java.util.Date;
 @Data
 @EqualsAndHashCode(callSuper = false)
 // @ApiModel(value = "参数配置表导出Bean", description = "参数配置表导出Bean")
-public class SConfigDataExportVo extends BaseVo implements Serializable {
+public class SConfigDataExportVo implements Serializable {
 
     private static final long serialVersionUID = -21039960705170821L;
 

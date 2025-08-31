@@ -104,13 +104,14 @@ public interface SPagesFunctionMapper extends BaseMapper<SPagesFunctionEntity> {
     int selectExportNum(@Param("p1") SPagesFunctionVo searchConditionList);
 
     /**
-     * 数据导出
-     * @param searchConditionList
+     * 数据导出 - 支持动态排序
+     * @param param 查询条件
+     * @param orderByClause 排序子句
      * @return
      */
     @Select("<script>"
             + "    SELECT                                                                                                                "
-            + "            @row_num:= @row_num+ 1 as no,                                                                                 "
+            + "            (@row_num:= @row_num+ 1) as no,                                                                               "
             + "           t1.perms ,                                                                                                     "
             + "           t1.sort ,                                                                                                      "
             + "           t1.u_time ,                                                                                                    "
@@ -125,19 +126,19 @@ public interface SPagesFunctionMapper extends BaseMapper<SPagesFunctionEntity> {
             + " LEFT JOIN s_pages t2 ON t1.page_id = t2.id                                                                               "
             + " LEFT JOIN s_function t3 ON t1.function_id = t3.id                                                                        "
             + " LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                                        "
-            + " ,(select @row_num:=0) t4                                                                                                 "
+            + " ,(SELECT @row_num := 0) r                                                                                                "
             + "     where true                                                                                                           "
             + "       and (t2.code like CONCAT ('%',#{p1.page_code,jdbcType=VARCHAR},'%') or #{p1.page_code,jdbcType=VARCHAR} is null)   "
             + "       and (t2.name like CONCAT ('%',#{p1.page_name,jdbcType=VARCHAR},'%') or #{p1.page_name,jdbcType=VARCHAR} is null)   "
-            + "  <if test='p1.ids != null and p1.ids.length != 0'>                                                      "
-            + "  AND t1.id in                                                                                           "
+            + "  <if test='p1.ids != null and p1.ids.length > 0'>                                                       "
+            + "  and t1.id in                                                                                            "
             + "  <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>               "
-            + "         #{item,jdbcType=INTEGER}                                                                        "
-            + "  </foreach>                                                                                             "
-            + "  </if>                                                                                                  "
-            + " order by t1.u_time DESC                                                                                 "
+            + "         #{item}                                                                                          "
+            + "  </foreach>                                                                                              "
+            + "  </if>                                                                                                   "
+            + " ${orderByClause}                                                                                         "
             + " </script>                                                                                                                "
     )
-    List<SPagesFunctionExportVo> exportList(@Param("p1") SPagesFunctionVo searchConditionList);
+    List<SPagesFunctionExportVo> selectExportList(@Param("p1") SPagesFunctionVo param, @Param("orderByClause") String orderByClause);
 
 }

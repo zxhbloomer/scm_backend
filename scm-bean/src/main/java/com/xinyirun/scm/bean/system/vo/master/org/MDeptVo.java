@@ -149,4 +149,9 @@ public class MDeptVo extends BaseVo implements Serializable {
      * 组织机构路线
      */
     private List<MOrgRouteVo> org_route;
+
+    /**
+     * ID数组（用于导出时按ID筛选）
+     */
+    private Long[] ids;
 }

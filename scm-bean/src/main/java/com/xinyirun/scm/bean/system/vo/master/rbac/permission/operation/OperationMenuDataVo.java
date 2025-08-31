@@ -162,10 +162,6 @@ public class OperationMenuDataVo extends TreeNode implements Serializable {
 
     private List<OperationFunctionInfoVo> function_info;
 
-    /**
-     * 租户id
-     */
-//    private Long tenant_id;
 
     private Long c_id;
     private String c_name;

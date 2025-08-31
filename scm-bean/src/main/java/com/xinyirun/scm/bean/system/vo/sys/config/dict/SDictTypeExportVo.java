@@ -19,7 +19,7 @@ import java.util.Date;
 @Data
 @EqualsAndHashCode(callSuper = false)
 // @ApiModel(value = "字典类型导出Bean", description = "字典类型导出Bean")
-public class SDictTypeExportVo extends BaseVo implements Serializable {
+public class SDictTypeExportVo implements Serializable {
 
     private static final long serialVersionUID = -6942475112738825609L;
 

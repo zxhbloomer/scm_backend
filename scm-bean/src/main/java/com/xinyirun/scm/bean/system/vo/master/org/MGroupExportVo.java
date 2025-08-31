@@ -1,16 +1,21 @@
 package com.xinyirun.scm.bean.system.vo.master.org;
 
+import cn.idev.excel.annotation.ExcelIgnore;
+import cn.idev.excel.annotation.ExcelProperty;
+import cn.idev.excel.annotation.format.DateTimeFormat;
+import cn.idev.excel.annotation.write.style.ColumnWidth;
 import com.xinyirun.scm.bean.system.config.base.BaseVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
-import com.xinyirun.scm.common.annotations.ExcelAnnotion;
 
 // import io.swagger.annotations.ApiModel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**
  * <p>
@@ -24,41 +29,54 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 // @ApiModel(value = "集团主表导出Bean", description = "集团主表导出Bean")
 @EqualsAndHashCode(callSuper=false)
-public class MGroupExportVo extends BaseVo implements Serializable {
+public class MGroupExportVo implements Serializable {
 
-    private static final long serialVersionUID = -7466167220853981131L;
 
+    @Serial
+    private static final long serialVersionUID = -5468874597001009192L;
+
+    @ExcelIgnore
     private Long id;
+
+    @ExcelProperty(value = "NO", index = 0)
+    private Integer no;
+
+    /**
+     * 上级集团简称
+     */
+    @ExcelProperty(value = "上级集团", index = 1)
+    private String parent_group_simple_name;
 
     /**
      * 集团编码
      */
-    @ExcelAnnotion(name = "编码")
+    @ExcelProperty(value = "集团编号", index = 2)
     private String code;
 
     /**
      * 集团名称
      */
-    @ExcelAnnotion(name = "名称")
+    @ExcelProperty(value = "集团名称", index = 3)
     private String name;
 
     /**
      * 简称
      */
-    @ExcelAnnotion(name = "简称")
+    @ExcelProperty(value = "集团简称", index = 4)
     private String simple_name;
 
     /**
-     * 说明
+     * 备注
      */
-    @ExcelAnnotion(name = "说明")
+    @ExcelIgnore
     private String descr;
 
     /**
      * 是否删除
      */
+    @ExcelIgnore
     private Boolean is_del;
-    @ExcelAnnotion(name = "是否删除")
+    @ExcelIgnore
     private String is_del_name;
 
     /**
@@ -66,29 +84,38 @@ public class MGroupExportVo extends BaseVo implements Serializable {
      */
 //    private Long tenant_id;
 
+    @ExcelIgnore
     private Long c_id;
 
-    @ExcelAnnotion(name = "新增人")
+    @ExcelIgnore
     private String c_name;
 
-    @ExcelAnnotion(name = "新增时间")
+    @ExcelIgnore
+    @ColumnWidth(20)
+    @DateTimeFormat("yyyy年MM月dd日 HH:mm:ss")
     private LocalDateTime c_time;
 
+    @ExcelIgnore
     private Long u_id;
 
-    @ExcelAnnotion(name = "更新人")
+    @ExcelProperty(value = "更新人", index = 5)
     private String u_name;
 
-    @ExcelAnnotion(name = "更新时间")
+    @ExcelProperty(value = "更新时间", index = 6)
+    @ColumnWidth(20)
+    @DateTimeFormat("yyyy年MM月dd日 HH:mm:ss")
     private LocalDateTime u_time;
 
     /**
      * 数据版本，乐观锁使用
      */
+    @ExcelIgnore
     private Integer dbversion;
 
     /**
      * 换页条件
      */
+    @ExcelIgnore
     private PageCondition pageCondition;
+
 }

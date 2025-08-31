@@ -15,6 +15,11 @@ import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesFunctionService;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +40,12 @@ public class SysPagesFunctionController extends SystemBaseController {
 
     @Autowired
     private ISPagesFunctionService service;
+
+    @Autowired
+    private ISPagesService sPagesService;
+
+    @Autowired
+    private SPagesMapper sPagesMapper;
 
     @SysLogAnnotion("根据查询条件，获取vue页面按钮信息")
     // @ApiOperation(value = "根据参数id，获取vue页面按钮信息")
@@ -99,13 +110,56 @@ public class SysPagesFunctionController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
-    @SysLogAnnotion("页面按钮表数据 导出")
-    @PostMapping("/export")
-    public void export(@RequestBody(required = false) SPagesFunctionVo searchConditionList
-            , HttpServletResponse response) throws IOException {
-        List<SPagesFunctionExportVo> list = service.selectExportList(searchConditionList);
-        EasyExcelUtil<SPagesFunctionExportVo> util = new EasyExcelUtil<>(SPagesFunctionExportVo.class);
-        util.exportExcel("页面按钮表数据" + DateTimeUtil.getDate(), "页面按钮表数据", list, response);
+    @SysLogAnnotion("页面按钮表数据 导出 - 全部导出")
+    @PostMapping("/exportall")
+    public void exportAll(@RequestBody(required = false) SPagesFunctionVo searchCondition, 
+                          HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段） - 需要定义页面按钮维护的页面编码常量
+        SPagesVo sPagesVo = sPagesMapper.selectByCode("PAGE_FUNCTION"); // 临时使用字符串，后续需要添加到常量类
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 全部导出：直接调用selectExportList查询方法
+            List<SPagesFunctionExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("全部导出：查询到页面按钮数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<SPagesFunctionExportVo> util = new EasyExcelUtil<>(SPagesFunctionExportVo.class);
+            String fileName = "页面按钮表数据导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "页面按钮表数据", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
 
+    @SysLogAnnotion("页面按钮表数据 导出 - 选择导出")
+    @PostMapping("/export")
+    public void export(@RequestBody(required = false) SPagesFunctionVo searchCondition, 
+                       HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode("PAGE_FUNCTION");
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的页面按钮记录");
+            }
+            
+            // 选中导出：直接调用selectExportList查询方法
+            List<SPagesFunctionExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("选中导出：查询到页面按钮数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<SPagesFunctionExportVo> util = new EasyExcelUtil<>(SPagesFunctionExportVo.class);
+            String fileName = "页面按钮表数据导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "页面按钮表数据", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 }

@@ -6,6 +6,7 @@ import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.entity.master.org.MCompanyEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MCompanyVo;
+import com.xinyirun.scm.bean.system.vo.master.org.MCompanyExportVo;
 
 import java.util.List;
 
@@ -29,9 +30,12 @@ public interface IMCompanyService extends IService<MCompanyEntity> {
     List<MCompanyVo> select(MCompanyVo searchCondition) ;
 
     /**
-     * 获取所选id的数据
+     * 获取导出列表数据 - 标准化实现
+     * @param searchCondition 查询条件
+     * @param orderByClause 动态排序子句
+     * @return 导出数据列表
      */
-    List<MCompanyVo> selectIdsInForExport(List<MCompanyVo> searchCondition) ;
+    List<MCompanyExportVo> selectExportList(MCompanyVo searchCondition);
 
     /**
      * 批量删除复原
@@ -39,6 +43,13 @@ public interface IMCompanyService extends IService<MCompanyEntity> {
      * @return
      */
     void deleteByIdsIn(List<MCompanyVo> searchCondition);
+
+    /**
+     * 从组织架构删除主体企业（同时删除企业实体和组织关联关系）
+     * @param searchCondition
+     * @return
+     */
+    void deleteByIdsFromOrg(List<MCompanyVo> searchCondition);
 
     /**
      * 插入一条记录（选择字段，策略插入）

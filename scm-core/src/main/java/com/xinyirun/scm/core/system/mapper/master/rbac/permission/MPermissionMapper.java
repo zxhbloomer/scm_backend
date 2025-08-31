@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.rbac.permission.MPermissionEntity;
+import com.xinyirun.scm.bean.entity.master.menu.MMenuEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MPermissionRoleOperationVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MMenuRootNodeListVo;
 import com.xinyirun.scm.bean.system.vo.master.rbac.permission.MMenuRootNodeVo;
@@ -34,11 +35,13 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
         + "      SELECT                                                                   "
         + "             t1.*,                                                             "
         + "             c_staff.name as c_name,                                           "
-        + "             u_staff.name as u_name                                            "
+        + "             u_staff.name as u_name,                                           "
+        + "             m.name as menu_name                                               "
         + "        FROM                                                                   "
         + "             m_permission t1                                                   "
         + "   LEFT JOIN m_staff c_staff ON t1.c_id = c_staff.id                           "
         + "   LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                           "
+        + "   LEFT JOIN m_menu m ON t1.menu_id = m.id                                     "
         + "                                                                               ";
 
 
@@ -73,7 +76,7 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
             + "  where true                                                                                                "
             + "    and t1.type = '"+ DictConstant.DICT_MSTR_PERMISSION_TYPE_ROLE +"'                                "
             + "    and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)  "
-            + "    and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                 "
+            + "    and t1.is_del = false                                                                                    "
 //        + "    and (t1.tenant_id =#{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)          "
             + "    and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                               "
             + "    and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                               "
@@ -90,7 +93,7 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
             + "  where true                                                                                                "
             + "    and t1.type = '"+ DictConstant.DICT_MSTR_PERMISSION_TYPE_ROLE +"'                                "
             + "    and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)  "
-            + "    and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                 "
+            + "    and t1.is_del = false                                                                                    "
 //        + "    and (t1.tenant_id =#{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)          "
             + "    and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                               "
             + "    and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)                               "
@@ -228,5 +231,55 @@ public interface MPermissionMapper extends BaseMapper<MPermissionEntity> {
             + "   WHERE t2.role_id = #{p1}                                                                              "
             + "                                                                          ")
     List<Integer> selectPermissionIdsByRoleId(@Param("p1") Long roleId);
+
+    /**
+     * 根据权限ID获取关联的菜单信息
+     * @param permissionId 权限ID
+     * @return 菜单实体信息
+     */
+    @Select("                                                                                                           "
+            + "   SELECT t2.*                                                                                           "
+            + "   FROM m_permission t1                                                                                  "
+            + "   INNER JOIN m_menu t2 ON t2.id = t1.menu_id                                                           "
+            + "   WHERE t1.id = #{permissionId,jdbcType=BIGINT}                                                        "
+            + "     AND t1.is_del = false                                                                                   "
+            + "                                                                          ")
+    MMenuEntity selectMenuByPermissionId(@Param("permissionId") Long permissionId);
+
+    /**
+     * 统计权限-角色关联数量
+     * @param permissionId 权限ID
+     * @return 关联的角色数量
+     */
+    @Select("                                                                                                           "
+            + "   SELECT COUNT(*)                                                                                       "
+            + "   FROM m_permission_role t1                                                                             "
+            + "   WHERE t1.permission_id = #{permissionId,jdbcType=BIGINT}                                              "
+            + "                                                                          ")
+    int countPermissionRoleRelations(@Param("permissionId") Long permissionId);
+
+    /**
+     * 统计权限-员工关联数量
+     * @param permissionId 权限ID
+     * @return 关联的员工数量
+     */
+    @Select("                                                                                                           "
+            + "   SELECT COUNT(*)                                                                                       "
+            + "   FROM m_permission_staff t1                                                                            "
+            + "   WHERE t1.permission_id = #{permissionId,jdbcType=BIGINT}                                              "
+            + "                                                                          ")
+    int countPermissionStaffRelations(@Param("permissionId") Long permissionId);
+
+    /**
+     * 统计权限-岗位关联数量
+     * @param permissionId 权限ID
+     * @return 关联的岗位数量
+     */
+    @Select("                                                                                                           "
+            + "   SELECT COUNT(*)                                                                                       "
+            + "   FROM m_permission_position t1                                                                         "
+            + "   WHERE t1.permission_id = #{permissionId,jdbcType=BIGINT}                                              "
+            + "                                                                          ")
+    int countPermissionPositionRelations(@Param("permissionId") Long permissionId);
 
 }

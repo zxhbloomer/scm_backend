@@ -29,6 +29,12 @@ public interface ISRoleService extends IService<SRoleEntity> {
     List<SRoleExportVo> selectExportAll(SRoleVo searchCondition) ;
 
     /**
+     * 导出专用查询方法，支持动态排序
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     */
+    List<SRoleExportVo> selectExportList(SRoleVo searchCondition);
+
+    /**
      * 获取所选id的数据
      */
     List<SRoleEntity> selectIdsIn(List<SRoleVo> searchCondition) ;
@@ -47,12 +53,6 @@ public interface ISRoleService extends IService<SRoleEntity> {
 
 
 
-    /**
-     * 部分导出
-     * @param searchConditionList 导出id
-     * @return List<SRoleExportVo>
-     */
-    List<SRoleExportVo> selectExportList(List<SRoleVo> searchConditionList);
 
     /**
      * 获取角色选择弹窗列表（无分页，用于角色选择弹窗）

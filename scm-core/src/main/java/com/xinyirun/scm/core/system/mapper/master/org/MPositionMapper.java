@@ -260,12 +260,14 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
     MPositionVo getDetail(@Param("p1") MPositionVo searchCondition);
 
     /**
-     * 按条件获取所有数据，没有分页（用于导出）
-     * @param searchCondition
+     * 导出专用查询方法，支持动态排序
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     * @param orderByClause 动态排序子句
      * @return
      */
     // 删除状态字典类型：sys_delete_type
     @Select("""
+        <script>
 		SELECT                                                                                                                                                             
 			@row_num := @row_num + 1 AS NO,                                                                                                                                
 			t1.simple_name,                                                                                                                                                
@@ -273,7 +275,11 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
          t1.code,                                                                                                                                                       
 			u_staff.NAME AS u_name,                                                                                                                                        
 			t2.label AS delete_status,                                                                                                                                       
-			tt6.role_name role_concat_name,                                                                                                                                
+			COALESCE(tt6.role_concat_name, '') role_concat_name,                                                                                                                                
+			COALESCE(tt6.role_json_data, '[]') roleList,                                                                                                                     
+			COALESCE(tt7.permission_count, 0) permission_count,                                                                                                                
+			COALESCE(tt7.permission_concat_name, '') permission_concat_name,                                                                                               
+			COALESCE(tt7.permission_json_data, '[]') permissionList,                                                                                                       
 			t1.u_time,                                                                                                                                                     
 			f_get_org_simple_name(vor.code, 'm_group') group_simple_name,                                                                                             
 			f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name,                                                                                          
@@ -284,68 +290,49 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
 			LEFT JOIN v_dict_info AS t2 ON t2.CODE = 'sys_delete_type'                                                                                                     
 			AND t2.dict_value = CONCAT('', t1.is_del)                                                                                                            
   LEFT JOIN (                                                                                                                                                               
-    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) role_name, mrp.position_id                  
+    SELECT GROUP_CONCAT(sr.name SEPARATOR ', ') role_concat_name,
+           JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) role_json_data,
+           mrp.position_id                  
     FROM m_role_position mrp                                                                                                                                            
     INNER JOIN s_role sr ON sr.id = mrp.role_id AND sr.is_del = false                                                                                                  
     GROUP BY mrp.position_id
   ) tt6 ON tt6.position_id = t1.id                                                                                                                                      
+  LEFT JOIN (                                                                                                                                                          
+    SELECT COUNT(1) permission_count,                                                                                                                                  
+           GROUP_CONCAT(mp.name SEPARATOR ', ') permission_concat_name,
+           JSON_ARRAYAGG(JSON_OBJECT('id', mp.id, 'key', mp.name, 'label', mp.name)) permission_json_data,
+           mpp.position_id                                                                                                                                             
+    FROM m_permission_position mpp                                                                                                                                      
+    INNER JOIN m_permission mp ON mpp.permission_id = mp.id                                                                                                            
+    GROUP BY mpp.position_id                                                                                                                                            
+  ) tt7 ON tt7.position_id = t1.id                                                                                                                                      
 			LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_position' and vor.serial_id = t1.id,                                                                      
 			( SELECT @row_num := 0 ) t6                                                                                                                                    
   where true 
     and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)                                                              
     and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)                                                              
-    and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)                                                                             
-  ORDER BY t1.u_time DESC                                                                                                                                               
+    and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
+    <if test="p1.ids != null and p1.ids.length > 0">
+        and t1.id in
+        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>
+         #{item}
+        </foreach>
+    </if>
+  <if test="orderByClause != null and orderByClause != ''">
+    ${orderByClause}
+  </if>
+  <if test="orderByClause == null or orderByClause == ''">
+    ORDER BY t1.u_time DESC
+  </if>
+        </script>
       """)
     @Results({
-        @Result(property = "roleList", column = "role_name", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+        @Result(property = "roleList", column = "role_json_data", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
+        @Result(property = "permissionList", column = "permission_json_data", javaType = List.class, typeHandler = PermissionItemListTypeHandler.class),
     })
-    List<MPositionExportVo> select(@Param("p1") MPositionVo searchCondition);
+    List<MPositionExportVo> selectExportList(@Param("p1") MPositionVo searchCondition, @Param("orderByClause") String orderByClause);
 
-    /**
-     * 按ID列表查询，用于导出
-     * @param searchCondition
-     * @return
-     */
-    // 删除状态字典类型：sys_delete_type
-    @Select("""
-        <script>    
-		SELECT                                                                                                                                                             
-			@row_num := @row_num + 1 AS NO,                                                                                                                                
-			t1.simple_name,                                                                                                                                                
-         t1.name,                                                                                                                                                       
-         t1.code,                                                                                                                                                       
-			u_staff.NAME AS u_name,                                                                                                                                        
-			t2.label AS delete_status,                                                                                                                                     
-			tt6.role_name role_concat_name,                                                                                                                                
-			t1.u_time,                                                                                                                                                     
-			f_get_org_simple_name(vor.code, 'm_group') group_simple_name,                                                                                             
-			f_get_org_simple_name ( vor.CODE, 'm_company' )  company_simple_name,                                                                                          
-			f_get_org_simple_name ( vor.CODE, 'm_dept' ) parent_dept_simple_name                                                                                             
-		FROM                                                                                                                                                               
-			m_position t1                                                                                                                                                  
-			LEFT JOIN m_staff u_staff ON t1.u_id = u_staff.id                                                                                                              
-			LEFT JOIN v_dict_info AS t2 ON t2.CODE = 'sys_delete_type'                                                                                                     
-			AND t2.dict_value = CONCAT('', t1.is_del)                                                                                                            
-  LEFT JOIN (                                                                                                                                                               
-    SELECT JSON_ARRAYAGG(JSON_OBJECT('id', sr.id, 'code', sr.code, 'name', sr.name, 'key', sr.name, 'label', sr.name)) role_name, mrp.position_id                  
-    FROM m_role_position mrp                                                                                                                                            
-    INNER JOIN s_role sr ON sr.id = mrp.role_id AND sr.is_del = false                                                                                                  
-    GROUP BY mrp.position_id
-  ) tt6 ON tt6.position_id = t1.id                                                                                                                                      
-			LEFT JOIN v_org_relation vor ON vor.serial_type = 'm_position' and vor.serial_id = t1.id,                                                                      
-			( SELECT @row_num := 0 ) t6                                                                                                                                    
-  where true                                                                                                                                                            
-    and t1.id in                                                                                                                                                        
-        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>                                                                            
-         #{item.id}                                                                                                                                                     
-        </foreach>                                                                                                                                                      
-  ORDER BY t1.u_time DESC                                                                                                                                               
-</script>      """)
-    @Results({
-        @Result(property = "roleList", column = "role_name", javaType = List.class, typeHandler = RoleItemListTypeHandler.class),
-    })
-    List<MPositionExportVo> selectIdsInForExport(@Param("p1") List<MPositionVo> searchCondition);
+
 
     /**
      * 按ID列表查询实体
@@ -660,5 +647,48 @@ public interface MPositionMapper extends BaseMapper<MPositionEntity> {
 		AND t1.position_id = #{p1}                                                                          
         """)
     List<TreeDataVo> selectWarehouseListByPositionId(@Param("p1") Long position_id);
+
+    /**
+     * 统计指定岗位分配的员工数量（删除校验专用）
+     * @param positionId
+     * @return
+     */
+    @Select("""
+            SELECT COUNT(1) 
+              FROM m_staff_org t1
+              JOIN m_staff t2 ON t1.staff_id = t2.id
+             WHERE t1.serial_type = 'm_position'
+               AND t1.serial_id = #{positionId}
+               AND t2.is_del = false
+                                                                                    """)
+    Long countStaffByPositionId(@Param("positionId") Long positionId);
+
+    /**
+     * 统计指定岗位关联的角色数量（删除校验专用）
+     * @param positionId
+     * @return
+     */
+    @Select("""
+            SELECT COUNT(1) 
+              FROM m_role_position t1
+              JOIN s_role t2 ON t1.role_id = t2.id
+             WHERE t1.position_id = #{positionId}
+               AND t2.is_del = false
+                                                                                    """)
+    Long countRolesByPositionId(@Param("positionId") Long positionId);
+
+    /**
+     * 统计指定岗位配置的权限数量（删除校验专用）
+     * @param positionId
+     * @return
+     */
+    @Select("""
+            SELECT COUNT(1) 
+              FROM m_permission_position t1
+              JOIN m_permission t2 ON t1.permission_id = t2.id
+             WHERE t1.position_id = #{positionId}
+               AND t2.is_del = false
+                                                                                    """)
+    Long countPermissionsByPositionId(@Param("positionId") Long positionId);
 
 }

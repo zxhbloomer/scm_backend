@@ -113,7 +113,6 @@ public interface MMenuMapper extends BaseMapper<MMenuEntity> {
     @Select("    "
         + commonTreeGrid
         + "  where true "
-//        + "    AND (t2.tenant_id = #{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)        "
         + "  order by t2.code                                                                                         "
         + "      ")
     @Results({
@@ -140,7 +139,6 @@ public interface MMenuMapper extends BaseMapper<MMenuEntity> {
         + "         #{item}                                                                                         "
         + "        </foreach>                                                                                       "
         + "   </if>                                                                                                 "
-//        + "        and (t3.tenant_id = #{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)  "
         + "   order by t1.sort                                                                                      "
         + "  </script>    ")
     List<MMenuPageFunctionVo> getAllMenuButton(@Param("p1") MMenuDataVo searchCondition);
@@ -167,7 +165,6 @@ public interface MMenuMapper extends BaseMapper<MMenuEntity> {
     @Select("    "
         + commonTreeGrid
         + "  where true "
-//        + "    AND (t2.tenant_id = #{p1.tenant_id,jdbcType=BIGINT} or #{p1.tenant_id,jdbcType=BIGINT} is null)        "
         + "    and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
         + "    and (t2.visible =#{p1.visible,jdbcType=VARCHAR} or #{p1.visible,jdbcType=VARCHAR} is null) "
         + "      ")
@@ -259,7 +256,6 @@ public interface MMenuMapper extends BaseMapper<MMenuEntity> {
         + "                 t2.meta_title as name                                             "
         + "            FROM m_menu_redirect AS t1                                             "
         + "      INNER JOIN m_menu t2 ON t1.menu_page_id = t2.id                              "
-//        + "             and t2.tenant_id = #{p1}                                       "
         + "                                                                                   "
         + "      ")
     MMenuRedirectVo getRedirectData();
@@ -303,11 +299,9 @@ public interface MMenuMapper extends BaseMapper<MMenuEntity> {
             + "                    INNER JOIN  m_role_position subt2 on subt1.serial_id = subt2.position_id                       "
             + "                    INNER JOIN  s_role subt3 on subt3.id = subt2.role_id                                           "
             + "                                         and subt3.is_del = " + DictConstant.DICT_SYS_DELETE_MAP_NO + "            "
-            + "                                         and subt3.is_enable = true                                                "
             + "                    INNER JOIN  m_permission_role subt4 on subt2.role_id = subt4.role_id                           "
             + "                    INNER JOIN  m_permission subt5 on subt5.id = subt4.permission_id                               "
             + "                                               and subt5.is_del = " + DictConstant.DICT_SYS_DELETE_MAP_NO +  "     "
-            + "                                               and subt5.is_enable = true                                          "
             + "                 	    WHERE  subt1.staff_id = #{p1}                                                             "
             + "                 		  AND  subt1.serial_type = '"+ DictConstant.DICT_SYS_CODE_TYPE_M_POSITION +"'             "
             + "                 		  and  subt5.id = t1.permission_id                                                        "
@@ -318,4 +312,18 @@ public interface MMenuMapper extends BaseMapper<MMenuEntity> {
             @Result(property = "meta", column = "meta", javaType = MMenuSearchDataTitleVo.class, typeHandler = PermissionMenuMetaBoTypeHandler.class),
     })
     List<MMenuSearchDataVo> selectAllByStaffId(@Param("p1") Long staffId, @Param("p2") Long rootId);
+
+    /**
+     * 获取根菜单节点列表
+     * @return 根菜单节点列表
+     */
+    @Select("SELECT "
+            + "    t1.id, "
+            + "    t1.name, "
+            + "    t1.path, "
+            + "    t1.meta_icon "
+            + "FROM m_menu t1 "
+            + "WHERE t1.parent_id IS NULL "
+            + "ORDER BY t1.sort ASC")
+    List<MMenuDataVo> selectRootMenuList();
 }

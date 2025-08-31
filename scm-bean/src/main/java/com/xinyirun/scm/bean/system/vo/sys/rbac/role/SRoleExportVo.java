@@ -20,7 +20,7 @@ import java.util.Date;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-public class SRoleExportVo extends BaseVo implements Serializable {
+public class SRoleExportVo implements Serializable {
 
     private static final long serialVersionUID = -7449124258332853610L;
 

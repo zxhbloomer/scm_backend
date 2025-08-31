@@ -11,6 +11,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -80,6 +81,11 @@ public class MPositionVo extends BaseVo implements Serializable {
     private Integer dbversion;
 
     /**
+     * 导出选中的ID数组（用于选中导出）
+     */
+    private Long[] ids;
+
+    /**
      * 关联单号
      */
     private Long parent_serial_id;
@@ -145,8 +151,10 @@ public class MPositionVo extends BaseVo implements Serializable {
     @Data
     @NoArgsConstructor
     public static class RoleItem implements Serializable {
-        private static final long serialVersionUID = 1L;
-        
+
+        @Serial
+        private static final long serialVersionUID = 7572798618730238985L;
+
         private Long id;
         private String code;
         private String name;
@@ -160,8 +168,10 @@ public class MPositionVo extends BaseVo implements Serializable {
     @Data
     @NoArgsConstructor
     public static class PermissionItem implements Serializable {
-        private static final long serialVersionUID = 1L;
-        
+
+        @Serial
+        private static final long serialVersionUID = 5421547566750755020L;
+
         private Long id;
         private String key;
         private String label;

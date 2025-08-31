@@ -21,6 +21,7 @@ import com.xinyirun.scm.common.enums.app.AppResultEnum;
 import com.xinyirun.scm.common.exception.app.AppBusinessException;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.properies.SystemConfigProperies;
+import com.xinyirun.scm.common.utils.avatar.CreateAvatarByUserNameUtil;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.system.mapper.client.user.MUserMapper;
@@ -298,6 +299,9 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         // 执行插入
         int rtn = mUserMapper.insert(entity);
 
+        // 生成用户头像
+        generateUserAvatarIfNeeded(entity);
+
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(entity.getId());
 
@@ -318,12 +322,21 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         if (cr.isSuccess() == false) {
             throw new BusinessException(cr.getMessage());
         }
+
+        // 获取更新前的用户信息，用于检测staff_id是否发生变化
+        MUserEntity originalEntity = mUserMapper.selectById(entity.getId());
+        
         // 更新逻辑保存
 //        entity.setU_id(null);
 //        entity.setU_time(null);
 
         // 执行更新操作
         int rtn = mUserMapper.updateById(entity);
+
+        // 检查是否需要重新生成头像（staff_id发生变化时）
+        if (isStaffIdChanged(originalEntity, entity)) {
+            generateUserAvatarIfNeeded(entity);
+        }
 
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(entity.getId());
@@ -349,6 +362,75 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
      */
     public CheckResultAo checkLogic(MUserEntity entity, String moduleType) {
         return CheckResultUtil.OK();
+    }
+
+    /**
+     * 检查staff_id是否发生变化
+     *
+     * @param originalEntity 原始用户实体
+     * @param updatedEntity 更新后的用户实体
+     * @return true如果staff_id发生变化
+     */
+    private boolean isStaffIdChanged(MUserEntity originalEntity, MUserEntity updatedEntity) {
+        if (originalEntity == null || updatedEntity == null) {
+            return false;
+        }
+        
+        Long originalStaffId = originalEntity.getStaff_id();
+        Long updatedStaffId = updatedEntity.getStaff_id();
+        
+        // 如果两个都为null，认为没有变化
+        if (originalStaffId == null && updatedStaffId == null) {
+            return false;
+        }
+        
+        // 如果一个为null，一个不为null，认为有变化
+        if (originalStaffId == null || updatedStaffId == null) {
+            return true;
+        }
+        
+        // 比较值是否相等
+        return !originalStaffId.equals(updatedStaffId);
+    }
+
+    /**
+     * 根据用户关联的员工信息生成头像（如果需要）
+     *
+     * @param userEntity 用户实体
+     */
+    private void generateUserAvatarIfNeeded(MUserEntity userEntity) {
+        if (userEntity == null || userEntity.getStaff_id() == null) {
+            log.debug("用户或staff_id为空，跳过头像生成");
+            return;
+        }
+
+        try {
+            // 获取员工信息
+            MStaffVo staffVo = imStaffService.selectByid(userEntity.getStaff_id());
+            if (staffVo == null || StringUtils.isEmpty(staffVo.getName())) {
+                log.debug("员工信息不存在或姓名为空，跳过头像生成");
+                return;
+            }
+
+            String staffName = staffVo.getName();
+            log.info("开始为用户ID:{} 生成头像，员工姓名:{}", userEntity.getId(), staffName);
+            
+            // 生成头像到临时目录
+            CreateAvatarByUserNameUtil.generateImg(staffName, "/wms/avatar_temp", staffName);
+            
+            // 上传到文件服务器并获取URL
+            String avatarUrl = uploadFile("/wms/avatar_temp/" + staffName + ".jpg", staffName + ".jpg", 0);
+            
+            // 更新用户头像URL
+            userEntity.setAvatar(avatarUrl);
+            mUserMapper.updateById(userEntity);
+            
+            log.info("用户ID:{} 头像生成成功，头像URL:{}", userEntity.getId(), avatarUrl);
+            
+        } catch (Exception e) {
+            log.error("为用户ID:{} 生成头像时发生异常", userEntity.getId(), e);
+            // 头像生成失败不影响主业务流程，只记录日志
+        }
     }
 
     /**

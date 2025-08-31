@@ -173,4 +173,9 @@ public class MCompanyVo extends BaseVo implements Serializable {
      * 换页条件
      */
     private PageCondition pageCondition;
+
+    /**
+     * 选中导出时的ID数组
+     */
+    private Long[] ids;
 }

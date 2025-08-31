@@ -610,4 +610,13 @@ public class MMenuServiceImpl extends BaseServiceImpl<MMenuMapper, MMenuEntity> 
         mapper.delRedirect(searchCondition);
         return DeleteResultUtil.OK("OK");
     }
+
+    /**
+     * 获取根菜单节点列表
+     * @return 根菜单节点列表
+     */
+    @Override
+    public List<MMenuDataVo> getRootMenuList() {
+        return mapper.selectRootMenuList();
+    }
 }

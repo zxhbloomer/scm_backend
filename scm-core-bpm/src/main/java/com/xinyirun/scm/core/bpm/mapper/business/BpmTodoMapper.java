@@ -28,6 +28,13 @@ import java.util.List;
 @Repository
 public interface BpmTodoMapper extends BaseMapper<BpmTodoEntity> {
 
+    /**
+     * 查询所有待办任务的处理人员编码
+     * @return 处理人员编码列表
+     */
+    @Select("SELECT DISTINCT assignee_code FROM bpm_todo WHERE status = '0' AND assignee_code IS NOT NULL AND assignee_code != ''")
+    List<String> selectTodoAssigneeCodes();
+
     @Select("select * from bpm_todo where task_id = #{p1}")
     BpmTodoEntity selectByTaskId(@Param("p1") String id);
 

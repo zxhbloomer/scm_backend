@@ -2,19 +2,11 @@ package com.xinyirun.scm.core.system.serviceimpl.sys.rbac.role;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.google.common.collect.Lists;
-import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
-import com.xinyirun.scm.bean.entity.sys.rbac.role.MRolePositionEntity;
 import com.xinyirun.scm.bean.entity.sys.rbac.role.SRoleEntity;
-import com.xinyirun.scm.bean.system.bo.log.operate.CustomOperateBo;
-import com.xinyirun.scm.bean.system.bo.log.operate.CustomOperateDetailBo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleExportVo;
 import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleVo;
 import com.xinyirun.scm.common.constant.SystemConstants;
-import com.xinyirun.scm.common.enums.OperationEnum;
 import com.xinyirun.scm.common.exception.system.BusinessException;
-import com.xinyirun.scm.common.utils.ArrayPfUtil;
-import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.system.mapper.master.rbac.permission.MPermissionMapper;
 import com.xinyirun.scm.core.system.mapper.sys.rbac.role.SRoleMapper;
@@ -29,11 +21,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * <p>
@@ -86,16 +74,38 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
      */
     @Override
     public List<SRoleExportVo> selectExportAll(SRoleVo searchCondition){
-        SConfigEntity sConfigEntity = configService.selectByKey(SystemConstants.EXPORT_LIMIT_KEY);
-        if (!Objects.isNull(sConfigEntity) && "1".equals(sConfigEntity.getValue()) && StringUtils.isNotEmpty(sConfigEntity.getExtra1())) {
-            int count = sRoleMapper.selectExportNum(searchCondition);
-            if (count > Integer.parseInt(sConfigEntity.getExtra1())) {
-                throw new BusinessException(String.format(sConfigEntity.getExtra2(), sConfigEntity.getExtra1()));
+        return selectExportList(searchCondition);
+    }
+
+    /**
+     * 导出专用查询方法，支持动态排序
+     * 
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     * @return
+     */
+    @Override
+    public List<SRoleExportVo> selectExportList(SRoleVo searchCondition){
+        // 处理动态排序
+        String orderByClause = "";
+        if (searchCondition.getPageCondition() != null && StringUtils.isNotEmpty(searchCondition.getPageCondition().getSort())) {
+            String sort = searchCondition.getPageCondition().getSort();
+            String field = sort.startsWith("-") ? sort.substring(1) : sort;
+            
+            // 正则验证：只允许字母、数字、下划线，防止SQL注入
+            if (!field.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+                throw new BusinessException("非法的排序字段格式");
+            }
+            
+            if (sort.startsWith("-")) {
+                // 降序：去掉前缀-，添加DESC
+                orderByClause = " ORDER BY " + field + " DESC";
+            } else {
+                // 升序：直接使用字段名，添加ASC
+                orderByClause = " ORDER BY " + sort + " ASC";
             }
         }
-        // 查询 数据
-        List<SRoleExportVo> list = sRoleMapper.selectExportAll(searchCondition);
-        return list;
+        
+        return sRoleMapper.selectExportList(searchCondition, orderByClause);
     }
 
     /**
@@ -150,16 +160,6 @@ public class SRoleServiceImpl extends BaseServiceImpl<SRoleMapper, SRoleEntity> 
 
 
 
-    /**
-     * 部分导出
-     *
-     * @param searchConditionList 导出id
-     * @return List<SRoleExportVo>
-     */
-    @Override
-    public List<SRoleExportVo> selectExportList(List<SRoleVo> searchConditionList) {
-        return sRoleMapper.selectExportList(searchConditionList);
-    }
 
 
 

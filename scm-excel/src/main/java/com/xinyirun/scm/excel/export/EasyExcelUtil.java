@@ -11,10 +11,12 @@ import cn.idev.excel.write.style.HorizontalCellStyleStrategy;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.excel.config.EasyExcelCustomCellWriteHandler;
 import com.xinyirun.scm.excel.merge.AbstractBusinessMergeStrategy;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
-
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -31,25 +33,10 @@ import java.util.List;
 public class EasyExcelUtil<T> {
 
     /**
-     * 实体对象
+     * 实体对象类型
      */
-    public Class<T> clazz;
+    private final Class<T> clazz;
 
-    /**
-     * 文件名称
-     */
-    private String fileName;
-
-    /**
-     * 工作表名称
-     */
-    private String sheetName;
-
-    /**
-     * 导入导出数据列表
-     */
-    private List<T> list;
-    
     /**
      * 业务合并策略
      */
@@ -98,19 +85,19 @@ public class EasyExcelUtil<T> {
         }
     }
 
-    public void init(List<T> list, String sheetName, String fileName) {
-        if (list == null) {
-            list = new ArrayList<T>();
-        }
-        this.list = list;
-        this.sheetName = sheetName;
-        this.fileName = fileName + SystemConstants.XLSX_SUFFIX;;
-
-        /** 设置导出文件名称 */
+    /**
+     * 处理导出文件名，添加后缀并进行URL编码
+     * 
+     * @param exportFileName 原始文件名
+     * @return 处理后的文件名
+     */
+    private static String processFileName(String exportFileName) {
+        String fullFileName = exportFileName + SystemConstants.XLSX_SUFFIX;
         try {
-            this.fileName = URLEncoder.encode(this.fileName, "utf-8");
+            return URLEncoder.encode(fullFileName, "utf-8");
         } catch (UnsupportedEncodingException e) {
-            log.error("init error", e);
+            log.error("文件名编码失败", e);
+            return fullFileName;
         }
     }
 
@@ -124,11 +111,14 @@ public class EasyExcelUtil<T> {
      */
     public void exportExcel(String exportFileName, String sheetName, List<T> dataList, HttpServletResponse response)
             throws IOException {
-        this.init(dataList, sheetName, exportFileName);
+        // 处理空数据和文件名
+        List<T> actualDataList = dataList != null ? dataList : new ArrayList<>();
+        String processedFileName = processFileName(exportFileName);
+        
         response.setContentType("application/vnd.ms-excel");
         response.setCharacterEncoding("UTF-8");
-        response.setHeader("Content-disposition","attachment;filename="+new String(fileName.getBytes(), StandardCharsets.UTF_8));
-        response.setHeader("wms-filename", fileName);
+        response.setHeader("Content-disposition","attachment;filename="+new String(processedFileName.getBytes(), StandardCharsets.UTF_8));
+        response.setHeader("wms-filename", processedFileName);
         
         // 构建EasyExcel写入器
         var writerBuilder = EasyExcel.write(response.getOutputStream(), clazz)
@@ -142,7 +132,7 @@ public class EasyExcelUtil<T> {
             log.info("已注册业务合并策略: {}", mergeStrategy.getClass().getSimpleName());
         }
         
-        writerBuilder.sheet(sheetName).doWrite(list);
+        writerBuilder.sheet(sheetName).doWrite(actualDataList);
     }
 
 
@@ -156,11 +146,13 @@ public class EasyExcelUtil<T> {
      */
     public void exportExcel(String exportFileName, List<T> dataList, HttpServletResponse response, WriteSheet writeSheet)
             throws IOException {
-        this.init(dataList, sheetName, exportFileName);
+        // 处理空数据和文件名
+        List<T> actualDataList = dataList != null ? dataList : new ArrayList<>();
+        String processedFileName = processFileName(exportFileName);
         response.setContentType("application/vnd.ms-excel");
         response.setCharacterEncoding("UTF-8");
-        response.setHeader("Content-disposition","attachment;filename="+new String(fileName.getBytes(), StandardCharsets.UTF_8));
-        response.setHeader("wms-filename", fileName);
+        response.setHeader("Content-disposition","attachment;filename="+new String(processedFileName.getBytes(), StandardCharsets.UTF_8));
+        response.setHeader("wms-filename", processedFileName);
         
         // 构建EasyExcel写入器
         var writerBuilder = EasyExcel.write(response.getOutputStream(), clazz)
@@ -175,7 +167,7 @@ public class EasyExcelUtil<T> {
         }
         
         ExcelWriter excelWriter = writerBuilder.build();
-        excelWriter.write(dataList, writeSheet);
+        excelWriter.write(actualDataList, writeSheet);
         excelWriter.finish();
     }
     

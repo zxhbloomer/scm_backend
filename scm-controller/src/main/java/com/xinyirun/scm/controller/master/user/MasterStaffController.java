@@ -141,13 +141,55 @@ public class MasterStaffController extends SystemBaseController {
         util.exportExcel("员工主表数据导出", "员工主表数据", rtnList, response);
     }
 
-    @SysLogAnnotion("员工主表数据逻辑删除复原")
+    @SysLogAnnotion("员工数据逻辑删除")
     @PostMapping("/delete")
     @ResponseBody
     @RepeatSubmitAnnotion
-    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) List<MStaffVo> searchConditionList) {
-        service.deleteByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<String>> delete(
+        @RequestBody(required = false) MStaffVo searchCondition) {
+        
+        // 参数验证
+        if (searchCondition == null || searchCondition.getId() == null) {
+            throw new BusinessException("请选择要删除的员工记录");
+        }
+        
+        // 调用服务层删除方法
+        service.deleteByIdWithValidation(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK("删除成功"));
+    }
+
+    @SysLogAnnotion("从组织架构移除员工")
+    @PostMapping("/remove/orgtree")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> removeFromOrgTree(
+        @RequestBody(required = false) List<MStaffVo> staffList) {
+        
+        // 参数验证
+        if (staffList == null || staffList.isEmpty()) {
+            throw new BusinessException("请选择要移除的员工记录");
+        }
+        
+        // 调用服务层移除方法
+        service.removeFromOrgTree(staffList);
+        return ResponseEntity.ok().body(ResultUtil.OK("已从组织架构中移除"));
+    }
+
+    @SysLogAnnotion("从组织删除员工")
+    @PostMapping("/delete/org")
+    @ResponseBody
+    @RepeatSubmitAnnotion  
+    public ResponseEntity<JsonResultAo<String>> deleteFromOrg(
+        @RequestBody(required = false) List<MStaffVo> staffList) {
+        
+        // 参数验证
+        if (staffList == null || staffList.isEmpty()) {
+            throw new BusinessException("请选择要删除的员工记录");
+        }
+        
+        // 调用服务层删除方法
+        service.deleteByIdsFromOrg(staffList);
+        return ResponseEntity.ok().body(ResultUtil.OK("员工已删除"));
     }
 
     @SysLogAnnotion("查询岗位员工")

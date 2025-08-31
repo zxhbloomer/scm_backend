@@ -164,4 +164,12 @@ public class MasterMenuController extends SystemBaseController {
             throw new UpdateErrorException("保存的数据已经被修改，请查询后重新编辑更新。");
         }
     }
+
+    @SysLogAnnotion("获取根菜单节点列表")
+    @PostMapping("/root/list")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<MMenuDataVo>>> getRootMenuList() {
+        List<MMenuDataVo> rootMenus = service.getRootMenuList();
+        return ResponseEntity.ok().body(ResultUtil.OK(rootMenus));
+    }
 }

@@ -14,6 +14,7 @@ import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.Delete;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -1216,5 +1217,18 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
              WHERE is_del = 0 AND (service != '0' OR service IS NULL)) as staff_count
         """)
     MOrgCountsVo getRootStatistics();
+
+    /**
+     * 根据实体ID和类型删除组织架构记录
+     * @param serialId 实体ID（如部门ID、集团ID等）
+     * @param type 组织类型（'20'=集团, '30'=企业, '40'=部门, '50'=岗位）
+     * @return 删除的记录数
+     */
+    @Delete("""
+        DELETE FROM m_org 
+        WHERE serial_id = #{serialId} 
+        AND type = #{type}
+        """)
+    int deleteBySerialIdAndType(@Param("serialId") Long serialId, @Param("type") String type);
 
 }

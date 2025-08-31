@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -14,9 +15,11 @@ import java.io.Serializable;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 public class MPermissionPositionVo extends MPermissionPositionEntity implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
+
+
+    @Serial
+    private static final long serialVersionUID = -1635333910572561781L;
+
     /**
      * 权限名称
      */

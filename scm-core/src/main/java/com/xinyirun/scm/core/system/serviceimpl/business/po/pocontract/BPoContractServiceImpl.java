@@ -856,7 +856,28 @@ public class BPoContractServiceImpl extends BaseServiceImpl<BPoContractMapper, B
                 throw new BusinessException(String.format(sConfigEntity.getExtra2(), sConfigEntity.getExtra1()));
             }
         }
-        return mapper.selectExportList(param);
+        
+        // 处理动态排序
+        String orderByClause = "";
+        if (param.getPageCondition() != null && StringUtils.isNotEmpty(param.getPageCondition().getSort())) {
+            String sort = param.getPageCondition().getSort();
+            String field = sort.startsWith("-") ? sort.substring(1) : sort;
+            
+            // 正则验证：只允许字母、数字、下划线，防止SQL注入
+            if (!field.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+                throw new BusinessException("非法的排序字段格式");
+            }
+            
+            if (sort.startsWith("-")) {
+                // 降序：去掉前缀"-"，添加DESC
+                orderByClause = " ORDER BY " + field + " DESC";
+            } else {
+                // 升序：直接使用字段名，添加ASC
+                orderByClause = " ORDER BY " + sort + " ASC";
+            }
+        }
+        
+        return mapper.selectExportList(param, orderByClause);
     }
 
     /**

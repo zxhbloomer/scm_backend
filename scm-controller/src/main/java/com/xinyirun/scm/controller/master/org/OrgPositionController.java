@@ -6,16 +6,21 @@ import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionExportVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionVo;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.core.system.service.master.org.IMPositionService;
 import com.xinyirun.scm.core.system.service.master.rbac.permission.role.IMRolePositionService;
 import com.xinyirun.scm.core.system.service.master.rbac.permission.IMPermissionPositionService;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import com.xinyirun.scm.common.exception.system.BusinessException;
+import com.xinyirun.scm.common.utils.DateTimeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +50,12 @@ public class OrgPositionController extends SystemBaseController {
 
     @Autowired
     private IMPermissionPositionService permissionPositionService;
+
+    @Autowired
+    private ISPagesService sPagesService;
+
+    @Autowired
+    private SPagesMapper sPagesMapper;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -106,20 +118,55 @@ public class OrgPositionController extends SystemBaseController {
         }
     }
 
-    @SysLogAnnotion("岗位主表数据导出")
-    @PostMapping("/export_all")
-    public void exportAll(@RequestBody(required = false) MPositionVo searchCondition, HttpServletResponse response) throws Exception {
-        List<MPositionExportVo> searchResult = service.select(searchCondition);
-        EasyExcelUtil<MPositionExportVo> util = new EasyExcelUtil<>(MPositionExportVo.class);
-        util.exportExcel("岗位主表数据导出", "岗位主表数据", searchResult, response);
+    @SysLogAnnotion("岗位信息导出")
+    @PostMapping("/exportall")
+    public void exportAll(@RequestBody(required = false) MPositionVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_POSITION);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 全部导出：直接调用selectExportList查询方法
+            List<MPositionExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("全部导出：查询到岗位数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MPositionExportVo> util = new EasyExcelUtil<>(MPositionExportVo.class);
+            String fileName = "岗位信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "岗位信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 
-    @SysLogAnnotion("岗位主表数据导出")
-    @PostMapping("/export_selection")
-    public void exportSelection(@RequestBody(required = false) List<MPositionVo> searchConditionList, HttpServletResponse response) throws Exception {
-        List<MPositionExportVo> searchResult = service.selectIdsInForExport(searchConditionList);
-        EasyExcelUtil<MPositionExportVo> util = new EasyExcelUtil<>(MPositionExportVo.class);
-        util.exportExcel("岗位主表数据导出", "岗位主表数据", searchResult, response);
+    @SysLogAnnotion("岗位信息导出")
+    @PostMapping("/export")
+    public void export(@RequestBody(required = false) MPositionVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_POSITION);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的岗位记录");
+            }
+            
+            // 选中导出：直接调用selectExportList查询方法
+            List<MPositionExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("选中导出：查询到岗位数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MPositionExportVo> util = new EasyExcelUtil<>(MPositionExportVo.class);
+            String fileName = "岗位信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "岗位信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 
     @SysLogAnnotion("岗位主表数据逻辑删除复原")
@@ -129,6 +176,15 @@ public class OrgPositionController extends SystemBaseController {
     public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) List<MPositionVo> searchConditionList) {
         service.deleteByIdsIn(searchConditionList);
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    }
+
+    @SysLogAnnotion("从组织架构删除岗位")
+    @PostMapping("/delete/org")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> deleteFromOrg(@RequestBody(required = false) List<MPositionVo> searchConditionList) {
+        service.deleteByIdsFromOrg(searchConditionList);
+        return ResponseEntity.ok().body(ResultUtil.OK("从组织架构删除成功"));
     }
 
     @SysLogAnnotion("获取岗位已分配的角色ID列表")

@@ -364,12 +364,14 @@ public interface BPoContractMapper extends BaseMapper<BPoContractEntity> {
                </if>
             GROUP BY
             	tab2.po_contract_id) as tb1,(select @row_num:=0) tb2
+            ${orderByClause}
             	  </script>
             """)
     @Results({
-            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = JsonArrayTypeHandler.class),
+            @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoContractDetailListTypeHandler.class),
     })
-    List<BPoContractVo> selectExportList(@Param("p1") BPoContractVo param);
+    List<BPoContractVo> selectExportList(@Param("p1") BPoContractVo param, @Param("orderByClause") String orderByClause);
+
 
     @Select("""
             -- 统计符合导出条件的记录数

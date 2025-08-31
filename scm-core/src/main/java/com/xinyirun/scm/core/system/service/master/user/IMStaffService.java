@@ -92,6 +92,12 @@ public interface IMStaffService extends IService<MStaffEntity> {
     void deleteByIdsIn(List<MStaffVo> searchCondition);
 
     /**
+     * 单个员工删除（带关联检查和乐观锁验证）
+     * @param searchCondition 包含id和dbversion的员工信息
+     */
+    void deleteByIdWithValidation(MStaffVo searchCondition);
+
+    /**
      * 查询岗位员工
      * @param searchCondition
      * @return
@@ -132,5 +138,17 @@ public interface IMStaffService extends IService<MStaffEntity> {
     List<MStaffExportVo> selectExportList(List<MStaffVo> searchConditionList);
 
     void initAvatar();
+
+    /**
+     * 从组织架构中移除员工（保留员工数据）
+     * @param staffList 员工列表
+     */
+    void removeFromOrgTree(List<MStaffVo> staffList);
+
+    /**
+     * 从组织中删除员工（逻辑删除员工数据）
+     * @param staffList 员工列表
+     */
+    void deleteByIdsFromOrg(List<MStaffVo> staffList);
 
 }

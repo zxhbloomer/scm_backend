@@ -19,6 +19,7 @@ import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.system.mapper.master.org.MPositionMapper;
+import com.xinyirun.scm.core.system.mapper.master.org.MOrgMapper;
 import com.xinyirun.scm.core.system.mapper.master.warehouse.MWarehouseMapper;
 import com.xinyirun.scm.core.system.mapper.sys.rbac.role.SRoleMapper;
 import com.xinyirun.scm.core.system.service.business.warehouse.relation.IBWarehouseRelationService;
@@ -42,7 +43,7 @@ import java.util.List;
  * @since 2019-08-23
  */
 @Service
-public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPositionEntity> implements IMPositionService {
+public class MPositionServiceImpl extends BaseServiceImpl<MPositionMapper, MPositionEntity> implements IMPositionService {
 
     @Autowired
     private MPositionMapper mapper;
@@ -58,6 +59,9 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
 
     @Autowired
     private IBWarehouseRelationService ibWarehouseRelationService;
+
+    @Autowired
+    private MOrgMapper orgMapper;
 
     /**
      * 获取列表，页面查询
@@ -165,16 +169,34 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
     }
 
     /**
-     * 获取列表，查询所有数据
+     * 导出专用查询方法，支持动态排序
      *
      * @param searchCondition
      * @return
      */
     @Override
-    public List<MPositionExportVo> select(MPositionVo searchCondition) {
-        // 查询 数据
-        List<MPositionExportVo> list = mapper.select(searchCondition);
-        return list;
+    public List<MPositionExportVo> selectExportList(MPositionVo searchCondition) {
+        // 处理动态排序
+        String orderByClause = "";
+        if (searchCondition.getPageCondition() != null && StringUtils.isNotEmpty(searchCondition.getPageCondition().getSort())) {
+            String sort = searchCondition.getPageCondition().getSort();
+            String field = sort.startsWith("-") ? sort.substring(1) : sort;
+            
+            // 正则验证：只允许字母、数字、下划线，防止SQL注入
+            if (!field.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+                throw new BusinessException("非法的排序字段格式");
+            }
+            
+            if (sort.startsWith("-")) {
+                // 降序：去掉前缀-，添加DESC
+                orderByClause = " ORDER BY " + field + " DESC";
+            } else {
+                // 升序：直接使用字段名，添加ASC
+                orderByClause = " ORDER BY " + sort + " ASC";
+            }
+        }
+        
+        return mapper.selectExportList(searchCondition, orderByClause);
     }
 
     /**
@@ -191,18 +213,6 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
     }
 
     /**
-     * 获取列表，根据id查询所有数据
-     *
-     * @param searchCondition
-     * @return
-     */
-    @Override
-    public List<MPositionExportVo> selectIdsInForExport(List<MPositionVo> searchCondition) {
-        // 查询 数据
-        return mapper.selectIdsInForExport(searchCondition);
-    }
-
-    /**
      * 批量删除复原
      * @param searchCondition
      * @return
@@ -212,10 +222,45 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
     public void deleteByIdsIn(List<MPositionVo> searchCondition) {
         List<MPositionEntity> list = mapper.selectIdsIn(searchCondition);
         list.forEach(
-            bean -> {
-                bean.setIs_del(!bean.getIs_del());
+            entity -> {
+                // 在切换删除状态前，先进行删除校验
+                CheckResultAo cr = checkLogic(entity, CheckResultAo.DELETE_CHECK_TYPE);
+                if (!cr.isSuccess()) {
+                    throw new BusinessException(cr.getMessage());
+                }
+                entity.setIs_del(!entity.getIs_del());
             }
         );
+        saveOrUpdateBatch(list, 500);
+    }
+
+    /**
+     * 从组织架构删除岗位（同时删除岗位实体和组织关联关系）
+     * @param searchCondition
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void deleteByIdsFromOrg(List<MPositionVo> searchCondition) {
+        List<MPositionEntity> list = mapper.selectIdsIn(searchCondition);
+        for(MPositionEntity entity : list) {
+            // 只处理删除操作，不支持恢复
+            if(entity.getIs_del()){
+                // 已经删除的记录跳过
+                continue;
+            }
+            
+            // 执行删除前业务校验（组织删除专用校验，跳过组织架构关联检查）
+            CheckResultAo cr = checkLogicForOrgDeletion(entity);
+            if (!cr.isSuccess()) {
+                throw new BusinessException(cr.getMessage());
+            }
+            
+            // 设置为已删除状态
+            entity.setIs_del(true);
+            
+            // 从组织架构表中删除关联关系，岗位对应节点类型为'50'
+            orgMapper.deleteBySerialIdAndType(entity.getId(), "50");
+        }
         saveOrUpdateBatch(list, 500);
     }
 
@@ -363,10 +408,33 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
                 if(entity.getIs_del()) {
                     return CheckResultUtil.OK();
                 }
-                // 是否被使用的check，如果被使用则不能删除
-                int count = mapper.isExistsInOrg(entity);
-                if(count > 0){
-                    return CheckResultUtil.NG("删除出错：该岗位【"+ entity.getSimple_name() +"】在组织机构中正在被使用，不能删除！", count);
+                
+                // L1: 组织架构依赖校验 - 检查岗位是否在组织架构中使用
+                int orgCount = mapper.isExistsInOrg(entity);
+                if (orgCount > 0) {
+                    return CheckResultUtil.NG(
+                        "删除失败：该岗位在组织架构中正在使用，请先从组织架构中移除");
+                }
+                
+                // L2: 员工分配校验 - 检查是否有员工分配在此岗位
+                Long staffCount = mapper.countStaffByPositionId(entity.getId());
+                if (staffCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该岗位下分配了%d名员工，请先调整员工岗位分配", staffCount));
+                }
+                
+                // L3: 角色配置校验 - 检查岗位是否关联了角色
+                Long roleCount = mapper.countRolesByPositionId(entity.getId());
+                if (roleCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该岗位配置了%d个角色，请先解除角色配置关系", roleCount));
+                }
+                
+                // L4: 权限配置校验 - 检查岗位是否配置了权限
+                Long permissionCount = mapper.countPermissionsByPositionId(entity.getId());
+                if (permissionCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该岗位配置了%d个权限，请先解除权限配置关系", permissionCount));
                 }
                 break;
             case CheckResultAo.UNDELETE_CHECK_TYPE:
@@ -390,6 +458,43 @@ public class MPositiionServiceImpl extends BaseServiceImpl<MPositionMapper, MPos
                 break;
             default:
         }
+        return CheckResultUtil.OK();
+    }
+
+    /**
+     * 组织删除专用校验逻辑（跳过组织架构依赖检查，只保留业务依赖检查）
+     * @param entity
+     * @return
+     */
+    public CheckResultAo checkLogicForOrgDeletion(MPositionEntity entity){
+        /** 如果逻辑删除为true，表示已经删除，无需再次删除 */
+        if(entity.getIs_del()) {
+            return CheckResultUtil.OK();
+        }
+        
+        // 跳过组织架构关联检查（L1），因为这就是从组织架构删除的操作
+        
+        // L2: 员工分配校验 - 检查是否有员工分配在此岗位
+        Long staffCount = mapper.countStaffByPositionId(entity.getId());
+        if (staffCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该岗位下分配了%d名员工，请先调整员工岗位分配", staffCount));
+        }
+        
+        // L3: 角色配置校验 - 检查岗位是否关联了角色
+        Long roleCount = mapper.countRolesByPositionId(entity.getId());
+        if (roleCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该岗位配置了%d个角色，请先解除角色配置关系", roleCount));
+        }
+        
+        // L4: 权限配置校验 - 检查岗位是否配置了权限
+        Long permissionCount = mapper.countPermissionsByPositionId(entity.getId());
+        if (permissionCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该岗位配置了%d个权限，请先解除权限配置关系", permissionCount));
+        }
+        
         return CheckResultUtil.OK();
     }
 }

@@ -177,6 +177,7 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
 
             + "       where true                                                                                        "
             + "          and (t1.code != 'SYSTEMADMIN' or t1.code is null)                                              "
+            + "          and t1.is_del = false                                                                           "
             + "                    ";
 
     String export_select = ""
@@ -530,5 +531,21 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "        </foreach>                                                                               "
             + "</script>      ")
     List<MStaffExportVo> selectExportList(@Param("p1") List<MStaffVo> searchConditionList);
+
+    /**
+     * 统计员工的岗位关联数量
+     * @param staffId 员工ID
+     * @return 岗位数量
+     */
+    @Select("SELECT COUNT(1) FROM m_staff_org WHERE staff_id = #{staffId} AND serial_type = 'm_position'")
+    Integer countStaffPositions(@Param("staffId") Long staffId);
+
+    /**
+     * 统计员工的角色关联数量  
+     * @param staffId 员工ID
+     * @return 角色数量
+     */
+    @Select("SELECT COUNT(1) FROM m_role_staff WHERE staff_id = #{staffId}")
+    Integer countStaffRoles(@Param("staffId") Long staffId);
 
 }

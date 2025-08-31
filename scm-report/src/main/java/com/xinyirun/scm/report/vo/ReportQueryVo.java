@@ -2,6 +2,7 @@ package com.xinyirun.scm.report.vo;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 /**
@@ -12,9 +13,11 @@ import java.io.Serializable;
  */
 @Data
 public class ReportQueryVo implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
+
+
+    @Serial
+    private static final long serialVersionUID = 7205111139657495690L;
+
     /**
      * 报表名称（模糊查询）
      */

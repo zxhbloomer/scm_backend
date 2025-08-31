@@ -6,6 +6,7 @@ import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.entity.master.org.MGroupEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MGroupVo;
+import com.xinyirun.scm.bean.system.vo.master.org.MGroupExportVo;
 
 import java.util.List;
 
@@ -24,14 +25,10 @@ public interface IMGroupService extends IService<MGroupEntity> {
     IPage<MGroupVo> selectPage(MGroupVo searchCondition) ;
 
     /**
-     * 获取所有数据
+     * 导出专用查询方法，支持动态排序
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
      */
-    List<MGroupVo> select(MGroupVo searchCondition) ;
-
-    /**
-     * 获取所选id的数据
-     */
-    List<MGroupVo> selectIdsInForExport(List<MGroupVo> searchCondition) ;
+    List<MGroupExportVo> selectExportList(MGroupVo searchCondition);
 
     /**
      * 批量删除复原
@@ -39,6 +36,13 @@ public interface IMGroupService extends IService<MGroupEntity> {
      * @return
      */
     void deleteByIdsIn(List<MGroupVo> searchCondition);
+
+    /**
+     * 从组织架构删除集团（同时删除集团实体和组织关联关系）
+     * @param searchCondition
+     * @return
+     */
+    void deleteByIdsFromOrg(List<MGroupVo> searchCondition);
 
     /**
      * 插入一条记录（选择字段，策略插入）

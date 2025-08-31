@@ -92,4 +92,19 @@ public class PageCodeConstant {
     /** SO项目 */
     public static final String PAGE_B_SO_PROJECT = "P00000192";
 
+    /** 集团信息 */
+    public static final String PAGE_GROUP = "P00000019";
+    
+    /** 企业信息 */  
+    public static final String PAGE_COMPANY = "P00000020";
+    
+    /** 部门信息 */
+    public static final String PAGE_DEPT = "P00000021";
+    
+    /** 岗位信息 */
+    public static final String PAGE_POSITION = "P00000022";
+
+    /** 角色管理 */
+    public static final String PAGE_ROLE = "P00000023";
+
 }

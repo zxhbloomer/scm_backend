@@ -178,4 +178,17 @@ public interface IMOrgService extends IService<MOrgEntity> {
      */
     MOrgCountsVo getRootStatistics();
 
+    /**
+     * 清理所有组织架构相关缓存
+     * 模仿logout中的clearTenantSharedCaches方法
+     * 在组织架构数据发生变化时调用，确保缓存一致性
+     *
+     * 清理的缓存包括：
+     * - CACHE_ORG_SUB_COUNT: 组织架构统计缓存（部门岗位数等）
+     * - CACHE_DICT_TYPE: 数据字典缓存（可能包含组织类型等）
+     * - CACHE_COLUMNS_TYPE: 表格列配置缓存（组织架构相关页面的列配置）
+     * - CACHE_SYSTEM_ICON_TYPE: 系统图标缓存（组织架构图标）
+     * - CACHE_CONFIG: 系统参数配置缓存（可能包含组织配置参数）
+     */
+    public void clearAllOrgCaches() ;
 }

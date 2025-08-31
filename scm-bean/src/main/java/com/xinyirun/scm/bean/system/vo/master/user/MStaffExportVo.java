@@ -21,7 +21,7 @@ import java.util.Date;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper=false)
-public class MStaffExportVo extends BaseVo implements Serializable {
+public class MStaffExportVo implements Serializable {
 
     private static final long serialVersionUID = 4733748930234972849L;
 

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.org.MGroupEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MGroupVo;
+import com.xinyirun.scm.bean.system.vo.master.org.MGroupExportVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -40,7 +41,7 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
          where true
            and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
            and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
-           and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
+           and t1.is_del = false
            and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
            and (#{p1.parent_group_name,jdbcType=VARCHAR} IS NULL 
                 OR #{p1.parent_group_name,jdbcType=VARCHAR} = '' 
@@ -62,12 +63,15 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
     IPage<MGroupVo> selectPage(Page page, @Param("p1") MGroupVo searchCondition);
 
     /**
-     * 按条件获取所有数据，没有分页
-     * @param searchCondition
+     * 导出专用查询方法，支持动态排序
+     * @param param 查询条件
+     * @param orderByClause 排序子句
      * @return
      */
     @Select("""
-        select t1.*,
+        <script>
+        SELECT (@row_num:= @row_num + 1) as no,
+               t1.*,
                t2.name as c_name,
                t3.name as u_name,
                t4.label as is_del_name,
@@ -78,41 +82,25 @@ public interface MGroupMapper extends BaseMapper<MGroupEntity> {
          /* dict_code='sys_delete_type'获取删除状态字典标签，对应DICT_SYS_DELETE_MAP常量 */
          LEFT JOIN v_dict_info AS t4 ON t4.code = 'sys_delete_type' and t4.dict_value = CONCAT('', t1.is_del)
          LEFT JOIN v_org_relation t5 ON t5.serial_type = 'm_group' and t5.serial_id = t1.id and t5.parent_serial_type = 'm_group'
+               ,(SELECT @row_num := 0) r
          where true
            and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)
            and (t1.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)
-           and (t1.is_del =#{p1.is_del,jdbcType=VARCHAR} or #{p1.is_del,jdbcType=VARCHAR} is null)
+           and t1.is_del = false
            and (t1.id =#{p1.id,jdbcType=BIGINT} or #{p1.id,jdbcType=BIGINT} is null)
            and (#{p1.parent_group_name,jdbcType=VARCHAR} IS NULL 
                 OR #{p1.parent_group_name,jdbcType=VARCHAR} = '' 
                 OR f_get_org_simple_and_full_name(t5.code, 'm_group') LIKE CONCAT('%', #{p1.parent_group_name,jdbcType=VARCHAR}, '%'))
-        """)
-    List<MGroupVo> select(@Param("p1") MGroupVo searchCondition);
-
-    /**
-     * 没有分页，按id筛选条件，导出
-     * @param searchCondition
-     * @return
-     */
-    @Select("""
-        <script>
-        select t1.*,
-               t2.name as c_name,
-               t3.name as u_name,
-               t4.label as is_del_name
-          from m_group t1
-         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
-         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
-         /* dict_code='sys_delete_type'获取删除状态字典标签，对应DICT_SYS_DELETE_MAP常量 */
-         LEFT JOIN v_dict_info AS t4 ON t4.code = 'sys_delete_type' and t4.dict_value = CONCAT('', t1.is_del)
-         where true
+           <if test='p1.ids != null and p1.ids.length > 0'>
            and t1.id in
-           <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>
-                #{item.id}
+           <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>
+                #{item}
            </foreach>
+           </if>
+        ${orderByClause}
         </script>
         """)
-    List<MGroupVo> selectIdsInForExport(@Param("p1") List<MGroupVo> searchCondition);
+    List<MGroupExportVo> selectExportList(@Param("p1") MGroupVo param, @Param("orderByClause") String orderByClause);
 
     /**
      * 没有分页，按id筛选条件

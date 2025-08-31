@@ -104,4 +104,10 @@ public interface IMMenuService extends IService<MMenuEntity> {
      * @return
      */
     InsertOrUpdateResultAo<MMenuRedirectVo> saveRedirect(MMenuRedirectVo bean);
+
+    /**
+     * 获取根菜单节点列表
+     * @return 根菜单节点列表
+     */
+    List<MMenuDataVo> getRootMenuList();
 }

@@ -10,13 +10,18 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.org.MDeptVo;
-import com.xinyirun.scm.common.exception.system.BusinessException;
+import com.xinyirun.scm.bean.system.vo.master.org.MDeptExportVo;
 import com.xinyirun.scm.common.utils.string.StringUtils;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MDeptAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.mapper.master.org.MDeptMapper;
+import com.xinyirun.scm.core.system.mapper.master.org.MOrgDeptPositionMapper;
+import com.xinyirun.scm.core.system.mapper.master.org.MOrgMapper;
 import com.xinyirun.scm.core.system.service.master.org.IMDeptService;
+import com.xinyirun.scm.core.system.service.master.org.IMOrgService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,12 +37,19 @@ import java.util.List;
  * @since 2019-08-23
  */
 @Service
+@Slf4j
 public class MDeptServiceImpl extends BaseServiceImpl<MDeptMapper, MDeptEntity> implements IMDeptService {
 
     @Autowired
     private MDeptMapper mapper;
     @Autowired
     private MDeptAutoCodeServiceImpl autoCode;
+    @Autowired
+    private MOrgDeptPositionMapper orgDeptPositionMapper;
+    @Autowired
+    private MOrgMapper orgMapper;
+    @Autowired
+    private IMOrgService orgService;
 
     /**
      * 获取列表，页面查询
@@ -97,7 +109,7 @@ public class MDeptServiceImpl extends BaseServiceImpl<MDeptMapper, MDeptEntity> 
     }
 
     /**
-     * 批量删除复原
+     * 逐个校验删除（单向删除，不支持恢复）
      * @param searchCondition
      * @return
      */
@@ -105,12 +117,76 @@ public class MDeptServiceImpl extends BaseServiceImpl<MDeptMapper, MDeptEntity> 
     @Override
     public void deleteByIdsIn(List<MDeptVo> searchCondition) {
         List<MDeptEntity> list = mapper.selectIdsIn(searchCondition);
-        list.forEach(
-            bean -> {
-                bean.setIs_del(!bean.getIs_del());
+        for(MDeptEntity entity : list) {
+            // 只处理删除操作，不支持恢复
+            if(entity.getIs_del()){
+                // 已经删除的记录跳过
+                continue;
             }
-        );
+            
+            // 执行删除前业务校验
+            CheckResultAo cr = checkLogic(entity, CheckResultAo.DELETE_CHECK_TYPE);
+            if (cr.isSuccess() == false) {
+                throw new BusinessException(cr.getMessage());
+            }
+            
+            // 设置为已删除状态
+            entity.setIs_del(true);
+        }
         saveOrUpdateBatch(list, 500);
+    }
+
+    /**
+     * 从组织架构删除部门（同时删除部门实体和组织关联关系）
+     * @param searchCondition
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void deleteByIdsFromOrg(List<MDeptVo> searchCondition) {
+        // 简化处理：只取第一个部门
+        if (searchCondition == null || searchCondition.isEmpty()) {
+            throw new BusinessException("请选择要删除的部门");
+        }
+        
+        MDeptVo deptVo = searchCondition.get(0);
+        MDeptEntity entity = mapper.selectById(deptVo.getId());
+        
+        if (entity == null) {
+            throw new BusinessException("部门不存在");
+        }
+        
+        if (entity.getIs_del()) {
+            // 部门已逻辑删除，但仍需清理组织架构关联关系
+            log.info("部门[{}]已逻辑删除，清理组织架构关联关系", entity.getName());
+            int deletedRows = orgMapper.deleteBySerialIdAndType(entity.getId(), "40");
+            log.info("清理了{}条组织架构关联记录", deletedRows);
+            
+            // 清理组织架构相关缓存
+            orgService.clearAllOrgCaches();
+            log.info("已清理组织架构相关缓存");
+            return;
+        }
+        
+        // 执行删除前业务校验
+        CheckResultAo cr = checkLogicForOrgDeletion(entity);
+        if (!cr.isSuccess()) {
+            throw new BusinessException(cr.getMessage());
+        }
+        
+        // 1. 更新部门实体状态
+        entity.setIs_del(true);
+        boolean success = this.updateById(entity);
+        if (!success) {
+            throw new BusinessException("部门删除失败，数据已被修改，请刷新后重试");
+        }
+        
+        // 2. 删除组织架构关联关系
+        orgMapper.deleteBySerialIdAndType(entity.getId(), "40");
+        
+        // 3. 清理组织架构相关缓存（参考MOrgServiceImpl的缓存清理模式）
+        orgService.clearAllOrgCaches();
+        log.info("部门删除成功，已清理组织架构相关缓存");
     }
 
     /**
@@ -243,10 +319,26 @@ public class MDeptServiceImpl extends BaseServiceImpl<MDeptMapper, MDeptEntity> 
                 if(entity.getIs_del()) {
                     return CheckResultUtil.OK();
                 }
-                // 是否被使用的check，如果被使用则不能删除
-                int count = mapper.isExistsInOrg(entity);
-                if(count > 0){
-                    return CheckResultUtil.NG("删除出错：该企业【"+ entity.getSimple_name() +"】在组织机构中正在使用！", count);
+                
+                // L1: 组织架构依赖校验 - 检查部门是否在组织架构中使用
+                int orgCount = mapper.isExistsInOrg(entity);
+                if (orgCount > 0) {
+                    return CheckResultUtil.NG(
+                        "删除失败：该部门在组织架构中正在使用，请先从组织架构中移除");
+                }
+                
+                // L2: 子部门校验 - 检查是否存在子部门
+                Long subDeptCount = mapper.countSubDepts(entity.getId());
+                if (subDeptCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该部门下有%d个子部门，请先删除或迁移子部门", subDeptCount));
+                }
+                
+                // L3: 岗位校验 - 检查部门下是否配置了岗位
+                Long positionCount = orgDeptPositionMapper.countByDeptId(entity.getId());
+                if (positionCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该部门下配置了%d个岗位，请先删除相关岗位配置", positionCount));
                 }
                 break;
             case CheckResultAo.UNDELETE_CHECK_TYPE:
@@ -272,5 +364,66 @@ public class MDeptServiceImpl extends BaseServiceImpl<MDeptMapper, MDeptEntity> 
             default:
         }
         return CheckResultUtil.OK();
+    }
+
+    /**
+     * 组织删除专用校验逻辑（跳过L1组织架构依赖校验）
+     * @param entity 实体对象
+     * @return 校验结果
+     */
+    public CheckResultAo checkLogicForOrgDeletion(MDeptEntity entity){
+        /** 如果逻辑删除为true，表示已经删除，无需再次删除 */
+        if(entity.getIs_del()) {
+            return CheckResultUtil.OK();
+        }
+        
+        // 跳过L1组织架构依赖校验，因为删除目的就是从组织架构中移除
+        
+        // L2: 子部门校验 - 检查是否存在子部门
+        Long subDeptCount = mapper.countSubDepts(entity.getId());
+        if (subDeptCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该部门下有%d个子部门，请先删除或迁移子部门", subDeptCount));
+        }
+        
+        // L3: 岗位校验 - 检查部门下是否配置了岗位
+        Long positionCount = orgDeptPositionMapper.countByDeptId(entity.getId());
+        if (positionCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该部门下配置了%d个岗位，请先删除相关岗位配置", positionCount));
+        }
+        
+        return CheckResultUtil.OK();
+    }
+
+    /**
+     * 导出专用查询方法，支持动态排序
+     *
+     * @param searchCondition
+     * @return
+     */
+    @Override
+    public List<MDeptExportVo> selectExportList(MDeptVo searchCondition) {
+        // 处理动态排序
+        String orderByClause = "";
+        if (searchCondition.getPageCondition() != null && StringUtils.isNotEmpty(searchCondition.getPageCondition().getSort())) {
+            String sort = searchCondition.getPageCondition().getSort();
+            String field = sort.startsWith("-") ? sort.substring(1) : sort;
+            
+            // 正则验证：只允许字母、数字、下划线，防止SQL注入
+            if (!field.matches("^[a-zA-Z_][a-zA-Z0-9_]*$")) {
+                throw new BusinessException("非法的排序字段格式");
+            }
+            
+            if (sort.startsWith("-")) {
+                // 降序：去掉前缀-，添加DESC
+                orderByClause = " ORDER BY " + field + " DESC";
+            } else {
+                // 升序：直接使用字段名，添加ASC
+                orderByClause = " ORDER BY " + sort + " ASC";
+            }
+        }
+        
+        return mapper.selectExportList(searchCondition, orderByClause);
     }
 }

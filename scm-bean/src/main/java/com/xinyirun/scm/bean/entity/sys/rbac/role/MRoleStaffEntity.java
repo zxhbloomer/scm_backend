@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -24,7 +25,9 @@ import java.time.LocalDateTime;
 @TableName("m_role_staff")
 public class MRoleStaffEntity implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+
+    @Serial
+    private static final long serialVersionUID = 6776401004377585556L;
 
     /**
      * 主键ID

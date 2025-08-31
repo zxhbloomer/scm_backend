@@ -3,6 +3,7 @@ package com.xinyirun.scm.report.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -16,9 +17,11 @@ import java.time.LocalDateTime;
 @Data
 @TableName("jimu_report_data_source")
 public class JimuReportDataSource implements Serializable {
-    
-    private static final long serialVersionUID = 1L;
-    
+
+
+    @Serial
+    private static final long serialVersionUID = 5607270934709163868L;
+
     /**
      * 主键ID
      */

@@ -6,6 +6,7 @@ import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.entity.master.org.MDeptEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MDeptVo;
+import com.xinyirun.scm.bean.system.vo.master.org.MDeptExportVo;
 
 import java.util.List;
 
@@ -46,6 +47,13 @@ public interface IMDeptService extends IService<MDeptEntity> {
     void deleteByIdsIn(List<MDeptVo> searchCondition);
 
     /**
+     * 从组织架构删除部门（同时删除部门实体和组织关联关系）
+     * @param searchCondition
+     * @return
+     */
+    void deleteByIdsFromOrg(List<MDeptVo> searchCondition);
+
+    /**
      * 插入一条记录（选择字段，策略插入）
      * @param entity 实体对象
      * @return
@@ -65,4 +73,11 @@ public interface IMDeptService extends IService<MDeptEntity> {
      * @return
      */
     MDeptVo selectByid(Long id);
+
+    /**
+     * 导出专用查询方法，支持动态排序
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     * @return 导出数据列表
+     */
+    List<MDeptExportVo> selectExportList(MDeptVo searchCondition);
 }

@@ -187,6 +187,23 @@ public class MStaffVo extends BaseVo implements Serializable {
      */
     private Integer dbversion;
 
+    // ==================== 组织删除上下文信息 ====================
+    
+    /**
+     * 当前组织节点ID（用于删除操作时的上下文信息）
+     */
+    private Long org_node_id;
+    
+    /**
+     * 父组织节点ID（岗位ID，用于删除员工-岗位关联）
+     */
+    private Long parent_org_id;
+    
+    /**
+     * 组织节点类型（用于删除操作时的类型验证）
+     */
+    private String org_type;
+
     /**
      * 换页条件
      */
@@ -285,8 +302,10 @@ public class MStaffVo extends BaseVo implements Serializable {
     @Data
     @NoArgsConstructor
     public static class RoleItem implements Serializable {
-        private static final long serialVersionUID = 1L;
-        
+
+        @Serial
+        private static final long serialVersionUID = 6383715608556123028L;
+
         private Long id;
         private String code;
         private String name;
@@ -300,8 +319,10 @@ public class MStaffVo extends BaseVo implements Serializable {
     @Data
     @NoArgsConstructor
     public static class PermissionItem implements Serializable {
-        private static final long serialVersionUID = 1L;
-        
+
+        @Serial
+        private static final long serialVersionUID = -221315030553306010L;
+
         private Long id;
         private String key;
         private String label;

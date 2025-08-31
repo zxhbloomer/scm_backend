@@ -247,7 +247,9 @@ public class SPagesFunctionServiceImpl extends ServiceImpl<SPagesFunctionMapper,
                 throw new BusinessException(String.format(sConfigEntity.getExtra2(), sConfigEntity.getExtra1()));
             }
         }
-        return mapper.exportList(searchConditionList);
+        // 构造默认排序子句
+        String orderByClause = " ORDER BY t1.id ASC";
+        return mapper.selectExportList(searchConditionList, orderByClause);
     }
 
     /**

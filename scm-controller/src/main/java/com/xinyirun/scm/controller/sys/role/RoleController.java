@@ -9,12 +9,18 @@ import com.xinyirun.scm.bean.system.vo.sys.rbac.role.SRoleVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.enums.ResultEnum;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
+import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.sys.rbac.role.ISRoleService;
-import com.xinyirun.scm.excel.export.ExcelUtil;
+import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.excel.upload.SystemExcelReader;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +46,12 @@ public class RoleController extends SystemBaseController {
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Autowired
+    private ISPagesService sPagesService;
+
+    @Autowired
+    private SPagesMapper sPagesMapper;
 
 //    @SysLogAnnotion("根据参数id，获取角色信息")
 //    // @ApiOperation(value = "根据参数id，获取角色信息")
@@ -91,19 +103,39 @@ public class RoleController extends SystemBaseController {
     }
 
     @SysLogAnnotion("角色数据导出")
-    @PostMapping("/export_all")
+    @PostMapping("/exportall")
     public void exportAll(@RequestBody(required = false) SRoleVo searchCondition, HttpServletResponse response) throws IOException {
-        List<SRoleExportVo> searchResult = isRoleService.selectExportAll(searchCondition);
-        ExcelUtil<SRoleExportVo> util = new ExcelUtil<>(SRoleExportVo.class);
-        util.exportExcel("角色数据导出", "角色数据", searchResult, response);
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_ROLE);
+        try {
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            List<SRoleExportVo> searchResult = isRoleService.selectExportList(searchCondition);
+            String fileName = "角色数据导出_" + DateTimeUtil.dateTimeNow();
+            EasyExcelUtil<SRoleExportVo> util = new EasyExcelUtil<>(SRoleExportVo.class);
+            util.exportExcel(fileName, "角色数据", searchResult, response);
+        } finally {
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 
     @SysLogAnnotion("角色数据导出")
-    @PostMapping("/export_selection")
-    public void exportSelection(@RequestBody(required = false) List<SRoleVo> searchConditionList, HttpServletResponse response) throws IOException {
-        List<SRoleExportVo> searchResult = isRoleService.selectExportList(searchConditionList);
-        ExcelUtil<SRoleExportVo> util = new ExcelUtil<>(SRoleExportVo.class);
-        util.exportExcel("角色数据导出", "角色数据", searchResult, response);
+    @PostMapping("/export")
+    public void export(@RequestBody(required = false) SRoleVo searchCondition, HttpServletResponse response) throws IOException {
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_ROLE);
+        try {
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的角色记录");
+            }
+            
+            // 选中导出：直接调用selectExportList查询方法
+            List<SRoleExportVo> searchResult = isRoleService.selectExportList(searchCondition);
+            String fileName = "角色数据导出_" + DateTimeUtil.dateTimeNow();
+            EasyExcelUtil<SRoleExportVo> util = new EasyExcelUtil<>(SRoleExportVo.class);
+            util.exportExcel(fileName, "角色数据", searchResult, response);
+        } finally {
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 
     @SysLogAnnotion("角色数据导入")

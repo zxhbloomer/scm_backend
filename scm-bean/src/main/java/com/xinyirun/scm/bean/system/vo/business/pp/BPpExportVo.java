@@ -31,7 +31,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @ExcelIgnoreUnannotated
-public class BPpExportVo extends BaseVo implements Serializable {
+public class BPpExportVo implements Serializable {
 
 
     

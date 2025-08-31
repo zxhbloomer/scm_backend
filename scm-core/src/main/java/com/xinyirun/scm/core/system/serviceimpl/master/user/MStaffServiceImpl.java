@@ -35,6 +35,7 @@ import com.xinyirun.scm.common.utils.avatar.CreateAvatarByUserNameUtil;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.system.mapper.client.user.MUserMapper;
+import com.xinyirun.scm.core.system.mapper.master.org.MOrgMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MPositionMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MStaffOrgMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
@@ -45,7 +46,9 @@ import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MStaffAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessUserServiceImpl;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +66,7 @@ import java.util.Objects;
  * @author zxh
  * @since 2019-07-13
  */
+@Slf4j
 @Service
 public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntity> implements IMStaffService {
 
@@ -74,6 +78,9 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 
     @Autowired
     private MStaffOrgMapper mStaffOrgMapper;
+
+    @Autowired
+    private MOrgMapper mOrgMapper;
 
     @Autowired
     private IMUserLiteService imUserLiteService;
@@ -89,6 +96,9 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 
     @Autowired
     private SFileInfoMapper fileInfoMapper;
+
+    @Autowired
+    private BpmProcessUserServiceImpl bpmProcessUserService;
 
 
     /**
@@ -589,7 +599,94 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         super.saveOrUpdateBatch(entityList, 500);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByIdWithValidation(MStaffVo searchCondition) {
+        if (searchCondition == null || searchCondition.getId() == null) {
+            throw new BusinessException("删除参数不能为空");
+        }
+        
+        // 1. 查询员工信息
+        MStaffEntity entity = this.getById(searchCondition.getId());
+        if (entity == null) {
+            throw new BusinessException("员工记录不存在或已被删除");
+        }
+        
+        // 2. MyBatis Plus会自动处理乐观锁，通过updateById返回值判断
+        
+        // 3. 检查关联数据
+        checkStaffRelations(entity);
+        
+        // 4. 执行逻辑删除
+        entity.setIs_del(true);
+        entity.setU_id(SecurityUtil.getStaff_id());
+        entity.setU_time(LocalDateTime.now());
+        
+        if (!this.updateById(entity)) {
+            throw new BusinessException("数据已被修改，请刷新后重试");
+        }
+        
+        // 5. 同时禁用用户账号
+        MUserEntity user = mUserMapper.getDataByStaffId(entity.getId());
+        if (user != null) {
+            user.setIs_enable(false);
+            mUserMapper.updateById(user);
+        }
+    }
 
+    /**
+     * 检查员工关联数据
+     */
+    private void checkStaffRelations(MStaffEntity entity) {
+        List<String> relations = new ArrayList<>();
+        
+        // 1. 检查岗位关联
+        Integer positionCount = mapper.countStaffPositions(entity.getId());
+        if (positionCount > 0) {
+            relations.add(String.format("岗位关联 %d 条", positionCount));
+        }
+        
+        // 2. 检查角色关联
+        Integer roleCount = mapper.countStaffRoles(entity.getId());
+        if (roleCount > 0) {
+            relations.add(String.format("角色关联 %d 条", roleCount));
+        }
+        
+        // 3. 检查审批流关联
+        checkBpmRelations(entity, relations);
+        
+        if (!relations.isEmpty()) {
+            throw new BusinessException(
+                String.format("员工 %s 存在关联数据，无法删除：%s", 
+                    entity.getName(), String.join("、", relations)));
+        }
+    }
+
+    /**
+     * 审批流关联检查
+     */
+    private void checkBpmRelations(MStaffEntity entity, List<String> relations) {
+        String staffCode = entity.getCode();
+        String staffId = entity.getId().toString();
+        
+        try {
+            // 检查1: 当前待办任务
+            List<String> todoUsers = bpmProcessUserService.getTodoAssigneeUsers();
+            if (todoUsers != null && (todoUsers.contains(staffCode) || todoUsers.contains(staffId))) {
+                relations.add("存在待办审批任务");
+            }
+            
+            // 检查2: 流程定义中的用户配置
+            List<String> processUsers = bpmProcessUserService.getAllProcessUsers();
+            if (processUsers != null && (processUsers.contains(staffCode) || processUsers.contains(staffId))) {
+                relations.add("在审批流程定义中被引用");
+            }
+            
+        } catch (Exception e) {
+            log.warn("检查审批流关联时发生异常，错误: " + e.getMessage());
+            throw new BusinessException("审批流服务异常，无法确认员工关联状态，请稍后重试");
+        }
+    }
 
     /**
      * 查询by name，返回结果
@@ -837,6 +934,126 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             } catch (Exception e) {
                 log.error("initAvatar error", e);
             }
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void removeFromOrgTree(List<MStaffVo> staffList) {
+        for (MStaffVo vo : staffList) {
+            
+            // L1：获取员工信息
+            MStaffEntity staff = this.getById(vo.getId());
+            if (staff == null || staff.getIs_del()) {
+                throw new BusinessException("员工不存在或已删除");
+            }
+            
+            // L2：检查乐观锁
+            if (vo.getDbversion() != null && !staff.getDbversion().equals(vo.getDbversion())) {
+                throw new BusinessException("数据已被修改，请刷新后重试");
+            }
+            
+            // L3：检查是否为最后一个岗位
+            Integer positionCount = mapper.countStaffPositions(vo.getId());
+            if (positionCount <= 1) {
+                throw new BusinessException("员工 " + staff.getName() + " 只有一个岗位，不能仅移除组织关系，请选择彻底删除");
+            }
+            
+            // L4：删除组织架构中的员工节点
+            Integer orgNodeCount = mOrgMapper.deleteBySerialIdAndType(vo.getId(), "60");
+            if (orgNodeCount == 0) {
+                throw new BusinessException("未找到对应的组织节点");
+            }
+            
+            // L5：删除特定的员工-岗位关联关系
+            // 根据组织上下文精确删除关联关系
+            if (vo.getParent_org_id() != null) {
+                // 删除与特定岗位的关联（serial_id为岗位ID，serial_type为岗位类型）
+                QueryWrapper<MStaffOrgEntity> wrapper = new QueryWrapper<>();
+                wrapper.eq("staff_id", vo.getId())
+                       .eq("serial_id", vo.getParent_org_id())
+                       .eq("serial_type", "50"); // 50表示岗位类型
+                mStaffOrgMapper.delete(wrapper);
+                log.info("已删除员工 {} 与岗位 {} 的关联关系", staff.getName(), vo.getParent_org_id());
+            } else {
+                // 如果没有传递岗位信息，删除所有岗位关联（fallback逻辑）
+                QueryWrapper<MStaffOrgEntity> wrapper = new QueryWrapper<>();
+                wrapper.eq("staff_id", vo.getId());
+                mStaffOrgMapper.delete(wrapper);
+                log.warn("未提供岗位上下文，删除了员工 {} 的所有岗位关联", staff.getName());
+            }
+            
+            log.info("员工 {} 已从组织架构中移除", staff.getName());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByIdsFromOrg(List<MStaffVo> staffList) {
+        for (MStaffVo vo : staffList) {
+            
+            // L1：获取员工信息
+            MStaffEntity staff = this.getById(vo.getId());
+            if (staff == null) {
+                throw new BusinessException("员工不存在");
+            }
+            
+            if (staff.getIs_del()) {
+                continue; // 已删除的跳过
+            }
+            
+            // L2：MyBatis Plus会自动处理乐观锁，通过updateById返回值判断
+            
+            // L3：执行删除前业务校验（组织删除专用校验）
+            checkLogicForOrgDeletion(staff);
+            
+            // L4：逻辑删除员工
+            staff.setIs_del(true);
+            staff.setU_id(SecurityUtil.getStaff_id());
+            staff.setU_time(LocalDateTime.now());
+            
+            if (!this.updateById(staff)) {
+                throw new BusinessException("数据已被修改，请刷新后重试");
+            }
+            
+            // L5：删除所有岗位关联
+            QueryWrapper<MStaffOrgEntity> staffOrgWrapper = new QueryWrapper<>();
+            staffOrgWrapper.eq("staff_id", vo.getId());
+            mStaffOrgMapper.delete(staffOrgWrapper);
+            
+            // L6：删除组织架构中的员工节点
+            mOrgMapper.deleteBySerialIdAndType(vo.getId(), "60");
+            
+            // L7：处理用户账号
+            if (staff.getUser_id() != null) {
+                MUserEntity user = mUserMapper.selectById(staff.getUser_id().intValue());
+                if (user != null) {
+                    user.setIs_enable(false);
+                    user.setIs_del(true);
+                    mUserMapper.updateById(user);
+                }
+            }
+            
+            log.info("员工 {} 已从组织中删除", staff.getName());
+        }
+    }
+    
+    /**
+     * 组织删除专用校验逻辑（简化版本，主要检查业务数据关联）
+     */
+    private void checkLogicForOrgDeletion(MStaffEntity entity) {
+        List<String> relations = new ArrayList<>();
+        
+        // 检查审批流关联
+        checkBpmRelations(entity, relations);
+        
+        // 检查业务数据关联（订单、合同等）
+        // 这里可以根据需要添加更多业务校验
+        
+        if (!relations.isEmpty()) {
+            throw new BusinessException(
+                String.format("删除失败：员工 %s 存在业务关联，%s", 
+                    entity.getName(), String.join("、", relations)));
         }
     }
 }

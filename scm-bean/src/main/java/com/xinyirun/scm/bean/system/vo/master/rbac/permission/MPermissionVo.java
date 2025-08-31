@@ -54,6 +54,11 @@ public class MPermissionVo implements Serializable {
     private Long menu_id;
 
     /**
+     * 菜单名称
+     */
+    private String menu_name;
+
+    /**
      * 0:未启用，1:已启用
      */
     private Boolean status;
