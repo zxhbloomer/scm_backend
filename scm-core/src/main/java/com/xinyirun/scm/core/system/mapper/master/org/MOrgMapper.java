@@ -823,6 +823,8 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
                  c_staff.name as c_name,
                  u_staff.name as u_name,
                  t8.label as is_del_name,
+                 t1.is_admin,
+                 CASE WHEN t1.is_admin = true THEN '是' WHEN t1.is_admin = false THEN '否' ELSE '否' END as is_admin_text,
                  t9.positions,
                  t10.avatar as avatar,
                  t10.login_name
@@ -1061,7 +1063,8 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
                 	t7.simple_name as dept_simple_name,                                                                     
                  c_staff.name as c_name,                                                                                 
                  u_staff.name as u_name,                                                                                 
-                 t8.label as is_del_name,                                                                                
+                 t8.label as is_del_name,
+                 CASE WHEN t1.is_admin = true THEN '是' WHEN t1.is_admin = false THEN '否' ELSE '否' END as is_admin_text,
                  t9.positions,                                                                                           
                  t10.avatar as avatar,                                                                                   
                  t10.login_name                                                                                          
@@ -1211,10 +1214,11 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
             (SELECT COUNT(*) FROM m_org WHERE type = '30') as company_count,
             -- 岗位数量：type = '50'
             (SELECT COUNT(*) FROM m_org WHERE type = '50') as position_count,
-            -- 员工数量：统计在组织树中的员工（未删除且未明确离职的）
+            -- 员工数量：统计在组织树中的员工（未删除且为在职状态的）
+            -- 修复：包含service='1'(在职)和service=''(空值-兼容历史数据)，排除service='0'(不在职)、'2'(离职)、'3'(离退休)
             (SELECT COUNT(*) 
              FROM m_staff 
-             WHERE is_del = 0 AND (service != '0' OR service IS NULL)) as staff_count
+             WHERE is_del = 0 AND (service = '1' OR service = '' OR service IS NULL)) as staff_count
         """)
     MOrgCountsVo getRootStatistics();
 

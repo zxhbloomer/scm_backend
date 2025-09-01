@@ -167,6 +167,12 @@ public class MStaffEntity extends BaseEntity<MStaffEntity> implements Serializab
     private Boolean is_del;
 
     /**
+     * 是否管理员(true-是,false-否)
+     */
+    @TableField("is_admin")
+    private Boolean is_admin;
+
+    /**
      * 租户id
      */
 //    @TableField("tenant_id")

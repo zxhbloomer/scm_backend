@@ -760,6 +760,8 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                 oDPMapper.delODPRelation(entity.getSerial_id());
                 break;
             case DictConstant.DICT_ORG_SETTING_TYPE_STAFF:
+                // 删除员工在m_staff_org表中的所有关联记录
+                deleteStaffOrgRelations(entity.getSerial_id());
                 break;
         }
     }
@@ -1355,6 +1357,22 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
     }
 
     /**
+     * 清理根节点统计缓存
+     * 当员工数据发生变更时调用，确保根节点统计数据正确
+     */
+    @Override
+    @CacheEvict(value = SystemConstants.CACHE_PC.CACHE_ORG_SUB_COUNT, 
+               key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + '::root::statistics'")
+    public void clearRootStatisticsCache() {
+        try {
+            String tenantKey = DataSourceHelper.getCurrentDataSourceName();
+            log.info("已清理租户 [{}] 的根节点统计缓存", tenantKey);
+        } catch (Exception e) {
+            log.error("清理根节点统计缓存失败：{}", e.getMessage(), e);
+        }
+    }
+
+    /**
      * 清理所有组织架构相关缓存
      * 模仿logout中的clearTenantSharedCaches方法
      * 在组织架构数据发生变化时调用，确保缓存一致性
@@ -1416,5 +1434,26 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         }
     }
 
+    /**
+     * 删除员工在m_staff_org表中的所有关联记录
+     * @param staffId 员工ID
+     */
+    private void deleteStaffOrgRelations(Long staffId) {
+        try {
+            log.info("开始删除员工组织关联关系，员工ID: {}", staffId);
+            
+            // 删除该员工在m_staff_org表中的所有关联记录
+            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MStaffOrgEntity> deleteWrapper = 
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+            deleteWrapper.eq(MStaffOrgEntity::getStaff_id, staffId);
+            
+            int deletedCount = mStaffOrgMapper.delete(deleteWrapper);
+            log.info("删除员工组织关联关系完成，员工ID: {}，删除记录数: {}", staffId, deletedCount);
+            
+        } catch (Exception e) {
+            log.error("删除员工组织关联关系失败，员工ID: {}，错误: {}", staffId, e.getMessage(), e);
+            throw new BusinessException("删除员工组织关联关系失败：" + e.getMessage());
+        }
+    }
 
 }

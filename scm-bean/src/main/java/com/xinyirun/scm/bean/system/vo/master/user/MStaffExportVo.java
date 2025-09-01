@@ -110,6 +110,9 @@ public class MStaffExportVo implements Serializable {
     @ExcelAnnotion(name = "是否删除")
     private String is_del_name;
 
+    @ExcelAnnotion(name = "是否管理员")
+    private String is_admin_name;
+
 /*    @ExcelAnnotion(name = "身份证正面照片")
     private String one_file_url;
 

@@ -5,6 +5,7 @@ import com.xinyirun.scm.bean.app.ao.result.AppJsonResultAo;
 import com.xinyirun.scm.bean.app.result.utils.v1.AppResultUtil;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
+import com.xinyirun.scm.bean.system.vo.master.org.MStaffOrgVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffExportVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
@@ -217,6 +218,35 @@ public class MasterStaffController extends SystemBaseController {
     public ResponseEntity<AppJsonResultAo<String>> saveAvatar(String url) {
         service.saveAvatar(url);
         return ResponseEntity.ok().body(AppResultUtil.OK("OK"));
+    }
+
+    @SysLogAnnotion("获取员工组织关系信息")
+    @PostMapping("/org/relation")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<MStaffOrgVo>>> getStaffOrgRelation(@RequestBody Map<String, Object> request) {
+        // 参数提取和验证
+        Object staffIdObj = request.get("staffId");
+        if (staffIdObj == null) {
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        Long staffId;
+        if (staffIdObj instanceof Number) {
+            staffId = ((Number) staffIdObj).longValue();
+        } else if (staffIdObj instanceof String) {
+            try {
+                staffId = Long.parseLong((String) staffIdObj);
+            } catch (NumberFormatException e) {
+                throw new BusinessException("员工ID格式错误");
+            }
+        } else {
+            throw new BusinessException("员工ID格式错误");
+        }
+        
+        // 调用服务层查询方法
+        List<MStaffOrgVo> orgRelations = service.getStaffOrgRelation(staffId);
+        
+        return ResponseEntity.ok().body(ResultUtil.OK(orgRelations));
     }
 
     // ===================【员工角色权限管理API】===================

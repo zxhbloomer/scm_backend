@@ -18,6 +18,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.DeleteResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionVo;
+import com.xinyirun.scm.bean.system.vo.master.org.MStaffOrgVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffPositionCountsVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
@@ -42,6 +43,7 @@ import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.service.client.user.IMUserLiteService;
+import com.xinyirun.scm.core.system.service.master.org.IMOrgService;
 import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MStaffAutoCodeServiceImpl;
@@ -99,6 +101,9 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 
     @Autowired
     private BpmProcessUserServiceImpl bpmProcessUserService;
+
+    @Autowired
+    private IMOrgService mOrgService;
 
 
     /**
@@ -374,6 +379,10 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 
         // 返回值确定
         vo.setId(mStaffEntity.getId());
+        
+        // 清理根节点统计缓存，因为新增了员工
+        mOrgService.clearRootStatisticsCache();
+        
         return InsertResultUtil.OK(1);
     }
 
@@ -542,7 +551,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(mUserEntity.getId());
 
-
+        // 清理根节点统计缓存，因为员工信息可能影响统计（特别是service字段变更）
+        mOrgService.clearRootStatisticsCache();
 
         // 更新逻辑保存
         return UpdateResultUtil.OK(1);
@@ -581,6 +591,41 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
     }
 
     /**
+     * 获取员工组织关系信息
+     * @param staffId 员工ID
+     * @return 员工组织关系列表
+     */
+    @Override
+    public List<MStaffOrgVo> getStaffOrgRelation(Long staffId) {
+        // 参数校验
+        if (staffId == null) {
+            log.warn("获取员工组织关系失败：员工ID不能为空");
+            throw new BusinessException("员工ID不能为空");
+        }
+        
+        // 验证员工是否存在且未删除
+        MStaffEntity staff = this.getById(staffId);
+        if (staff == null || staff.getIs_del()) {
+            log.warn("获取员工组织关系失败：员工不存在或已删除，staffId: {}", staffId);
+            throw new BusinessException("员工不存在或已删除");
+        }
+        
+        try {
+            // 查询员工组织关系数据
+            List<MStaffOrgVo> orgRelations = mStaffOrgMapper.getStaffOrgRelation(staffId);
+            
+            log.info("成功获取员工组织关系：员工ID: {}, 关系数量: {}", staffId, 
+                    orgRelations != null ? orgRelations.size() : 0);
+            
+            return orgRelations != null ? orgRelations : new ArrayList<>();
+            
+        } catch (Exception e) {
+            log.error("查询员工组织关系时发生异常：staffId: {}, 错误: {}", staffId, e.getMessage(), e);
+            throw new BusinessException("查询员工组织关系失败：" + e.getMessage());
+        }
+    }
+
+    /**
      * 批量删除复原
      * @param searchCondition
      * @return
@@ -597,6 +642,9 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         });
         List<MStaffEntity> entityList = BeanUtilsSupport.copyProperties(list, MStaffEntity.class);
         super.saveOrUpdateBatch(entityList, 500);
+        
+        // 清理根节点统计缓存，因为员工删除状态发生变更
+        mOrgService.clearRootStatisticsCache();
     }
 
     @Override
@@ -632,6 +680,9 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             user.setIs_enable(false);
             mUserMapper.updateById(user);
         }
+        
+        // 6. 清理根节点统计缓存，因为员工被删除
+        mOrgService.clearRootStatisticsCache();
     }
 
     /**
@@ -948,15 +999,18 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                 throw new BusinessException("员工不存在或已删除");
             }
             
-            // L2：检查乐观锁
-            if (vo.getDbversion() != null && !staff.getDbversion().equals(vo.getDbversion())) {
+            // L2：检查乐观锁 - 仅当前端明确传递了dbversion时才进行检查
+            // 对于从组织架构移除操作，前端可能不传递dbversion（设为null）以跳过乐观锁检查
+            if (vo.getDbversion() != null && staff.getDbversion() != null && 
+                !staff.getDbversion().equals(vo.getDbversion())) {
                 throw new BusinessException("数据已被修改，请刷新后重试");
             }
             
-            // L3：检查是否为最后一个岗位
+            // L3：检查岗位数量并记录日志（移除强制限制，允许员工暂时无岗位）
             Integer positionCount = mapper.countStaffPositions(vo.getId());
             if (positionCount <= 1) {
-                throw new BusinessException("员工 " + staff.getName() + " 只有一个岗位，不能仅移除组织关系，请选择彻底删除");
+                log.warn("员工 {} (ID: {}) 即将从最后一个岗位中移除，将进入无岗位状态", 
+                        staff.getName(), vo.getId());
             }
             
             // L4：删除组织架构中的员工节点

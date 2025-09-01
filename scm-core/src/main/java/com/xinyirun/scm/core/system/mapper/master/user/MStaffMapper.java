@@ -328,6 +328,7 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "  where true "
             + "    and t.name =  #{p1}   "
             + "    and (t.id  =  #{p2} or #{p2} is null)   "
+            + "    and t.is_del = false   "
             + "      ")
     List<MStaffEntity> selectByName(@Param("p1") String name, @Param("p2") Long equal_id);
 
@@ -342,6 +343,7 @@ public interface MStaffMapper extends BaseMapper<MStaffEntity> {
             + "  where true "
             + "    and t.name =  #{p1}   "
             + "    and (t.id  <>  #{p2} or #{p2} is null)   "
+            + "    and t.is_del = false   "
             + "      ")
     List<MStaffEntity> selectByNameNotEqualId(@Param("p1") String name, @Param("p2") Long not_equal_id);
 

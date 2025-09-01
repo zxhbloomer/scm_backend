@@ -168,6 +168,12 @@ public class MStaffVo extends BaseVo implements Serializable {
     private String is_del_name;
 
     /**
+     * 是否管理员(true-是,false-否)
+     */
+    private Boolean is_admin;
+    private String is_admin_text;
+
+    /**
      * 租户id
      */
 //    private Long tenant_id;

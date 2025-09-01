@@ -6,6 +6,7 @@ import com.xinyirun.scm.bean.entity.master.user.MStaffEntity;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
+import com.xinyirun.scm.bean.system.vo.master.org.MStaffOrgVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffExportVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
@@ -150,5 +151,12 @@ public interface IMStaffService extends IService<MStaffEntity> {
      * @param staffList 员工列表
      */
     void deleteByIdsFromOrg(List<MStaffVo> staffList);
+
+    /**
+     * 获取员工组织关系信息
+     * @param staffId 员工ID
+     * @return 员工组织关系列表
+     */
+    List<MStaffOrgVo> getStaffOrgRelation(Long staffId);
 
 }

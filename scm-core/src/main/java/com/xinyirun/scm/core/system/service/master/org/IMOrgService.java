@@ -177,6 +177,12 @@ public interface IMOrgService extends IService<MOrgEntity> {
      * @return 根节点统计数据VO
      */
     MOrgCountsVo getRootStatistics();
+    
+    /**
+     * 清理根节点统计缓存
+     * 当员工数据发生变更时调用，确保根节点统计数据正确
+     */
+    void clearRootStatisticsCache();
 
     /**
      * 清理所有组织架构相关缓存
