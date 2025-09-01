@@ -18,6 +18,7 @@ import org.apache.ibatis.annotations.Delete;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -1234,5 +1235,57 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
         AND type = #{type}
         """)
     int deleteBySerialIdAndType(@Param("serialId") Long serialId, @Param("type") String type);
+
+    /**
+     * 根据岗位ID查找对应的组织记录
+     * @param positionId 岗位ID
+     * @return 组织记录
+     */
+    @Select("""
+        SELECT id, serial_id, serial_type, type, parent_id, code
+        FROM m_org 
+        WHERE serial_id = #{positionId}
+            -- 岗位序列类型：m_position
+            AND serial_type = 'm_position'
+            -- 岗位类型：50
+            AND type = '50'
+        """)
+    MOrgEntity findOrgByPositionId(@Param("positionId") Long positionId);
+
+    /**
+     * 根据组织ID查找父级组织记录
+     * @param orgId 组织ID
+     * @return 父级组织记录
+     */
+    @Select("""
+        SELECT id, serial_id, serial_type, type, parent_id, code
+        FROM m_org 
+        WHERE id = #{orgId}
+        """)
+    MOrgEntity findOrgById(@Param("orgId") Long orgId);
+
+    /**
+     * 根据企业ID查询企业名称
+     * @param companyId 企业ID
+     * @return 企业名称
+     */
+    @Select("""
+        SELECT name 
+        FROM m_company 
+        WHERE id = #{companyId}
+        """)
+    String getCompanyNameById(@Param("companyId") Long companyId);
+
+    /**
+     * 根据部门ID查询部门名称
+     * @param deptId 部门ID
+     * @return 部门名称
+     */
+    @Select("""
+        SELECT name 
+        FROM m_dept 
+        WHERE id = #{deptId}
+        """)
+    String getDeptNameById(@Param("deptId") Long deptId);
 
 }

@@ -28,6 +28,7 @@ import com.xinyirun.scm.common.enums.OperationEnum;
 import com.xinyirun.scm.common.enums.ParameterEnum;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.ArrayPfUtil;
+import java.util.Collections;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.redis.RedisUtil;
@@ -38,6 +39,7 @@ import com.xinyirun.scm.core.system.mapper.master.org.MOrgMapper;
 import com.xinyirun.scm.core.system.mapper.master.org.MStaffOrgMapper;
 import com.xinyirun.scm.core.system.service.common.ICommonComponentService;
 import com.xinyirun.scm.core.system.service.master.org.IMOrgService;
+import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.log.operate.SLogOperServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
@@ -45,18 +47,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -100,6 +98,10 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
     @Autowired
     private RedisUtil redisUtil;
+
+    @Autowired
+    @Lazy
+    private IMStaffService mStaffService;
 
     @Autowired
     private CacheManager cacheManager;
@@ -813,17 +815,6 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
     )
     @Transactional(rollbackFor = Exception.class)
     public Boolean dragsave2Db(List<MOrgEntity> list){
-        log.info("开始执行拖拽保存操作，总计待处理实体数量：{}", list.size());
-        
-        // 验证修复效果 - 检查前3个实体的数据
-        for (int i = 0; i < Math.min(3, list.size()); i++) {
-            MOrgEntity entity = list.get(i);
-            log.info("验证实体[{}]: id={}, type={}, serial_id={}, serial_type={}, parent_id={}", 
-                    i, entity.getId(), entity.getType(), entity.getSerial_id(), 
-                    entity.getSerial_type(), entity.getParent_id());
-        }
-        
-        log.info("员工类型常量：{}", DictConstant.DICT_ORG_SETTING_TYPE_STAFF);
         
         // 分离员工节点和组织节点，操作日志只记录组织节点的变更
         List<MOrgEntity> orgList = list.stream()
@@ -834,26 +825,26 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             .filter(entity -> DictConstant.DICT_ORG_SETTING_TYPE_STAFF.equals(entity.getType()))
             .collect(Collectors.toList());
         
-        log.info("分离结果：组织节点{}个，员工节点{}个", orgList.size(), staffList.size());
-        
-        // 显示员工节点详情
-        if (!staffList.isEmpty()) {
-            for (int i = 0; i < Math.min(2, staffList.size()); i++) {
-                MOrgEntity staff = staffList.get(i);
-                log.info("员工节点[{}]: id={}, serial_id={}, parent_id={}", 
-                        i, staff.getId(), staff.getSerial_id(), staff.getParent_id());
-            }
-        }
         
         try {
             // 首先处理员工拖拽到岗位（不记录到m_org操作日志）
+            // 去重处理：同一员工可能在前端JSON中出现多次，需要按员工ID去重
+            Map<Long, MOrgEntity> uniqueStaffMap = new HashMap<>();
             for (MOrgEntity staffEntity : staffList) {
+                Long staffId = staffEntity.getSerial_id();
+                if (staffId != null) {
+                    // 只保留最后一个位置的员工记录（最新的拖拽目标）
+                    uniqueStaffMap.put(staffId, staffEntity);
+                }
+            }
+            
+            
+            for (MOrgEntity staffEntity : uniqueStaffMap.values()) {
                 handleStaffDragToPosition(staffEntity);
             }
             
             // 如果没有组织节点需要处理，直接返回成功
             if (orgList.isEmpty()) {
-                log.info("只有员工节点拖拽，组织结构无变化，操作完成");
                 // 清理相关缓存
                 clearAllOrgCaches();
                 return true;
@@ -943,6 +934,16 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             Long actualStaffId = entity.getSerial_id(); // 使用serial_id作为实际员工ID
             Long targetOrgNodeId = entity.getParent_id(); // 目标岗位的组织节点ID
             
+            // 参数验证
+            if (actualStaffId == null) {
+                log.warn("员工Serial_ID为空，跳过拖拽处理");
+                return;
+            }
+            if (targetOrgNodeId == null) {
+                log.warn("目标岗位组织节点ID为空，跳过拖拽处理");
+                return;
+            }
+            
             log.info("开始处理员工拖拽：员工Serial_ID={}，目标岗位组织节点ID={}", actualStaffId, targetOrgNodeId);
             
             // 验证目标岗位是否存在
@@ -960,12 +961,13 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             
             // 获取目标岗位的实际岗位ID
             Long actualPositionId = targetPosition.getSerial_id();
-            log.info("目标岗位实际ID：{}", actualPositionId);
             
             // 更新员工-岗位关系 (使用实际的员工ID和岗位ID)
             updateStaffPositionRelation(actualStaffId, actualPositionId);
             
-            log.info("员工拖拽处理成功：员工ID={} 已调整到岗位ID={}", actualStaffId, actualPositionId);
+            
+            // 确保员工默认值同步（防御性编程，确保拖拽操作后数据一致性）
+            mStaffService.syncAffectedStaffDefaultValues(Collections.singletonList(actualStaffId));
             
         } catch (Exception e) {
             log.error("处理员工拖拽失败，员工Serial_ID：{}，目标岗位组织节点ID：{}，错误：{}", 
@@ -980,13 +982,18 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
      * @param newPositionId 新岗位ID
      */
     private void updateStaffPositionRelation(Long staffId, Long newPositionId) {
-        // 1. 删除员工原有的岗位关系
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<MStaffOrgEntity> deleteWrapper = 
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-        deleteWrapper.eq(MStaffOrgEntity::getStaff_id, staffId)
-                    .eq(MStaffOrgEntity::getSerial_type, DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+        // 参数验证
+        if (staffId == null) {
+            log.warn("员工ID为空，跳过岗位关系更新");
+            return;
+        }
+        if (newPositionId == null) {
+            log.warn("新岗位ID为空，跳过岗位关系更新");
+            return;
+        }
         
-        int deletedCount = mStaffOrgMapper.delete(deleteWrapper);
+        // 1. 删除员工原有的岗位关系（使用SQL删除方式）
+        int deletedCount = mStaffOrgMapper.deleteByStaffIdAndSerialType(staffId, DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
         log.info("删除员工原有岗位关系，员工ID：{}，删除记录数：{}", staffId, deletedCount);
         
         // 2. 建立员工与新岗位的关系
@@ -997,6 +1004,9 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
         
         mStaffOrgMapper.insert(newRelation);
         log.info("建立员工新岗位关系，员工ID：{}，新岗位ID：{}", staffId, newPositionId);
+        
+        // 同步员工默认值
+        mStaffService.syncAffectedStaffDefaultValues(Collections.singletonList(staffId));
     }
 
     /**
@@ -1069,6 +1079,7 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
      * @return
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public MStaffPositionTransferVo setStaffTransfer(MStaffTransferVo bean) {
         // 操作日志bean初始化
         CustomOperateBo cobo = new CustomOperateBo();
@@ -1172,6 +1183,33 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
 
         // 清理所有组织架构相关缓存（员工关系变更影响统计）
         clearAllOrgCaches();
+
+        // 同步受影响员工的默认值
+        List<Long> affectedStaffIds = new ArrayList<>();
+        
+        // 收集被删除的员工ID
+        if (deleteMemberList != null && !deleteMemberList.isEmpty()) {
+            affectedStaffIds.addAll(deleteMemberList.stream()
+                .map(MStaffPositionOperationVo::getId)
+                .filter(id -> id != null)  // 过滤null值
+                .collect(Collectors.toList()));
+        }
+        
+        // 收集被添加的员工ID
+        if (insertMemgerList != null && !insertMemgerList.isEmpty()) {
+            affectedStaffIds.addAll(insertMemgerList.stream()
+                .map(MStaffPositionOperationVo::getId)
+                .filter(id -> id != null)  // 过滤null值
+                .collect(Collectors.toList()));
+        }
+        
+        // 去重并同步默认值
+        if (!affectedStaffIds.isEmpty()) {
+            List<Long> uniqueStaffIds = affectedStaffIds.stream()
+                .distinct()
+                .collect(Collectors.toList());
+            mStaffService.syncAffectedStaffDefaultValues(uniqueStaffIds);
+        }
 
         // 查询最新数据并返回
         // 获取该岗位已经设置过得用户

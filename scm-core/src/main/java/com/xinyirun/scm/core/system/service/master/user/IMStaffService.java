@@ -159,4 +159,10 @@ public interface IMStaffService extends IService<MStaffEntity> {
      */
     List<MStaffOrgVo> getStaffOrgRelation(Long staffId);
 
+    /**
+     * 同步受影响员工的默认值（所属主体企业、默认部门信息）
+     * @param staffIds 员工ID列表
+     */
+    void syncAffectedStaffDefaultValues(List<Long> staffIds);
+
 }

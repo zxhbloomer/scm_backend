@@ -57,47 +57,17 @@ public class MStaffOrgVo extends BaseVo implements Serializable {
 
     // ================== 集团信息 ==================
     /**
-     * 集团ID
-     */
-    private Long group_id;
-
-    /**
-     * 集团编码
-     */
-    private String group_code;
-
-    /**
      * 集团名称
      */
     private String group_name;
 
     // ================== 主体企业信息 ==================
     /**
-     * 企业ID
-     */
-    private Long company_id;
-
-    /**
-     * 企业编码
-     */
-    private String company_code;
-
-    /**
      * 企业名称
      */
     private String company_name;
 
     // ================== 部门信息 ==================
-    /**
-     * 部门ID
-     */
-    private Long dept_id;
-
-    /**
-     * 部门编码
-     */
-    private String dept_code;
-
     /**
      * 部门名称
      */

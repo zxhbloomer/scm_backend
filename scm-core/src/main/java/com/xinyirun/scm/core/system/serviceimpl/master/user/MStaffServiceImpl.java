@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xinyirun.scm.bean.entity.master.org.MOrgEntity;
 import com.xinyirun.scm.bean.entity.master.org.MStaffOrgEntity;
 import com.xinyirun.scm.bean.entity.master.user.MStaffEntity;
 import com.xinyirun.scm.bean.entity.master.user.MUserEntity;
@@ -57,8 +58,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -406,16 +409,13 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
      * 更新用户组织机构关系表
      */
     private void updateStaffOrg(MStaffEntity entity) {
-        // 删除关系表：企业
-        mStaffOrgMapper.delete(new QueryWrapper<MStaffOrgEntity>()
-                .eq("staff_id",entity.getId())
-                .eq("serial_type", DictConstant.DICT_ORG_SETTING_TYPE_COMPANY_SERIAL_TYPE)
-        );
-        // 删除关系表：部门
-        mStaffOrgMapper.delete(new QueryWrapper<MStaffOrgEntity>()
-                .eq("staff_id",entity.getId())
-                .eq("serial_type", DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE)
-        );
+        // 删除关系表：企业（使用SQL删除方式）
+        int deletedCompanyCount = mStaffOrgMapper.deleteByStaffIdAndSerialType(entity.getId(), DictConstant.DICT_ORG_SETTING_TYPE_COMPANY_SERIAL_TYPE);
+        log.info("删除员工企业关系，员工ID：{}，删除记录数：{}", entity.getId(), deletedCompanyCount);
+        
+        // 删除关系表：部门（使用SQL删除方式）
+        int deletedDeptCount = mStaffOrgMapper.deleteByStaffIdAndSerialType(entity.getId(), DictConstant.DICT_ORG_SETTING_TYPE_DEPT_SERIAL_TYPE);
+        log.info("删除员工部门关系，员工ID：{}，删除记录数：{}", entity.getId(), deletedDeptCount);
         // 插入关系表：企业
         if(entity.getCompany_id() != null){
             MStaffOrgEntity companyStaffEntity = new MStaffOrgEntity();
@@ -444,10 +444,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         updateStaffOrg(entity);
         
         // 删除关系表：岗位（清理现有岗位关系）
-        mStaffOrgMapper.delete(new QueryWrapper<MStaffOrgEntity>()
-                .eq("staff_id", entity.getId())
-                .eq("serial_type", DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE)
-        );
+        int deletedPositionCount = mStaffOrgMapper.deleteByStaffIdAndSerialType(entity.getId(), DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+        log.info("删除员工岗位关系，员工ID：{}，删除记录数：{}", entity.getId(), deletedPositionCount);
         
         // 插入关系表：岗位（根据VO中的岗位信息）
         if (vo != null && vo.getPositions() != null && !vo.getPositions().isEmpty()) {
@@ -626,6 +624,82 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
     }
 
     /**
+     * 同步受影响员工的默认值（所属主体企业、默认部门、岗位信息）
+     * 根据m_staff_org关系表重新计算m_staff表中的默认值
+     * @param staffIds 需要同步的员工ID列表
+     */
+    @Override
+    public void syncAffectedStaffDefaultValues(List<Long> staffIds) {
+        if (staffIds == null || staffIds.isEmpty()) {
+            log.debug("员工ID列表为空，跳过默认值同步");
+            return;
+        }
+        
+        
+        for (Long staffId : staffIds) {
+            try {
+                // 查询员工当前的组织关系
+                List<MStaffOrgVo> relations = getStaffOrgRelation(staffId);
+                
+                // 计算新的默认值
+                Long newCompanyId = null;
+                String newCompanyCode = null;
+                String newCompanyName = null;
+                Long newDeptId = null;
+                String newDeptCode = null; 
+                String newDeptName = null;
+                String newPositionInfo = null;
+                
+                if (!relations.isEmpty()) {
+                    // 从第一个岗位关系中获取岗位ID，然后通过层级遍历获取组织信息
+                    MStaffOrgVo firstRelation = relations.get(0);
+                    OrganizationHierarchy orgHierarchy = getOrganizationHierarchy(firstRelation.getPosition_id());
+                    newCompanyId = orgHierarchy.getCompanyId();
+                    newDeptId = orgHierarchy.getDeptId();
+                    
+                    // 提取所有岗位名称，逗号分隔
+                    List<String> positionNames = new ArrayList<>();
+                    for (MStaffOrgVo relation : relations) {
+                        if (relation.getPosition_name() != null) {
+                            positionNames.add(relation.getPosition_name());
+                        }
+                    }
+                    if (!positionNames.isEmpty()) {
+                        newPositionInfo = String.join(",", positionNames);
+                    }
+                }
+                
+                // 获取当前员工信息（包含dbversion乐观锁字段）
+                MStaffEntity currentStaff = mapper.selectById(staffId);
+                if (currentStaff == null) {
+                    log.warn("员工 {} 不存在，跳过默认值同步", staffId);
+                    continue;
+                }
+                
+                // 更新员工默认值（必须包含dbversion用于乐观锁）
+                MStaffEntity updateEntity = new MStaffEntity();
+                updateEntity.setId(staffId);
+                updateEntity.setCompany_id(newCompanyId);
+                updateEntity.setDept_id(newDeptId);
+                updateEntity.setU_time(LocalDateTime.now());
+                updateEntity.setU_id(SecurityUtil.getStaff_id());
+                updateEntity.setDbversion(currentStaff.getDbversion()); // 乐观锁关键字段
+                
+                // 执行更新
+                if (mapper.updateById(updateEntity) > 0) {
+                } else {
+                    log.warn("员工 {} 默认值同步失败，可能员工不存在或已被删除", staffId);
+                }
+                
+            } catch (Exception e) {
+                log.error("同步员工 {} 默认值时发生异常: {}", staffId, e.getMessage(), e);
+                throw new BusinessException("同步员工默认值失败：" + e.getMessage());
+            }
+        }
+        
+    }
+
+    /**
      * 批量删除复原
      * @param searchCondition
      * @return
@@ -710,6 +784,96 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             throw new BusinessException(
                 String.format("员工 %s 存在关联数据，无法删除：%s", 
                     entity.getName(), String.join("、", relations)));
+        }
+    }
+
+    /**
+     * 组织层级信息内部类
+     */
+    private static class OrganizationHierarchy {
+        private Long companyId;
+        private String companyName;
+        private Long deptId;
+        private String deptName;
+        
+        public OrganizationHierarchy(Long companyId, String companyName,
+                                   Long deptId, String deptName) {
+            this.companyId = companyId;
+            this.companyName = companyName;
+            this.deptId = deptId;
+            this.deptName = deptName;
+        }
+        
+        // Getters
+        public Long getCompanyId() { return companyId; }
+        public String getCompanyName() { return companyName; }
+        public Long getDeptId() { return deptId; }
+        public String getDeptName() { return deptName; }
+    }
+
+    /**
+     * 获取岗位的组织层级信息（Java循环遍历方式）
+     * @param positionId 岗位ID
+     * @return 组织层级信息
+     */
+    private OrganizationHierarchy getOrganizationHierarchy(Long positionId) {
+        if (positionId == null) {
+            return new OrganizationHierarchy(null, null, null, null);
+        }
+        
+        try {
+            // 第一步：根据岗位ID找到对应的组织记录
+            MOrgEntity positionOrg = mOrgMapper.findOrgByPositionId(positionId);
+            if (positionOrg == null) {
+                log.warn("岗位ID {} 未找到对应的组织记录", positionId);
+                return new OrganizationHierarchy(null, null, null, null);
+            }
+            
+            // 初始化结果变量
+            Long companyId = null;
+            String companyName = null;
+            Long deptId = null;
+            String deptName = null;
+            
+            // 第二步：从岗位的父级开始向上遍历
+            MOrgEntity currentOrg = positionOrg;
+            Long parentId = currentOrg.getParent_id();
+            int loopCount = 0; // 防止无限循环
+            
+            while (parentId != null && loopCount < 10) {
+                MOrgEntity parentOrg = mOrgMapper.findOrgById(parentId);
+                if (parentOrg == null) {
+                    break;
+                }
+                
+                String parentType = parentOrg.getType();
+                
+                // 部门类型：40
+                if (DictConstant.DICT_ORG_SETTING_TYPE_DEPT.equals(parentType)) {
+                    // 记录部门信息（最近的部门）
+                    if (deptId == null) {
+                        deptId = parentOrg.getSerial_id();
+                        deptName = mOrgMapper.getDeptNameById(deptId);
+                    }
+                }
+                // 企业类型：30
+                else if (DictConstant.DICT_ORG_SETTING_TYPE_COMPANY.equals(parentType)) {
+                    // 找到企业，记录企业信息并结束遍历
+                    companyId = parentOrg.getSerial_id();
+                    companyName = mOrgMapper.getCompanyNameById(companyId);
+                    break;
+                }
+                
+                // 继续向上查找
+                parentId = parentOrg.getParent_id();
+                loopCount++;
+            }
+            
+            return new OrganizationHierarchy(companyId, companyName, deptId, deptName);
+            
+        } catch (Exception e) {
+            log.error("获取岗位 {} 的组织层级信息时发生异常: {}", positionId, e.getMessage(), e);
+            return new OrganizationHierarchy(null, null, null, null);
         }
     }
 
@@ -907,12 +1071,14 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             entity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
             mStaffOrgMapper.insert(entity);
         } else {
-            // 取消了岗位
-            mStaffOrgMapper.delete(new QueryWrapper<MStaffOrgEntity>()
-                    .eq("staff_id",searchCondition.getId())
-                    .eq("serial_id",searchCondition.getPosition_id())
-                    .eq("serial_type", DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE)
+            // 取消了岗位（使用SQL删除方式）
+            int canceledCount = mStaffOrgMapper.deleteByStaffIdSerialIdAndType(
+                    searchCondition.getId(),
+                    searchCondition.getPosition_id(),
+                    DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE
             );
+            log.info("取消员工岗位关系，员工ID：{}，岗位ID：{}，删除记录数：{}", 
+                    searchCondition.getId(), searchCondition.getPosition_id(), canceledCount);
         }
     }
 
@@ -1020,25 +1186,30 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             }
             
             // L5：删除特定的员工-岗位关联关系
-            // 根据组织上下文精确删除关联关系
+            // 根据组织上下文精确删除关联关系（使用SQL删除方式）
             if (vo.getParent_org_id() != null) {
                 // 删除与特定岗位的关联（serial_id为岗位ID，serial_type为岗位类型）
-                QueryWrapper<MStaffOrgEntity> wrapper = new QueryWrapper<>();
-                wrapper.eq("staff_id", vo.getId())
-                       .eq("serial_id", vo.getParent_org_id())
-                       .eq("serial_type", "50"); // 50表示岗位类型
-                mStaffOrgMapper.delete(wrapper);
-                log.info("已删除员工 {} 与岗位 {} 的关联关系", staff.getName(), vo.getParent_org_id());
+                int deletedSpecificCount = mStaffOrgMapper.deleteByStaffIdSerialIdAndType(
+                        vo.getId(), 
+                        vo.getParent_org_id(), 
+                        DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE
+                );
+                log.info("已删除员工 {} 与岗位 {} 的关联关系，删除记录数：{}", staff.getName(), vo.getParent_org_id(), deletedSpecificCount);
             } else {
-                // 如果没有传递岗位信息，删除所有岗位关联（fallback逻辑）
-                QueryWrapper<MStaffOrgEntity> wrapper = new QueryWrapper<>();
-                wrapper.eq("staff_id", vo.getId());
-                mStaffOrgMapper.delete(wrapper);
-                log.warn("未提供岗位上下文，删除了员工 {} 的所有岗位关联", staff.getName());
+                // 如果没有传递岗位信息，删除所有关联（fallback逻辑）
+                int deletedAllCount = mStaffOrgMapper.deleteAllByStaffId(vo.getId());
+                log.warn("未提供岗位上下文，删除了员工 {} 的所有关联，删除记录数：{}", staff.getName(), deletedAllCount);
             }
             
             log.info("员工 {} 已从组织架构中移除", staff.getName());
         }
+
+        // 同步受影响员工的默认值
+        List<Long> affectedStaffIds = staffList.stream()
+            .map(MStaffVo::getId)
+            .filter(id -> id != null)  // 过滤null值
+            .collect(Collectors.toList());
+        syncAffectedStaffDefaultValues(affectedStaffIds);
     }
 
     @Override
@@ -1088,8 +1259,22 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                 }
             }
             
+            // L8：清空逻辑删除员工的默认值（所属主体企业、默认部门）
+            staff.setCompany_id(null);
+            staff.setDept_id(null);
+            staff.setU_id(SecurityUtil.getStaff_id());
+            staff.setU_time(LocalDateTime.now());
+            
+            if (!this.updateById(staff)) {
+                throw new BusinessException("清空员工默认值时数据已被修改，请刷新后重试");
+            }
+            
             log.info("员工 {} 已从组织中删除", staff.getName());
         }
+        
+        // 由于逻辑删除员工已清空默认值，不需要重新同步
+        // 注意：deleteByIdsFromOrg是逻辑删除，已经清空了company_id和dept_id
+        log.info("逻辑删除完成，共处理员工数量：{}", staffList.size());
     }
     
     /**

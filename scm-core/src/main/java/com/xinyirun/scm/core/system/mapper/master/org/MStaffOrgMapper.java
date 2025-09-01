@@ -3,6 +3,7 @@ package com.xinyirun.scm.core.system.mapper.master.org;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.entity.master.org.MStaffOrgEntity;
 import com.xinyirun.scm.bean.system.vo.master.org.MStaffOrgVo;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
@@ -36,8 +37,8 @@ public interface MStaffOrgMapper extends BaseMapper<MStaffOrgEntity> {
                t1.name as position_name,           
                t5.serial_id,                       
                t5.serial_type,                     
-               f_get_org_simple_name(t8.code, 'm_group') as group_name,                            
-               f_get_org_simple_name(t8.code, 'm_company') as company_name,                         
+               f_get_org_simple_name(t8.code, 'm_group') as group_name,
+               f_get_org_simple_name(t8.code, 'm_company') as company_name,
                f_get_org_simple_name(t8.code, 'm_dept') as dept_name,
                t1.c_id,
                t1.c_time,
@@ -54,4 +55,31 @@ public interface MStaffOrgMapper extends BaseMapper<MStaffOrgEntity> {
         ORDER BY t1.id
     """)
     List<MStaffOrgVo> getStaffOrgRelation(@Param("staffId") Long staffId);
+
+    /**
+     * 删除员工指定类型的组织关系
+     * @param staffId 员工ID
+     * @param serialType 关系类型
+     * @return 删除记录数
+     */
+    @Delete("DELETE FROM m_staff_org WHERE staff_id = #{staffId} AND serial_type = #{serialType}")
+    int deleteByStaffIdAndSerialType(@Param("staffId") Long staffId, @Param("serialType") String serialType);
+
+    /**
+     * 删除员工与指定组织的关系
+     * @param staffId 员工ID
+     * @param serialId 组织ID
+     * @param serialType 关系类型
+     * @return 删除记录数
+     */
+    @Delete("DELETE FROM m_staff_org WHERE staff_id = #{staffId} AND serial_id = #{serialId} AND serial_type = #{serialType}")
+    int deleteByStaffIdSerialIdAndType(@Param("staffId") Long staffId, @Param("serialId") Long serialId, @Param("serialType") String serialType);
+
+    /**
+     * 删除员工的所有组织关系
+     * @param staffId 员工ID
+     * @return 删除记录数
+     */
+    @Delete("DELETE FROM m_staff_org WHERE staff_id = #{staffId}")
+    int deleteAllByStaffId(@Param("staffId") Long staffId);
 }
