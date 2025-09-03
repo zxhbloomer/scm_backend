@@ -521,8 +521,8 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
     }
 
     /**
-     * 设置员工->岗位关系
-     * 当在组织机构管理页面新增员工节点时，自动建立员工与父级岗位的关系
+     * 设置员工->岗位关系（拖拽操作）
+     * 删除员工旧的岗位关系，建立新的岗位关系
      */
     private void updateStaffPositionRelation(MOrgEntity currentEntity, MOrgEntity parentEntity) {
         try {
@@ -533,16 +533,10 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                 return;
             }
 
-            // 创建员工-岗位关系实体
-            MStaffOrgEntity staffOrgEntity = new MStaffOrgEntity();
-            staffOrgEntity.setStaff_id(currentEntity.getSerial_id());  // 员工Serial_ID
-            staffOrgEntity.setSerial_id(parentEntity.getSerial_id()); // 岗位Serial_ID
-            staffOrgEntity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE);
+            // 调用另一个重载方法，该方法包含删除旧关系的逻辑
+            updateStaffPositionRelation(currentEntity.getSerial_id(), parentEntity.getSerial_id());
             
-            // 插入员工-岗位关系
-            mStaffOrgService.save(staffOrgEntity);
-            
-            log.info("成功建立员工-岗位关系 - 员工Serial_ID：{}，岗位Serial_ID：{}", 
+            log.info("成功更新员工-岗位关系（拖拽操作） - 员工Serial_ID：{}，岗位Serial_ID：{}", 
                 currentEntity.getSerial_id(), parentEntity.getSerial_id());
                 
         } catch (Exception e) {
@@ -745,26 +739,56 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
             return;
         }
         
-        switch (entity.getType()) {
+        log.info("开始删除组织关系记录 - 实体ID：{}，Serial_ID：{}，类型：{}", 
+            entity.getId(), entity.getSerial_id(), entity.getType());
+        
+        try {
+            switch (entity.getType()) {
 //            case DictConstant.DICT_ORG_SETTING_TYPE_TENANT:
 //                entity.setSerial_type(DictConstant.DICT_ORG_SETTING_TYPE_TENANT_SERIAL_TYPE);
 //                break;
 //            case DictConstant.DICT_ORG_SETTING_TYPE_GROUP:
 //                oTGMapper.delOTGRelation(entity.getSerial_id());
 //                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_COMPANY:
-                oGCMapper.delOGCRelation(entity.getSerial_id());
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_DEPT:
-                oCDMapper.delOCDRelation(entity.getSerial_id());
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_POSITION:
-                oDPMapper.delODPRelation(entity.getSerial_id());
-                break;
-            case DictConstant.DICT_ORG_SETTING_TYPE_STAFF:
-                // 删除员工在m_staff_org表中的所有关联记录
-                deleteStaffOrgRelations(entity.getSerial_id());
-                break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_COMPANY:
+                    log.info("删除企业关系记录，Serial_ID：{}", entity.getSerial_id());
+                    oGCMapper.delOGCRelation(entity.getSerial_id());
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_DEPT:
+                    log.info("删除部门关系记录，Serial_ID：{}", entity.getSerial_id());
+                    oCDMapper.delOCDRelation(entity.getSerial_id());
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_POSITION:
+                    log.info("删除岗位关系记录，Serial_ID：{}", entity.getSerial_id());
+                    oDPMapper.delODPRelation(entity.getSerial_id());
+                    break;
+                case DictConstant.DICT_ORG_SETTING_TYPE_STAFF:
+                    log.info("删除员工关系记录，开始处理员工ID：{}", entity.getSerial_id());
+                    // 删除员工在m_staff_org表中的所有关联记录
+                    deleteStaffOrgRelations(entity.getSerial_id());
+                    
+                    // 同步清空员工的组织归属字段，保持数据一致性
+                    try {
+                        mStaffService.clearStaffOrgFields(entity.getSerial_id());
+                        log.info("已同步清空员工组织归属字段，员工ID：{}", entity.getSerial_id());
+                    } catch (Exception e) {
+                        log.warn("清空员工组织归属字段失败，员工ID：{}，错误：{}，继续执行删除流程", 
+                            entity.getSerial_id(), e.getMessage());
+                    }
+                    break;
+                default:
+                    log.warn("未识别的组织类型：{}，跳过关系删除", entity.getType());
+                    break;
+            }
+            
+            log.info("组织关系记录删除完成 - Serial_ID：{}，类型：{}", entity.getSerial_id(), entity.getType());
+            
+        } catch (Exception e) {
+            log.error("删除组织关系记录失败 - 实体ID：{}，Serial_ID：{}，类型：{}，错误：{}", 
+                entity.getId(), entity.getSerial_id(), entity.getType(), e.getMessage(), e);
+            throw new BusinessException(
+                String.format("删除组织关系失败（ID：%d，Serial_ID：%d，类型：%s）：%s", 
+                    entity.getId(), entity.getSerial_id(), entity.getType(), e.getMessage()), e);
         }
     }
 

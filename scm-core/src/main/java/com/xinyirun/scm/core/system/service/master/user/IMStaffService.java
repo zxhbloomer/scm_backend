@@ -165,4 +165,10 @@ public interface IMStaffService extends IService<MStaffEntity> {
      */
     void syncAffectedStaffDefaultValues(List<Long> staffIds);
 
+    /**
+     * 清空员工的组织归属字段（从组织架构移除时调用）
+     * @param staffId 员工ID
+     */
+    void clearStaffOrgFields(Long staffId);
+
 }

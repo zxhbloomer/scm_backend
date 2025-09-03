@@ -676,19 +676,16 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                     continue;
                 }
                 
-                // 更新员工默认值（必须包含dbversion用于乐观锁）
-                MStaffEntity updateEntity = new MStaffEntity();
-                updateEntity.setId(staffId);
-                updateEntity.setCompany_id(newCompanyId);
-                updateEntity.setDept_id(newDeptId);
-                updateEntity.setU_time(LocalDateTime.now());
-                updateEntity.setU_id(SecurityUtil.getStaff_id());
-                updateEntity.setDbversion(currentStaff.getDbversion()); // 乐观锁关键字段
+                // 更新员工默认值：使用标准模式 - 先select，修改字段，再updateById
+                // 修改需要更新的字段
+                currentStaff.setCompany_id(newCompanyId);
+                currentStaff.setDept_id(newDeptId);
+                currentStaff.setU_time(LocalDateTime.now());
+                currentStaff.setU_id(SecurityUtil.getStaff_id());
                 
-                // 执行更新
-                if (mapper.updateById(updateEntity) > 0) {
-                } else {
-                    log.warn("员工 {} 默认值同步失败，可能员工不存在或已被删除", staffId);
+                // 使用完整实体进行更新，避免其他字段被覆盖为null
+                if (!this.updateById(currentStaff)) {
+                    log.warn("员工 {} 默认值同步失败，可能数据已被修改", staffId);
                 }
                 
             } catch (Exception e) {
@@ -1188,13 +1185,34 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             // L5：删除特定的员工-岗位关联关系
             // 根据组织上下文精确删除关联关系（使用SQL删除方式）
             if (vo.getParent_org_id() != null) {
-                // 删除与特定岗位的关联（serial_id为岗位ID，serial_type为岗位类型）
+                // 查询组织节点获取实际的实体ID
+                MOrgEntity parentOrgNode = mOrgMapper.selectById(vo.getParent_org_id());
+                if (parentOrgNode == null) {
+                    throw new BusinessException("父级组织节点不存在，ID: " + vo.getParent_org_id());
+                }
+                
+                // 删除与特定岗位的关联（使用实体ID，不是组织架构ID）
                 int deletedSpecificCount = mStaffOrgMapper.deleteByStaffIdSerialIdAndType(
                         vo.getId(), 
-                        vo.getParent_org_id(), 
-                        DictConstant.DICT_ORG_SETTING_TYPE_POSITION_SERIAL_TYPE
+                        parentOrgNode.getSerial_id(),  // 使用实体ID，不是组织节点ID
+                        parentOrgNode.getSerial_type() // 使用实体类型
                 );
-                log.info("已删除员工 {} 与岗位 {} 的关联关系，删除记录数：{}", staff.getName(), vo.getParent_org_id(), deletedSpecificCount);
+                log.info("已删除员工 {} 与实体 {}({}) 的关联关系，删除记录数：{}", 
+                        staff.getName(), parentOrgNode.getSerial_id(), parentOrgNode.getSerial_type(), deletedSpecificCount);
+                
+                // L6：更新父级组织的子节点计数
+                if (deletedSpecificCount > 0) {
+                    // 获取当前父级组织的实际子节点数量
+                    Integer actualChildCount = mOrgMapper.getSubCount(vo.getParent_org_id());
+                    // 更新父级组织的son_count字段
+                    MOrgEntity updateParentOrg = new MOrgEntity();
+                    updateParentOrg.setId(vo.getParent_org_id());
+                    updateParentOrg.setSon_count(actualChildCount);
+                    updateParentOrg.setU_time(LocalDateTime.now());
+                    updateParentOrg.setU_id(SecurityUtil.getStaff_id());
+                    mOrgMapper.updateById(updateParentOrg);
+                    log.info("已更新父级组织 {} 的子节点计数为: {}", vo.getParent_org_id(), actualChildCount);
+                }
             } else {
                 // 如果没有传递岗位信息，删除所有关联（fallback逻辑）
                 int deletedAllCount = mStaffOrgMapper.deleteAllByStaffId(vo.getId());
@@ -1293,6 +1311,56 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             throw new BusinessException(
                 String.format("删除失败：员工 %s 存在业务关联，%s", 
                     entity.getName(), String.join("、", relations)));
+        }
+    }
+
+    /**
+     * 清空员工的组织归属字段（从组织架构移除时调用）
+     * 用于"仅从组织架构移除"操作，保持数据一致性
+     * @param staffId 员工ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void clearStaffOrgFields(Long staffId) {
+        if (staffId == null) {
+            log.warn("员工ID为空，跳过组织归属字段清空");
+            return;
+        }
+        
+        try {
+            log.info("开始清空员工组织归属字段，员工ID: {}", staffId);
+            
+            // 查询员工当前信息
+            MStaffEntity currentStaff = this.getById(staffId);
+            if (currentStaff == null) {
+                log.warn("员工不存在，跳过组织归属字段清空，员工ID: {}", staffId);
+                return;
+            }
+            
+            // 检查是否需要清空（如果已经为空则不需要操作）
+            if (currentStaff.getCompany_id() == null && currentStaff.getDept_id() == null) {
+                log.info("员工组织归属字段已为空，无需清空，员工ID: {}", staffId);
+                return;
+            }
+            
+            // 使用标准模式：先查询，修改字段，再updateById
+            currentStaff.setCompany_id(null);
+            currentStaff.setDept_id(null);
+            currentStaff.setU_time(LocalDateTime.now());
+            currentStaff.setU_id(SecurityUtil.getStaff_id());
+            
+            // 使用完整实体进行更新，避免其他字段被覆盖
+            if (!this.updateById(currentStaff)) {
+                log.error("清空员工组织归属字段失败，可能因为乐观锁冲突，员工ID: {}", staffId);
+                throw new BusinessException("清空员工组织归属字段时发生乐观锁冲突，数据已被修改");
+            }
+            
+            log.info("成功清空员工组织归属字段，员工ID: {}，原company_id: {}，原dept_id: {}", 
+                staffId, currentStaff.getCompany_id(), currentStaff.getDept_id());
+                
+        } catch (Exception e) {
+            log.error("清空员工组织归属字段失败，员工ID: {}，错误: {}", staffId, e.getMessage(), e);
+            throw new BusinessException("清空员工组织归属字段失败：" + e.getMessage());
         }
     }
 }

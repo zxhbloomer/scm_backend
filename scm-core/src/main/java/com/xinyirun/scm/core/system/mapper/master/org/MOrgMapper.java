@@ -1215,11 +1215,11 @@ public interface MOrgMapper extends BaseMapper<MOrgEntity> {
             (SELECT COUNT(*) FROM m_org WHERE type = '30') as company_count,
             -- 岗位数量：type = '50'
             (SELECT COUNT(*) FROM m_org WHERE type = '50') as position_count,
-            -- 员工数量：统计在组织树中的员工（未删除且为在职状态的）
-            -- 修复：包含service='1'(在职)和service=''(空值-兼容历史数据)，排除service='0'(不在职)、'2'(离职)、'3'(离退休)
+            -- 员工数量：统计实际分配了岗位的员工（从员工组织关系表统计）
+            -- 只统计有岗位分配的员工，更准确地反映组织架构中的实际工作人员
             (SELECT COUNT(*) 
-             FROM m_staff 
-             WHERE is_del = 0 AND (service = '1' OR service = '' OR service IS NULL)) as staff_count
+             FROM m_staff_org 
+             WHERE serial_type = 'm_position' AND staff_id IS NOT NULL) as staff_count
         """)
     MOrgCountsVo getRootStatistics();
 
