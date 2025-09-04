@@ -1204,13 +1204,20 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                 if (deletedSpecificCount > 0) {
                     // 获取当前父级组织的实际子节点数量
                     Integer actualChildCount = mOrgMapper.getSubCount(vo.getParent_org_id());
-                    // 更新父级组织的son_count字段
-                    MOrgEntity updateParentOrg = new MOrgEntity();
-                    updateParentOrg.setId(vo.getParent_org_id());
-                    updateParentOrg.setSon_count(actualChildCount);
-                    updateParentOrg.setU_time(LocalDateTime.now());
-                    updateParentOrg.setU_id(SecurityUtil.getStaff_id());
-                    mOrgMapper.updateById(updateParentOrg);
+                    
+                    // 先查询出完整的父级组织实体（避免其他字段被置null）
+                    MOrgEntity parentOrg = mOrgMapper.selectById(vo.getParent_org_id());
+                    if (parentOrg == null) {
+                        throw new BusinessException("父级组织不存在，ID: " + vo.getParent_org_id());
+                    }
+                    
+                    // 在完整实体上修改需要的字段
+                    parentOrg.setSon_count(actualChildCount);
+                    parentOrg.setU_time(LocalDateTime.now());
+                    parentOrg.setU_id(SecurityUtil.getStaff_id());
+                    
+                    // 使用完整实体更新，确保其他字段不被覆盖为null
+                    mOrgMapper.updateById(parentOrg);
                     log.info("已更新父级组织 {} 的子节点计数为: {}", vo.getParent_org_id(), actualChildCount);
                 }
             } else {
