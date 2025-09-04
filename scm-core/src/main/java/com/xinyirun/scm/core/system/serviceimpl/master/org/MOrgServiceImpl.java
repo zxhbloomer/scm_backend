@@ -653,9 +653,12 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                     return CheckResultUtil.NG("新增保存出错：新增的子结点类型不能是" + "【" + nodeTypeName + "】", countInsert);
                 }
                 // 查看当前结点是否已经被选择使用
-                count = getCountBySerial(entity, null);
-                if(count > 0){
-                    return CheckResultUtil.NG("新增保存出错：您选择的子结点已经在组织架构中，请选择尚未被使用的组织。", count);
+                // 员工节点支持1人多岗，跳过重复校验
+                if (!DictConstant.DICT_ORG_SETTING_TYPE_STAFF.equals(entity.getType())) {
+                    count = getCountBySerial(entity, null);
+                    if(count > 0){
+                        return CheckResultUtil.NG("新增保存出错：您选择的子结点已经在组织架构中，请选择尚未被使用的组织。", count);
+                    }
                 }
                 break;
             case CheckResultAo.UPDATE_CHECK_TYPE:
@@ -666,9 +669,12 @@ public class MOrgServiceImpl extends BaseServiceImpl<MOrgMapper, MOrgEntity> imp
                     return CheckResultUtil.NG("新增保存出错：更新的当前结点类型不能是" + "【" + nodeTypeName + "】", countUpdate);
                 }
                 // 查看当前结点是否已经被选择使用
-                count = getCountBySerial(entity, entity.getId());
-                if(count > 0){
-                    return CheckResultUtil.NG("新增保存出错：您选择的子结点已经在组织架构中，请选择尚未被使用的组织。", count);
+                // 员工节点支持1人多岗，跳过重复校验
+                if (!DictConstant.DICT_ORG_SETTING_TYPE_STAFF.equals(entity.getType())) {
+                    count = getCountBySerial(entity, entity.getId());
+                    if(count > 0){
+                        return CheckResultUtil.NG("新增保存出错：您选择的子结点已经在组织架构中，请选择尚未被使用的组织。", count);
+                    }
                 }
                 break;
             default:
