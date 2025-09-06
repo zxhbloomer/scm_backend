@@ -59,7 +59,6 @@ public interface MBinMapper extends BaseMapper<MBinEntity> {
      * @return
      */
     @Select("<script>    "
-            + " ${p1.params.dataScopeAnnotation_with}                                                                                                                                                                   "
             + common_select
             + "  where true "
             + "    and (t.enable = #{p1.enable,jdbcType=BOOLEAN} or #{p1.enable,jdbcType=BOOLEAN} is null)                                                                                                              "
@@ -80,8 +79,6 @@ public interface MBinMapper extends BaseMapper<MBinEntity> {
             + "         #{item}                                                                                         "
             + "        </foreach>                                                                                       "
             + "  </if>                                                                                                  "
-            + "     ${p1.params.dataScopeAnnotation}                                                                                                                            "
-
             + "</script>      ")
     IPage<MBinVo> selectPage(Page page, @Param("p1") MBinVo searchCondition);
 
@@ -205,38 +202,84 @@ public interface MBinMapper extends BaseMapper<MBinEntity> {
     MBinEntity selecBinByWarehouseId(@Param("p1")int warehouse_id);
 
     /**
-     * 导出
+     * 导出查询列表
+     * 用于库位管理的导出功能，支持全部导出和选择导出
      *
-     * @param searchCondition 入参
+     * @param searchCondition 查询条件和导出参数
      * @return List<MBinExportVo>
      */
     @Select({" <script>                                                                                "
-            + " ${p1.params.dataScopeAnnotation_with}                                                                   "
-            + "     SELECT                                                                     "
-                    + "            @row_num:= @row_num+ 1 as no,                                       "
-                    + "            t.c_time,                                                           "
-                    + "            t.u_time,                                                           "
-                    + "            if(t.enable, '是', '否') enable,                                     "
-                    + "            t3.name as warehouse_name,                                          "
-                    + "            t1.name as c_name,                                                  "
-                    + "            t2.name as u_name                                                   "
-                    + "       FROM                                                                     "
-                    + "  	       m_bin t                                                             "
-                    + "  LEFT JOIN m_staff t1 ON t.c_id = t1.id                                        "
-                    + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                        "
-                    + "  LEFT JOIN m_warehouse t3 ON t.warehouse_id = t3.id                            "
-                    + "  LEFT JOIN m_location t4 ON t.location_id = t4.id                              "
-                    + " ,(select @row_num:=0) t5                                                       "
-                    + "  where true                                                                    "
+            + "     SELECT                                                                           "
+                    + "            @row_num:= @row_num+ 1 as no,                                     "
+                    + "            t3.name as warehouse_name,                                        "
+                    + "            t4.name as location_name,                                         "
+                    + "            t.name as name,                                                   "
+                    + "            if(t.enable, '是', '否') enable,                                   "
+                    + "            t1.name as c_name,                                                "
+                    + "            t.c_time,                                                         "
+                    + "            t2.name as u_name,                                                "
+                    + "            t.u_time                                                          "
+                    + "       FROM                                                                   "
+                    + "  	       m_bin t                                                           "
+                    + "  LEFT JOIN m_staff t1 ON t.c_id = t1.id                                      "
+                    + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                      "
+                    + "  LEFT JOIN m_warehouse t3 ON t.warehouse_id = t3.id                          "
+                    + "  LEFT JOIN m_location t4 ON t.location_id = t4.id                            "
+                    + " ,(select @row_num:=0) t5                                                     "
+                    + "  where true                                                                  "
+                    + "    and (t.enable = #{p1.enable,jdbcType=BOOLEAN} or #{p1.enable,jdbcType=BOOLEAN} is null) "
+                    + "    and (t3.enable = #{p1.warehouse_enable,jdbcType=BOOLEAN} or #{p1.warehouse_enable,jdbcType=BOOLEAN} is null) "
+                    + "    and (t.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null) "
                     + "    and (t3.name like CONCAT ('%',#{p1.warehouse_name,jdbcType=VARCHAR},'%') or #{p1.warehouse_name,jdbcType=VARCHAR} is null or #{p1.warehouse_name,jdbcType=VARCHAR} = '') "
-                    + "   <if test='p1.ids != null and p1.ids.length != 0' >                                           "
-                    + "    and t.id in                                                                                 "
-                    + "        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>"
-                    + "         #{item}                                                                                "
-                    + "        </foreach>                                                                              "
-                    + "   </if>                                                                                        "
-            + "     ${p1.params.dataScopeAnnotation}                                                                                                                            "
-            + " </script>                                                                                      "
+                    + "    and (t3.id = #{p1.warehouse_id,jdbcType=INTEGER} or #{p1.warehouse_id,jdbcType=INTEGER} is null) "
+                    + "    and (t4.name like CONCAT ('%',#{p1.location_name,jdbcType=VARCHAR},'%') or #{p1.location_name,jdbcType=VARCHAR} is null) "
+                    + "    and (t4.id = #{p1.location_id,jdbcType=INTEGER} or #{p1.location_id,jdbcType=INTEGER} is null) "
+                    + "    and (CONCAT(t.code,t.name,t.name_pinyin,t.name_pinyin_initial)  like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null or #{p1.name,jdbcType=VARCHAR} = '') "
+                    + "    and (CONCAT(t3.name_pinyin,t3.short_name_pinyin,t3.name_pinyin_initial,t3.short_name_pinyin_initial, "
+                    + "     t3.name,t3.short_name,t4.name,t4.short_name,t.name)  like CONCAT ('%',#{p1.combine_search_condition,jdbcType=VARCHAR},'%') or #{p1.combine_search_condition,jdbcType=VARCHAR} is null) "
+                    + "  <if test='p1.filterWarehouseType != null and p1.filterWarehouseType.length != 0'>"
+                    + "    and t3.warehouse_type not in "
+                    + "        <foreach collection='p1.filterWarehouseType' item='item' index='index' open='(' separator=',' close=')'>    "
+                    + "         #{item}                                                               "
+                    + "        </foreach>                                                            "
+                    + "  </if>                                                                       "
+                    + "   <if test='p1.ids != null and p1.ids.length != 0' >                       "
+                    + "    and t.id in                                                              "
+                    + "        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>    "
+                    + "         #{item}                                                             "
+                    + "        </foreach>                                                          "
+                    + "   </if>                                                                    "
+            + "  ORDER BY t.u_time DESC, t.id DESC                                               "
+            + " </script>                                                                        "
     })
-    List<MBinExportVo> exportList(@Param("p1") MBinVo searchCondition);
+    List<MBinExportVo> selectExportList(@Param("p1") MBinVo searchCondition);
+
+    /**
+     * ========= 删除校验相关查询方法 =========
+     * 参考仓库管理MWarehouseMapper的校验模式
+     */
+
+    /**
+     * 检查库位是否有库存记录
+     * @param bin_id 库位ID
+     * @return 库存记录数量
+     */
+    @Select("SELECT COUNT(1) FROM m_inventory WHERE bin_id = #{bin_id} AND is_del = 0")
+    Integer checkInventoryExists(@Param("bin_id") Integer bin_id);
+
+    /**
+     * 检查库位是否有入库明细记录
+     * @param bin_id 库位ID  
+     * @return 入库明细记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_in_detail WHERE bin_id = #{bin_id} AND is_del = 0")
+    Integer checkInboundExists(@Param("bin_id") Integer bin_id);
+
+    /**
+     * 检查库位是否有出库明细记录
+     * @param bin_id 库位ID
+     * @return 出库明细记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_out_detail WHERE bin_id = #{bin_id} AND is_del = 0")
+    Integer checkOutboundExists(@Param("bin_id") Integer bin_id);
 }

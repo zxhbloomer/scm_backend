@@ -6,11 +6,16 @@ import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinExportVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.master.warehouse.IMBinService;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +43,12 @@ public class MBinController extends SystemBaseController {
 
     @Autowired
     private IMBinService service;
+
+    @Autowired
+    private ISPagesService sPagesService;
+
+    @Autowired
+    private SPagesMapper sPagesMapper;
 
     @SysLogAnnotion("根据查询条件，获取库位信息")
     // @ApiOperation(value = "根据参数获取库位数信息")
@@ -112,10 +123,63 @@ public class MBinController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
-    @SysLogAnnotion("导出")
-    @PostMapping("/export")
+    @SysLogAnnotion("库位信息导出")
+    @PostMapping("/exportall")
     public void exportAll(@RequestBody(required = false) MBinVo searchCondition, HttpServletResponse response) throws IOException {
-        List<MBinExportVo> list = service.export(searchCondition);
-        new EasyExcelUtil<>(MBinExportVo.class).exportExcel("仓库库位"  + DateTimeUtil.getDate(), "仓库库位", list, response);
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_BIN);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 全部导出：直接调用selectExportList查询方法
+            List<MBinExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("全部导出：查询到库位数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MBinExportVo> util = new EasyExcelUtil<>(MBinExportVo.class);
+            String fileName = "库位信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "库位信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
+
+    @SysLogAnnotion("库位信息导出")
+    @PostMapping("/export")
+    public void export(@RequestBody(required = false) MBinVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_BIN);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的库位记录");
+            }
+            
+            // 选中导出：直接调用selectExportList查询方法
+            List<MBinExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("选中导出：查询到库位数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MBinExportVo> util = new EasyExcelUtil<>(MBinExportVo.class);
+            String fileName = "库位信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "库位信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
+
+    @SysLogAnnotion("库位数据逻辑删除复原")
+    @PostMapping("/delete")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) MBinVo searchCondition) {
+        service.delete(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 }

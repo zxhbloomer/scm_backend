@@ -12,14 +12,15 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinExportVo;
+import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
-import com.xinyirun.scm.common.annotations.DataScopeAnnotion;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.system.mapper.master.warehouse.MBinMapper;
 import com.xinyirun.scm.core.system.mapper.master.warehouse.MWarehouseMapper;
+import com.xinyirun.scm.core.system.service.master.inventory.IMInventoryService;
 import com.xinyirun.scm.core.system.service.master.warehouse.IMBinService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MBinAutoCodeServiceImpl;
@@ -28,6 +29,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.List;
 
 /**
@@ -50,8 +53,10 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
     @Autowired
     private MBinAutoCodeServiceImpl autoCodeService;
 
+    @Autowired
+    private IMInventoryService inventoryService;
+
     @Override
-    @DataScopeAnnotion(type = "01", type01_condition = "t.warehouse_id")
     public IPage<MBinVo> selectPage(MBinVo searchCondition) {
         // 分页条件
         Page<MBinEntity> pageCondition =
@@ -148,6 +153,12 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void disSabledByIdsIn(List<MBinVo> searchCondition) {
+        // 库存校验 - 检查库位是否存在库存
+        CheckResultAo inventoryCheck = checkBinInventory(searchCondition);
+        if (!inventoryCheck.isSuccess()) {
+            throw new BusinessException(inventoryCheck.getMessage());
+        }
+        
         List<MBinEntity> list = mapper.selectIdsIn(searchCondition);
         for(MBinEntity entity : list) {
             entity.setEnable(Boolean.FALSE);
@@ -159,6 +170,30 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
     @Transactional(rollbackFor = Exception.class)
     public void enableByIdsIn(List<MBinVo> searchCondition) {
         List<MBinEntity> list = mapper.selectIdsIn(searchCondition);
+        
+        // 检查是否有库位从启用状态切换到停用状态，需要进行库存校验
+        List<MBinVo> binToDisableList = new java.util.ArrayList<>();
+        for (int i = 0; i < list.size(); i++) {
+            MBinEntity entity = list.get(i);
+            // 如果当前库位是启用状态，切换后会变为停用状态，需要校验库存
+            if (entity.getEnable()) {
+                // 创建对应的MBinVo用于校验
+                MBinVo binVo = new MBinVo();
+                binVo.setId(entity.getId());
+                binVo.setName(entity.getName());
+                binToDisableList.add(binVo);
+            }
+        }
+        
+        // 如果有库位需要停用，进行库存校验
+        if (!binToDisableList.isEmpty()) {
+            CheckResultAo inventoryCheck = checkBinInventory(binToDisableList);
+            if (!inventoryCheck.isSuccess()) {
+                throw new BusinessException(inventoryCheck.getMessage());
+            }
+        }
+        
+        // 执行状态切换
         for(MBinEntity entity : list) {
             entity.setEnable(!entity.getEnable());
         }
@@ -171,15 +206,61 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
     }
 
     /**
-     * 导出
+     * 库位导出 全部
      *
-     * @param searchCondition 入参
+     * @param searchCondition 查询参数
      * @return List<MBinExportVo>
      */
     @Override
-    @DataScopeAnnotion(type = "01", type01_condition = "t.warehouse_id")
-    public List<MBinExportVo> export(MBinVo searchCondition) {
-        return mapper.exportList(searchCondition);
+    public List<MBinExportVo> exportAll(MBinVo searchCondition) {
+        // 全部导出时，不设置ids参数
+        searchCondition.setIds(null);
+        return selectExportList(searchCondition);
+    }
+
+    /**
+     * 库位导出 部分
+     *
+     * @param searchCondition 查询参数
+     * @return List<MBinExportVo>
+     */
+    @Override
+    public List<MBinExportVo> export(List<MBinVo> searchCondition) {
+        if (searchCondition == null || searchCondition.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        
+        // 从选择的记录中提取ids
+        Integer[] ids = searchCondition.stream()
+                .filter(vo -> vo.getId() != null)
+                .map(vo -> vo.getId())
+                .toArray(Integer[]::new);
+                
+        if (ids.length == 0) {
+            return new java.util.ArrayList<>();
+        }
+        
+        // 创建查询条件，设置ids用于选择导出
+        MBinVo exportCondition = new MBinVo();
+        exportCondition.setIds(ids);
+        
+        return selectExportList(exportCondition);
+    }
+
+    /**
+     * 导出专用查询方法 (完全按照仓库模式设计)
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     * @return List<MBinExportVo>
+     */
+    @Override
+    public List<MBinExportVo> selectExportList(MBinVo searchCondition) {
+        // 设置组合搜索条件处理
+        if(searchCondition.getCombine_search_condition() != null
+                && searchCondition.getCombine_search_condition().split(SystemConstants.WAREHOUSE_LOCSTION_BIN_DELIMITER).length > 0) {
+            searchCondition.setCombine_search_condition(searchCondition.getCombine_search_condition().split(SystemConstants.WAREHOUSE_LOCSTION_BIN_DELIMITER)[0].trim());
+        }
+        
+        return mapper.selectExportList(searchCondition);
     }
 
     /**
@@ -229,5 +310,148 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
             str.append(Pinyin.toPinyin(c).substring(0,1));
         }
         entity.setName_pinyin_initial(str.toString());
+    }
+
+    /**
+     * 校验库位库存
+     * 检查指定库位是否存在库存量大于0或锁定库存不等于0的情况
+     * @param binVoList 库位列表
+     * @return 校验结果和错误消息
+     */
+    private CheckResultAo checkBinInventory(List<MBinVo> binVoList) {
+        try {
+            // 查询库位库存
+            List<MInventoryVo> inventoryList = inventoryService.selectInventoryByBinIds(binVoList);
+            
+            if (inventoryList != null && inventoryList.size() > 0) {
+                StringBuilder errorMessage = new StringBuilder("停用失败，以下库位存在库存：\n");
+                
+                for (MInventoryVo inventory : inventoryList) {
+                    // 获取库位名称
+                    String binName = "库位ID:" + inventory.getBin_id();
+                    for (MBinVo binVo : binVoList) {
+                        if (binVo.getId().equals(inventory.getBin_id())) {
+                            binName = binVo.getName();
+                            break;
+                        }
+                    }
+                    
+                    errorMessage.append("- ").append(binName);
+                    
+                    // 格式化库存数量信息
+                    if (inventory.getQty_avaible() != null && inventory.getQty_avaible().compareTo(BigDecimal.ZERO) > 0) {
+                        errorMessage.append("：可用库存 ").append(formatInventoryQuantity(inventory.getQty_avaible()));
+                    }
+                    
+                    if (inventory.getQty_lock() != null && inventory.getQty_lock().compareTo(BigDecimal.ZERO) != 0) {
+                        errorMessage.append("，锁定库存 ").append(formatInventoryQuantity(inventory.getQty_lock()));
+                    }
+                    
+                    errorMessage.append("\n");
+                }
+                
+                return CheckResultUtil.NG(errorMessage.toString());
+            }
+            
+            return CheckResultUtil.OK();
+            
+        } catch (Exception e) {
+            return CheckResultUtil.NG("校验库位库存时发生异常：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 格式化库存数量显示
+     * @param quantity 库存数量
+     * @return 格式化后的数量字符串
+     */
+    private String formatInventoryQuantity(BigDecimal quantity) {
+        if (quantity == null) {
+            return "0";
+        }
+        
+        // 使用4位小数格式化，去除末尾的零
+        DecimalFormat df = new DecimalFormat("#,##0.####");
+        return df.format(quantity);
+    }
+
+    /**
+     * 删除库位（逻辑删除）
+     * 参考仓库管理删除模式，支持删除/恢复切换
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(MBinVo searchCondition) {
+        // 1. 查询库位实体
+        MBinEntity bin = this.getById(searchCondition.getId());
+        if (bin == null) {
+            throw new BusinessException("库位不存在，删除失败");
+        }
+
+        // 2. 执行删除前校验（按照仓库删除标准模式）
+        CheckResultAo cr = checkLogic(bin, CheckResultAo.DELETE_CHECK_TYPE);
+        if (!cr.isSuccess()) {
+            throw new BusinessException(cr.getMessage());
+        }
+
+        // 3. 校验通过，执行删除逻辑 - 切换删除状态（复原逻辑）
+        bin.setIs_del(!bin.getIs_del());
+        boolean updateResult = this.updateById(bin);
+        
+        if (!updateResult) {
+            throw new BusinessException("库位删除失败，请重试");
+        }
+    }
+
+    /**
+     * 统一校验逻辑（按照仓库删除标准模式实现）
+     * @param entity 库位实体
+     * @param moduleType 操作类型
+     * @return CheckResultAo 校验结果
+     */
+    public CheckResultAo checkLogic(MBinEntity entity, String moduleType) {
+        switch (moduleType) {
+            case CheckResultAo.DELETE_CHECK_TYPE:
+                // 如果逻辑删除为true，表示已经删除，无需校验
+                if(entity.getIs_del()) {
+                    return CheckResultUtil.OK();
+                }
+                
+                // L1: 库存数据校验（最高优先级 - 数据完整性）
+                Integer inventoryCount = mapper.checkInventoryExists(entity.getId());
+                if (inventoryCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该库位存在%d条库存数据，请先清空库存或转移库存到其他库位", inventoryCount));
+                }
+                
+                // L2: 入库业务校验（业务流程完整性）
+                Integer inboundCount = mapper.checkInboundExists(entity.getId());
+                if (inboundCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该库位存在%d条入库记录，请先处理入库相关业务或联系系统管理员", inboundCount));
+                }
+                
+                // L3: 出库业务校验（业务流程完整性）
+                Integer outboundCount = mapper.checkOutboundExists(entity.getId());
+                if (outboundCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该库位存在%d条出库记录，请先处理出库相关业务或联系系统管理员", outboundCount));
+                }
+                
+                break;
+                
+            case CheckResultAo.UNDELETE_CHECK_TYPE:
+                // 如果逻辑删除为false，表示未删除，无需恢复
+                if(!entity.getIs_del()) {
+                    return CheckResultUtil.OK();
+                }
+                // 恢复场合，检查编码不能重复
+                List<MBinEntity> codeList = selectByCode(entity.getCode(), entity.getWarehouse_id(), entity.getLocation_id());
+                if(codeList.size() > 1) {
+                    return CheckResultUtil.NG("恢复保存出错：库位编码【"+ entity.getCode() +"】出现重复");
+                }
+                break;
+        }
+        return CheckResultUtil.OK();
     }
 }

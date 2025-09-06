@@ -75,9 +75,30 @@ public interface IMBinService extends IService<MBinEntity> {
     MBinVo selectById(int id);
 
     /**
-     * 导出
-     * @param searchCondition
-     * @return
+     * 库位导出 全部
+     * @param searchCondition 查询参数
+     * @return List<MBinExportVo>
      */
-    List<MBinExportVo> export(MBinVo searchCondition);
+    List<MBinExportVo> exportAll(MBinVo searchCondition);
+
+    /**
+     * 库位导出 部分
+     * @param searchCondition 查询参数
+     * @return List<MBinExportVo>
+     */
+    List<MBinExportVo> export(List<MBinVo> searchCondition);
+
+    /**
+     * 导出专用查询方法 (完全按照仓库模式设计)
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     * @return List<MBinExportVo>
+     */
+    List<MBinExportVo> selectExportList(MBinVo searchCondition);
+
+    /**
+     * 删除库位（逻辑删除）
+     * 参考仓库管理删除模式，支持删除/恢复切换
+     * @param searchCondition 包含待删除库位ID的条件对象
+     */
+    void delete(MBinVo searchCondition);
 }
