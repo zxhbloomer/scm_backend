@@ -15,7 +15,6 @@ import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.*;
-import com.xinyirun.scm.common.annotations.DataScopeAnnotion;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
@@ -35,6 +34,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +82,6 @@ public class MWarehouseServiceImpl extends BaseServiceImpl<MWarehouseMapper, MWa
     }
 
     @Override
-    @DataScopeAnnotion(type = "01", type01_condition = "t.id")
     public List<MWarehouseVo> selectList(MWarehouseVo searchCondition) {
         return mapper.selectList(searchCondition);
     }
@@ -255,6 +254,33 @@ public class MWarehouseServiceImpl extends BaseServiceImpl<MWarehouseMapper, MWa
     }
 
     /**
+     * 导出专用查询方法 (完全按照岗位模式设计)
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     */
+    @Override
+    public List<MWarehouseExportVo> selectExportList(MWarehouseVo searchCondition) {
+        // 处理动态排序
+        String orderByClause = "";
+        if (searchCondition.getPageCondition() != null && StringUtils.isNotEmpty(searchCondition.getPageCondition().getSort())) {
+            String sortField = searchCondition.getPageCondition().getSort();
+            if (sortField.startsWith("-")) {
+                // 降序：去掉-号，加上DESC
+                orderByClause = "ORDER BY " + sortField.substring(1) + " DESC";
+            } else {
+                // 升序：直接加上ASC
+                orderByClause = "ORDER BY " + sortField + " ASC";
+            }
+            
+            // SQL注入防护：验证字段名
+            if (!orderByClause.matches("ORDER BY [a-zA-Z_][a-zA-Z0-9_]* (ASC|DESC)")) {
+                orderByClause = "";
+            }
+        }
+        
+        return mapper.selectExportList(searchCondition, orderByClause);
+    }
+
+    /**
      * 根据 仓库 code 查询三大件
      *
      * @param warehouse_code
@@ -330,47 +356,43 @@ public class MWarehouseServiceImpl extends BaseServiceImpl<MWarehouseMapper, MWa
      */
     private void checkInventory(List<MWarehouseVo> searchCondition) {
         List<MInventoryVo> mInventoryVos = inventoryService.selectInventoryByWarehouse(searchCondition);
-        if (!CollectionUtils.isEmpty(mInventoryVos) || mInventoryVos.size() != 0) {
-            throw new BusinessException("请将所选仓库商品库存调整为0");
+        if (!CollectionUtils.isEmpty(mInventoryVos) && mInventoryVos.size() > 0) {
+            // 计算总库存数量（可用库存 + 锁定库存）
+            BigDecimal totalInventory = mInventoryVos.stream()
+                    .map(vo -> {
+                        BigDecimal available = vo.getQty_avaible() != null ? vo.getQty_avaible() : BigDecimal.ZERO;
+                        BigDecimal locked = vo.getQty_lock() != null ? vo.getQty_lock() : BigDecimal.ZERO;
+                        return available.add(locked);
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+            // 格式化库存数量显示
+            String formattedInventory = formatInventoryQuantity(totalInventory);
+            
+            throw new BusinessException(String.format("停用失败：该仓库内还有商品库存 %s，请先清空库存或转移到其他仓库", formattedInventory));
         }
     }
 
     /**
-     * check逻辑
+     * 格式化库存数量显示，格式：9,999.9999吨
+     */
+    private String formatInventoryQuantity(BigDecimal quantity) {
+        if (quantity == null || quantity.compareTo(BigDecimal.ZERO) == 0) {
+            return "0吨";
+        }
+        
+        // 使用DecimalFormat格式化数字，保留4位小数，添加千分位分隔符
+        java.text.DecimalFormat df = new java.text.DecimalFormat("#,##0.0000");
+        return df.format(quantity) + "吨";
+    }
+
+    /**
+     * check逻辑（兼容性方法 - 将VO转换为Entity后调用统一校验）
      */
     public CheckResultAo checkLogic(MWarehouseVo vo, String moduleType) {
-        List<MWarehouseEntity> selectByName = selectByName(vo.getName(), vo.getId());
-        List<MWarehouseEntity> selectByKey = selectByCode(vo.getCode(), vo.getId());
-        List<MWarehouseEntity> selectByShortName = selectByShortName(vo.getShort_name(), vo.getId());
-
-        switch (moduleType) {
-            case CheckResultAo.INSERT_CHECK_TYPE:
-                // 新增场合，不能重复
-                if (selectByName.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：名称出现重复", vo.getName());
-                }
-                if (selectByKey.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：编码出现重复", vo.getCode());
-                }
-                if (selectByShortName.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：简称出现重复", selectByShortName);
-                }
-                break;
-            case CheckResultAo.UPDATE_CHECK_TYPE:
-                // 更新场合，不能重复设置
-                if (selectByName.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：名称出现重复", vo.getName());
-                }
-                if (selectByKey.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：编码出现重复", vo.getCode());
-                }
-                if (selectByShortName.size() >= 1) {
-                    return CheckResultUtil.NG("新增保存出错：简称出现重复", selectByShortName);
-                }
-                break;
-            default:
-        }
-        return CheckResultUtil.OK();
+        // 转换VO到Entity以使用统一的校验逻辑
+        MWarehouseEntity entity = (MWarehouseEntity) BeanUtilsSupport.copyProperties(vo, MWarehouseEntity.class);
+        return checkLogic(entity, moduleType);
     }
 
     private void setPinyin(MWarehouseEntity entity) {
@@ -392,4 +414,128 @@ public class MWarehouseServiceImpl extends BaseServiceImpl<MWarehouseMapper, MWa
         }
         entity.setShort_name_pinyin_initial(str.toString());
     }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(MWarehouseVo searchCondition) {
+        // 1. 查询仓库实体
+        MWarehouseEntity warehouse = this.getById(searchCondition.getId());
+        if (warehouse == null) {
+            throw new BusinessException("仓库不存在，删除失败");
+        }
+
+        // 2. 执行删除前校验（按照岗位删除标准模式）
+        CheckResultAo cr = checkLogic(warehouse, CheckResultAo.DELETE_CHECK_TYPE);
+        if (!cr.isSuccess()) {
+            throw new BusinessException(cr.getMessage());
+        }
+
+        // 3. 校验通过，执行删除逻辑 - 切换删除状态（复原逻辑）
+        warehouse.setIs_del(!warehouse.getIs_del());
+        boolean updateResult = this.updateById(warehouse);
+        
+        if (!updateResult) {
+            throw new BusinessException("仓库删除失败，请重试");
+        }
+    }
+
+    /**
+     * 统一校验逻辑（按照岗位删除标准模式实现）
+     * @param entity 仓库实体
+     * @param moduleType 操作类型
+     * @return CheckResultAo 校验结果
+     */
+    public CheckResultAo checkLogic(MWarehouseEntity entity, String moduleType) {
+        switch (moduleType) {
+            case CheckResultAo.INSERT_CHECK_TYPE:
+                // 新增场合，检查名称、编码、简称不能重复
+                List<MWarehouseEntity> nameList_insertCheck = selectByName(entity.getName(), entity.getId());
+                if (nameList_insertCheck.size() >= 1) {
+                    return CheckResultUtil.NG("新增保存出错：仓库名称【"+ entity.getName() +"】出现重复");
+                }
+                List<MWarehouseEntity> codeList_insertCheck = selectByCode(entity.getCode(), entity.getId());
+                if (codeList_insertCheck.size() >= 1) {
+                    return CheckResultUtil.NG("新增保存出错：仓库编码【"+ entity.getCode() +"】出现重复");
+                }
+                List<MWarehouseEntity> shortNameList_insertCheck = selectByShortName(entity.getShort_name(), entity.getId());
+                if (shortNameList_insertCheck.size() >= 1) {
+                    return CheckResultUtil.NG("新增保存出错：仓库简称【"+ entity.getShort_name() +"】出现重复");
+                }
+                break;
+                
+            case CheckResultAo.UPDATE_CHECK_TYPE:
+                // 更新场合，检查名称、编码、简称不能重复
+                List<MWarehouseEntity> nameList_updCheck = selectByName(entity.getName(), entity.getId());
+                if (nameList_updCheck.size() >= 1) {
+                    return CheckResultUtil.NG("更新保存出错：仓库名称【"+ entity.getName() +"】出现重复");
+                }
+                List<MWarehouseEntity> codeList_updCheck = selectByCode(entity.getCode(), entity.getId());
+                if (codeList_updCheck.size() >= 1) {
+                    return CheckResultUtil.NG("更新保存出错：仓库编码【"+ entity.getCode() +"】出现重复");
+                }
+                List<MWarehouseEntity> shortNameList_updCheck = selectByShortName(entity.getShort_name(), entity.getId());
+                if (shortNameList_updCheck.size() >= 1) {
+                    return CheckResultUtil.NG("更新保存出错：仓库简称【"+ entity.getShort_name() +"】出现重复");
+                }
+                break;
+                
+            case CheckResultAo.DELETE_CHECK_TYPE:
+                /** 如果逻辑删除为true，表示已经删除，无需校验 */
+                if(entity.getIs_del()) {
+                    return CheckResultUtil.OK();
+                }
+                
+                // L1: 库存数据校验（最高优先级 - 数据完整性）
+                Integer inventoryCount = baseMapper.checkInventoryExists(entity.getId());
+                if (inventoryCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该仓库存在%d条库存数据，请先清空库存或转移库存到其他仓库", inventoryCount));
+                }
+                
+                // L2: 入库业务校验（业务流程完整性）
+                Integer inboundCount = baseMapper.checkInboundExists(entity.getId());
+                if (inboundCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该仓库存在%d条入库记录，请先处理入库相关业务或联系系统管理员", inboundCount));
+                }
+                
+                // L3: 出库业务校验（业务流程完整性）
+                Integer outboundCount = baseMapper.checkOutboundExists(entity.getId());
+                if (outboundCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该仓库存在%d条出库记录，请先处理出库相关业务或联系系统管理员", outboundCount));
+                }
+                
+                // L4: 库区配置校验（基础设施完整性）
+                Integer locationCount = baseMapper.checkLocationExists(entity.getId());
+                if (locationCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该仓库配置了%d个库区，请先删除或转移库区配置", locationCount));
+                }
+                
+                // L5: 库位配置校验（基础设施完整性）
+                Integer binCount = baseMapper.checkBinExists(entity.getId());
+                if (binCount > 0) {
+                    return CheckResultUtil.NG(String.format(
+                        "删除失败：该仓库配置了%d个库位，请先删除或转移库位配置", binCount));
+                }
+                break;
+                
+            case CheckResultAo.UNDELETE_CHECK_TYPE:
+                /** 如果逻辑删除为false，表示未删除，无需恢复 */
+                if(!entity.getIs_del()) {
+                    return CheckResultUtil.OK();
+                }
+                // 恢复场合，检查编码不能重复
+                List<MWarehouseEntity> codeList_undelete_Check = selectByCode(entity.getCode(), entity.getId());
+                if (codeList_undelete_Check.size() >= 1) {
+                    return CheckResultUtil.NG("恢复失败：仓库编码【"+ entity.getCode() +"】已存在，请先修改编码后再恢复");
+                }
+                break;
+                
+            default:
+        }
+        return CheckResultUtil.OK();
+    }
+
 }

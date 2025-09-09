@@ -6,6 +6,8 @@ import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.query.MMonitorInventoryVo;
+import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
 
 import java.math.BigDecimal;
@@ -109,6 +111,20 @@ public interface IMInventoryService extends IService<MInventoryEntity> {
      * @return List<MInventoryVo>
      */
     List<MInventoryVo> selectInventoryByWarehouse(List<MWarehouseVo> searchCondition);
+
+    /**
+     * 根据 库区ID 查询库区库存
+     * @param searchCondition 库区ID
+     * @return List<MInventoryVo>
+     */
+    List<MInventoryVo> selectInventoryByLocation(List<MLocationVo> searchCondition);
+
+    /**
+     * 根据 库位ID 查询库位库存
+     * @param searchCondition 库位ID
+     * @return List<MInventoryVo>
+     */
+    List<MInventoryVo> selectInventoryByBinIds(List<MBinVo> searchCondition);
 
     /**
      * 查询库存异常数据

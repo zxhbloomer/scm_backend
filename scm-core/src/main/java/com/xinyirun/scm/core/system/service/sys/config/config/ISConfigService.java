@@ -106,4 +106,10 @@ public interface ISConfigService extends IService<SConfigEntity> {
      */
     void enabledByIdsIn(List<SConfigVo> searchCondition);
 
+    /**
+     * 初始化配置缓存
+     * 1、删除缓存、2、查询数据、3、设置缓存
+     */
+    void initConfigCache();
+
 }

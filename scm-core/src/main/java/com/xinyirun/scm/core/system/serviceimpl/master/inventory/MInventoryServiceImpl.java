@@ -6,6 +6,8 @@ import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.query.MMonitorInventoryVo;
+import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
 import com.xinyirun.scm.common.annotations.DataScopeAnnotion;
 import com.xinyirun.scm.core.system.mapper.master.inventory.MInventoryMapper;
@@ -140,6 +142,26 @@ public class MInventoryServiceImpl extends BaseServiceImpl<MInventoryMapper, MIn
     @Override
     public List<MInventoryVo> selectInventoryByWarehouse(List<MWarehouseVo> searchCondition) {
         return mInventoryMapper.selectInventoryByWarehouse(searchCondition);
+    }
+
+    /**
+     * 根据 库区ID 查询库区库存量大于0, 锁定库存不等于0 的库存
+     * @param searchCondition 库区ID
+     * @return List<MInventoryVo>
+     */
+    @Override
+    public List<MInventoryVo> selectInventoryByLocation(List<MLocationVo> searchCondition) {
+        return mInventoryMapper.selectInventoryByLocation(searchCondition);
+    }
+
+    /**
+     * 根据 库位ID 查询库位库存量大于0, 锁定库存不等于0 的库存
+     * @param searchCondition 库位ID
+     * @return List<MInventoryVo>
+     */
+    @Override
+    public List<MInventoryVo> selectInventoryByBinIds(List<MBinVo> searchCondition) {
+        return mInventoryMapper.selectInventoryByBinIds(searchCondition);
     }
 
     /**

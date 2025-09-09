@@ -24,6 +24,8 @@ import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.schedule.v5.ISBDUserPwdWarningV5Service;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,7 @@ import java.util.List;
  * @author zxh
  * @since 2019-08-23
  */
+@Slf4j
 @Service
 public class SConfigServiceImpl extends BaseServiceImpl<SConfigMapper, SConfigEntity> implements ISConfigService {
 
@@ -319,6 +322,29 @@ public class SConfigServiceImpl extends BaseServiceImpl<SConfigMapper, SConfigEn
             entity.setIs_enable(!entity.getIs_enable());
         }
         saveOrUpdateBatch(list, 500);
+    }
+
+    /**
+     * 初始化配置缓存
+     * 1、删除缓存、2、查询数据、3、设置缓存
+     */
+    @Override
+    public void initConfigCache() {
+        try {
+            String cacheKey = DataSourceHelper.getCurrentDataSourceName() + "::" + SystemConstants.CACHE_PC.CACHE_CONFIG;
+            
+            // 1、删除缓存
+            redisUtil.delete(cacheKey);
+            
+            // 2、查询数据
+            List<SConfigEntity> configList = mapper.selectAllData();
+            
+            // 3、设置缓存
+            redisUtil.set(cacheKey, JSON.toJSONString(configList));
+            log.debug("初始化配置缓存完成，共加载{}条配置", JSON.toJSONString(configList));
+        } catch (Exception e) {
+            log.warn("初始化配置缓存失败", e);
+        }
     }
 
 }

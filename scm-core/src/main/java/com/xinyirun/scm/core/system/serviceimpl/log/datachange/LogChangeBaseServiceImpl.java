@@ -438,4 +438,37 @@ public class LogChangeBaseServiceImpl implements LogChangeBaseService {
         }
         return vo;
     }
+
+    /**
+     * 根据id获取企业名称（用于监管公司和运营公司）
+     * DataChangeLabelAnnotation(value = "企业", extension = "getEnterpriseNameExtension")的扩展
+     * @param param 企业ID
+     * @return 企业名称信息
+     */
+    public SLogDataChangeDetailVo getEnterpriseNameExtension(String param, String _data, String clm_name, String clm_label) {
+        SLogDataChangeDetailVo vo = new SLogDataChangeDetailVo();
+        vo.setNew_value("");
+        vo.setOld_value("");
+        vo.setClm_name(clm_name);
+        vo.setClm_label(clm_label);
+
+        if (!Objects.isNull(param)) {
+            MEnterpriseEntity entity = null;
+            try {
+                entity = mEnterpriseMapper.selectById(Integer.parseInt(param));
+            } catch (Exception e) {
+                log.error("根据id获取企业名称", e);
+            }
+            if (entity != null) {
+                vo.setNew_value(entity.getName());
+                vo.setOld_value(entity.getName());
+                log.debug("日志变更（变更前后）逻辑--根据id获取企业名称方法，参数：{},查找名称：{}", param, entity.getName());
+            } else {
+                log.debug("日志变更（变更前后）逻辑--根据id获取企业名称方法，参数：{},但是查找出的数据为Null", param);
+            }
+        } else {
+            log.debug("日志变更（变更前后）逻辑--根据id获取企业名称方法所传参数为空");
+        }
+        return vo;
+    }
 }

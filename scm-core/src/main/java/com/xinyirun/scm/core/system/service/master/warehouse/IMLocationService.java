@@ -82,10 +82,15 @@ public interface IMLocationService extends IService<MLocationEntity> {
     MLocationVo selectById(int id);
 
     /**
-     * 导出
-     * @param searchCondition 入参
-     * @return List<MLocationExportVo>
+     * 导出专用查询方法，支持动态排序
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
      */
-    List<MLocationExportVo> export(MLocationVo searchCondition);
+    List<MLocationExportVo> selectExportList(MLocationVo searchCondition);
+
+    /**
+     * 删除库区
+     * @param searchCondition 库区删除条件
+     */
+    void delete(MLocationVo searchCondition);
 
 }

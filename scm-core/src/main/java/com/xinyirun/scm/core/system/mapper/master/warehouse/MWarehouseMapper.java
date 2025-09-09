@@ -15,6 +15,7 @@ import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -39,6 +40,8 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "            t2.name as u_name,                                                                                               "
             + "            t3.label as zone_name,                                                                                           "
             + "            t4.label as warehouse_type_name,                                                                                 "
+            + "            t7.name as charge_company_name,                                                                                  "
+            + "            t8.name as operate_company_name,                                                                                 "
             + "            ifnull(t5.warehouse_group_count,0) warehouse_group_count                                                         "
             + "       FROM                                                                                                                  "
             + "  	       m_warehouse t                                                                                                    "
@@ -47,12 +50,15 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "  LEFT JOIN v_dict_info t3 ON t3.dict_value = t.zone and t3.code = '" + DictConstant.DICT_M_WAREHOUSE_ZONE + "'              "
             + "  LEFT JOIN v_dict_info t4 ON t4.dict_value = t.warehouse_type and t4.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "'    "
             + "  LEFT JOIN v_areas_info t6 ON t6.province_code = t.province and t6.city_code = t.city and t6.area_code = t.district         "
+            + "  LEFT JOIN m_enterprise t7 ON t.charge_company_id = t7.id                                                                   "
+            + "  LEFT JOIN m_enterprise t8 ON t.operate_company_id = t8.id                                                                  "
             + "     left join (                                                                                                             "
             + "                  select count(1) warehouse_group_count,                                                                     "
             + "                         subt.warehouse_id                                                                                   "
             + "                    from b_warehouse_group_relation subt                                                                     "
             + "                group by subt.warehouse_id                                                                                   "
             + "                )  t5 on t5.warehouse_id = t.id                                                                              "
+            + "      where t.is_del = false                                                                                                 "
             ;
 
     String export_select = "  "
@@ -62,8 +68,8 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "            t.name,                                                                                                          "
             + "            concat(t6.province_name, '/', t6.city_name, '/', t6.area_name) cascader_areas_name,                              "
             + "            t.short_name,                                                                                                    "
-            + "            t.charge_company_id,                                                                                             "
-            + "            t.operate_company_id,                                                                                            "
+            + "            t7.name as charge_company_name,                                                                                  "
+            + "            t8.name as operate_company_name,                                                                                 "
             + "            t.contact_person,                                                                                                "
             + "            t.mobile_phone,                                                                                                  "
             + "            t.address,                                                                                                       "
@@ -83,7 +89,49 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "  LEFT JOIN v_dict_info t3 ON t3.dict_value = t.zone and t3.code = '" + DictConstant.DICT_M_WAREHOUSE_ZONE + "'              "
             + "  LEFT JOIN v_dict_info t4 ON t4.dict_value = t.warehouse_type and t4.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "'    "
             + "  LEFT JOIN v_areas_info t6 ON t6.province_code = t.province and t6.city_code = t.city and t6.area_code = t.district         "
+            + "  LEFT JOIN m_enterprise t7 ON t.charge_company_id = t7.id                                                                   "
+            + "  LEFT JOIN m_enterprise t8 ON t.operate_company_id = t8.id                                                                  "
             + " ,(select @row_num:=0) t5                                                                                                    "
+            + "      where t.is_del = false                                                                                                 "
+
+            ;
+
+    // 导出专用查询SQL，支持完整字段和动态排序（按照岗位模式设计）
+    String selectExportList_select = "  "
+            + "     SELECT                                                                                                                  "
+            + "            @row_num:= @row_num+ 1 as no,                                                                                    "
+            + "            t1.code,                                                                                                         "
+            + "            t1.name,                                                                                                         "
+            + "            t1.short_name,                                                                                                   "
+            + "            t4.label as warehouse_type_name,                                                                                 "
+            + "            t7.name as charge_company_name,                                                                                  "
+            + "            t8.name as operate_company_name,                                                                                 "
+            + "            t1.contact_person,                                                                                               "
+            + "            t1.mobile_phone,                                                                                                 "
+            + "            t6.province_name as province,                                                                                    "
+            + "            t6.city_name as city,                                                                                            "
+            + "            t6.area_name as district,                                                                                        "
+            + "            t1.address,                                                                                                      "
+            + "            concat(t6.province_name, '/', t6.city_name, '/', t6.area_name) cascader_areas_name,                              "
+            + "            t3.label as zone_name,                                                                                           "
+            + "            t1.area,                                                                                                         "
+            + "            t1.warehouse_capacity,                                                                                           "
+            + "            if(t1.enable, '启用', '停用') enable_status,                                                                       "
+            + "            t2.name as c_name,                                                                                               "
+            + "            t1.c_time,                                                                                                       "
+            + "            t9.name as u_name,                                                                                               "
+            + "            t1.u_time                                                                                                        "
+            + "       FROM                                                                                                                  "
+            + "  	       m_warehouse t1                                                                                                   "
+            + "  LEFT JOIN m_staff t2 ON t1.c_id = t2.id                                                                                    "
+            + "  LEFT JOIN v_dict_info t3 ON t3.dict_value = t1.zone and t3.code = '" + DictConstant.DICT_M_WAREHOUSE_ZONE + "'           "
+            + "  LEFT JOIN v_dict_info t4 ON t4.dict_value = t1.warehouse_type and t4.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "'  "
+            + "  LEFT JOIN v_areas_info t6 ON t6.province_code = t1.province and t6.city_code = t1.city and t6.area_code = t1.district     "
+            + "  LEFT JOIN m_enterprise t7 ON t1.charge_company_id = t7.id                                                                  "
+            + "  LEFT JOIN m_enterprise t8 ON t1.operate_company_id = t8.id                                                                 "
+            + "  LEFT JOIN m_staff t9 ON t1.u_id = t9.id                                                                                    "
+            + " ,(select @row_num:=0) t5                                                                                                    "
+            + "      where t1.is_del = false                                                                                                "
 
             ;
 
@@ -94,7 +142,6 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("    "
             + common_select
-            + "  where true "
             + "    and (t.operate_company_id = #{p1.operate_company_id,jdbcType=INTEGER} or #{p1.operate_company_id,jdbcType=INTEGER} is null)                                                                                                                                       "
             + "    and (t.operate_company_id = #{p1.charge_company_id,jdbcType=INTEGER} or #{p1.charge_company_id,jdbcType=INTEGER} is null)                                                                                                                                         "
             + "    and (t.enable = #{p1.enable,jdbcType=BOOLEAN} or #{p1.enable,jdbcType=BOOLEAN} is null)                                                                                                                                                                           "
@@ -111,9 +158,7 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      * @return 仓库列表
      */
     @Select("    "
-            + " ${p1.params.dataScopeAnnotation_with}                                                                                              "
             + common_select
-            + "  where true                                                                                                                         "
 //            + "    and t.enable = 1                                          "
             + "    and (t.operate_company_id = #{p1.operate_company_id,jdbcType=INTEGER} or #{p1.operate_company_id,jdbcType=INTEGER} is null)      "
             + "    and (t.operate_company_id = #{p1.charge_company_id,jdbcType=INTEGER} or #{p1.charge_company_id,jdbcType=INTEGER} is null)        "
@@ -121,7 +166,6 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "    and (t.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)                            "
             + "    and (t.warehouse_type = #{p1.warehouse_type} or #{p1.warehouse_type} is null or #{p1.warehouse_type} = '')                       "
             + "    and (t.enable = #{p1.enable} or #{p1.enable} is null)                                                                            "
-            + "     ${p1.params.dataScopeAnnotation}                                                                                                "
             + "      ")
     List<MWarehouseVo> selectList(@Param("p1") MWarehouseVo searchCondition);
 
@@ -132,7 +176,6 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("    "
             + common_select
-            + "  where true "
             + "    and (t.code = #{p1.code,jdbcType=VARCHAR} or #{p1.code,jdbcType=VARCHAR} is null) "
             + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
             + "    and (t.short_name like CONCAT ('%',#{p1.short_name,jdbcType=VARCHAR},'%') or #{p1.short_name,jdbcType=VARCHAR} is null) "
@@ -147,7 +190,6 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("    "
             + common_select
-            + "  where true "
             + "    and t.name =  #{p1}"
             + "    and (t.id <>  #{p2,jdbcType=INTEGER} or  #{p2,jdbcType=INTEGER} is null)      "
             + "      ")
@@ -158,7 +200,6 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("    "
             + common_select
-            + "  where true "
             + "    and t.code =  #{p1,jdbcType=VARCHAR}"
             + "    and (t.id <>  #{p2,jdbcType=INTEGER} or  #{p2,jdbcType=INTEGER} is null)      "
             + "      ")
@@ -169,7 +210,6 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("    "
             + common_select
-            + "  where true "
             + "    and t.short_name =  #{p1,jdbcType=VARCHAR}"
             + "    and (t.id <>  #{p2,jdbcType=INTEGER} or  #{p2,jdbcType=INTEGER} is null)      "
             + "      ")
@@ -182,7 +222,7 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("   <script>   "
             + common_select
-            + "  where t.id in "
+            + "  and t.id in "
             + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>    "
             + "         #{item.id,jdbcType=INTEGER}  "
             + "        </foreach>    "
@@ -196,7 +236,7 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select("    "
             + common_select
-            + "  where t.id =  #{p1,jdbcType=INTEGER}"
+            + "  and t.id =  #{p1,jdbcType=INTEGER}"
             + "      ")
     MWarehouseVo selectId(@Param("p1") int id);
 
@@ -336,7 +376,7 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
      */
     @Select({
             export_select
-                    + "  where true "
+                    + "  and true "
                     + "    and (t.operate_company_id = #{p1.operate_company_id,jdbcType=INTEGER} or #{p1.operate_company_id,jdbcType=INTEGER} is null)                                                                                                                                       "
                     + "    and (t.operate_company_id = #{p1.charge_company_id,jdbcType=INTEGER} or #{p1.charge_company_id,jdbcType=INTEGER} is null)                                                                                                                                         "
                     + "    and (t.enable = #{p1.enable,jdbcType=BOOLEAN} or #{p1.enable,jdbcType=BOOLEAN} is null)                                                                                                                                                                           "
@@ -355,7 +395,7 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
     @Select({
             "<script>"
                     + export_select
-                    + "  where true "
+                    + "  and true "
                     + "   <if test='p1 != null and p1.size!=0' >                                                       "
                     + "    and t.id in                                                                                "
                     + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>    "
@@ -607,4 +647,91 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "			TRUE and t1.position_id  =  #{p1,jdbcType=INTEGER}                                              "
             + " ")
     List<BWarehouseGroupVo> getWarehouseGroupByPositionId(@Param("p1") Integer position_id);
+
+    /**
+     * 检查仓库是否有库存记录
+     * @param warehouse_id 仓库ID
+     * @return 库存记录数量
+     */
+    @Select("SELECT COUNT(1) FROM m_inventory WHERE warehouse_id = #{warehouse_id}")
+    Integer checkInventoryExists(@Param("warehouse_id") Integer warehouse_id);
+
+    /**
+     * 检查仓库是否有入库记录
+     * @param warehouse_id 仓库ID
+     * @return 入库记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_in WHERE warehouse_id = #{warehouse_id}")
+    Integer checkInboundExists(@Param("warehouse_id") Integer warehouse_id);
+
+    /**
+     * 检查仓库是否有出库记录
+     * @param warehouse_id 仓库ID
+     * @return 出库记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_out WHERE warehouse_id = #{warehouse_id}")
+    Integer checkOutboundExists(@Param("warehouse_id") Integer warehouse_id);
+
+    /**
+     * 检查仓库是否有库区记录
+     * @param warehouse_id 仓库ID
+     * @return 库区记录数量
+     */
+    @Select("SELECT COUNT(1) FROM m_location WHERE warehouse_id = #{warehouse_id}")
+    Integer checkLocationExists(@Param("warehouse_id") Integer warehouse_id);
+
+    /**
+     * 检查仓库是否有库位记录
+     * @param warehouse_id 仓库ID
+     * @return 库位记录数量
+     */
+    @Select("SELECT COUNT(1) FROM m_bin WHERE warehouse_id = #{warehouse_id}")
+    Integer checkBinExists(@Param("warehouse_id") Integer warehouse_id);
+
+
+    /**
+     * 综合检查仓库业务关联情况
+     * @param warehouse_id 仓库ID
+     * @return 关联业务信息
+     */
+    @Select("SELECT "
+            + "  (SELECT COUNT(1) FROM m_inventory WHERE warehouse_id = #{warehouse_id}) as inventory_count, "
+            + "  (SELECT COUNT(1) FROM b_in WHERE warehouse_id = #{warehouse_id}) as inbound_count, "
+            + "  (SELECT COUNT(1) FROM b_out WHERE warehouse_id = #{warehouse_id}) as outbound_count, "
+            + "  (SELECT COUNT(1) FROM m_location WHERE warehouse_id = #{warehouse_id}) as location_count, "
+            + "  (SELECT COUNT(1) FROM m_bin WHERE warehouse_id = #{warehouse_id}) as bin_count")
+    java.util.Map<String, Object> checkWarehouseBusinessAssociations(@Param("warehouse_id") Integer warehouse_id);
+
+    /**
+     * 导出专用查询方法，支持动态排序 (按照岗位模式设计)
+     * 支持全部导出和选中导出两种模式
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     * @param orderByClause 排序子句
+     * @return List<MWarehouseExportVo> 导出数据列表
+     */
+    @Select({
+            "<script>"
+                    + selectExportList_select
+                    + "    and (t1.operate_company_id = #{p1.operate_company_id,jdbcType=INTEGER} or #{p1.operate_company_id,jdbcType=INTEGER} is null)      "
+                    + "    and (t1.charge_company_id = #{p1.charge_company_id,jdbcType=INTEGER} or #{p1.charge_company_id,jdbcType=INTEGER} is null)        "
+                    + "    and (CONCAT (ifnull(t1.code,''),ifnull(t1.name,''),ifnull(t1.short_name,''),ifnull(t1.name_pinyin,''),ifnull(t1.short_name_pinyin,''),ifnull(t1.name_pinyin_initial,''),ifnull(t1.short_name_pinyin_initial,'')) like CONCAT ('%',#{p1.combine_search_condition,jdbcType=VARCHAR},'%') or #{p1.combine_search_condition,jdbcType=VARCHAR} is null or #{p1.combine_search_condition,jdbcType=VARCHAR} = '')        "
+                    + "    and (t1.code like CONCAT ('%',#{p1.code,jdbcType=VARCHAR},'%') or #{p1.code,jdbcType=VARCHAR} is null)                            "
+                    + "    and (t1.warehouse_type = #{p1.warehouse_type} or #{p1.warehouse_type} is null or #{p1.warehouse_type} = '')                       "
+                    + "    and (t1.enable = #{p1.enable} or #{p1.enable} is null)                                                                            "
+                    + "   <if test='p1.ids != null and p1.ids.length != 0' >                                                                              "
+                    + "     and t1.id in                                                                                                                   "
+                    + "        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>                                    "
+                    + "         #{item}                                                                                                                    "
+                    + "        </foreach>                                                                                                                  "
+                    + "   </if>                                                                                                                            "
+                    + "  <if test=\"orderByClause != null and orderByClause != ''\">"
+                    + "    ${orderByClause}"
+                    + "  </if>"
+                    + "  <if test=\"orderByClause == null or orderByClause == ''\">"
+                    + "    ORDER BY t1.u_time DESC"
+                    + "  </if>"
+                    + "</script>"
+    })
+    List<MWarehouseExportVo> selectExportList(@Param("p1") MWarehouseVo searchCondition, @Param("orderByClause") String orderByClause);
+
 }

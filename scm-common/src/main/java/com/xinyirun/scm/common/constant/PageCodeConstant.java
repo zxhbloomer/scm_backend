@@ -104,6 +104,15 @@ public class PageCodeConstant {
     /** 岗位信息 */
     public static final String PAGE_POSITION = "P00000022";
 
+    /** 仓库管理 */
+    public static final String PAGE_WAREHOUSE = "P00000025";
+
+    /** 库区管理 */
+    public static final String PAGE_LOCATION = "P00000026";
+
+    /** 库位管理 */
+    public static final String PAGE_BIN = "P00000027";
+
     /** 角色管理 */
     public static final String PAGE_ROLE = "P00000023";
 

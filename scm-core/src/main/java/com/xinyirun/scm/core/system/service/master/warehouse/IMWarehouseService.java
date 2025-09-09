@@ -99,6 +99,12 @@ public interface IMWarehouseService extends IService<MWarehouseEntity> {
     List<MWarehouseExportVo> export(List<MWarehouseVo> searchCondition);
 
     /**
+     * 导出专用查询方法 (完全按照岗位模式设计)
+     * @param searchCondition 查询条件（可包含ids数组用于选中导出）
+     */
+    List<MWarehouseExportVo> selectExportList(MWarehouseVo searchCondition);
+
+    /**
      * 根据 仓库 code 查询三大件
      * @param warehouse_code
      * @return
@@ -130,4 +136,10 @@ public interface IMWarehouseService extends IService<MWarehouseEntity> {
      * @return
      */
     String setWarehouseStaffTransfer(MWStaffTransferVo bean);
+
+    /**
+     * 逻辑删除复原（按照岗位标准命名，单个删除）
+     * @param searchCondition 仓库删除条件
+     */
+    void delete(MWarehouseVo searchCondition);
 }

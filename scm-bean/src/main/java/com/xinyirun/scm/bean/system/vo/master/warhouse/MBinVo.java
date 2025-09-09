@@ -192,6 +192,11 @@ public class MBinVo extends BaseVo implements Serializable {
     private Integer dbversion;
 
     /**
+     * 是否删除:false-未删除,true-已删除
+     */
+    private Boolean is_del;
+
+    /**
      * 换页条件
      */
     private PageCondition pageCondition;

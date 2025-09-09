@@ -10,6 +10,8 @@ import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.query.MMonitorInventoryVo;
+import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
@@ -334,6 +336,52 @@ public interface MInventoryMapper extends BaseMapper<MInventoryEntity> {
             + "  </script>                                                                                             "
     })
     List<MInventoryVo> selectInventoryByWarehouse(@Param("p1") List<MWarehouseVo> searchCondition);
+
+    /**
+     * 根据 库区ID 查询库区库存量大于0, 锁定库存不等于0 的库存
+     * @param searchCondition 库区ID
+     * @return List<MInventoryVo>
+     */
+    @Select({ " <script>                                                                                               "
+            + "		SELECT		                                                                                       "
+            + "         qty_avaible,                                                                                   "
+            + "         qty_lock,                                                                                      "
+            + "         location_id                                                                                    "
+            + "     from m_inventory                                                                                   "
+            + "     where true                                                                                         "
+            + "    <if test='p1 != null and p1.size != 0' >                                                            "
+            + "         and location_id in                                                                             "
+            + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>            "
+            + "         #{item.id}                                                                                        "
+            + "        </foreach>                                                                                      "
+            + "    </if>                                                                                               "
+            + "     and (qty_avaible &gt; 0  OR  qty_lock != 0)                                                                             "
+            + "  </script>                                                                                             "
+    })
+    List<MInventoryVo> selectInventoryByLocation(@Param("p1") List<MLocationVo> searchCondition);
+
+    /**
+     * 根据 库位ID 查询库位库存量大于0, 锁定库存不等于0 的库存
+     * @param searchCondition 库位ID
+     * @return List<MInventoryVo>
+     */
+    @Select({ " <script>                                                                                               "
+            + "		SELECT		                                                                                       "
+            + "         qty_avaible,                                                                                   "
+            + "         qty_lock,                                                                                      "
+            + "         bin_id                                                                                         "
+            + "     from m_inventory                                                                                   "
+            + "     where true                                                                                         "
+            + "    <if test='p1 != null and p1.size != 0' >                                                            "
+            + "         and bin_id in                                                                                  "
+            + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>            "
+            + "         #{item.id}                                                                                        "
+            + "        </foreach>                                                                                      "
+            + "    </if>                                                                                               "
+            + "     and (qty_avaible &gt; 0  OR  qty_lock != 0)                                                                             "
+            + "  </script>                                                                                             "
+    })
+    List<MInventoryVo> selectInventoryByBinIds(@Param("p1") List<MBinVo> searchCondition);
 
     String common_select1 = "  "
             + "     SELECT                                                              "

@@ -178,7 +178,7 @@ spring:
       port: 27017
       database: wms
       username: wms_db_user
-      password: WmsMongodb%40Shanghai123             # 升级成springboot3后，@符号需要修改成%40
+      password: ScmMongodb123             # 升级成springboot3后，@符号需要修改成%40
   datasource:
     dynamic:
       p6spy: true

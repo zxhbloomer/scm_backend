@@ -6,11 +6,16 @@ import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationExportVo;
 import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
 import com.xinyirun.scm.core.system.service.master.warehouse.IMLocationService;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +43,12 @@ public class MLocationController extends SystemBaseController {
 
     @Autowired
     private IMLocationService service;
+    
+    @Autowired
+    private SPagesMapper sPagesMapper;
+    
+    @Autowired
+    private ISPagesService sPagesService;
 
     @SysLogAnnotion("根据查询条件，获取库区信息")
     // @ApiOperation(value = "根据参数获取库区数信息")
@@ -112,11 +123,64 @@ public class MLocationController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
-    @SysLogAnnotion("导出")
-    @PostMapping("/export")
+    @SysLogAnnotion("库区信息导出(全部)")
+    @PostMapping("/exportall")
     public void exportAll(@RequestBody(required = false) MLocationVo searchCondition, HttpServletResponse response) throws IOException {
-        List<MLocationExportVo> list = service.export(searchCondition);
-        new EasyExcelUtil<>(MLocationExportVo.class).exportExcel("仓库库区"  + DateTimeUtil.getDate(), "仓库库区", list, response);
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_LOCATION);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 全部导出：直接调用selectExportList查询方法
+            List<MLocationExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("全部导出：查询到库区数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MLocationExportVo> util = new EasyExcelUtil<>(MLocationExportVo.class);
+            String fileName = "库区信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "库区信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
+
+    @SysLogAnnotion("库区信息导出")
+    @PostMapping("/export")
+    public void export(@RequestBody(required = false) MLocationVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_LOCATION);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的库区记录");
+            }
+            
+            // 选中导出：直接调用selectExportList查询方法
+            List<MLocationExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("选中导出：查询到库区数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MLocationExportVo> util = new EasyExcelUtil<>(MLocationExportVo.class);
+            String fileName = "库区信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "库区信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
+
+    @SysLogAnnotion("库区数据逻辑删除复原")
+    @PostMapping("/delete")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) MLocationVo searchCondition) {
+        service.delete(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
 }

@@ -98,9 +98,19 @@ public class MWarehouseVo extends BaseVo implements Serializable {
     private Integer charge_company_id;
 
     /**
+     * 监管公司名称
+     */
+    private String charge_company_name;
+
+    /**
      * 运营公司id
      */
     private Integer operate_company_id;
+
+    /**
+     * 运营公司名称
+     */
+    private String operate_company_name;
 
     /**
      * 仓库容积
@@ -202,6 +212,11 @@ public class MWarehouseVo extends BaseVo implements Serializable {
      * 数据版本，乐观锁使用
      */
     private Integer dbversion;
+
+    /**
+     * 是否删除：false-未删除，true-已删除
+     */
+    private Boolean is_del;
 
     /**
      * 创建人姓名
