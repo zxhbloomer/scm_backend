@@ -732,6 +732,8 @@ public class DictConstant {
     public static final String DICT_SYS_CODE_TYPE_M_LOCATION  = "m_location";
     /** 库位编号 */
     public static final String DICT_SYS_CODE_TYPE_M_BIN  = "m_bin";
+    /** 类别编号 */
+    public static final String DICT_SYS_CODE_TYPE_M_CATEGORY  = "m_category";
     /** 入库计划编号 */
     public static final String DICT_SYS_CODE_TYPE_B_IN_PLAN = "b_in_plan";
     /** 出库计划编号 */

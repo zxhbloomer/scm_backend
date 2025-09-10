@@ -27,15 +27,6 @@ public class MGoodsSpecLeftVo {
      */
     private Integer id;
 
-    /**
-     * 板块id
-     */
-    private Integer business_id;
-
-    /**
-     * 行业ID
-     */
-    private Integer industry_id;
 
     /**
      * 类别id

@@ -1,6 +1,7 @@
 package com.xinyirun.scm.bean.entity.master.goods;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -42,17 +43,6 @@ public class MCategoryEntity implements Serializable {
     @TableField("name")
     private String name;
 
-    /**
-     * 行业id
-     */
-    @TableField("industry_id")
-    private Integer industry_id;
-
-    /**
-     * 行业code
-     */
-    @TableField("industry_code")
-    private String industry_code;
 
     /**
      * 启用状态
@@ -91,5 +81,10 @@ public class MCategoryEntity implements Serializable {
     @TableField(value="dbversion")
     private Integer dbversion;
 
-
+    /**
+     * 是否删除：false-未删除，true-已删除
+     */
+    @DataChangeLabelAnnotation("删除状态")
+    @TableField("is_del")
+    private Boolean is_del;
 }

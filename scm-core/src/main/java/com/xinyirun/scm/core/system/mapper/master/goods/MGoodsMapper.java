@@ -25,10 +25,6 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
     String common_select = "  "
             + "     SELECT                                                             "
             + "            t.*,                                                        "
-            + "            t3.name as business_name,                                          "
-            + "            t3.id as business_id,                                          "
-            + "            t4.name as industry_name,                                          "
-            + "            t4.id as industry_id,                                          "
             + "            t5.name as category_name,                                          "
             + "            t1.name as c_name,                                          "
             + "            t2.name as u_name                                           "
@@ -37,8 +33,6 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
             + "  LEFT JOIN m_staff t1 ON t.c_id = t1.id                                 "
             + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                 "
             + "  LEFT JOIN m_category t5 ON t.category_id = t5.id                "
-            + "  LEFT JOIN m_industry t4 ON t4.id = t5.industry_id                                 "
-            + "  LEFT JOIN m_business_type t3 ON t4.business_id = t3.id                "
             + "                                                                        "
             ;
 
@@ -52,8 +46,6 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
             + common_select
             + "  where true "
             + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
-            + "    and (t3.name like CONCAT ('%',#{p1.business_name,jdbcType=VARCHAR},'%') or #{p1.business_name,jdbcType=VARCHAR} is null) "
-            + "    and (t4.name like CONCAT ('%',#{p1.industry_name,jdbcType=VARCHAR},'%') or #{p1.industry_name,jdbcType=VARCHAR} is null) "
             + "    and (t5.name like CONCAT ('%',#{p1.category_name,jdbcType=VARCHAR},'%') or #{p1.category_name,jdbcType=VARCHAR} is null) "
             + "    and (t5.id = #{p1.category_id} or #{p1.category_id} is null) "
             + "      ")
@@ -112,8 +104,6 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
             + "            if(t.enable, '是', '否') enable,                                                             "
             + "            t.c_time,                                                                                   "
             + "            t.u_time,                                                                                   "
-            + "            t3.name as business_name,                                                                   "
-            + "            t4.name as industry_name,                                                                   "
             + "            t5.name as category_name,                                                                   "
             + "            t1.name as c_name,                                                                          "
             + "            t2.name as u_name                                                                           "
@@ -122,13 +112,9 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
             + "  LEFT JOIN m_staff t1 ON t.c_id = t1.id                                                                "
             + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                                                "
             + "  LEFT JOIN m_category t5 ON t.category_id = t5.id                                                      "
-            + "  LEFT JOIN m_industry t4 ON t4.id = t5.industry_id                                                     "
-            + "  LEFT JOIN m_business_type t3 ON t4.business_id = t3.id                                                "
             + " ,(select @row_num:=0) t6                                                                               "
             + "  where true                                                                                            "
             + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
-            + "    and (t3.name like CONCAT ('%',#{p1.business_name,jdbcType=VARCHAR},'%') or #{p1.business_name,jdbcType=VARCHAR} is null) "
-            + "    and (t4.name like CONCAT ('%',#{p1.industry_name,jdbcType=VARCHAR},'%') or #{p1.industry_name,jdbcType=VARCHAR} is null) "
             + "    and (t5.name like CONCAT ('%',#{p1.category_name,jdbcType=VARCHAR},'%') or #{p1.category_name,jdbcType=VARCHAR} is null) "
             + "    and (t5.id = #{p1.category_id} or #{p1.category_id} is null) "
             + "   <if test='p1.ids != null and p1.ids.length != 0' >                                                   "
@@ -141,5 +127,58 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
 
     })
     List<MGoodsExportVo> exportList(@Param("p1") MGoodsVo searchConditionList);
+
+    /**
+     * 检查物料是否有库存记录
+     * @param goods_id 物料ID
+     * @return 库存记录数量
+     */
+    @Select("SELECT COUNT(1) FROM m_inventory WHERE goods_id = #{goods_id}")
+    Integer checkInventoryExists(@Param("goods_id") Integer goods_id);
+
+    /**
+     * 检查物料是否有入库记录
+     * @param goods_id 物料ID
+     * @return 入库记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_in_detail WHERE goods_id = #{goods_id}")
+    Integer checkInboundExists(@Param("goods_id") Integer goods_id);
+
+    /**
+     * 检查物料是否有出库记录
+     * @param goods_id 物料ID
+     * @return 出库记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_out_detail WHERE goods_id = #{goods_id}")
+    Integer checkOutboundExists(@Param("goods_id") Integer goods_id);
+
+    /**
+     * 检查物料是否有采购订单记录
+     * @param goods_id 物料ID
+     * @return 采购订单记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_po_order_detail WHERE goods_id = #{goods_id}")
+    Integer checkPurchaseOrderExists(@Param("goods_id") Integer goods_id);
+
+    /**
+     * 检查物料是否有销售订单记录
+     * @param goods_id 物料ID
+     * @return 销售订单记录数量
+     */
+    @Select("SELECT COUNT(1) FROM b_so_order_detail WHERE goods_id = #{goods_id}")
+    Integer checkSalesOrderExists(@Param("goods_id") Integer goods_id);
+
+    /**
+     * 综合检查物料业务关联情况
+     * @param goods_id 物料ID
+     * @return 关联业务信息
+     */
+    @Select("SELECT "
+            + "  (SELECT COUNT(1) FROM m_inventory WHERE goods_id = #{goods_id}) as inventory_count, "
+            + "  (SELECT COUNT(1) FROM b_in_detail WHERE goods_id = #{goods_id}) as inbound_count, "
+            + "  (SELECT COUNT(1) FROM b_out_detail WHERE goods_id = #{goods_id}) as outbound_count, "
+            + "  (SELECT COUNT(1) FROM b_po_order_detail WHERE goods_id = #{goods_id}) as purchase_order_count, "
+            + "  (SELECT COUNT(1) FROM b_so_order_detail WHERE goods_id = #{goods_id}) as sales_order_count")
+    java.util.Map<String, Object> checkGoodsBusinessAssociations(@Param("goods_id") Integer goods_id);
 
 }

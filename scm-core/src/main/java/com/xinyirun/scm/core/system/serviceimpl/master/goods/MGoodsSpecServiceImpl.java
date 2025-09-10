@@ -47,11 +47,6 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
     @Autowired
     private MGoodsSpecMapper mapper;
 
-    @Autowired
-    private MBusinessTypeMapper businessmapper;
-
-    @Autowired
-    private MIndustryMapper industrymapper;
 
     @Autowired
     private MCategoryMapper categorymapper;
@@ -73,7 +68,7 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
     @Override
     public IPage<MGoodsSpecVo> selectPage(MGoodsSpecVo searchCondition) {
         // 分页条件
-        Page<MBusinessTypeEntity> pageCondition =
+        Page<MGoodsSpecEntity> pageCondition =
                 new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());
@@ -94,25 +89,14 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
      */
     @Override
     public List<MGoodsSpecLeftVo> selectLeft(MGoodsSpecLeftVo searchCondition) {
-        List<MBusinessTypeEntity> businesslist = businessmapper.selectList(new QueryWrapper<MBusinessTypeEntity>());
-        List<MBusinessTypeVo> bulist = BeanUtilsSupport.copyProperties(businesslist, MBusinessTypeVo.class);
-        for(MBusinessTypeVo bu:bulist){
-            // 通过板块id查询行业list
-            List<MIndustryEntity> industrylist = industrymapper.selectList(new QueryWrapper<MIndustryEntity>().eq("business_id",bu.getId()));
-            List<MIndustryVo> inlist = BeanUtilsSupport.copyProperties(industrylist,MIndustryVo.class);
-            bu.setIndustryVo(inlist);
-            for(MIndustryVo in:inlist){
-                // 通过行业id查询类别List
-                List<MCategoryEntity> categorylist = categorymapper.selectList(new QueryWrapper<MCategoryEntity>().eq("industry_id",in.getId()));
-                List<MCategoryVo> calist = BeanUtilsSupport.copyProperties(categorylist,MCategoryVo.class);
-                in.setCategoryVo(calist);
-                for(MCategoryVo ca:calist){
-                    // 通过类别id查询物料list
-                    List<MGoodsEntity> goodslist = goodsmapper.selectList(new QueryWrapper<MGoodsEntity>().eq("category_id",ca.getId()));
-                    List<MGoodsVo> golist = BeanUtilsSupport.copyProperties(goodslist,MGoodsVo.class);
-                    ca.setGoodsVo(golist);
-                }
-            }
+        // 简化为类别-物料两层结构
+        List<MCategoryEntity> categorylist = categorymapper.selectList(new QueryWrapper<MCategoryEntity>());
+        List<MCategoryVo> calist = BeanUtilsSupport.copyProperties(categorylist,MCategoryVo.class);
+        for(MCategoryVo ca:calist){
+            // 通过类别id查询物料list
+            List<MGoodsEntity> goodslist = goodsmapper.selectList(new QueryWrapper<MGoodsEntity>().eq("category_id",ca.getId()));
+            List<MGoodsVo> golist = BeanUtilsSupport.copyProperties(goodslist,MGoodsVo.class);
+            ca.setGoodsVo(golist);
         }
         return mapper.selectLeft(searchCondition);
     }
@@ -271,7 +255,7 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
     @Override
     public IPage<MGoodsSpecVo> getConvertGoodsList(MGoodsSpecVo searchCondition) {
         // 分页条件
-        Page<MBusinessTypeEntity> pageCondition =
+        Page<MGoodsSpecEntity> pageCondition =
                 new Page(searchCondition.getPageCondition().getCurrent(), searchCondition.getPageCondition().getSize());
         // 通过page进行排序
         PageUtil.setSort(pageCondition, searchCondition.getPageCondition().getSort());

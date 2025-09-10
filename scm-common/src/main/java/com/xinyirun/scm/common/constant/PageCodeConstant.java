@@ -116,4 +116,7 @@ public class PageCodeConstant {
     /** 角色管理 */
     public static final String PAGE_ROLE = "P00000023";
 
+    /** 类别管理 */
+    public static final String PAGE_CATEGORY = "P00000024";
+
 }

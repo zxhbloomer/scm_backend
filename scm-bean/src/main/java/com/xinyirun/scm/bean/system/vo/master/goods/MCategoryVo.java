@@ -41,25 +41,6 @@ public class MCategoryVo implements Serializable {
      */
     private String name;
 
-    /**
-     * 行业id
-     */
-    private Integer industry_id;
-
-    /**
-     * 行业名
-     */
-    private String industry_name;
-
-    /**
-     * 板块id
-     */
-    private Integer business_id;
-
-    /**
-     * 板块名
-     */
-    private String business_name;
 
     /**
      * 启用状态
@@ -114,6 +95,6 @@ public class MCategoryVo implements Serializable {
     /**
      * id集合
      */
-    private List<Integer> ids;
+    private Integer[] ids;
 
 }

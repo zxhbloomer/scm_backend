@@ -113,25 +113,6 @@ public class MGoodsSpecVo implements Serializable {
      */
     private String orgin;
 
-    /**
-     * 板块id
-     */
-    private Integer business_id;
-
-    /**
-     * 板块名称
-     */
-    private String business_name;
-
-    /**
-     * 行业ID
-     */
-    private Integer industry_id;
-
-    /**
-     * 行业名称
-     */
-    private String industry_name;
 
     /**
      * 类别id

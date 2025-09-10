@@ -6,7 +6,7 @@ import com.xinyirun.scm.bean.entity.master.goods.MCategoryEntity;
 import com.xinyirun.scm.bean.system.ao.result.DeleteResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.master.goods.MCategoryExportVo;
+import com.xinyirun.scm.bean.system.vo.master.category.MCategoryExportVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MCategoryVo;
 
 import java.util.List;
@@ -84,5 +84,11 @@ public interface IMCategoryService extends IService<MCategoryEntity> {
      * @return List<MCategoryExportVo>
      */
     List<MCategoryExportVo> export(MCategoryVo searchConditionList);
+
+    /**
+     * 删除（完全参考仓库管理）
+     * @param searchCondition 删除条件
+     */
+    void delete(MCategoryVo searchCondition);
 
 }

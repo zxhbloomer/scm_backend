@@ -3,7 +3,6 @@ package com.xinyirun.scm.core.system.mapper.master.goods;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.master.goods.MBusinessTypeEntity;
 import com.xinyirun.scm.bean.entity.master.goods.MGoodsSpecEntity;
 import com.xinyirun.scm.bean.api.vo.master.goods.ApiGoodsSpecVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsSpecExportVo;
@@ -34,11 +33,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + "            t6.id as goods_id,                                          "
             + "            t6.code as goods_code,                                      "
             + "            t6.name as goods_name,                                      "
-            + "            t3.id as business_id,                                       "
-            + "            t4.id as industry_id,                                       "
             + "            t5.id as category_id,                                       "
-            + "            t3.name as business_name,                                   "
-            + "            t4.name as industry_name,                                   "
             + "            t5.name as category_name,                                   "
             + "            t1.name as c_name,                                          "
             + "            t2.name as u_name                                           "
@@ -48,8 +43,6 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                "
             + "  LEFT JOIN m_goods t6 ON t.goods_id = t6.id                            "
             + "  LEFT JOIN m_category t5 ON t6.category_id = t5.id                     "
-            + "  LEFT JOIN m_industry t4 ON t4.id = t5.industry_id                     "
-            + "  LEFT JOIN m_business_type t3 ON t4.business_id = t3.id                "
             + "  LEFT JOIN m_goods_spec_prop t7 ON t.prop_id = t7.id                   "
             + "                                                                        "
             ;
@@ -64,9 +57,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + common_select
             + "  where true "
             + "    and (concat(ifnull(t.spec,''),                                                                       "
-            + "     ifnull(t3.name,''),                                                                                 "
             + "     ifnull(t.name,''),                                                                                  "
-            + "     ifnull(t4.name,''),                                                                                 "
             + "     ifnull(t6.name,''),                                                                                 "
             + "     ifnull(t5.name,''),                                                                                 "
             + "     ifnull(t7.name,''),                                                                                 "
@@ -82,16 +73,12 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
      * @return
      */
     @Select(" select    "
-            + "  t.*     "
-            + "  t3.name as business_name , t3.id asbusiness_id,   "
-            + "  t4.name as industry_name , t4.id as industry_id,     "
+            + "  t.*,     "
             + "  t5.name as category_name , t5.id as category_id,     "
             + "  t6.name , t6.id as goods_id                            "
             + "  from    "
             + "  	       m_goods_spec t                                                  "
             + "  LEFT JOIN m_category t5 ON t.category_id = t5.id                "
-            + "  LEFT JOIN m_industry t4 ON t4.id = t5.industry_id                                 "
-            + "  LEFT JOIN m_business_type t3 ON t4.business_id = t3.id                "
             + "  LEFT JOIN m_goods t6 ON t6.goods_id = t5.id                "
             )
     List<MGoodsSpecLeftVo> selectLeft(MGoodsSpecLeftVo searchCondition);
@@ -257,7 +244,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + "like CONCAT ('%',#{p1.keyword,jdbcType=VARCHAR},'%') or #{p1.keyword,jdbcType=VARCHAR} is null)          "
             + "    and (t6.id = #{p1.goods_id} or #{p1.goods_id} is null)                                               "
             + " </script>     ")
-    IPage<MGoodsSpecVo> getConvertGoodsList(Page<MBusinessTypeEntity> pageCondition,@Param("p1") MGoodsSpecVo searchCondition);
+    IPage<MGoodsSpecVo> getConvertGoodsList(Page<MGoodsSpecEntity> pageCondition,@Param("p1") MGoodsSpecVo searchCondition);
 
     @Select("    "
             + common_select

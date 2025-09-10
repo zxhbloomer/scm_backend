@@ -47,29 +47,9 @@ public class MGoodsVo implements Serializable {
     private Integer category_id;
 
     /**
-     * 行业id
-     */
-    private Integer industry_id;
-
-    /**
-     * 板块id
-     */
-    private Integer business_id;
-
-    /**
      * 类别名
      */
     private String category_name;
-
-    /**
-     * 行业名
-     */
-    private String industry_name;
-
-    /**
-     * 板块名
-     */
-    private String business_name;
 
     /**
      * 启用状态

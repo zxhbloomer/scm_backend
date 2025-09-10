@@ -8,6 +8,7 @@ import com.xinyirun.scm.bean.system.vo.master.goods.MCategoryExportVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MCategoryVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsExportVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsVo;
+import com.xinyirun.scm.common.annotations.DataChangeOperateAnnotation;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
@@ -80,6 +81,7 @@ public class MGoodsController extends SystemBaseController {
         }
     }
 
+    @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "启用物料")
     @SysLogAnnotion("根据选择的数据启用，部分数据")
     // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enabled")
@@ -89,6 +91,7 @@ public class MGoodsController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
+    @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "停用物料")
     @SysLogAnnotion("根据选择的数据禁用，部分数据")
     // @ApiOperation(value = "根据参数id，禁用数据")
     @PostMapping("/disabled")
@@ -98,6 +101,7 @@ public class MGoodsController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
+    @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "启用/停用物料")
     @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
     // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enable")
@@ -105,6 +109,17 @@ public class MGoodsController extends SystemBaseController {
     public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MGoodsVo> searchConditionList) {
         service.enableByIdsIn(searchConditionList);
         return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    }
+
+    @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "删除物料")
+    @SysLogAnnotion("根据选择的数据删除，部分数据")
+    // @ApiOperation(value = "根据参数id，删除数据")
+    @PostMapping("/delete")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) List<MGoodsVo> searchConditionList) {
+        service.deleteByIdsIn(searchConditionList);
+        return ResponseEntity.ok().body(ResultUtil.OK("删除成功"));
     }
 
     @SysLogAnnotion("导出")
