@@ -6,7 +6,7 @@ import com.xinyirun.scm.bean.entity.master.inventory.v2.MInventoryV2Entity;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.query.MMonitorInventoryVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 
 import java.math.BigDecimal;
 import java.util.List;

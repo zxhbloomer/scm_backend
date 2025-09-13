@@ -12,7 +12,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.utils.common.tree.TreeUtil;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.*;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;

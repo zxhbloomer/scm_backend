@@ -4,7 +4,7 @@ package com.xinyirun.scm.controller.master.warehouse;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.*;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.*;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.DataChangeOperateAnnotation;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
@@ -115,9 +115,9 @@ public class MWarehouseController extends SystemBaseController {
     // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enabled(@RequestBody(required = false) List<MWarehouseVo> searchConditionList) {
-        service.enabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MWarehouseVo>> enabled(@RequestBody(required = false) MWarehouseVo warehouseVo) {
+        MWarehouseVo result = service.enabledByIdsIn(warehouseVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(result, "仓库启用成功"));
     }
 
     @DataChangeOperateAnnotation(page_name = "仓库管理页面", value = "停用仓库")
@@ -125,20 +125,11 @@ public class MWarehouseController extends SystemBaseController {
     // @ApiOperation(value = "根据参数id，禁用数据")
     @PostMapping("/disabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> disabled(@RequestBody(required = false) List<MWarehouseVo> searchConditionList) {
-        service.disSabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MWarehouseVo>> disabled(@RequestBody(required = false) MWarehouseVo warehouseVo) {
+        MWarehouseVo result = service.disSabledByIdsIn(warehouseVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(result, "仓库停用成功"));
     }
 
-    @DataChangeOperateAnnotation(page_name = "仓库管理页面", value = "启用/停用仓库")
-    @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
-    // @ApiOperation(value = "根据参数id，启用数据")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MWarehouseVo> searchConditionList) {
-        service.enableByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @SysLogAnnotion("仓库信息导出")
     @PostMapping("/exportall")

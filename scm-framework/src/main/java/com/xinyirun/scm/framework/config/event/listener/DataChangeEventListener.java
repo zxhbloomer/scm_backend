@@ -7,8 +7,10 @@ import com.xinyirun.scm.framework.config.event.define.DataChangeEvent;
 import com.xinyirun.scm.mq.rabbitmq.producer.business.log.datachange.LogDataChangeProducer;
 import org.apache.commons.lang.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 
@@ -21,7 +23,9 @@ public class DataChangeEventListener {
 
     @Autowired
     LogDataChangeProducer producer;
-    @TransactionalEventListener
+
+    @EventListener
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onDataChanged(DataChangeEvent event) {
         // 获取数据变更的main bean
         SLogDataChangeMainMongoEntity dataChangeMain = event.getDataChangeMain();

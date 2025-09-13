@@ -91,39 +91,40 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
     MGoodsVo selectId(@Param("p1") int id);
 
     /**
-     * 导出
+     * 导出 - 与类别管理导出查询结构保持完全一致
      *
      * @param searchConditionList 入参
      * @return List<MGoodsExportVo>
      */
-    @Select({"<script>                                                                                                 "
+    @Select({" <script>                                                                                                "
             + "     SELECT                                                                                             "
             + "            @row_num:= @row_num+ 1 as no,                                                               "
+            + "            t5.name as category_name,                                                                   "
             + "            t.name,                                                                                     "
             + "            t.code,                                                                                     "
-            + "            if(t.enable, '是', '否') enable,                                                             "
+            + "            if(t.enable, '是', '否') enable,                                                            "
             + "            t.c_time,                                                                                   "
             + "            t.u_time,                                                                                   "
-            + "            t5.name as category_name,                                                                   "
             + "            t1.name as c_name,                                                                          "
             + "            t2.name as u_name                                                                           "
             + "       FROM                                                                                             "
-            + "  	       m_goods t                                                                                   "
+            + "  	       m_goods t                                                                                  "
             + "  LEFT JOIN m_staff t1 ON t.c_id = t1.id                                                                "
             + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                                                "
             + "  LEFT JOIN m_category t5 ON t.category_id = t5.id                                                      "
             + " ,(select @row_num:=0) t6                                                                               "
             + "  where true                                                                                            "
-            + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
-            + "    and (t5.name like CONCAT ('%',#{p1.category_name,jdbcType=VARCHAR},'%') or #{p1.category_name,jdbcType=VARCHAR} is null) "
+            + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)"
+            + "    and (t5.name like CONCAT ('%',#{p1.category_name,jdbcType=VARCHAR},'%') or #{p1.category_name,jdbcType=VARCHAR} is null)"
             + "    and (t5.id = #{p1.category_id} or #{p1.category_id} is null) "
-            + "   <if test='p1.ids != null and p1.ids.length != 0' >                                                   "
+            + "  <if test='p1.ids != null and p1.ids.length > 0'>                                                       "
             + "    and t.id in                                                                                         "
-            + "        <foreach collection='p1.ids' item='item' index='index' open='(' separator=',' close=')'>        "
-            + "         #{item}                                                                                        "
-            + "        </foreach>                                                                                      "
+            + "      <foreach collection='p1.ids' item='item' index='index' open='(' close=')' separator=','>         "
+            + "          #{item}                                                                                       "
+            + "       </foreach>                                                                                       "
             + "   </if>                                                                                                "
-            + " </script>                                                                                              "
+            + "  ORDER BY t.u_time DESC, t.id ASC                                                                      "
+            + "  </script>                                                                                             "
 
     })
     List<MGoodsExportVo> exportList(@Param("p1") MGoodsVo searchConditionList);

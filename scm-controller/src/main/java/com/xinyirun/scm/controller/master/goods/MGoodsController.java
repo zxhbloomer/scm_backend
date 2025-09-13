@@ -4,26 +4,27 @@ package com.xinyirun.scm.controller.master.goods;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.master.goods.MCategoryExportVo;
-import com.xinyirun.scm.bean.system.vo.master.goods.MCategoryVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsExportVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsVo;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.DataChangeOperateAnnotation;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.master.goods.IMGoodsService;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
-// import io.swagger.annotations.Api;
-// import io.swagger.annotations.ApiOperation;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 
@@ -43,6 +44,12 @@ public class MGoodsController extends SystemBaseController {
 
     @Autowired
     private IMGoodsService service;
+
+    @Autowired
+    private ISPagesService sPagesService;
+
+    @Autowired
+    private SPagesMapper sPagesMapper;
 
     @SysLogAnnotion("根据查询条件，获取物料信息")
     // @ApiOperation(value = "根据参数获取物料信息")
@@ -112,20 +119,63 @@ public class MGoodsController extends SystemBaseController {
     }
 
     @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "删除物料")
-    @SysLogAnnotion("根据选择的数据删除，部分数据")
-    // @ApiOperation(value = "根据参数id，删除数据")
+    @SysLogAnnotion("物料数据逻辑删除复原")
     @PostMapping("/delete")
     @ResponseBody
     @RepeatSubmitAnnotion
-    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) List<MGoodsVo> searchConditionList) {
-        service.deleteByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("删除成功"));
+    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) MGoodsVo searchCondition) {
+        service.delete(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 
-    @SysLogAnnotion("导出")
+    @SysLogAnnotion("物料信息导出")
+    @PostMapping("/exportall")
+    public void exportAll(@RequestBody(required = false) MGoodsVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_GOODS);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 全部导出：直接调用export方法查询
+            List<MGoodsExportVo> exportDataList = service.export(searchCondition);
+            log.info("全部导出：查询到物料数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MGoodsExportVo> util = new EasyExcelUtil<>(MGoodsExportVo.class);
+            String fileName = "物料信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "物料信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
+
+    @SysLogAnnotion("物料信息导出")
     @PostMapping("/export")
-    public void export(@RequestBody(required = false) MGoodsVo searchConditionList, HttpServletResponse response) throws IOException {
-        List<MGoodsExportVo> list = service.export(searchConditionList);
-        new EasyExcelUtil<>(MGoodsExportVo.class).exportExcel("物料管理"  + DateTimeUtil.getDate(),"物料管理",list, response);
+    public void export(@RequestBody(required = false) MGoodsVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_GOODS);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的物料记录");
+            }
+            
+            // 选中导出：直接调用export方法查询
+            List<MGoodsExportVo> exportDataList = service.export(searchCondition);
+            log.info("选中导出：查询到物料数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MGoodsExportVo> util = new EasyExcelUtil<>(MGoodsExportVo.class);
+            String fileName = "物料信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "物料信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 }

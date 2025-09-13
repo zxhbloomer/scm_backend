@@ -56,6 +56,12 @@ public interface IMGoodsService extends IService<MGoodsEntity> {
     DeleteResultAo<Integer> deleteByIdsIn(List<MGoodsVo> searchCondition);
 
     /**
+     * 删除物料（逻辑删除复原）
+     * @param searchCondition 删除条件
+     */
+    void delete(MGoodsVo searchCondition);
+
+    /**
      * 批量启用
      * @param searchCondition
      * @return

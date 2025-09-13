@@ -134,6 +134,7 @@ public interface MCategoryMapper extends BaseMapper<MCategoryEntity> {
             + "          #{item}                                                                                       "
             + "       </foreach>                                                                                       "
             + "   </if>                                                                                                "
+            + "  ORDER BY t.u_time DESC, t.id ASC                                                                      "
             + "  </script>                                                                                             "
 
     })

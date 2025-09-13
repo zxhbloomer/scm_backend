@@ -14,7 +14,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.*;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.*;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
@@ -28,6 +28,8 @@ import com.xinyirun.scm.core.system.service.master.inventory.IMInventoryService;
 import com.xinyirun.scm.core.system.service.master.warehouse.IMWarehouseService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MWarehouseAutoCodeServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.master.warehouse.MLocationServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.master.warehouse.MBinServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -118,31 +120,39 @@ public class MWarehouseServiceImpl extends BaseServiceImpl<MWarehouseMapper, MWa
 
         int rtn = mapper.insert(entity);
         vo.setId(entity.getId());
-        // 生成默认库区
-        MLocationVo location  = new MLocationVo();
-        if (entity.getEnable_location() == null || entity.getEnable() == Boolean.FALSE) {
-            entity.setEnable_location(Boolean.FALSE);
+        
+        // 根据用户设置处理库区和库位
+        MLocationVo location = null;
+        
+        // 处理库区：当用户选择禁用自定义库区时，自动创建默认库区
+        if (entity.getEnable_location() == null || entity.getEnable_location() == Boolean.FALSE) {
+            location = new MLocationVo();
             location.setName(SystemConstants.DEFAULT_LOCATION);
             location.setShort_name(SystemConstants.DEFAULT_LOCATION);
             location.setWarehouse_id(entity.getId());
             location.setIs_default(Boolean.TRUE);
             locationService.insert(location);
-        } else {
-            entity.setEnable_location(Boolean.TRUE);
         }
 
-        if (entity.getEnable_bin() == null || entity.getEnable() == Boolean.FALSE) {
-            entity.setEnable_bin(Boolean.FALSE);
+        // 处理库位：当用户选择禁用自定义库位时，自动创建默认库位
+        if (entity.getEnable_bin() == null || entity.getEnable_bin() == Boolean.FALSE) {
+            // 如果库区未创建（用户启用了自定义库区），则需要先创建一个默认库区用于放置默认库位
+            if (location == null) {
+                location = new MLocationVo();
+                location.setName(SystemConstants.DEFAULT_LOCATION);
+                location.setShort_name(SystemConstants.DEFAULT_LOCATION);
+                location.setWarehouse_id(entity.getId());
+                location.setIs_default(Boolean.TRUE);
+                locationService.insert(location);
+            }
+            
             MBinVo bin = new MBinVo();
             bin.setName(SystemConstants.DEFAULT_BIN);
             bin.setLocation_id(location.getId());
             bin.setWarehouse_id(entity.getId());
+            bin.setIs_default(Boolean.TRUE);
             binService.insert(bin);
-        } else {
-            entity.setEnable_bin(Boolean.TRUE);
         }
-
-        mapper.updateById(entity);
 
         // 插入逻辑保存
         return InsertResultUtil.OK(rtn);
@@ -192,39 +202,49 @@ public class MWarehouseServiceImpl extends BaseServiceImpl<MWarehouseMapper, MWa
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void enabledByIdsIn(List<MWarehouseVo> searchCondition) {
-        List<MWarehouseEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MWarehouseEntity entity : list) {
-            entity.setEnable(Boolean.TRUE);
+    public MWarehouseVo enabledByIdsIn(MWarehouseVo warehouseVo) {
+        // 1. 验证仓库存在性
+        MWarehouseEntity entity = this.getById(warehouseVo.getId());
+        if (entity == null) {
+            throw new BusinessException("仓库不存在，启用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 2. 更新启用状态
+        entity.setEnable(Boolean.TRUE);
+        boolean updateResult = this.updateById(entity);
+        if (!updateResult) {
+            throw new BusinessException("仓库启用失败，请重试");
+        }
+        
+        // 3. 查询并返回最新数据
+        return mapper.selectId(warehouseVo.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disSabledByIdsIn(List<MWarehouseVo> searchCondition) {
-        List<MWarehouseEntity> list = mapper.selectIdsIn(searchCondition);
-        // 根据 仓库ID 查询仓库库存量大于0, 锁定库存不等于0 的库存, 如果集合大于0, 则有仓库库存不为0, 无法禁用
-        checkInventory(searchCondition);
-        for(MWarehouseEntity entity : list) {
-            entity.setEnable(Boolean.FALSE);
+    public MWarehouseVo disSabledByIdsIn(MWarehouseVo warehouseVo) {
+        // 1. 验证仓库存在性
+        MWarehouseEntity entity = this.getById(warehouseVo.getId());
+        if (entity == null) {
+            throw new BusinessException("仓库不存在，停用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 2. 库存校验（保留原有业务逻辑）
+        List<MWarehouseVo> checkList = new ArrayList<>();
+        checkList.add(warehouseVo);
+        checkInventory(checkList);
+        
+        // 3. 更新停用状态
+        entity.setEnable(Boolean.FALSE);
+        boolean updateResult = this.updateById(entity);
+        if (!updateResult) {
+            throw new BusinessException("仓库停用失败，请重试");
+        }
+        
+        // 4. 查询并返回最新数据
+        return mapper.selectId(warehouseVo.getId());
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void enableByIdsIn(List<MWarehouseVo> searchCondition) {
-        List<MWarehouseEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MWarehouseEntity entity : list) {
-            if (entity.getEnable()) {
-                // 禁用, 需判断仓库商品库存数量是否为0
-                checkInventory(searchCondition);
-            }
-            entity.setEnable(!entity.getEnable());
-        }
-        saveOrUpdateBatch(list, 500);
-    }
 
     @Override
     public MWarehouseVo selectById(int id) {

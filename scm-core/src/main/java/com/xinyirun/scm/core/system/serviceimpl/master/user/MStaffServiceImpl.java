@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.promeg.pinyinhelper.Pinyin;
 import com.xinyirun.scm.bean.entity.master.org.MOrgEntity;
 import com.xinyirun.scm.bean.entity.master.org.MStaffOrgEntity;
 import com.xinyirun.scm.bean.entity.master.user.MStaffEntity;
@@ -27,7 +28,6 @@ import com.xinyirun.scm.bean.system.vo.master.user.MPositionInfoVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffExportVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MUserVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.constant.DictConstant;
@@ -50,15 +50,19 @@ import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MStaffAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import com.xinyirun.scm.core.bpm.serviceimpl.business.BpmProcessUserServiceImpl;
+import com.xinyirun.scm.core.bpm.service.business.IBpmUsersService;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
+import java.io.File;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -106,8 +110,35 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
     private BpmProcessUserServiceImpl bpmProcessUserService;
 
     @Autowired
+    private IBpmUsersService bpmUsersService;
+
+    @Autowired
     private IMOrgService mOrgService;
 
+    /**
+     * 头像临时目录路径，从配置文件中注入，提供系统临时目录作为默认fallback
+     */
+    @Value("${wms.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
+    private String avatarTempDir;
+
+    /**
+     * 应用启动时确保头像临时目录存在
+     */
+    @PostConstruct
+    public void initAvatarTempDir() {
+        try {
+            File dir = new File(avatarTempDir);
+            if (!dir.exists()) {
+                boolean created = dir.mkdirs();
+                log.info("头像临时目录创建{}: {}", created ? "成功" : "失败", dir.getAbsolutePath());
+            } else {
+                log.info("头像临时目录已存在: {}", dir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            log.error("初始化头像临时目录失败: {}", avatarTempDir, e);
+            throw new BusinessException("头像目录初始化失败: " + e.getMessage());
+        }
+    }
 
     /**
      * 获取列表，页面查询
@@ -294,6 +325,11 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         // 设置autocode
         mStaffEntity.setCode(mstaffAutoCodeService.autoCode().getCode());
 
+        // 生成姓名拼音
+        if (mStaffEntity.getName() != null && !mStaffEntity.getName().trim().isEmpty()) {
+            mStaffEntity.setName_py(Pinyin.toPinyin(mStaffEntity.getName(), ""));
+        }
+
         // 插入前check，员工表check
         CheckResultAo cr1 = checkStaffEntity(mStaffEntity, CheckResultAo.INSERT_CHECK_TYPE);
         if (cr1.isSuccess() == false) {
@@ -315,11 +351,12 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         mUserEntity.setIs_changed_pwd(mUserEntity.getIs_changed_pwd() == null ? false : mUserEntity.getIs_changed_pwd());
         mUserEntity.setPwd_u_time(LocalDateTime.now());
         try {
-            CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), "/wms/avatar_temp", mStaffEntity.getName());
-            String avatarUrl = uploadFile("/wms/avatar_temp/"+mStaffEntity.getName()+".jpg", mStaffEntity.getName() +".jpg", 0);
+            CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), avatarTempDir, mStaffEntity.getName());
+            String avatarUrl = uploadFile(avatarTempDir + File.separator + mStaffEntity.getName() + ".jpg", mStaffEntity.getName() + ".jpg", 0);
             mUserEntity.setAvatar(avatarUrl);
         } catch (Exception e) {
             log.error("insert error", e);
+            throw new BusinessException(e.getMessage());
         }
 
         mapper.insert(mStaffEntity);
@@ -378,7 +415,13 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(mUserEntity.getId());
 
-
+        // BPM用户同步新增
+        try {
+            bpmUsersService.insertBpmUser(mStaffEntity, mUserEntity);
+        } catch (Exception e) {
+            log.error("BPM用户同步新增失败，staffId: {}", mStaffEntity.getId(), e);
+            throw new BusinessException(e.getMessage());
+        }
 
         // 返回值确定
         vo.setId(mStaffEntity.getId());
@@ -473,6 +516,11 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         MStaffEntity mStaffEntity = (MStaffEntity) BeanUtilsSupport.copyProperties(vo, MStaffEntity.class);
         MUserEntity mUserEntity = (MUserEntity) BeanUtilsSupport.copyProperties(vo.getUser(), MUserEntity.class);
 
+        // 生成姓名拼音
+        if (mStaffEntity.getName() != null && !mStaffEntity.getName().trim().isEmpty()) {
+            mStaffEntity.setName_py(Pinyin.toPinyin(mStaffEntity.getName(), ""));
+        }
+
         // 插入前check
         CheckResultAo cr1 = checkStaffEntity(mStaffEntity, CheckResultAo.UPDATE_CHECK_TYPE);
         if (cr1.isSuccess() == false) {
@@ -519,8 +567,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 
         try {
             if (StringUtils.isEmpty(mUserEntity.getAvatar())) {
-                CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), "/wms/avatar_temp", mStaffEntity.getName());
-                String avatarUrl = uploadFile("/wms/avatar_temp/"+mStaffEntity.getName()+".jpg", mStaffEntity.getName() +".jpg", 0);
+                CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), avatarTempDir, mStaffEntity.getName());
+                String avatarUrl = uploadFile(avatarTempDir + File.separator + mStaffEntity.getName() + ".jpg", mStaffEntity.getName() + ".jpg", 0);
                 mUserEntity.setAvatar(avatarUrl);
             }
         } catch (Exception e) {
@@ -549,6 +597,13 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         // 用户简单重构
         imUserLiteService.reBulidUserLiteData(mUserEntity.getId());
 
+        // BPM用户同步更新
+        try {
+            bpmUsersService.updateBpmUser(mStaffEntity, mUserEntity);
+        } catch (Exception e) {
+            log.error("BPM用户同步更新失败，但不影响员工更新，staffId: {}", mStaffEntity.getId(), e);
+        }
+
         // 清理根节点统计缓存，因为员工信息可能影响统计（特别是service字段变更）
         mOrgService.clearRootStatisticsCache();
 
@@ -564,6 +619,12 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         entity.setName(vo.getName());
         entity.setMobile_phone(vo.getMobile_phone());
         entity.setSex(vo.getSex());
+        
+        // 生成姓名拼音
+        if (vo.getName() != null && !vo.getName().trim().isEmpty()) {
+            entity.setName_py(Pinyin.toPinyin(vo.getName(), ""));
+        }
+        
         mapper.updateById(entity);
 
         // 更新逻辑保存
@@ -714,6 +775,23 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         List<MStaffEntity> entityList = BeanUtilsSupport.copyProperties(list, MStaffEntity.class);
         super.saveOrUpdateBatch(entityList, 500);
         
+        // BPM用户批量同步删除/复原
+        entityList.forEach(entity -> {
+            try {
+                if (entity.getIs_del()) {
+                    // 逻辑删除时调用BPM删除
+                    bpmUsersService.deleteBpmUser(entity.getId());
+                } else {
+                    // 复原时重新插入BPM用户
+                    MUserEntity userEntity = mUserMapper.getDataByStaffId(entity.getId());
+                    bpmUsersService.insertBpmUser(entity, userEntity);
+                }
+            } catch (Exception e) {
+                log.error("BPM用户批量同步失败，但不影响员工操作，staffId: {}, is_del: {}", 
+                    entity.getId(), entity.getIs_del(), e);
+            }
+        });
+        
         // 清理根节点统计缓存，因为员工删除状态发生变更
         mOrgService.clearRootStatisticsCache();
     }
@@ -752,7 +830,14 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
             mUserMapper.updateById(user);
         }
         
-        // 6. 清理根节点统计缓存，因为员工被删除
+        // 6. BPM用户同步删除
+        try {
+            bpmUsersService.deleteBpmUser(entity.getId());
+        } catch (Exception e) {
+            log.error("BPM用户同步删除失败，但不影响员工删除，staffId: {}", entity.getId(), e);
+        }
+        
+        // 7. 清理根节点统计缓存，因为员工被删除
         mOrgService.clearRootStatisticsCache();
     }
 
@@ -1141,8 +1226,8 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
                 if (StringUtils.isEmpty(mStaffEntity.getName())) {
                     continue;
                 }
-                CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), "/wms/avatar_temp", mStaffEntity.getName());
-                String avatarUrl = uploadFile("/wms/avatar_temp/"+mStaffEntity.getName()+".jpg", mStaffEntity.getName() +".jpg", 0);
+                CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), avatarTempDir, mStaffEntity.getName());
+                String avatarUrl = uploadFile(avatarTempDir + File.separator + mStaffEntity.getName() + ".jpg", mStaffEntity.getName() + ".jpg", 0);
                 userEntity.setAvatar(avatarUrl);
                 mUserMapper.updateById(userEntity);
             } catch (Exception e) {

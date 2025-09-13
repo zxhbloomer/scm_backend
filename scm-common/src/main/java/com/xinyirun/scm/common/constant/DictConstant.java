@@ -35,7 +35,7 @@ public class DictConstant {
     public static final String DICT_M_CUSTOMER_SCOPE_WZ = "4";
 
     /**
-     * 企业类型 1客户 2供应商 3仓储方 4承运商 5加工厂 0-主体企业
+     * 企业类型 1客户 2供应商 3仓储方 4承运商 5加工厂 6运营企业 7监管企业 0-主体企业
      */
     public static final String DICT_M_CUSTOMER_TYPE = "m_customer_type";
     public static final String DICT_M_CUSTOMER_TYPE_ZERO = "0";
@@ -55,7 +55,7 @@ public class DictConstant {
     public static final String DICT_M_CUSTOMER_STATUS_THREE = "3";
 
     /**
-     * 企业类型 1客户 2供应商 3仓储方 4承运商 5加工厂
+     * 企业类型 1客户 2供应商 3仓储方 4承运商 5加工厂 6运营企业 7监管企业
      */
     public static final String DICT_M_ENTERPRISE_TYPE = "m_enterprise_type";
     public static final String DICT_M_ENTERPRISE_TYPE_ONE = "1";
@@ -63,15 +63,19 @@ public class DictConstant {
     public static final String DICT_M_ENTERPRISE_TYPE_THREE = "3";
     public static final String DICT_M_ENTERPRISE_TYPE_FOUR = "4";
     public static final String DICT_M_ENTERPRISE_TYPE_FIVE = "5";
+    public static final String DICT_M_ENTERPRISE_TYPE_SIX = "6";
+    public static final String DICT_M_ENTERPRISE_TYPE_SEVEN = "7";
 
     /**
-     * 审批状态 0-待审批 1-审批中 2-审批通过 3-驳回
+     * 审批状态 0-待审批 1-审批中 2-审批通过 3-驳回 5-已作废
      */
     public static final String DICT_M_ENTERPRISE_STATUS = "m_enterprise_status";
     public static final String DICT_M_ENTERPRISE_STATUS_ZERO = "0";
     public static final String DICT_M_ENTERPRISE_STATUS_ONE = "1";
     public static final String DICT_M_ENTERPRISE_STATUS_TWO = "2";
     public static final String DICT_M_ENTERPRISE_STATUS_THREE = "3";
+    // 已作废状态
+    public static final String DICT_M_ENTERPRISE_STATUS_FIVE = "5";
 
 
     /**
@@ -734,6 +738,8 @@ public class DictConstant {
     public static final String DICT_SYS_CODE_TYPE_M_BIN  = "m_bin";
     /** 类别编号 */
     public static final String DICT_SYS_CODE_TYPE_M_CATEGORY  = "m_category";
+    /** 物料编号 */
+    public static final String DICT_SYS_CODE_TYPE_M_GOODS  = "m_goods";
     /** 入库计划编号 */
     public static final String DICT_SYS_CODE_TYPE_B_IN_PLAN = "b_in_plan";
     /** 出库计划编号 */

@@ -11,9 +11,9 @@ import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinExportVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinVo;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
@@ -142,63 +142,48 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void enabledByIdsIn(List<MBinVo> searchCondition) {
-        List<MBinEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MBinEntity entity : list) {
-            entity.setEnable(Boolean.TRUE);
+    public UpdateResultAo<Integer> enabled(MBinVo vo) {
+        // 更新前检查库位是否存在
+        MBinEntity entity = mapper.selectById(vo.getId());
+        if (entity == null) {
+            throw new BusinessException("库位不存在，启用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 设置启用状态
+        entity.setEnable(Boolean.TRUE);
+        int updCount = mapper.updateById(entity);
+        if(updCount == 0){
+            throw new UpdateErrorException("您提交的数据已经被修改，请查询后重新编辑更新。");
+        }
+        return UpdateResultUtil.OK(updCount);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disSabledByIdsIn(List<MBinVo> searchCondition) {
-        // 库存校验 - 检查库位是否存在库存
-        CheckResultAo inventoryCheck = checkBinInventory(searchCondition);
+    public UpdateResultAo<Integer> disabled(MBinVo vo) {
+        // 更新前检查库位是否存在
+        MBinEntity entity = mapper.selectById(vo.getId());
+        if (entity == null) {
+            throw new BusinessException("库位不存在，停用失败");
+        }
+        
+        // 库存校验 - 检查库位是否存在库存（单条记录校验）
+        List<MBinVo> singleBinList = new java.util.ArrayList<>();
+        singleBinList.add(vo);
+        CheckResultAo inventoryCheck = checkBinInventory(singleBinList);
         if (!inventoryCheck.isSuccess()) {
             throw new BusinessException(inventoryCheck.getMessage());
         }
         
-        List<MBinEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MBinEntity entity : list) {
-            entity.setEnable(Boolean.FALSE);
+        // 设置停用状态
+        entity.setEnable(Boolean.FALSE);
+        int updCount = mapper.updateById(entity);
+        if(updCount == 0){
+            throw new UpdateErrorException("您提交的数据已经被修改，请查询后重新编辑更新。");
         }
-        saveOrUpdateBatch(list, 500);
+        return UpdateResultUtil.OK(updCount);
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void enableByIdsIn(List<MBinVo> searchCondition) {
-        List<MBinEntity> list = mapper.selectIdsIn(searchCondition);
-        
-        // 检查是否有库位从启用状态切换到停用状态，需要进行库存校验
-        List<MBinVo> binToDisableList = new java.util.ArrayList<>();
-        for (int i = 0; i < list.size(); i++) {
-            MBinEntity entity = list.get(i);
-            // 如果当前库位是启用状态，切换后会变为停用状态，需要校验库存
-            if (entity.getEnable()) {
-                // 创建对应的MBinVo用于校验
-                MBinVo binVo = new MBinVo();
-                binVo.setId(entity.getId());
-                binVo.setName(entity.getName());
-                binToDisableList.add(binVo);
-            }
-        }
-        
-        // 如果有库位需要停用，进行库存校验
-        if (!binToDisableList.isEmpty()) {
-            CheckResultAo inventoryCheck = checkBinInventory(binToDisableList);
-            if (!inventoryCheck.isSuccess()) {
-                throw new BusinessException(inventoryCheck.getMessage());
-            }
-        }
-        
-        // 执行状态切换
-        for(MBinEntity entity : list) {
-            entity.setEnable(!entity.getEnable());
-        }
-        saveOrUpdateBatch(list, 500);
-    }
 
     @Override
     public MBinVo selectById(int id) {

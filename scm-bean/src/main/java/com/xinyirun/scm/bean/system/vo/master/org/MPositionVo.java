@@ -4,7 +4,7 @@ import com.xinyirun.scm.bean.system.config.base.BaseVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 
 // import io.swagger.annotations.ApiModel;
 import lombok.Data;

@@ -200,6 +200,27 @@ public class MEnterpriseEntity implements Serializable {
     private String bpm_instance_code;
 
     /**
+     * 作废流程实例ID
+     */
+    @TableField(value="bpm_cancel_instance_id")
+    @DataChangeLabelAnnotation("作废流程实例ID")
+    private Integer bpm_cancel_instance_id;
+
+    /**
+     * 作废流程实例code
+     */
+    @TableField(value="bpm_cancel_instance_code")
+    @DataChangeLabelAnnotation("作废流程实例编码")
+    private String bpm_cancel_instance_code;
+
+    /**
+     * 作废流程名称
+     */
+    @TableField(value="bpm_cancel_process_name")
+    @DataChangeLabelAnnotation("作废流程名称")
+    private String bpm_cancel_process_name;
+
+    /**
      * 审批流程名称：企业新增审批
      */
     @TableField(value="bpm_process_name")
@@ -210,6 +231,13 @@ public class MEnterpriseEntity implements Serializable {
      */
     @TableField(value="next_approve_name")
     private String next_approve_name;
+
+    /**
+     * 作废理由
+     */
+    @TableField("cancel_reason")
+    @DataChangeLabelAnnotation("作废理由")
+    private String cancel_reason;
 
     /**
      * 主体企业：0-false（不是）、1-true（是）

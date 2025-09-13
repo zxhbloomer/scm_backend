@@ -7,7 +7,7 @@ import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MRelation
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MWarehouseGroupTransferVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MWarehouseRelationVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.MWarehouseTransferVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;

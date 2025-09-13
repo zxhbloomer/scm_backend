@@ -30,8 +30,10 @@ import com.xinyirun.scm.core.system.service.client.user.IMUserService;
 import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.authentication.DisabledException;
@@ -41,6 +43,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -77,6 +80,25 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
 
     @Autowired
     private CacheManager cacheManager;
+
+    @Value("${wms.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
+    private String avatarTempDir;
+
+    @PostConstruct
+    public void initAvatarTempDir() {
+        try {
+            File dir = new File(avatarTempDir);
+            if (!dir.exists()) {
+                boolean created = dir.mkdirs();
+                log.info("头像临时目录创建{}: {}", created ? "成功" : "失败", dir.getAbsolutePath());
+            } else {
+                log.info("头像临时目录已存在: {}", dir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            log.error("初始化头像临时目录失败: {}", avatarTempDir, e);
+            throw new BusinessException("头像目录初始化失败: " + e.getMessage());
+        }
+    }
 
     /**
      * system登录入口
@@ -416,10 +438,10 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
             log.info("开始为用户ID:{} 生成头像，员工姓名:{}", userEntity.getId(), staffName);
             
             // 生成头像到临时目录
-            CreateAvatarByUserNameUtil.generateImg(staffName, "/wms/avatar_temp", staffName);
+            CreateAvatarByUserNameUtil.generateImg(staffName, avatarTempDir, staffName);
             
             // 上传到文件服务器并获取URL
-            String avatarUrl = uploadFile("/wms/avatar_temp/" + staffName + ".jpg", staffName + ".jpg", 0);
+            String avatarUrl = uploadFile(avatarTempDir + File.separator + staffName + ".jpg", staffName + ".jpg", 0);
             
             // 更新用户头像URL
             userEntity.setAvatar(avatarUrl);

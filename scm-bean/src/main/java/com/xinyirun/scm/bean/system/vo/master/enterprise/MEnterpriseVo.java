@@ -20,16 +20,19 @@ import java.util.Map;
 
 /**
  * <p>
- * 客户
+ * 企业管理VO类
  * </p>
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @NoArgsConstructor
-public class MEnterpriseVo  implements Serializable {
+public class MEnterpriseVo implements Serializable {
 
     private static final long serialVersionUID = 8179466261414373498L;
 
+    // ================================
+    // 基础字段
+    // ================================
 
     /**
      * 主键id
@@ -61,6 +64,10 @@ public class MEnterpriseVo  implements Serializable {
      */
     private String modify_reason;
 
+    // ================================
+    // 企业信息字段
+    // ================================
+
     /**
      * 企业名称
      */
@@ -72,7 +79,7 @@ public class MEnterpriseVo  implements Serializable {
     private String name_pinyin;
 
     /**
-     * 企业简称拼音
+     * 企业名称简拼
      */
     private String name_short_pinyin;
 
@@ -82,7 +89,7 @@ public class MEnterpriseVo  implements Serializable {
     private BigDecimal registration_capital;
 
     /**
-     * 企业类型：1客户 2供应商 3仓储方 4承运商 5加工厂
+     * 企业类型：1客户 2供应商 3仓储方 4承运商 5加工厂 6运营企业 7监管企业
      */
     private String type;
 
@@ -141,20 +148,33 @@ public class MEnterpriseVo  implements Serializable {
      */
     private String former_name_short_pinyin;
 
+    // ================================
+    // 状态控制字段
+    // ================================
+
     /**
      * 删除0-未删除，1-已删除
      */
     private Boolean is_del;
 
     /**
-     * 审批状态 0-待审批 1-审批中 2-审批通过 3-驳回
+     * 审批状态 0-待审批 1-审批中 2-审批通过 3-驳回 5-已作废
      */
-    private String status;
+    private Integer status;
+
+    /**
+     * 作废理由
+     */
+    private String cancel_reason;
 
     /**
      * 置顶排序时间
      */
     private LocalDateTime top_time;
+
+    // ================================
+    // BPM审批流程字段
+    // ================================
 
     /**
      * 流程实例ID
@@ -177,6 +197,25 @@ public class MEnterpriseVo  implements Serializable {
     private String next_approve_name;
 
     /**
+     * 作废审批流程实例ID
+     */
+    private Integer bpm_cancel_instance_id;
+
+    /**
+     * 作废审批流程实例code
+     */
+    private String bpm_cancel_instance_code;
+
+    /**
+     * 作废审批流程名称：企业作废审批
+     */
+    private String bpm_cancel_process_name;
+
+    // ================================
+    // 主体企业相关字段
+    // ================================
+
+    /**
      * 主体企业：0-false（不是）、1-true（是）
      */
     private Boolean is_sys_company;
@@ -184,12 +223,16 @@ public class MEnterpriseVo  implements Serializable {
     /**
      * 主体企业编号
      */
-    private Boolean sys_company_code;
+    private String sys_company_code;
 
     /**
      * 主体企业id
      */
     private Integer sys_company_id;
+
+    // ================================
+    // 审计字段
+    // ================================
 
     /**
      * 创建时间
@@ -216,6 +259,10 @@ public class MEnterpriseVo  implements Serializable {
      */
     private Integer dbversion;
 
+    // ================================
+    // 页面控制字段
+    // ================================
+
     /**
      * 换页条件
      */
@@ -225,17 +272,17 @@ public class MEnterpriseVo  implements Serializable {
      * 企业类型
      */
     private String[] type_ids;
-    @FieldMeta(title = "企业类型",
-            required = true,
-            fieldType = SystemConstants.BPM_FORM.FIELD_TYPE_SELECTINPUT ,
-            valueType = SystemConstants.BPM_FORM.VALUE_TYPE_STRING
-    )
+
     private String type_ids_str;
 
     /**
      * 企业类型名称
      */
     private String type_names;
+
+    // ================================
+    // 文件附件字段
+    // ================================
 
     /**
      * logo文件
@@ -268,6 +315,15 @@ public class MEnterpriseVo  implements Serializable {
     private List<SFileInfoVo> doc_att_files;
 
     /**
+     * 营业执照文件（备用字段）
+     */
+    private Integer file_id;
+
+    // ================================
+    // BPM表单相关字段
+    // ================================
+
+    /**
      * 初始化审批流程
      */
     private String initial_process;
@@ -288,6 +344,15 @@ public class MEnterpriseVo  implements Serializable {
     private String check_type;
 
     /**
+     * 审批流实例化code
+     */
+    private String process_code;
+
+    // ================================
+    // 组件返回字段
+    // ================================
+
+    /**
      * 组件返回—企业类型id
      */
     private String dict_id;
@@ -297,15 +362,14 @@ public class MEnterpriseVo  implements Serializable {
      */
     private String dict_label;
 
+    // ================================
+    // 显示用字段
+    // ================================
+
     /**
      * 审核状态名称
      */
     private String status_name;
-
-    /**
-     * 审批流实例化code
-     */
-    private String process_code;
 
     /**
      * 创建人
@@ -328,14 +392,13 @@ public class MEnterpriseVo  implements Serializable {
     private String qr_code;
 
     /**
-     * 营业执照文件
-     */
-    private Integer file_id;
-
-    /**
      * 综合名称：全称，拼音，简拼
      */
     private String combine_search_condition;
+
+    // ================================
+    // 业务判断字段
+    // ================================
 
     /**
      * 是否为供应商
@@ -351,6 +414,4 @@ public class MEnterpriseVo  implements Serializable {
      * 是否为主体企业
      */
     private Boolean isSysCompany;
-
-
 }

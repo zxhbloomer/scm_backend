@@ -13,6 +13,10 @@ import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseImportVo;
 import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseVo;
 import com.xinyirun.scm.bean.system.vo.excel.customer.MEnterpiseExcelVo;
 
+// BPM回调接口导入
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCommonCallBackService;
+import com.xinyirun.scm.core.system.service.base.v1.common.bpm.IBpmCancelCommonCallBackService;
+
 import java.util.List;
 
 /**
@@ -20,7 +24,9 @@ import java.util.List;
  *  服务类
  * </p>
  */
-public interface IMEnterpriseService extends IService<MEnterpriseEntity> {
+public interface IMEnterpriseService extends IService<MEnterpriseEntity>,
+        IBpmCommonCallBackService<MEnterpriseVo>,           // 通用BPM审批回调接口
+        IBpmCancelCommonCallBackService<MEnterpriseVo> {     // BPM作废审批回调接口
 
     /**
      * 获取列表，页面查询
@@ -87,34 +93,19 @@ public interface IMEnterpriseService extends IService<MEnterpriseEntity> {
      */
     List<MEnterpiseExcelVo> export(MEnterpriseVo searchConditionList);
 
-    /**
-     *
-     *  企业管理审批流程回调
-     *  审批流程创建时
-     */
-    UpdateResultAo<Integer> bpmCallBackCreateBpm(MEnterpriseVo searchCondition);
-
-    /**
-     *  审批流程通过 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCallBackApprove(MEnterpriseVo searchCondition);
-
-    /**
-     *  审批流程拒绝 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCallBackRefuse(MEnterpriseVo searchCondition);
-
-    /**
-     *  审批流程撤销 更新审核状态驳回
-     */
-    UpdateResultAo<Integer> bpmCallBackCancel(MEnterpriseVo searchCondition);
-
-    /**
-     *
-     *  企业管理审批流程回调
-     *  审批流程撤销 更新审核状态通过
-     */
-    UpdateResultAo<Integer> bpmCallBackSave(MEnterpriseVo searchCondition);
+    // 注意：BPM回调方法通过继承IBpmCommonCallBackService<MEnterpriseVo>自动获得以下5个方法：
+    // - bpmCallBackCreateBpm(MEnterpriseVo searchCondition) - 创建流程时更新BPM实例汇总数据
+    // - bpmCallBackApprove(MEnterpriseVo searchCondition) - 审批通过
+    // - bpmCallBackRefuse(MEnterpriseVo searchCondition) - 审批拒绝  
+    // - bpmCallBackCancel(MEnterpriseVo searchCondition) - 审批取消
+    // - bpmCallBackSave(MEnterpriseVo searchCondition) - 保存最新审批人
+    
+    // 注意：BPM作废回调方法通过继承IBpmCancelCommonCallBackService<MEnterpriseVo>自动获得以下5个方法：
+    // - bpmCancelCallBackCreateBpm(MEnterpriseVo searchCondition) - 作废流程创建
+    // - bpmCancelCallBackApprove(MEnterpriseVo searchCondition) - 作废审批通过
+    // - bpmCancelCallBackRefuse(MEnterpriseVo searchCondition) - 作废审批拒绝
+    // - bpmCancelCallBackCancel(MEnterpriseVo searchCondition) - 作废审批取消  
+    // - bpmCancelCallBackSave(MEnterpriseVo searchCondition) - 作废保存审批人
 
     /**
      *  获取报表系统参数，并组装打印参数

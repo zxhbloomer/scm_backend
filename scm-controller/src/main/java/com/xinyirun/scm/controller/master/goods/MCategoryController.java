@@ -58,7 +58,7 @@ public class MCategoryController extends SystemBaseController {
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
-    @SysLogAnnotion("系统参数数据更新保存")
+    @SysLogAnnotion("类别数据新增保存")
     @PostMapping("/insert")
     @ResponseBody
     @RepeatSubmitAnnotion
@@ -71,7 +71,7 @@ public class MCategoryController extends SystemBaseController {
         }
     }
 
-    @SysLogAnnotion("系统参数数据更新保存")
+    @SysLogAnnotion("类别数据更新保存")
     @PostMapping("/save")
     @ResponseBody
     @RepeatSubmitAnnotion
@@ -87,26 +87,19 @@ public class MCategoryController extends SystemBaseController {
     @SysLogAnnotion("根据选择的数据启用，部分数据")
     @PostMapping("/enabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enabled(@RequestBody(required = false) List<MCategoryVo> searchConditionList) {
-        service.enabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MCategoryVo>> enabled(@RequestBody(required = false) MCategoryVo categoryVo) {
+        MCategoryVo updatedCategory = service.enabledByIdsIn(categoryVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(updatedCategory, "启用成功"));
     }
 
     @SysLogAnnotion("根据选择的数据禁用，部分数据")
     @PostMapping("/disabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> disabled(@RequestBody(required = false) List<MCategoryVo> searchConditionList) {
-        service.disSabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MCategoryVo>> disabled(@RequestBody(required = false) MCategoryVo categoryVo) {
+        MCategoryVo updatedCategory = service.disSabledByIdsIn(categoryVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(updatedCategory, "停用成功"));
     }
 
-    @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MCategoryVo> searchConditionList) {
-        service.enableByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @SysLogAnnotion("类别信息导出")
     @PostMapping("/exportall")

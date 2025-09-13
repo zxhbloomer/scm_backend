@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.master.warehouse.MLocationEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationVo;
 
 import java.util.List;
 
@@ -60,19 +60,15 @@ public interface IMLocationService extends IService<MLocationEntity> {
     List<MLocationEntity> selectByShortName(String shortName,int warehouse_id);
 
     /**
-     * 批量启用
+     * 单条启用
      */
-    void enabledByIdsIn(List<MLocationVo> searchCondition);
+    MLocationVo enabledByIdsIn(MLocationVo locationVo);
 
     /**
-     * 批量停用
+     * 单条停用
      */
-    void disSabledByIdsIn(List<MLocationVo> searchCondition);
+    MLocationVo disSabledByIdsIn(MLocationVo locationVo);
 
-    /**
-     * 批量启用/停用
-     */
-    void enableByIdsIn(List<MLocationVo> searchCondition);
 
 
 

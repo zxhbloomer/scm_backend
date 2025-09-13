@@ -520,16 +520,6 @@ public class SystemSecurityConfig {
             return new SsoAuthenticationProvider();
         }
 
-        /**
-         * 权限前缀
-         *
-         * @return
-         */
-        @Bean
-        GrantedAuthorityDefaults grantedAuthorityDefaults1() {
-            // Remove the ROLE_ prefix
-            return new GrantedAuthorityDefaults("");
-        }
 
         /**
          * 处理 rememberMe 自动登录认证

@@ -4,8 +4,8 @@ package com.xinyirun.scm.controller.master.warehouse;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -96,32 +96,32 @@ public class MBinController extends SystemBaseController {
         }
     }
 
-    @SysLogAnnotion("根据选择的数据启用，部分数据")
+    @SysLogAnnotion("库位数据启用")
     // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enabled(@RequestBody(required = false) List<MBinVo> searchConditionList) {
-        service.enabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<MBinVo>> enabled(@RequestBody(required = false) MBinVo bean) {
+        if(service.enabled(bean).isSuccess()){
+            return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(bean.getId()),"启用成功"));
+        } else {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新编辑更新。");
+        }
     }
 
-    @SysLogAnnotion("根据选择的数据禁用，部分数据")
+    @SysLogAnnotion("库位数据停用")
     // @ApiOperation(value = "根据参数id，禁用数据")
     @PostMapping("/disabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> disabled(@RequestBody(required = false) List<MBinVo> searchConditionList) {
-        service.disSabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<MBinVo>> disabled(@RequestBody(required = false) MBinVo bean) {
+        if(service.disabled(bean).isSuccess()){
+            return ResponseEntity.ok().body(ResultUtil.OK(service.selectById(bean.getId()),"停用成功"));
+        } else {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新编辑更新。");
+        }
     }
 
-    @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
-    // @ApiOperation(value = "根据参数id，启用数据")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MBinVo> searchConditionList) {
-        service.enableByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @SysLogAnnotion("库位信息导出")
     @PostMapping("/exportall")

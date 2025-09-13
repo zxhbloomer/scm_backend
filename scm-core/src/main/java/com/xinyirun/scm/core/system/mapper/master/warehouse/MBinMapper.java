@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.warehouse.MBinEntity;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Param;
@@ -215,6 +215,7 @@ public interface MBinMapper extends BaseMapper<MBinEntity> {
                     + "            t4.name as location_name,                                         "
                     + "            t.name as name,                                                   "
                     + "            if(t.enable, '是', '否') enable,                                   "
+                    + "            if(t.is_default, '是', '否') as is_default_status,                 "
                     + "            t1.name as c_name,                                                "
                     + "            t.c_time,                                                         "
                     + "            t2.name as u_name,                                                "

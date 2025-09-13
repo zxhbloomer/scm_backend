@@ -2,16 +2,13 @@ package com.xinyirun.scm.core.system.serviceimpl.master.inventory.v2;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.master.inventory.MInventoryEntity;
 import com.xinyirun.scm.bean.entity.master.inventory.v2.MInventoryV2Entity;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventorySumVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
 import com.xinyirun.scm.bean.system.vo.master.inventory.query.MMonitorInventoryVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 import com.xinyirun.scm.common.annotations.DataScopeAnnotion;
-import com.xinyirun.scm.core.system.mapper.master.inventory.MInventoryMapper;
 import com.xinyirun.scm.core.system.mapper.master.inventory.v2.MInventoryV2Mapper;
-import com.xinyirun.scm.core.system.service.master.inventory.IMInventoryService;
 import com.xinyirun.scm.core.system.service.master.inventory.V2.IMInventoryV2Service;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;

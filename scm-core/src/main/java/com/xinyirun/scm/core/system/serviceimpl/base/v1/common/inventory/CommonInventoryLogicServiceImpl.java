@@ -24,7 +24,7 @@ import com.xinyirun.scm.bean.system.bo.inventory.warehouse.MLocationBo;
 import com.xinyirun.scm.bean.system.bo.inventory.warehouse.MWareHouseBo;
 import com.xinyirun.scm.bean.system.bo.session.user.system.UserSessionBo;
 import com.xinyirun.scm.bean.system.utils.servlet.ServletUtil;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseLocationBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseLocationBinVo;
 import com.xinyirun.scm.bean.system.vo.sys.unit.SUnitVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;

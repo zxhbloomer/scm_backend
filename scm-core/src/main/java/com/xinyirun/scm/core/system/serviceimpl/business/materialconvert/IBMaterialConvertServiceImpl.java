@@ -15,7 +15,7 @@ import com.xinyirun.scm.bean.system.vo.business.materialconvert.*;
 import com.xinyirun.scm.bean.system.vo.excel.materialconvert.BMaterialConvertExportVo;
 import com.xinyirun.scm.bean.system.vo.master.customer.MOwnerVo;
 import com.xinyirun.scm.bean.system.vo.master.goods.MGoodsSpecVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.system.BusinessException;

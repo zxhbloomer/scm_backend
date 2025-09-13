@@ -213,7 +213,7 @@ public class UserController extends SystemBaseController {
     @SysLogAnnotion("获取当前用户密码是否过期")
     @PostMapping("/user_pwd_warning")
     @ResponseBody
-    @RepeatSubmitAnnotion
+//    @RepeatSubmitAnnotion
     public ResponseEntity<JsonResultAo<MUserVo>> getUserPwdWarning() {
         MUserVo mUserVo = service.getUserPwdWarning(SecurityUtil.getLoginUser_id());
         return ResponseEntity.ok().body(ResultUtil.OK(mUserVo));

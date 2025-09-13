@@ -84,7 +84,7 @@ public class MCategoryServiceImpl extends BaseServiceImpl<MCategoryMapper, MCate
             entity.setCode(autoCodeService.autoCode().getCode());
         }
         
-        entity.setEnable(Boolean.TRUE);
+        // enable字段使用前端传入的值，不强制设置
         int rtn = mapper.insert(entity);
         vo.setId(entity.getId());
 
@@ -100,23 +100,47 @@ public class MCategoryServiceImpl extends BaseServiceImpl<MCategoryMapper, MCate
      */
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public UpdateResultAo<Integer> update(MCategoryVo vo) {
-        // 更新前check
-        CheckResultAo cr = checkLogic(vo.getName(), CheckResultAo.UPDATE_CHECK_TYPE);
+    public UpdateResultAo<MCategoryVo> update(MCategoryVo vo) {
+        // 更新前check - 传递完整VO对象以便正确排除当前记录
+        CheckResultAo cr = checkLogic(vo, CheckResultAo.UPDATE_CHECK_TYPE);
         if (!cr.isSuccess()) {
             throw new BusinessException(cr.getMessage());
+        }
+
+        // 特别校验：如果要停用类别，检查是否有商品关联
+        if (vo.getEnable() != null && !vo.getEnable()) {
+            // 查询当前类别状态
+            MCategoryEntity currentEntity = this.getById(vo.getId());
+            if (currentEntity != null && currentEntity.getEnable() != null && currentEntity.getEnable()) {
+                // 从启用→停用，需要校验商品关联
+                Integer goodsCount = mapper.checkGoodsExists(vo.getId());
+                if (goodsCount > 0) {
+                    throw new BusinessException(String.format(
+                        "停用失败：该类别下存在%d种商品，无法停用。请先将商品转移到其他类别或删除商品", goodsCount));
+                }
+            }
         }
 
         // 更新逻辑保存
         vo.setC_id(null);
         vo.setC_time(null);
 
+        // 获取当前记录保留is_del字段的原值
+        MCategoryEntity currentEntity = this.getById(vo.getId());
+        
         MCategoryEntity entity = (MCategoryEntity) BeanUtilsSupport.copyProperties(vo, MCategoryEntity.class);
+        
+        // 更新操作不允许修改逻辑删除字段，保持数据库原有状态
+        entity.setIs_del(currentEntity.getIs_del());
+        
         int updCount = mapper.updateById(entity);
         if(updCount == 0){
             throw new UpdateErrorException("您提交的数据已经被修改，请查询后重新编辑更新。");
         }
-        return UpdateResultUtil.OK(updCount);
+        
+        // 返回更新后的完整数据供前端列表页面使用
+        MCategoryVo updatedVo = mapper.selectId(vo.getId());
+        return UpdateResultUtil.OK(updatedVo);
     }
 
     @Override
@@ -125,42 +149,67 @@ public class MCategoryServiceImpl extends BaseServiceImpl<MCategoryMapper, MCate
     }
 
     /**
-     * 启用
-     * @param searchCondition
+     * 启用类别并返回更新后的数据
+     * @param categoryVo 类别对象
+     * @return 更新后的类别数据
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void enabledByIdsIn(List<MCategoryVo> searchCondition) {
-        List<MCategoryEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MCategoryEntity entity : list) {
-            entity.setEnable(Boolean.TRUE);
+    public MCategoryVo enabledByIdsIn(MCategoryVo categoryVo) {
+        // 根据ID查询实体
+        MCategoryEntity entity = this.getById(categoryVo.getId());
+        if (entity == null) {
+            throw new BusinessException("类别不存在，启用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 执行启用操作
+        entity.setEnable(Boolean.TRUE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("类别启用失败，请重试");
+        }
+        
+        // 查询并返回更新后的完整数据
+        return mapper.selectId(categoryVo.getId());
     }
 
     /**
-     * 停用
-     * @param searchCondition
+     * 停用类别并返回更新后的数据 - 包含商品关联校验
+     * @param categoryVo 类别对象
+     * @return 更新后的类别数据
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disSabledByIdsIn(List<MCategoryVo> searchCondition) {
-        List<MCategoryEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MCategoryEntity entity : list) {
-            entity.setEnable(Boolean.FALSE);
+    public MCategoryVo disSabledByIdsIn(MCategoryVo categoryVo) {
+        // 根据ID查询实体
+        MCategoryEntity entity = this.getById(categoryVo.getId());
+        if (entity == null) {
+            throw new BusinessException("类别不存在，停用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 如果当前是启用状态，需要校验商品关联
+        if (entity.getEnable() != null && entity.getEnable()) {
+            Integer goodsCount = mapper.checkGoodsExists(entity.getId());
+            if (goodsCount > 0) {
+                throw new BusinessException(String.format(
+                    "停用失败：类别【%s】下存在%d种商品，无法停用。请先将商品转移到其他类别或删除商品", 
+                    entity.getName(), goodsCount));
+            }
+        }
+        
+        // 执行停用操作
+        entity.setEnable(Boolean.FALSE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("类别停用失败，请重试");
+        }
+        
+        // 查询并返回更新后的完整数据
+        return mapper.selectId(categoryVo.getId());
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void enableByIdsIn(List<MCategoryVo> searchCondition) {
-        List<MCategoryEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MCategoryEntity entity : list) {
-            entity.setEnable(!entity.getEnable());
-        }
-        saveOrUpdateBatch(list, 500);
-    }
 
     /**
      * 导出

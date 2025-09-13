@@ -21,6 +21,7 @@ import com.xinyirun.scm.core.system.mapper.master.goods.MGoodsMapper;
 import com.xinyirun.scm.core.system.mapper.master.goods.MGoodsSpecMapper;
 import com.xinyirun.scm.core.system.service.master.goods.IMGoodsService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
+import com.xinyirun.scm.core.system.serviceimpl.common.autocode.MGoodsAutoCodeServiceImpl;
 import com.xinyirun.scm.core.system.utils.mybatis.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,9 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
 
     @Autowired
     private MGoodsSpecMapper specMapper;
+
+    @Autowired
+    private MGoodsAutoCodeServiceImpl autoCodeService;
 
     /**
      * 查询分页列表
@@ -78,6 +82,12 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
 
         // 插入逻辑保存
         MGoodsEntity entity = (MGoodsEntity) BeanUtilsSupport.copyProperties(vo, MGoodsEntity.class);
+        
+        // 自动生成物料编码
+        if (entity.getCode() == null || entity.getCode().trim().isEmpty()) {
+            entity.setCode(autoCodeService.autoCode().getCode());
+        }
+        
         int rtn = mapper.insert(entity);
         vo.setId(entity.getId());
 
@@ -134,31 +144,31 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
             java.util.Map<String, Object> associations = mapper.checkGoodsBusinessAssociations(entity.getId());
             
             // L1: 库存检查
-            Integer inventoryCount = (Integer) associations.get("inventory_count");
+            Long inventoryCount = (Long) associations.get("inventory_count");
             if (inventoryCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条库存记录，无法删除", entity.getName(), inventoryCount));
             }
             
             // L2: 入库记录检查  
-            Integer inboundCount = (Integer) associations.get("inbound_count");
+            Long inboundCount = (Long) associations.get("inbound_count");
             if (inboundCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条入库记录，无法删除", entity.getName(), inboundCount));
             }
             
             // L3: 出库记录检查
-            Integer outboundCount = (Integer) associations.get("outbound_count");
+            Long outboundCount = (Long) associations.get("outbound_count");
             if (outboundCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条出库记录，无法删除", entity.getName(), outboundCount));
             }
             
             // L4: 采购订单检查
-            Integer purchaseOrderCount = (Integer) associations.get("purchase_order_count");
+            Long purchaseOrderCount = (Long) associations.get("purchase_order_count");
             if (purchaseOrderCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条采购订单记录，无法删除", entity.getName(), purchaseOrderCount));
             }
             
             // L5: 销售订单检查
-            Integer salesOrderCount = (Integer) associations.get("sales_order_count");
+            Long salesOrderCount = (Long) associations.get("sales_order_count");
             if (salesOrderCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条销售订单记录，无法删除", entity.getName(), salesOrderCount));
             }
@@ -205,31 +215,31 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
             java.util.Map<String, Object> associations = mapper.checkGoodsBusinessAssociations(entity.getId());
             
             // L1: 库存检查
-            Integer inventoryCount = (Integer) associations.get("inventory_count");
+            Long inventoryCount = (Long) associations.get("inventory_count");
             if (inventoryCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条库存记录，无法停用", entity.getName(), inventoryCount));
             }
             
             // L2: 入库记录检查  
-            Integer inboundCount = (Integer) associations.get("inbound_count");
+            Long inboundCount = (Long) associations.get("inbound_count");
             if (inboundCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条入库记录，无法停用", entity.getName(), inboundCount));
             }
             
             // L3: 出库记录检查
-            Integer outboundCount = (Integer) associations.get("outbound_count");
+            Long outboundCount = (Long) associations.get("outbound_count");
             if (outboundCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条出库记录，无法停用", entity.getName(), outboundCount));
             }
             
             // L4: 采购订单检查
-            Integer purchaseOrderCount = (Integer) associations.get("purchase_order_count");
+            Long purchaseOrderCount = (Long) associations.get("purchase_order_count");
             if (purchaseOrderCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条采购订单记录，无法停用", entity.getName(), purchaseOrderCount));
             }
             
             // L5: 销售订单检查
-            Integer salesOrderCount = (Integer) associations.get("sales_order_count");
+            Long salesOrderCount = (Long) associations.get("sales_order_count");
             if (salesOrderCount > 0) {
                 throw new BusinessException(String.format("物料【%s】存在 %d 条销售订单记录，无法停用", entity.getName(), salesOrderCount));
             }
@@ -259,27 +269,27 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
                 java.util.Map<String, Object> associations = mapper.checkGoodsBusinessAssociations(entity.getId());
                 
                 // L1-L5多层业务校验
-                Integer inventoryCount = (Integer) associations.get("inventory_count");
+                Long inventoryCount = (Long) associations.get("inventory_count");
                 if (inventoryCount > 0) {
                     throw new BusinessException(String.format("物料【%s】存在 %d 条库存记录，无法停用", entity.getName(), inventoryCount));
                 }
                 
-                Integer inboundCount = (Integer) associations.get("inbound_count");
+                Long inboundCount = (Long) associations.get("inbound_count");
                 if (inboundCount > 0) {
                     throw new BusinessException(String.format("物料【%s】存在 %d 条入库记录，无法停用", entity.getName(), inboundCount));
                 }
                 
-                Integer outboundCount = (Integer) associations.get("outbound_count");
+                Long outboundCount = (Long) associations.get("outbound_count");
                 if (outboundCount > 0) {
                     throw new BusinessException(String.format("物料【%s】存在 %d 条出库记录，无法停用", entity.getName(), outboundCount));
                 }
                 
-                Integer purchaseOrderCount = (Integer) associations.get("purchase_order_count");
+                Long purchaseOrderCount = (Long) associations.get("purchase_order_count");
                 if (purchaseOrderCount > 0) {
                     throw new BusinessException(String.format("物料【%s】存在 %d 条采购订单记录，无法停用", entity.getName(), purchaseOrderCount));
                 }
                 
-                Integer salesOrderCount = (Integer) associations.get("sales_order_count");
+                Long salesOrderCount = (Long) associations.get("sales_order_count");
                 if (salesOrderCount > 0) {
                     throw new BusinessException(String.format("物料【%s】存在 %d 条销售订单记录，无法停用", entity.getName(), salesOrderCount));
                 }
@@ -337,6 +347,111 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
                 break;
             default:
         }
+        return CheckResultUtil.OK();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(MGoodsVo searchCondition) {
+        // 1. 查询物料实体
+        MGoodsEntity goods = this.getById(searchCondition.getId());
+        if (goods == null) {
+            throw new BusinessException("物料不存在，删除失败");
+        }
+
+        // 2. 执行删除前校验（按照仓库删除标准模式）
+        CheckResultAo cr = checkLogic(goods, CheckResultAo.DELETE_CHECK_TYPE);
+        if (!cr.isSuccess()) {
+            throw new BusinessException(cr.getMessage());
+        }
+
+        // 3. 校验通过，执行删除逻辑 - 切换删除状态（复原逻辑）
+        goods.setIs_del(!goods.getIs_del());
+        boolean updateResult = this.updateById(goods);
+        
+        if (!updateResult) {
+            throw new BusinessException("物料删除失败，请重试");
+        }
+    }
+
+    /**
+     * check逻辑（兼容性方法 - 将VO转换为Entity后调用统一校验）
+     */
+    public CheckResultAo checkLogic(MGoodsVo vo, String moduleType) {
+        // 转换VO到Entity以使用统一的校验逻辑
+        MGoodsEntity entity = (MGoodsEntity) BeanUtilsSupport.copyProperties(vo, MGoodsEntity.class);
+        return checkLogic(entity, moduleType);
+    }
+
+    /**
+     * 统一校验逻辑
+     */
+    public CheckResultAo checkLogic(MGoodsEntity entity, String moduleType) {
+        switch (moduleType) {
+            case CheckResultAo.DELETE_CHECK_TYPE:
+                /** 如果逻辑删除为true，表示已经删除，无需校验 */
+                if(entity.getIs_del() != null && entity.getIs_del()) {
+                    return CheckResultUtil.OK();
+                }
+                
+                // 校验物料是否被业务使用（库存、入库、出库、采购订单、销售订单）
+                CheckResultAo businessCheck = checkGoodsBusinessAssociations(entity.getId().longValue());
+                if (!businessCheck.isSuccess()) {
+                    return businessCheck;
+                }
+                break;
+                
+            // 其他校验类型...
+            default:
+                break;
+        }
+        return CheckResultUtil.OK();
+    }
+
+    /**
+     * 校验物料业务关联（删除前检查）
+     * @param goodsId 物料ID
+     * @return 校验结果
+     */
+    private CheckResultAo checkGoodsBusinessAssociations(Long goodsId) {
+        // 将Long转为Integer以匹配Mapper方法签名
+        Integer goodsIdInt = goodsId.intValue();
+        
+        // L1级别：检查库存
+        Long inventoryCount = mapper.checkInventoryExists(goodsIdInt).longValue();
+        if (inventoryCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该物料在库存中存在 %d 条记录，请先清空库存", inventoryCount));
+        }
+        
+        // L2级别：检查入库业务
+        Long inboundCount = mapper.checkInboundExists(goodsIdInt).longValue();
+        if (inboundCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该物料存在 %d 条入库记录，无法删除", inboundCount));
+        }
+        
+        // L3级别：检查出库业务  
+        Long outboundCount = mapper.checkOutboundExists(goodsIdInt).longValue();
+        if (outboundCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该物料存在 %d 条出库记录，无法删除", outboundCount));
+        }
+        
+        // L4级别：检查采购订单
+        Long poOrderCount = mapper.checkPurchaseOrderExists(goodsIdInt).longValue();
+        if (poOrderCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该物料被 %d 个采购订单使用，无法删除", poOrderCount));
+        }
+        
+        // L5级别：检查销售订单
+        Long soOrderCount = mapper.checkSalesOrderExists(goodsIdInt).longValue();
+        if (soOrderCount > 0) {
+            return CheckResultUtil.NG(String.format(
+                "删除失败：该物料被 %d 个销售订单使用，无法删除", soOrderCount));
+        }
+        
         return CheckResultUtil.OK();
     }
 

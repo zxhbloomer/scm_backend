@@ -46,7 +46,7 @@ public interface IMCategoryService extends IService<MCategoryEntity> {
      * @param vo
      * @return
      */
-    UpdateResultAo<Integer> update(MCategoryVo vo);
+    UpdateResultAo<MCategoryVo> update(MCategoryVo vo);
 
     /**
      * 批量删除
@@ -55,16 +55,18 @@ public interface IMCategoryService extends IService<MCategoryEntity> {
     DeleteResultAo<Integer> deleteByIdsIn(List<MCategoryVo> searchCondition);
 
     /**
-     * 批量启用
-     * @return
+     * 启用类别并返回更新后的数据
+     * @param categoryVo 类别对象
+     * @return 更新后的类别数据
      */
-    void enabledByIdsIn(List<MCategoryVo> searchCondition);
+    MCategoryVo enabledByIdsIn(MCategoryVo categoryVo);
 
     /**
-     * 批量禁用
-     * @return
+     * 停用类别并返回更新后的数据
+     * @param categoryVo 类别对象
+     * @return 更新后的类别数据
      */
-    void disSabledByIdsIn(List<MCategoryVo> searchCondition);
+    MCategoryVo disSabledByIdsIn(MCategoryVo categoryVo);
 
     /**
      * 通过name查询
@@ -73,10 +75,6 @@ public interface IMCategoryService extends IService<MCategoryEntity> {
     List<MCategoryEntity> selectByName(String name);
 
 
-    /**
-     * 批量启用/停用
-     */
-    void enableByIdsIn(List<MCategoryVo> searchCondition);
 
     /**
      * 导出

@@ -1283,4 +1283,137 @@ public class MEnterpriseServiceImpl extends BaseServiceImpl<MEnterpriseMapper, M
         }
         return UpdateResultUtil.OK(mapper.updateById(existingEntity));
     }
+
+    // =================== BPM 作废审批流程回调方法 ===================
+
+    /**
+     * 企业作废审批流程创建时更新BPM实例摘要数据
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> bpmCancelCallBackCreateBpm(MEnterpriseVo searchCondition) {
+        log.debug("====》企业管理[{}]作废审批流程创建成功，更新开始《====", searchCondition.getId());
+        
+        // 1. 获取企业详细信息（包含作废原因）
+        MEnterpriseVo mEnterpriseVo = getDetail(searchCondition);
+
+        // 2. 构建作废摘要信息JSON
+        JSONObject jsonObject = new JSONObject();
+        if (mEnterpriseVo.getCancel_reason() != null) {
+            jsonObject.put("作废理由:", mEnterpriseVo.getCancel_reason());
+        }
+        jsonObject.put("企业名称:", mEnterpriseVo.getName());
+        jsonObject.put("社会信用号:", mEnterpriseVo.getUscc());
+
+        // 3. 更新bpm_instance_summary表
+        BpmInstanceSummaryEntity bpmInstanceSummaryEntity = new BpmInstanceSummaryEntity();
+        bpmInstanceSummaryEntity.setProcessCode(searchCondition.getBpm_instance_code());
+        bpmInstanceSummaryEntity.setSummary(jsonObject.toString());
+        bpmInstanceSummaryEntity.setProcess_definition_business_name(mEnterpriseVo.getBpm_cancel_process_name());
+        iBpmInstanceSummaryService.save(bpmInstanceSummaryEntity);
+
+        log.debug("====》企业管理[{}]作废审批流程创建成功，更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(0);
+    }
+
+    /**
+     * 企业作废审批流程通过，更新状态为已作废
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> bpmCancelCallBackApprove(MEnterpriseVo searchCondition) {
+        log.debug("====》企业管理[{}]作废审批流程通过，更新开始《====", searchCondition.getId());
+        
+        MEnterpriseEntity mEnterpriseEntity = mapper.selectById(searchCondition.getId());
+
+        // 1. 设置作废相关的bpm字段
+        mEnterpriseEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        mEnterpriseEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        
+        // 2. 设置业务状态为已作废（需要新增状态常量）
+        mEnterpriseEntity.setStatus(DictConstant.DICT_M_ENTERPRISE_STATUS_FIVE);  // 已作废
+        mEnterpriseEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
+        
+        // 3. 同时更新通用bpm字段
+        mEnterpriseEntity.setBpm_instance_id(searchCondition.getBpm_instance_id());
+        mEnterpriseEntity.setBpm_instance_code(searchCondition.getBpm_instance_code());
+
+        int i = mapper.updateById(mEnterpriseEntity);
+        if (i == 0) {
+            throw new UpdateErrorException("更新企业审核状态失败");
+        }
+
+        log.debug("====》企业管理[{}]作废审批流程通过，更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(i);
+    }
+
+    /**
+     * 企业作废审批流程拒绝，恢复为通过状态
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> bpmCancelCallBackRefuse(MEnterpriseVo searchCondition) {
+        log.debug("====》企业管理[{}]作废审批流程拒绝，更新开始《====", searchCondition.getId());
+        
+        MEnterpriseEntity mEnterpriseEntity = mapper.selectById(searchCondition.getId());
+        
+        // 恢复为通过状态
+        mEnterpriseEntity.setStatus(DictConstant.DICT_M_ENTERPRISE_STATUS_TWO);  // 恢复为通过状态
+        mEnterpriseEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
+
+        int i = mapper.updateById(mEnterpriseEntity);
+        if (i == 0) {
+            throw new UpdateErrorException("更新企业审核状态失败");
+        }
+
+        log.debug("====》企业管理[{}]作废审批流程拒绝，更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(i);
+    }
+
+    /**
+     * 企业作废审批流程撤销，恢复为通过状态
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> bpmCancelCallBackCancel(MEnterpriseVo searchCondition) {
+        log.debug("====》企业管理[{}]作废审批流程撤销，更新开始《====", searchCondition.getId());
+        
+        MEnterpriseEntity mEnterpriseEntity = mapper.selectById(searchCondition.getId());
+        
+        // 恢复为通过状态
+        mEnterpriseEntity.setStatus(DictConstant.DICT_M_ENTERPRISE_STATUS_TWO);  // 恢复为通过状态
+        mEnterpriseEntity.setNext_approve_name(DictConstant.DICT_SYS_CODE_BPM_INSTANCE_STATUS_COMPLETE);
+
+        int i = mapper.updateById(mEnterpriseEntity);
+        if (i == 0) {
+            throw new UpdateErrorException("更新企业审核状态失败");
+        }
+
+        log.debug("====》企业管理[{}]作废审批流程撤销，更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(i);
+    }
+
+    /**
+     * 企业作废审批流程保存最新审批人
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public UpdateResultAo<Integer> bpmCancelCallBackSave(MEnterpriseVo searchCondition) {
+        log.debug("====》企业管理[{}]作废审批流程更新最新审批人，更新开始《====", searchCondition.getId());
+
+        MEnterpriseEntity mEnterpriseEntity = mapper.selectById(searchCondition.getId());
+        
+        // 更新作废审批流程信息
+        mEnterpriseEntity.setBpm_cancel_instance_id(searchCondition.getBpm_instance_id());
+        mEnterpriseEntity.setBpm_cancel_instance_code(searchCondition.getBpm_instance_code());
+        mEnterpriseEntity.setNext_approve_name(searchCondition.getNext_approve_name());
+        
+        int i = mapper.updateById(mEnterpriseEntity);
+        if (i == 0) {
+            throw new UpdateErrorException("保存的数据已经被修改，请查询后重新操作。");
+        }
+
+        log.debug("====》企业管理[{}]作废审批流程更新最新审批人，更新结束《====", searchCondition.getId());
+        return UpdateResultUtil.OK(i);
+    }
 }

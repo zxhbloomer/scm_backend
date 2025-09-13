@@ -276,6 +276,12 @@ spring:
 #        type: com.alibaba.druid.pool.xa.DruidXADataSource
 #        driverClassName: com.mysql.cj.jdbc.Driver
 #        druid:
+  # Elasticsearch配置
+  elasticsearch:
+    uris: http://127.0.0.1:19200
+    connection-timeout: 1s
+    socket-timeout: 30s
+  
   #   OAuth2 Client/Login配置
   security:
     oauth2:
@@ -345,6 +351,98 @@ spring:
             threadCount: 10
             threadPriority: 5
             threadsInheritContextClassLoaderOfInitializingThread: true
+  
+  #-----------------------Spring AI配置---------------------------
+  ai:
+    # 模型配置 - 禁用所有自动配置
+    model:
+      chat: none  # 禁用聊天模型自动配置
+    
+    # 重试机制配置
+    retry:
+      max-attempts: 3
+      backoff:
+        initial-interval: 1000
+        multiplier: 2
+        max-interval: 10000
+    
+    # 智谱AI配置
+    zhipuai:
+      enabled: false  # 开发环境暂时禁用，需要时开启
+      api-key: ${ZHIPUAI_API_KEY:your-api-key-here}
+      base-url: https://open.bigmodel.cn
+      chat:
+        options:
+          model: glm-4
+          temperature: 0.7
+          max-tokens: 4096
+    
+    # 阿里通义千问配置
+    dashscope:
+      enabled: false  # 开发环境暂时禁用，需要时开启
+      api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+      chat:
+        options:
+          model: qwen-plus
+          temperature: 0.7
+          max-tokens: 1500
+    
+    # 百度千帆配置
+    baidu:
+      enabled: false  # 开发环境暂时禁用，需要时开启
+      api-key: ${BAIDU_API_KEY:your-api-key-here}
+      secret-key: ${BAIDU_SECRET_KEY:your-secret-key-here}
+      chat:
+        options:
+          model: ERNIE-Bot-4
+          temperature: 0.7
+    
+    # 腾讯混元配置
+    tencent:
+      enabled: false  # 开发环境暂时禁用，需要时开启
+      secret-id: ${TENCENT_SECRET_ID:your-secret-id-here}
+      secret-key: ${TENCENT_SECRET_KEY:your-secret-key-here}
+      region: ap-beijing
+      chat:
+        options:
+          model: hunyuan-lite
+          temperature: 0.7
+    
+    # Anthropic Claude配置
+    anthropic:
+      enabled: false  # 开发环境暂时禁用，需要时开启
+      api-key: ${ANTHROPIC_API_KEY:your-api-key-here}
+      chat:
+        enabled: false
+        options:
+          model: claude-3-opus-20240229
+          temperature: 0.7
+          max-tokens: 4096
+    
+    # OpenAI配置 - 完全禁用OpenAI相关自动配置
+    openai:
+      api-key: disabled  # 设置为disabled避免自动配置尝试
+      chat:
+        enabled: false
+      embedding:
+        enabled: false  
+      image:
+        enabled: false
+      audio:
+        transcription:
+          enabled: false
+        speech:
+          enabled: false
+      moderation:
+        enabled: false
+    
+    # 向量存储配置
+    vectorstore:
+      elasticsearch:
+        enabled: false
+        index-name: scm_ai_vs_index
+        dimensions: 1024
+
 logging:
   level:
     org.springframework.web: Debug
@@ -385,6 +483,8 @@ mybatis-plus:
 
 #-----------------------wms  Configuration---------
 wms:
+  avatar:
+    temp-dir: ./avatar_temp
   config:
     log-print: true
     log-save-db: true
@@ -480,6 +580,37 @@ wms:
         secret: 645539b5e98e52aeed022f7936d077fe
         redirectUrl: https://www.xinyirunscm.com
         csrfKey: xinyirun
+  
+  #-----------------------SCM AI模块自定义配置---------------------------
+  ai:
+    # AI模块总开关
+    enabled: true
+    
+    # 默认使用的AI提供商
+    default-provider: zhipuai
+    
+    # 向量存储配置（后续扩展）
+    vector:
+      enabled: false
+      type: redis  # 可选: redis, elasticsearch, pgvector
+    
+    # 工作流引擎配置
+    workflow:
+      enabled: false
+      max-concurrent-tasks: 10
+      task-timeout: 300000  # 5分钟
+    
+    # 智能分析配置
+    analytics:
+      enabled: false
+      cache-results: true
+      cache-ttl: 3600  # 1小时
+    
+    # 模型管理配置
+    model:
+      auto-select: true  # 自动选择最优模型
+      fallback-enabled: true  # 启用失败降级
+      fallback-order: [zhipuai, dashscope, baidu, tencent]
 
 ##################################################################################重要--避免为了在ActivitiConfig中写死############################################################################################
 ##### db-Type  只有如下可选值,flowable源码并未对这里进行忽略大小写判断,所以我们新增一个配置项来进行配置,防止有人写大写的情况

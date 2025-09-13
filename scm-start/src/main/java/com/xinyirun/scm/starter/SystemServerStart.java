@@ -29,7 +29,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 // 表示通过aop框架暴露该代理对象,AopContext能够访问
 @SpringBootApplication(
-    exclude = { DataSourceAutoConfiguration.class },
+    exclude = { 
+        DataSourceAutoConfiguration.class,
+        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class
+    },
     scanBasePackages = {
             "com.xinyirun.scm.*"
         })
@@ -53,6 +56,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "com.xinyirun.scm.mq.rabbitmq.log.mapper",
         "com.xinyirun.scm.core.bpm.mapper",
         "com.xinyirun.scm.report.mapper",
+        // AI模块Mapper扫描
+        "com.xinyirun.scm.ai.model",
+        "com.xinyirun.scm.ai.provider",
             })
 @EnableAsync(proxyTargetClass=true)
 // 启用spring retry

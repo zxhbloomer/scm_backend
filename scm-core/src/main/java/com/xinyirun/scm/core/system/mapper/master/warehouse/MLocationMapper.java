@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.master.warehouse.MLocationEntity;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationVo;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -182,7 +182,8 @@ public interface MLocationMapper extends BaseMapper<MLocationEntity> {
                 t.name,                                                          
                 t.short_name,                                                          
                 t3.name as warehouse_name,                                                          
-                if(t.enable, '启用', '停用') as enable_status,                                                     
+                if(t.enable, '启用', '停用') as enable_status,
+                if(t.is_default, '是', '否') as is_default_status,                                                     
                 t1.name as c_name,                                                                  
                 t.c_time,                                                                           
                 t2.name as u_name,                                                                   

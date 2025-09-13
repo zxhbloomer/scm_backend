@@ -4,8 +4,8 @@ package com.xinyirun.scm.controller.master.warehouse;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -100,28 +100,20 @@ public class MLocationController extends SystemBaseController {
     // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enabled(@RequestBody(required = false) List<MLocationVo> searchConditionList) {
-        service.enabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MLocationVo>> enabled(@RequestBody(required = false) MLocationVo locationVo) {
+        MLocationVo result = service.enabledByIdsIn(locationVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(result, "库区启用成功"));
     }
 
     @SysLogAnnotion("根据选择的数据禁用，部分数据")
     // @ApiOperation(value = "根据参数id，禁用数据")
     @PostMapping("/disabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> disabled(@RequestBody(required = false) List<MLocationVo> searchConditionList) {
-        service.disSabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MLocationVo>> disabled(@RequestBody(required = false) MLocationVo locationVo) {
+        MLocationVo result = service.disSabledByIdsIn(locationVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(result, "库区停用成功"));
     }
 
-    @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
-    // @ApiOperation(value = "根据参数id，启用数据")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MLocationVo> searchConditionList) {
-        service.enableByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @SysLogAnnotion("库区信息导出(全部)")
     @PostMapping("/exportall")

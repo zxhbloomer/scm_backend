@@ -11,10 +11,14 @@ import com.xinyirun.scm.core.system.mapper.client.user.MUserMapper;
 import com.xinyirun.scm.core.system.mapper.master.user.MStaffMapper;
 import com.xinyirun.scm.core.system.service.sys.platform.ISignUpService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -25,6 +29,7 @@ import java.util.List;
  * @author zxh
  * @since 2019-07-04
  */
+@Slf4j
 @Service
 public class SignUpServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntity> implements ISignUpService {
 
@@ -33,6 +38,25 @@ public class SignUpServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
 
     @Autowired
     private MUserMapper mUserMapper;
+
+    @Value("${wms.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
+    private String avatarTempDir;
+
+    @PostConstruct
+    public void initAvatarTempDir() {
+        try {
+            File dir = new File(avatarTempDir);
+            if (!dir.exists()) {
+                boolean created = dir.mkdirs();
+                log.info("头像临时目录创建{}: {}", created ? "成功" : "失败", dir.getAbsolutePath());
+            } else {
+                log.info("头像临时目录已存在: {}", dir.getAbsolutePath());
+            }
+        } catch (Exception e) {
+            log.error("初始化头像临时目录失败: {}", avatarTempDir, e);
+            throw new BusinessException("头像目录初始化失败: " + e.getMessage());
+        }
+    }
 
     /**
      * 注册
@@ -78,8 +102,8 @@ public class SignUpServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
         mUserEntity.setType(DictConstant.DICT_USR_LOGIN_TYPE_ADMIN);
         mUserEntity.setLogin_type(DictConstant.DICT_SYS_LOGIN_TYPE_MOBILE);
         try {
-            CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), "/wms/avatar_temp", mStaffEntity.getName());
-            String avatarUrl = uploadFile("/wms/avatar_temp/"+mStaffEntity.getName()+".jpg", mStaffEntity.getName() +".jpg", 0);
+            CreateAvatarByUserNameUtil.generateImg(mStaffEntity.getName(), avatarTempDir, mStaffEntity.getName());
+            String avatarUrl = uploadFile(avatarTempDir + File.separator + mStaffEntity.getName() + ".jpg", mStaffEntity.getName() + ".jpg", 0);
             mUserEntity.setAvatar(avatarUrl);
         } catch (Exception e) {
             log.error("signUp error", e);

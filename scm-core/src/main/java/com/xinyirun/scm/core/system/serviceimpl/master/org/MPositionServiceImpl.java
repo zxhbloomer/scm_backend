@@ -14,7 +14,7 @@ import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.relation.BWarehous
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionExportVo;
 import com.xinyirun.scm.bean.system.vo.master.org.MPositionVo;
 import com.xinyirun.scm.bean.system.vo.master.tree.TreeDataVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MWarehouseVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MWarehouseVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.string.StringUtils;

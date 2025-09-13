@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.master.warehouse.MBinEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MBinVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MBinVo;
 
 import java.util.List;
 
@@ -55,19 +55,14 @@ public interface IMBinService extends IService<MBinEntity> {
 
 
     /**
-     * 批量启用
+     * 启用库位
      */
-    void enabledByIdsIn(List<MBinVo> searchCondition);
+    UpdateResultAo<Integer> enabled(MBinVo vo);
 
     /**
-     * 批量停用
+     * 停用库位
      */
-    void disSabledByIdsIn(List<MBinVo> searchCondition);
-
-    /**
-     * 批量启用/停用
-     */
-    void enableByIdsIn(List<MBinVo> searchCondition);
+    UpdateResultAo<Integer> disabled(MBinVo vo);
 
     /**
      * 查询by id，返回结果

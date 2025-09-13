@@ -6,7 +6,7 @@ import com.xinyirun.scm.bean.entity.master.warehouse.MWarehouseEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.UpdateResultAo;
 import com.xinyirun.scm.bean.system.bo.inventory.warehouse.MBLWBo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.*;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.*;
 
 import java.util.List;
 
@@ -65,19 +65,15 @@ public interface IMWarehouseService extends IService<MWarehouseEntity> {
     List<MWarehouseEntity> selectByShortName(String shortName, Integer id);
 
     /**
-     * 批量启用
+     * 单条启用
      */
-    void enabledByIdsIn(List<MWarehouseVo> searchCondition);
+    MWarehouseVo enabledByIdsIn(MWarehouseVo warehouseVo);
 
     /**
-     * 批量停用
+     * 单条停用
      */
-    void disSabledByIdsIn(List<MWarehouseVo> searchCondition);
+    MWarehouseVo disSabledByIdsIn(MWarehouseVo warehouseVo);
 
-    /**
-     * 批量启用/停用
-     */
-    void enableByIdsIn(List<MWarehouseVo> searchCondition);
 
     /**
      * 查询by id，返回结果

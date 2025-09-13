@@ -9,13 +9,12 @@ import com.xinyirun.scm.bean.system.bo.inventory.warehouse.MBLWBo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupOperationVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseGroupVo;
 import com.xinyirun.scm.bean.system.vo.business.wms.warehouse.BWarehouseTransferVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.*;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.*;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -50,8 +49,8 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "  LEFT JOIN v_dict_info t3 ON t3.dict_value = t.zone and t3.code = '" + DictConstant.DICT_M_WAREHOUSE_ZONE + "'              "
             + "  LEFT JOIN v_dict_info t4 ON t4.dict_value = t.warehouse_type and t4.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "'    "
             + "  LEFT JOIN v_areas_info t6 ON t6.province_code = t.province and t6.city_code = t.city and t6.area_code = t.district         "
-            + "  LEFT JOIN m_enterprise t7 ON t.charge_company_id = t7.id                                                                   "
-            + "  LEFT JOIN m_enterprise t8 ON t.operate_company_id = t8.id                                                                  "
+            + "  LEFT JOIN m_enterprise t7 ON t.charge_company_id = t7.id                           "
+            + "  LEFT JOIN m_enterprise t8 ON t.operate_company_id = t8.id                          "
             + "     left join (                                                                                                             "
             + "                  select count(1) warehouse_group_count,                                                                     "
             + "                         subt.warehouse_id                                                                                   "
@@ -89,8 +88,8 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "  LEFT JOIN v_dict_info t3 ON t3.dict_value = t.zone and t3.code = '" + DictConstant.DICT_M_WAREHOUSE_ZONE + "'              "
             + "  LEFT JOIN v_dict_info t4 ON t4.dict_value = t.warehouse_type and t4.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "'    "
             + "  LEFT JOIN v_areas_info t6 ON t6.province_code = t.province and t6.city_code = t.city and t6.area_code = t.district         "
-            + "  LEFT JOIN m_enterprise t7 ON t.charge_company_id = t7.id                                                                   "
-            + "  LEFT JOIN m_enterprise t8 ON t.operate_company_id = t8.id                                                                  "
+            + "  LEFT JOIN m_enterprise t7 ON t.charge_company_id = t7.id                        "
+            + "  LEFT JOIN m_enterprise t8 ON t.operate_company_id = t8.id                      "
             + " ,(select @row_num:=0) t5                                                                                                    "
             + "      where t.is_del = false                                                                                                 "
 
@@ -127,8 +126,8 @@ public interface MWarehouseMapper extends BaseMapper<MWarehouseEntity> {
             + "  LEFT JOIN v_dict_info t3 ON t3.dict_value = t1.zone and t3.code = '" + DictConstant.DICT_M_WAREHOUSE_ZONE + "'           "
             + "  LEFT JOIN v_dict_info t4 ON t4.dict_value = t1.warehouse_type and t4.code = '" + DictConstant.DICT_M_WAREHOUSE_TYPE + "'  "
             + "  LEFT JOIN v_areas_info t6 ON t6.province_code = t1.province and t6.city_code = t1.city and t6.area_code = t1.district     "
-            + "  LEFT JOIN m_enterprise t7 ON t1.charge_company_id = t7.id                                                                  "
-            + "  LEFT JOIN m_enterprise t8 ON t1.operate_company_id = t8.id                                                                 "
+            + "  LEFT JOIN m_enterprise t7 ON t1.charge_company_id = t7.id AND t7.is_del = false AND t7.status = '2'                           "
+            + "  LEFT JOIN m_enterprise t8 ON t1.operate_company_id = t8.id AND t8.is_del = false AND t8.status = '2'                          "
             + "  LEFT JOIN m_staff t9 ON t1.u_id = t9.id                                                                                    "
             + " ,(select @row_num:=0) t5                                                                                                    "
             + "      where t1.is_del = false                                                                                                "

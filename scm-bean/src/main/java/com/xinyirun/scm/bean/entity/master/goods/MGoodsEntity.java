@@ -91,5 +91,11 @@ public class MGoodsEntity implements Serializable {
     @TableField(value="dbversion")
     private Integer dbversion;
 
+    /**
+     * 是否删除:false-未删除,true-已删除
+     */
+    @TableField("is_del")
+    private Boolean is_del;
+
 
 }

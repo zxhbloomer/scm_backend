@@ -12,9 +12,8 @@ import com.xinyirun.scm.bean.system.result.utils.v1.CheckResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
 import com.xinyirun.scm.bean.system.result.utils.v1.UpdateResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.inventory.MInventoryVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationExportVo;
-import com.xinyirun.scm.bean.system.vo.master.warhouse.MLocationVo;
-import com.xinyirun.scm.common.constant.SystemConstants;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationExportVo;
+import com.xinyirun.scm.bean.system.vo.master.warehouse.MLocationVo;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
@@ -33,7 +32,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -88,7 +86,7 @@ public class MLocationServiceImpl extends BaseServiceImpl<MLocationMapper, MLoca
 
         // 插入逻辑保存
         MLocationEntity entity = (MLocationEntity) BeanUtilsSupport.copyProperties(vo, MLocationEntity.class);
-        entity.setEnable(Boolean.TRUE);
+        // 使用前端传入的enable值
         // 设置拼音
         this.setPinyin(entity);
         // 自动生成编号
@@ -116,7 +114,7 @@ public class MLocationServiceImpl extends BaseServiceImpl<MLocationMapper, MLoca
         vo.setC_id(null);
         vo.setC_time(null);
         MLocationEntity entity = (MLocationEntity) BeanUtilsSupport.copyProperties(vo, MLocationEntity.class);
-        entity.setEnable(Boolean.TRUE);
+        // 使用前端传入的enable值
         // 设置拼音
         this.setPinyin(entity);
 
@@ -147,37 +145,48 @@ public class MLocationServiceImpl extends BaseServiceImpl<MLocationMapper, MLoca
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void enabledByIdsIn(List<MLocationVo> searchCondition) {
-        List<MLocationEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MLocationEntity entity : list) {
-            entity.setEnable(Boolean.TRUE);
+    public MLocationVo enabledByIdsIn(MLocationVo locationVo) {
+        // 1. 验证库区存在性
+        MLocationEntity entity = this.getById(locationVo.getId());
+        if (entity == null) {
+            throw new BusinessException("库区不存在，启用失败");
         }
-        saveOrUpdateBatch(list, 500);
+
+        // 2. 更新启用状态
+        entity.setEnable(Boolean.TRUE);
+        boolean updateResult = this.updateById(entity);
+        if (!updateResult) {
+            throw new BusinessException("库区启用失败，请重试");
+        }
+
+        // 3. 查询并返回最新数据
+        return mapper.selectId(locationVo.getId());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disSabledByIdsIn(List<MLocationVo> searchCondition) {
-        List<MLocationEntity> list = mapper.selectIdsIn(searchCondition);
-        
-        // 停用前校验：检查库区库存是否为0，不为0则抛出异常
-        checkLocationInventory(searchCondition);
-        
-        for(MLocationEntity entity : list) {
-            entity.setEnable(Boolean.FALSE);
+    public MLocationVo disSabledByIdsIn(MLocationVo locationVo) {
+        // 1. 验证库区存在性
+        MLocationEntity entity = this.getById(locationVo.getId());
+        if (entity == null) {
+            throw new BusinessException("库区不存在，停用失败");
         }
-        saveOrUpdateBatch(list, 500);
+
+        // 2. 库存校验（保留原有业务逻辑）
+        List<MLocationVo> checkList = List.of(locationVo);
+        checkLocationInventory(checkList);
+
+        // 3. 更新停用状态
+        entity.setEnable(Boolean.FALSE);
+        boolean updateResult = this.updateById(entity);
+        if (!updateResult) {
+            throw new BusinessException("库区停用失败，请重试");
+        }
+
+        // 4. 查询并返回最新数据
+        return mapper.selectId(locationVo.getId());
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void enableByIdsIn(List<MLocationVo> searchCondition) {
-        List<MLocationEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MLocationEntity entity : list) {
-            entity.setEnable(!entity.getEnable());
-        }
-        saveOrUpdateBatch(list, 500);
-    }
 
     @Override
     public MLocationVo selectById(int id) {

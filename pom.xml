@@ -38,12 +38,13 @@
         <module>./scm-framework</module>
         <module>./scm-mq</module>
         <module>./scm-mq-consumer</module>
+        <module>./scm-ai</module>
         <module>./scm-report</module>
     </modules>
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.4</version>
+        <version>3.5.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -53,7 +54,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>17</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <project.build.springbootversion>3.1.1</project.build.springbootversion>
+        <project.build.springbootversion>3.5.0</project.build.springbootversion>
         <spring.social.version>1.1.6.RELEASE</spring.social.version>
         <poi.version>5.2.4</poi.version>
         <fastjson.version>2.0.53</fastjson.version>
@@ -62,9 +63,7 @@
         <!--        <mybatis-spring-boot-starter.version>2.1.1</mybatis-spring-boot-starter.version>-->
         <kaptcha.version>2.3.2</kaptcha.version>
         <lombok.version>1.18.38</lombok.version>
-        <lettuce.version>6.2.3.RELEASE</lettuce.version>
         <jjwt.version>0.11.5</jjwt.version>
-        <springsecurity.version>6.1.1</springsecurity.version>
         <flowable.version>7.1.0</flowable.version>
         <batik.version>1.7</batik.version>
         <weixin-java-mp.version>4.6.3.B</weixin-java-mp.version>
@@ -73,15 +72,14 @@
         <antisamy.varsion>1.6.4</antisamy.varsion>
         <jeasypoi.version>2.1.6</jeasypoi.version>
         <!--        <knife4j.version>3.0.3</knife4j.version>-->
+        <!-- Spring AI 版本管理 -->
+        <spring-ai.version>1.0.1</spring-ai.version>
+        <spring-ai-alibaba.version>1.0.0.3</spring-ai-alibaba.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-context</artifactId>
-                <version>6.0.12</version>
-            </dependency>
+            <!-- Spring Framework版本由Spring Boot Parent管理 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-autoconfigure</artifactId>
@@ -192,21 +190,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-websocket</artifactId>
                 <version>${project.build.springbootversion}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-beans</artifactId>
-                <version>6.0.12</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.security</groupId>
-                <artifactId>spring-security-core</artifactId>
-                <version>${springsecurity.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.security</groupId>
-                <artifactId>spring-security-web</artifactId>
-                <version>${springsecurity.version}</version>
             </dependency>
 
             <!-- spring retry -->
@@ -680,6 +663,11 @@
             </dependency>
             <dependency>
                 <groupId>com.xinyirun</groupId>
+                <artifactId>scm-ai</artifactId>
+                <version>${xinyirun.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xinyirun</groupId>
                 <artifactId>scm-report</artifactId>
                 <version>${xinyirun.version}</version>
             </dependency>
@@ -886,6 +874,24 @@
             <!--                <artifactId>springfox-swagger-ui</artifactId>-->
             <!--                <version>3.0.0</version>-->
             <!--            </dependency>-->
+
+            <!-- Spring AI 依赖管理 -->
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            
+            <!-- Spring AI 中国AI提供商支持 -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -942,4 +948,40 @@
             </plugins>
         </pluginManagement>
     </build>
+
+    <!-- Maven 仓库配置 - 参考bytedesk项目 -->
+    <repositories>
+        <!-- Spring AI 官方仓库 -->
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>spring-snapshots</id>
+            <name>Spring Snapshots</name>
+            <url>https://repo.spring.io/snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <!-- 阿里巴巴 Spring AI 仓库 -->
+        <repository>
+            <name>Central Portal Snapshots</name>
+            <id>central-portal-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>

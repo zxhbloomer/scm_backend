@@ -51,11 +51,6 @@ public class BpmUsersEntity implements Serializable {
     @TableField("pingyin")
     private String pingyin;
 
-    /**
-     * 拼音, 首字母缩写
-     */
-    @TableField("py")
-    private String py;
 
     /**
      * 昵称
@@ -111,6 +106,22 @@ public class BpmUsersEntity implements Serializable {
     @TableField("tenant_code")
     private byte[] tenant_code;
 
+    /**
+     * 关联m_staff主键
+     */
+    @TableField("staff_id")
+    private Long staff_id;
 
+    /**
+     * 关联m_user主键
+     */
+    @TableField("user_id")
+    private Long user_id;
+
+    /**
+     * 逻辑删除标识
+     */
+    @TableField("is_del")
+    private Boolean is_del;
 
 }
