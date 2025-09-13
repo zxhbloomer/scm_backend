@@ -90,33 +90,22 @@ public class MGoodsController extends SystemBaseController {
 
     @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "启用物料")
     @SysLogAnnotion("根据选择的数据启用，部分数据")
-    // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enabled(@RequestBody(required = false) List<MGoodsVo> searchConditionList) {
-        service.enabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MGoodsVo>> enabled(@RequestBody(required = false) MGoodsVo goodsVo) {
+        MGoodsVo updatedGoods = service.enabledById(goodsVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(updatedGoods, "启用成功"));
     }
 
     @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "停用物料")
     @SysLogAnnotion("根据选择的数据禁用，部分数据")
-    // @ApiOperation(value = "根据参数id，禁用数据")
     @PostMapping("/disabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> disabled(@RequestBody(required = false) List<MGoodsVo> searchConditionList) {
-        service.disSabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MGoodsVo>> disabled(@RequestBody(required = false) MGoodsVo goodsVo) {
+        MGoodsVo updatedGoods = service.disabledById(goodsVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(updatedGoods, "停用成功"));
     }
 
-    @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "启用/停用物料")
-    @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
-    // @ApiOperation(value = "根据参数id，启用数据")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MGoodsVo> searchConditionList) {
-        service.enableByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @DataChangeOperateAnnotation(page_name = "物料管理页面", value = "删除物料")
     @SysLogAnnotion("物料数据逻辑删除复原")

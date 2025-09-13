@@ -98,28 +98,20 @@ public class MGoodsSpecController extends SystemBaseController {
     // @ApiOperation(value = "根据参数id，启用数据")
     @PostMapping("/enabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enabled(@RequestBody(required = false) List<MGoodsSpecVo> searchConditionList) {
-        service.enabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MGoodsSpecVo>> enabled(@RequestBody(required = false) MGoodsSpecVo specVo) {
+        MGoodsSpecVo updatedSpec = service.enabledById(specVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(updatedSpec, "启用成功"));
     }
 
     @SysLogAnnotion("根据选择的数据禁用，部分数据")
     // @ApiOperation(value = "根据参数id，禁用数据")
     @PostMapping("/disabled")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> disabled(@RequestBody(required = false) List<MGoodsSpecVo> searchConditionList) {
-        service.disSabledByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
+    public ResponseEntity<JsonResultAo<MGoodsSpecVo>> disabled(@RequestBody(required = false) MGoodsSpecVo specVo) {
+        MGoodsSpecVo updatedSpec = service.disabledById(specVo);
+        return ResponseEntity.ok().body(ResultUtil.OK(updatedSpec, "停用成功"));
     }
 
-    @SysLogAnnotion("根据选择的数据启用/停用，部分数据")
-    // @ApiOperation(value = "根据参数id，启用数据")
-    @PostMapping("/enable")
-    @ResponseBody
-    public ResponseEntity<JsonResultAo<String>> enable(@RequestBody(required = false) List<MGoodsSpecVo> searchConditionList) {
-        service.enableByIdsIn(searchConditionList);
-        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
-    }
 
     @SysLogAnnotion("导出")
     @PostMapping("/export")

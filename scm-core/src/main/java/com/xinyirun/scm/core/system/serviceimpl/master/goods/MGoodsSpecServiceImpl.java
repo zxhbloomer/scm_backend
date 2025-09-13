@@ -198,42 +198,57 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
     }
 
     /**
-     * 启用
-     * @param searchCondition
+     * 启用规格并返回更新后的数据
+     * @param specVo 规格对象
+     * @return 更新后的规格数据
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void enabledByIdsIn(List<MGoodsSpecVo> searchCondition) {
-        List<MGoodsSpecEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MGoodsSpecEntity entity : list) {
-            entity.setEnable(Boolean.TRUE);
+    public MGoodsSpecVo enabledById(MGoodsSpecVo specVo) {
+        // 根据ID查询实体
+        MGoodsSpecEntity entity = this.getById(specVo.getId());
+        if (entity == null) {
+            throw new BusinessException("规格不存在，启用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 执行启用操作
+        entity.setEnable(Boolean.TRUE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("规格启用失败，请重试");
+        }
+        
+        // 查询并返回更新后的完整数据
+        return mapper.selectId(specVo.getId());
     }
 
     /**
-     * 停用
-     * @param searchCondition
+     * 停用规格并返回更新后的数据
+     * @param specVo 规格对象
+     * @return 更新后的规格数据
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disSabledByIdsIn(List<MGoodsSpecVo> searchCondition) {
-        List<MGoodsSpecEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MGoodsSpecEntity entity : list) {
-            entity.setEnable(Boolean.FALSE);
+    public MGoodsSpecVo disabledById(MGoodsSpecVo specVo) {
+        // 根据ID查询实体
+        MGoodsSpecEntity entity = this.getById(specVo.getId());
+        if (entity == null) {
+            throw new BusinessException("规格不存在，停用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 执行停用操作（规格停用无需复杂业务校验，类似类别管理）
+        entity.setEnable(Boolean.FALSE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("规格停用失败，请重试");
+        }
+        
+        // 查询并返回更新后的完整数据
+        return mapper.selectId(specVo.getId());
     }
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void enableByIdsIn(List<MGoodsSpecVo> searchCondition) {
-        List<MGoodsSpecEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MGoodsSpecEntity entity : list) {
-            entity.setEnable(!entity.getEnable());
-        }
-        saveOrUpdateBatch(list, 500);
-    }
 
     /**
      * 导出

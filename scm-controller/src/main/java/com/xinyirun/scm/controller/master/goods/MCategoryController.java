@@ -88,7 +88,7 @@ public class MCategoryController extends SystemBaseController {
     @PostMapping("/enabled")
     @ResponseBody
     public ResponseEntity<JsonResultAo<MCategoryVo>> enabled(@RequestBody(required = false) MCategoryVo categoryVo) {
-        MCategoryVo updatedCategory = service.enabledByIdsIn(categoryVo);
+        MCategoryVo updatedCategory = service.enabledById(categoryVo);
         return ResponseEntity.ok().body(ResultUtil.OK(updatedCategory, "启用成功"));
     }
 
@@ -96,7 +96,7 @@ public class MCategoryController extends SystemBaseController {
     @PostMapping("/disabled")
     @ResponseBody
     public ResponseEntity<JsonResultAo<MCategoryVo>> disabled(@RequestBody(required = false) MCategoryVo categoryVo) {
-        MCategoryVo updatedCategory = service.disSabledByIdsIn(categoryVo);
+        MCategoryVo updatedCategory = service.disabledById(categoryVo);
         return ResponseEntity.ok().body(ResultUtil.OK(updatedCategory, "停用成功"));
     }
 

@@ -53,14 +53,18 @@ public interface IMGoodsSpecService extends IService<MGoodsSpecEntity> {
     DeleteResultAo<Integer> deleteByIdsIn(List<MGoodsSpecVo> searchCondition);
 
     /**
-     * 批量启用
+     * 启用规格并返回更新后的数据
+     * @param specVo 规格对象
+     * @return 更新后的规格数据
      */
-    void enabledByIdsIn(List<MGoodsSpecVo> searchCondition);
+    MGoodsSpecVo enabledById(MGoodsSpecVo specVo);
 
     /**
-     * 批量禁用
+     * 停用规格并返回更新后的数据
+     * @param specVo 规格对象
+     * @return 更新后的规格数据
      */
-    void disSabledByIdsIn(List<MGoodsSpecVo> searchCondition);
+    MGoodsSpecVo disabledById(MGoodsSpecVo specVo);
 
     /**
      * 通过name查询
@@ -75,10 +79,6 @@ public interface IMGoodsSpecService extends IService<MGoodsSpecEntity> {
     MGoodsSpecVo selectByCode(String code);
 
 
-    /**
-     * 批量启用/停用
-     */
-    void enableByIdsIn(List<MGoodsSpecVo> searchCondition);
 
     /**
      * 导出

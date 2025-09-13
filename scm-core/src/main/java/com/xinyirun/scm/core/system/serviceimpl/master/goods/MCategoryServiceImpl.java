@@ -155,7 +155,7 @@ public class MCategoryServiceImpl extends BaseServiceImpl<MCategoryMapper, MCate
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MCategoryVo enabledByIdsIn(MCategoryVo categoryVo) {
+    public MCategoryVo enabledById(MCategoryVo categoryVo) {
         // 根据ID查询实体
         MCategoryEntity entity = this.getById(categoryVo.getId());
         if (entity == null) {
@@ -181,7 +181,7 @@ public class MCategoryServiceImpl extends BaseServiceImpl<MCategoryMapper, MCate
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public MCategoryVo disSabledByIdsIn(MCategoryVo categoryVo) {
+    public MCategoryVo disabledById(MCategoryVo categoryVo) {
         // 根据ID查询实体
         MCategoryEntity entity = this.getById(categoryVo.getId());
         if (entity == null) {

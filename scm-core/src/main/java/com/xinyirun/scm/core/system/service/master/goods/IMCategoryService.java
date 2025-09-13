@@ -59,14 +59,14 @@ public interface IMCategoryService extends IService<MCategoryEntity> {
      * @param categoryVo 类别对象
      * @return 更新后的类别数据
      */
-    MCategoryVo enabledByIdsIn(MCategoryVo categoryVo);
+    MCategoryVo enabledById(MCategoryVo categoryVo);
 
     /**
      * 停用类别并返回更新后的数据
      * @param categoryVo 类别对象
      * @return 更新后的类别数据
      */
-    MCategoryVo disSabledByIdsIn(MCategoryVo categoryVo);
+    MCategoryVo disabledById(MCategoryVo categoryVo);
 
     /**
      * 通过name查询

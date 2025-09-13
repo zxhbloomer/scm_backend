@@ -182,35 +182,47 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
     }
 
     /**
-     * 启用
-     * @param searchCondition
+     * 启用物料并返回更新后的数据
+     * @param goodsVo 物料对象
+     * @return 更新后的物料数据
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void enabledByIdsIn(List<MGoodsVo> searchCondition) {
-        List<MGoodsEntity> list = mapper.selectIdsIn(searchCondition);
-        for(MGoodsEntity entity : list) {
-            entity.setEnable(Boolean.TRUE);
+    public MGoodsVo enabledById(MGoodsVo goodsVo) {
+        // 根据ID查询实体
+        MGoodsEntity entity = this.getById(goodsVo.getId());
+        if (entity == null) {
+            throw new BusinessException("物料不存在，启用失败");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 执行启用操作
+        entity.setEnable(Boolean.TRUE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("物料启用失败，请重试");
+        }
+        
+        // 查询并返回更新后的完整数据
+        return mapper.selectId(goodsVo.getId());
     }
 
     /**
-     * 停用 - 包含业务关联校验
-     * @param searchCondition
+     * 停用物料并返回更新后的数据 - 包含业务关联校验
+     * @param goodsVo 物料对象
+     * @return 更新后的物料数据
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disSabledByIdsIn(List<MGoodsVo> searchCondition) {
-        List<MGoodsEntity> list = mapper.selectIdsIn(searchCondition);
+    public MGoodsVo disabledById(MGoodsVo goodsVo) {
+        // 根据ID查询实体
+        MGoodsEntity entity = this.getById(goodsVo.getId());
+        if (entity == null) {
+            throw new BusinessException("物料不存在，停用失败");
+        }
         
-        // L1-L5多层业务校验 - 停用前检查业务关联
-        for(MGoodsEntity entity : list) {
-            // 如果已经是停用状态，跳过校验
-            if (entity.getEnable() == null || !entity.getEnable()) {
-                continue;
-            }
-            
+        // 如果当前是启用状态，需要进行L1-L5多层业务校验
+        if (entity.getEnable() != null && entity.getEnable()) {
             // 综合检查业务关联情况
             java.util.Map<String, Object> associations = mapper.checkGoodsBusinessAssociations(entity.getId());
             
@@ -245,63 +257,18 @@ public class MGoodsServiceImpl extends BaseServiceImpl<MGoodsMapper, MGoodsEntit
             }
         }
         
-        // 校验通过后执行停用操作
-        for(MGoodsEntity entity : list) {
-            entity.setEnable(Boolean.FALSE);
+        // 执行停用操作
+        entity.setEnable(Boolean.FALSE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("物料停用失败，请重试");
         }
-        saveOrUpdateBatch(list, 500);
+        
+        // 查询并返回更新后的完整数据
+        return mapper.selectId(goodsVo.getId());
     }
 
-    /**
-     * 启用/停用切换 - 包含停用校验
-     * @param searchCondition
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void enableByIdsIn(List<MGoodsVo> searchCondition) {
-        List<MGoodsEntity> list = mapper.selectIdsIn(searchCondition);
-        
-        // 对即将切换为停用状态的物料进行业务关联校验
-        for(MGoodsEntity entity : list) {
-            // 如果当前是启用状态，即将切换为停用状态，需要校验
-            if (entity.getEnable() != null && entity.getEnable()) {
-                // 综合检查业务关联情况
-                java.util.Map<String, Object> associations = mapper.checkGoodsBusinessAssociations(entity.getId());
-                
-                // L1-L5多层业务校验
-                Long inventoryCount = (Long) associations.get("inventory_count");
-                if (inventoryCount > 0) {
-                    throw new BusinessException(String.format("物料【%s】存在 %d 条库存记录，无法停用", entity.getName(), inventoryCount));
-                }
-                
-                Long inboundCount = (Long) associations.get("inbound_count");
-                if (inboundCount > 0) {
-                    throw new BusinessException(String.format("物料【%s】存在 %d 条入库记录，无法停用", entity.getName(), inboundCount));
-                }
-                
-                Long outboundCount = (Long) associations.get("outbound_count");
-                if (outboundCount > 0) {
-                    throw new BusinessException(String.format("物料【%s】存在 %d 条出库记录，无法停用", entity.getName(), outboundCount));
-                }
-                
-                Long purchaseOrderCount = (Long) associations.get("purchase_order_count");
-                if (purchaseOrderCount > 0) {
-                    throw new BusinessException(String.format("物料【%s】存在 %d 条采购订单记录，无法停用", entity.getName(), purchaseOrderCount));
-                }
-                
-                Long salesOrderCount = (Long) associations.get("sales_order_count");
-                if (salesOrderCount > 0) {
-                    throw new BusinessException(String.format("物料【%s】存在 %d 条销售订单记录，无法停用", entity.getName(), salesOrderCount));
-                }
-            }
-        }
-        
-        // 校验通过后执行状态切换
-        for(MGoodsEntity entity : list) {
-            entity.setEnable(!entity.getEnable());
-        }
-        saveOrUpdateBatch(list, 500);
-    }
 
     /**
      * 导出

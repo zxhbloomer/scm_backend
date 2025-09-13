@@ -62,18 +62,18 @@ public interface IMGoodsService extends IService<MGoodsEntity> {
     void delete(MGoodsVo searchCondition);
 
     /**
-     * 批量启用
-     * @param searchCondition
-     * @return
+     * 启用物料并返回更新后的数据
+     * @param goodsVo 物料对象
+     * @return 更新后的物料数据
      */
-    void enabledByIdsIn(List<MGoodsVo> searchCondition);
+    MGoodsVo enabledById(MGoodsVo goodsVo);
 
     /**
-     * 批量禁用
-     * @param searchCondition
-     * @return
+     * 停用物料并返回更新后的数据
+     * @param goodsVo 物料对象
+     * @return 更新后的物料数据
      */
-    void disSabledByIdsIn(List<MGoodsVo> searchCondition);
+    MGoodsVo disabledById(MGoodsVo goodsVo);
 
     /**
      * 通过name查询
@@ -82,10 +82,6 @@ public interface IMGoodsService extends IService<MGoodsEntity> {
     List<MGoodsEntity> selectByName(String name);
 
 
-    /**
-     * 批量启用/停用
-     */
-    void enableByIdsIn(List<MGoodsVo> searchCondition);
 
     /**
      * 导出
