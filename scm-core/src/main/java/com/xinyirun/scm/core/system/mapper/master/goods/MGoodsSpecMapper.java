@@ -245,4 +245,68 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + "      ")
     List<MGoodsSpecVo> selectListByGoodsId(@Param("p1") MGoodsSpecVo searchCondition);
 
+    /**
+     * 导出数据列表查询（支持动态排序）- 完全按照仓库管理模式实现
+     * @param searchCondition 搜索条件
+     * @param orderByClause 动态排序子句
+     * @return 导出VO列表
+     */
+    String selectExportList_select = """
+        SELECT 
+        (@row_num := @row_num + 1) as no,
+        t.code as sku_code,
+        t.name,
+        t.spec,
+        t5.name as category_name,
+        t7.name as prop_name,
+        CASE WHEN t.enable = true THEN '启用' ELSE '停用' END as enable,
+        t1.name as c_name,
+        t.c_time,
+        t2.name as u_name,
+        t.u_time
+        FROM m_goods_spec t
+        CROSS JOIN (SELECT @row_num := 0) r
+        LEFT JOIN m_staff t1 ON t.c_id = t1.id
+        LEFT JOIN m_staff t2 ON t.u_id = t2.id
+        LEFT JOIN m_goods t6 ON t.goods_id = t6.id
+        LEFT JOIN m_category t5 ON t6.category_id = t5.id
+        LEFT JOIN m_goods_spec_prop t7 ON t.prop_id = t7.id
+        WHERE t.delete_status = '0'
+        """;
+
+    @Select({
+        "<script>"
+        + selectExportList_select
+        + "<!-- 动态查询条件 -->"
+        + "<if test='p1.keyword != null and p1.keyword != \"\"'>"
+        + "  and (concat(ifnull(t.spec,''),"
+        + "       ifnull(t.name,''),"
+        + "       ifnull(t6.name,''),"
+        + "       ifnull(t5.name,''),"
+        + "       ifnull(t7.name,''),"
+        + "       ifnull(t.code,''))"
+        + "       like CONCAT('%', #{p1.keyword}, '%'))"
+        + "</if>"
+        + "<if test='p1.goods_id != null'>"
+        + "  and t6.id = #{p1.goods_id}"
+        + "</if>"
+        + "<!-- 选中导出ID条件 -->"
+        + "<if test='p1.ids != null and p1.ids.length != 0'>"
+        + "  and t.id in"
+        + "  <foreach collection='p1.ids' item='item' open='(' separator=',' close=')'>"
+        + "    #{item}"
+        + "  </foreach>"
+        + "</if>"
+        + "<!-- 动态排序（关键特殊逻辑）-->"
+        + "<if test=\"orderByClause != null and orderByClause != ''\">"
+        + "  ${orderByClause}"
+        + "</if>"
+        + "<if test=\"orderByClause == null or orderByClause == ''\">"
+        + "  ORDER BY t.u_time DESC"
+        + "</if>"
+        + "</script>"
+    })
+    List<MGoodsSpecExportVo> selectExportList(@Param("p1") MGoodsSpecVo searchCondition, 
+                                              @Param("orderByClause") String orderByClause);
+
 }

@@ -62,6 +62,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "com.xinyirun.scm.ai.memory",
         "com.xinyirun.scm.ai.message",
         "com.xinyirun.scm.ai.thread",
+        "com.xinyirun.scm.ai.kbase",
             })
 @EnableAsync(proxyTargetClass=true)
 // 启用spring retry

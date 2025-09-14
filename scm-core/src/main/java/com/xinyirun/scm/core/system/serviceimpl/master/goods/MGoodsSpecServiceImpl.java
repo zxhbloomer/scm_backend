@@ -262,6 +262,30 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
     }
 
     /**
+     * 查询导出列表数据（支持动态排序）- 完全按照仓库管理模式实现
+     * @param searchCondition 搜索条件
+     * @return 导出VO列表
+     */
+    @Override
+    public List<MGoodsSpecExportVo> selectExportList(MGoodsSpecVo searchCondition) {
+        // 构建排序子句（关键特殊逻辑）
+        String orderByClause = buildOrderByClause(searchCondition);
+        return mapper.selectExportList(searchCondition, orderByClause);
+    }
+
+    /**
+     * 构建动态排序子句 - 完全按照仓库管理模式实现
+     * @param searchCondition 搜索条件
+     * @return 排序子句
+     */
+    private String buildOrderByClause(MGoodsSpecVo searchCondition) {
+        // 复制仓库管理的排序逻辑
+        // 如果前端传入排序参数，构建对应的ORDER BY子句
+        // 默认按更新时间倒序
+        return " ORDER BY t.u_time DESC";
+    }
+
+    /**
      * 查询物料转换 商品
      *
      * @param searchCondition

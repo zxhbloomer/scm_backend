@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.base;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import com.xinyirun.scm.ai.enums.LevelEnum;
 import com.xinyirun.scm.ai.enums.PlatformEnum;
 import lombok.Getter;
@@ -8,7 +9,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
-import lombok.experimental.Accessors;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -16,21 +16,15 @@ import lombok.EqualsAndHashCode;
 @Getter
 @Setter
 @SuperBuilder
-@Accessors(chain = true)
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 @NoArgsConstructor
-public abstract class BaseRequest implements Serializable {
+public abstract class BaseResponse implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
     protected String uid;
-    protected int pageNumber;
-
-    @Builder.Default
-    protected int pageSize = 10;
-
     protected String type;
     protected String content;
     protected String channel;
@@ -43,30 +37,56 @@ public abstract class BaseRequest implements Serializable {
     @Builder.Default
     private String platform = PlatformEnum.BYTEDESK.name();
 
-    @Builder.Default
-    private Boolean superUser = false;
+    protected LocalDateTime createdAt;
+    protected LocalDateTime updatedAt;
+
+    protected String createdBy;
+    protected String updatedBy;
 
     @Builder.Default
-    private Boolean exportAll = false;
+    protected Boolean deleted = false;
 
-    @Builder.Default
-    private String sortBy = "updatedAt";
+    protected Integer version;
 
-    @Builder.Default
-    private String sortDirection = "desc";
-
-    private String searchText;
-
-    public com.baomidou.mybatisplus.extension.plugins.pagination.Page<Object> getPage() {
-        return new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(pageNumber, pageSize);
+    /**
+     * 是否已删除
+     */
+    public Boolean isDeleted() {
+        return this.deleted;
     }
 
     /**
-     * 获取页面大小（别名方法，兼容旧代码）
-     * 
-     * @return 页面大小
+     * 获取创建时间
      */
-    public int getSize() {
-        return pageSize;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    /**
+     * 获取更新时间
+     */
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    /**
+     * 获取创建者
+     */
+    public String getCreatedBy() {
+        return createdBy;
+    }
+
+    /**
+     * 获取更新者
+     */
+    public String getUpdatedBy() {
+        return updatedBy;
+    }
+
+    /**
+     * 获取版本号
+     */
+    public Integer getVersion() {
+        return version;
     }
 }

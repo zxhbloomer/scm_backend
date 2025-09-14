@@ -88,6 +88,13 @@ public interface IMGoodsSpecService extends IService<MGoodsSpecEntity> {
     List<MGoodsSpecExportVo> export(MGoodsSpecVo searchConditionList);
 
     /**
+     * 查询导出列表数据（支持动态排序）- 完全按照仓库管理模式实现
+     * @param searchCondition 搜索条件
+     * @return 导出VO列表
+     */
+    List<MGoodsSpecExportVo> selectExportList(MGoodsSpecVo searchCondition);
+
+    /**
      * 查询物料转换 商品
      * @param searchCondition
      * @return

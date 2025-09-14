@@ -19,6 +19,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.ZonedDateTime;
 
@@ -28,6 +29,9 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 public abstract class BytedeskBaseEntity implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = -2236065320544063926L;
 
     @TableId(type = IdType.AUTO)
     private Long id;

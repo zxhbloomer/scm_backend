@@ -122,4 +122,7 @@ public class PageCodeConstant {
     /** 物料管理 */
     public static final String PAGE_GOODS = "P00000028";
 
+    /** 规格管理 */
+    public static final String PAGE_GOODS_SPEC = "P00000029";
+
 }

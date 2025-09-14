@@ -5,11 +5,16 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.goods.*;
+import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
+import com.xinyirun.scm.common.constant.PageCodeConstant;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.master.goods.IMGoodsSpecService;
+import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
+import com.xinyirun.scm.core.system.mapper.sys.pages.SPagesMapper;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +42,12 @@ public class MGoodsSpecController extends SystemBaseController {
 
     @Autowired
     private IMGoodsSpecService service;
+
+    @Autowired
+    private ISPagesService sPagesService;
+
+    @Autowired
+    private SPagesMapper sPagesMapper;
 
     @SysLogAnnotion("根据查询条件，获取物料规格信息")
     // @ApiOperation(value = "根据参数获取物料规格信息")
@@ -113,11 +124,55 @@ public class MGoodsSpecController extends SystemBaseController {
     }
 
 
-    @SysLogAnnotion("导出")
+    @SysLogAnnotion("规格信息导出")
+    @PostMapping("/exportall")
+    public void exportAll(@RequestBody(required = false) MGoodsSpecVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_GOODS_SPEC);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 全部导出：直接调用selectExportList查询方法
+            List<MGoodsSpecExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("全部导出：查询到规格数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MGoodsSpecExportVo> util = new EasyExcelUtil<>(MGoodsSpecExportVo.class);
+            String fileName = "规格信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "规格信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
+    }
+
+    @SysLogAnnotion("规格信息导出")
     @PostMapping("/export")
-    public void export(@RequestBody(required = false) MGoodsSpecVo searchConditionList, HttpServletResponse response) throws IOException {
-        List<MGoodsSpecExportVo> list = service.export(searchConditionList);
-        new EasyExcelUtil<>(MGoodsSpecExportVo.class).exportExcel("规格管理"  + DateTimeUtil.getDate(),"规格管理",list, response);
+    public void export(@RequestBody(required = false) MGoodsSpecVo searchCondition, HttpServletResponse response) throws IOException {
+        // 通过页面编码获取完整的页面对象（包含id字段）
+        SPagesVo sPagesVo = sPagesMapper.selectByCode(PageCodeConstant.PAGE_GOODS_SPEC);
+        
+        try {
+            // 设置导出处理状态为true
+            sPagesService.updateExportProcessingTrue(sPagesVo);
+            
+            // 选中导出：参数验证
+            if (searchCondition == null || searchCondition.getIds() == null || searchCondition.getIds().length == 0) {
+                throw new BusinessException("请选择要导出的规格记录");
+            }
+            
+            // 选中导出：直接调用selectExportList查询方法
+            List<MGoodsSpecExportVo> exportDataList = service.selectExportList(searchCondition);
+            log.info("选中导出：查询到规格数据 {} 条", exportDataList.size());
+            
+            EasyExcelUtil<MGoodsSpecExportVo> util = new EasyExcelUtil<>(MGoodsSpecExportVo.class);
+            String fileName = "规格信息导出_" + DateTimeUtil.dateTimeNow();
+            util.exportExcel(fileName, "规格信息", exportDataList, response);
+        } finally {
+            // 无论成功失败都要恢复导出处理状态为false
+            sPagesService.updateExportProcessingFalse(sPagesVo);
+        }
     }
 
     @SysLogAnnotion("根据查询条件，查询物料转换商品")
