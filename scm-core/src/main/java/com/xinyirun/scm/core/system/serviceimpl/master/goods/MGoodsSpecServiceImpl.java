@@ -330,6 +330,73 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
 
 
     /**
+     * 逻辑删除规格
+     * @param searchCondition 规格对象
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(MGoodsSpecVo searchCondition) {
+        // 根据ID查询实体
+        MGoodsSpecEntity entity = this.getById(searchCondition.getId());
+        if (entity == null) {
+            throw new BusinessException("规格不存在，删除失败");
+        }
+        
+        // 检查业务关联（防止删除正在使用的规格）
+        CheckResultAo businessCheck = checkSpecBusinessAssociations(searchCondition.getId());
+        if (!businessCheck.isSuccess()) {
+            throw new BusinessException(businessCheck.getMessage());
+        }
+        
+        // 执行逻辑删除
+        entity.setIs_del(Boolean.TRUE);
+        boolean updateResult = this.updateById(entity);
+        
+        if (!updateResult) {
+            throw new BusinessException("规格删除失败，请重试");
+        }
+    }
+
+    /**
+     * 检查规格业务关联 - L1到L5层级校验
+     * @param specId 规格ID
+     * @return 检查结果
+     */
+    private CheckResultAo checkSpecBusinessAssociations(Integer specId) {
+        // L1级别：库存数据检查 - 高风险
+        Integer inventoryCount = mapper.checkInventoryExists(specId);
+        if (inventoryCount > 0) {
+            return CheckResultUtil.NG("删除失败：该规格存在库存记录，无法删除");
+        }
+        
+        // L2级别：入库记录检查 - 中度风险  
+        Integer inboundCount = mapper.checkInboundExists(specId);
+        if (inboundCount > 0) {
+            return CheckResultUtil.NG("删除失败：该规格存在入库记录，无法删除");
+        }
+        
+        // L3级别：出库记录检查 - 中度风险
+        Integer outboundCount = mapper.checkOutboundExists(specId);
+        if (outboundCount > 0) {
+            return CheckResultUtil.NG("删除失败：该规格存在出库记录，无法删除");
+        }
+        
+        // L4级别：采购订单检查 - 低度风险
+        Integer purchaseOrderCount = mapper.checkPurchaseOrderExists(specId);
+        if (purchaseOrderCount > 0) {
+            return CheckResultUtil.NG("删除失败：该规格存在采购订单记录，无法删除");
+        }
+        
+        // L5级别：销售订单检查 - 低度风险
+        Integer salesOrderCount = mapper.checkSalesOrderExists(specId);
+        if (salesOrderCount > 0) {
+            return CheckResultUtil.NG("删除失败：该规格存在销售订单记录，无法删除");
+        }
+        
+        return CheckResultUtil.OK();
+    }
+
+    /**
      * check逻辑
      *
      * @return
@@ -362,6 +429,10 @@ public class MGoodsSpecServiceImpl extends BaseServiceImpl<MGoodsSpecMapper, MGo
                 if (codelist.size() > 1) {
                     return CheckResultUtil.NG("新增保存出错：编码出现重复", code);
                 }
+                break;
+            case CheckResultAo.DELETE_CHECK_TYPE:
+                // 删除场合，检查业务关联
+                // 注意：这里可以扩展删除前的业务校验逻辑
                 break;
             default:
         }

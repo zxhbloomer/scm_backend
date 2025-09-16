@@ -354,9 +354,14 @@ spring:
   
   #-----------------------Spring AI配置---------------------------
   ai:
-    # 模型配置 - 禁用所有自动配置
+    # 模型配置 - 启用聊天模型自动配置
     model:
-      chat: none  # 禁用聊天模型自动配置
+      chat: openai  # 启用OpenAI兼容API（用于DeepSeek）
+      embedding: none  # 禁用embedding模型自动配置，避免MiniMax等模型自动配置
+    
+    # 彻底禁用所有Vector Store自动配置
+    vector-store:
+      enabled: false
     
     # 重试机制配置
     retry:
@@ -368,7 +373,7 @@ spring:
     
     # 智谱AI配置
     zhipuai:
-      enabled: false  # 开发环境暂时禁用，需要时开启
+      enabled: true   # 启用智谱AI
       api-key: ${ZHIPUAI_API_KEY:your-api-key-here}
       base-url: https://open.bigmodel.cn
       chat:
@@ -419,29 +424,44 @@ spring:
           temperature: 0.7
           max-tokens: 4096
     
-    # OpenAI配置 - 完全禁用OpenAI相关自动配置
+    # DeepSeek配置 - 使用OpenAI兼容API
     openai:
-      api-key: disabled  # 设置为disabled避免自动配置尝试
+      api-key: sk-feaef74368dc48afa672e79d166e1e82  # DeepSeek API密钥
+      base-url: https://api.deepseek.com  # DeepSeek API端点
+      chat:
+        enabled: true
+        options:
+          model: deepseek-chat  # DeepSeek聊天模型
+          temperature: 0.7
+          max-tokens: 4096
+      embedding:
+        enabled: false
+    
+    # MiniMax配置 - 禁用以避免API密钥错误
+    minimax:
+      enabled: false
       chat:
         enabled: false
       embedding:
-        enabled: false  
-      image:
-        enabled: false
-      audio:
-        transcription:
-          enabled: false
-        speech:
-          enabled: false
-      moderation:
         enabled: false
     
-    # 向量存储配置
+    # 彻底禁用所有向量存储自动配置
     vectorstore:
+      enabled: false
       elasticsearch:
         enabled: false
         index-name: scm_ai_vs_index
         dimensions: 1024
+      chroma:
+        enabled: false
+      neo4j:
+        enabled: false
+      pinecone:
+        enabled: false
+      redis:
+        enabled: false
+      typesense:
+        enabled: false
 
 logging:
   level:
@@ -587,7 +607,7 @@ wms:
     enabled: true
     
     # 默认使用的AI提供商
-    default-provider: zhipuai
+    default-provider: openai  # 使用DeepSeek（通过OpenAI兼容API）
     
     # 向量存储配置（后续扩展）
     vector:

@@ -71,6 +71,11 @@ public class ApiGoodsSpecVo implements Serializable {
      */
     private String unit;
 
+    /**
+     * 是否删除:false-未删除,true-已删除
+     */
+    private Boolean is_del;
+
     public String getCodeAppCode() {
         return code;
     }

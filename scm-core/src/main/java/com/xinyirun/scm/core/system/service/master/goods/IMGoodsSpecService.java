@@ -67,6 +67,12 @@ public interface IMGoodsSpecService extends IService<MGoodsSpecEntity> {
     MGoodsSpecVo disabledById(MGoodsSpecVo specVo);
 
     /**
+     * 逻辑删除规格
+     * @param searchCondition 规格对象
+     */
+    void delete(MGoodsSpecVo searchCondition);
+
+    /**
      * 通过name查询
      *
      */

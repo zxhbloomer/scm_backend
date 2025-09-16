@@ -31,7 +31,8 @@ public interface MCategoryMapper extends BaseMapper<MCategoryEntity> {
             + "  	       m_category t                                                  "
             + "  LEFT JOIN m_staff t1 ON t.c_id = t1.id                                 "
             + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                 "
-            + "  where true                                                                      "
+            + "  where true                                                             "
+            + "    and t.is_del = false                                                "
             ;
 
     /**
@@ -127,6 +128,7 @@ public interface MCategoryMapper extends BaseMapper<MCategoryEntity> {
             + "  LEFT JOIN m_staff t2 ON t.u_id = t2.id                                                                "
             + " ,(select @row_num:=0) t5                                                                               "
             + "  where true                                                                                            "
+            + "    and t.is_del = false                                                                                "
             + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)"
             + "  <if test='p1.ids != null and p1.ids.length > 0'>                                                       "
             + "    and t.id in                                                                                         "

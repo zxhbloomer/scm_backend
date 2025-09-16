@@ -6,6 +6,7 @@ import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.master.goods.*;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
+import com.xinyirun.scm.common.annotations.DataChangeOperateAnnotation;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.constant.PageCodeConstant;
@@ -182,5 +183,15 @@ public class MGoodsSpecController extends SystemBaseController {
     public ResponseEntity<JsonResultAo<IPage<MGoodsSpecVo>>> getConvertGoodsList(@RequestBody(required = false) MGoodsSpecVo searchCondition) {
         IPage<MGoodsSpecVo> list = service.getConvertGoodsList(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(list));
+    }
+
+    @DataChangeOperateAnnotation(page_name = "规格管理页面", value = "删除规格")
+    @SysLogAnnotion("规格数据逻辑删除复原")
+    @PostMapping("/delete")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> delete(@RequestBody(required = false) MGoodsSpecVo searchCondition) {
+        service.delete(searchCondition);
+        return ResponseEntity.ok().body(ResultUtil.OK("OK"));
     }
 }

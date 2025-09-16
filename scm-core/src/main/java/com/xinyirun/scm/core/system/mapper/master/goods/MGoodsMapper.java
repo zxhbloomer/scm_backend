@@ -45,6 +45,7 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null) "
             + "    and (t5.name like CONCAT ('%',#{p1.category_name,jdbcType=VARCHAR},'%') or #{p1.category_name,jdbcType=VARCHAR} is null) "
             + "    and (t5.id = #{p1.category_id} or #{p1.category_id} is null) "
@@ -59,6 +60,7 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and t.enable =  true "
             + "    and t.name =  #{p1} "
             + "      ")
@@ -72,7 +74,7 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      */
     @Select("   <script>   "
             + common_select
-            + "  where t.id in "
+            + "  where t.is_del = false and t.id in "
             + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>    "
             + "         #{item.id,jdbcType=INTEGER}  "
             + "        </foreach>    "
@@ -86,7 +88,7 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      */
     @Select("    "
             + common_select
-            + "  where t.id =  #{p1,jdbcType=INTEGER}"
+            + "  where t.is_del = false and t.id =  #{p1,jdbcType=INTEGER}"
             + "      ")
     MGoodsVo selectId(@Param("p1") int id);
 
@@ -114,6 +116,7 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
             + "  LEFT JOIN m_category t5 ON t.category_id = t5.id                                                      "
             + " ,(select @row_num:=0) t6                                                                               "
             + "  where true                                                                                            "
+            + "    and t.is_del = false                                                                                "
             + "    and (t.name like CONCAT ('%',#{p1.name,jdbcType=VARCHAR},'%') or #{p1.name,jdbcType=VARCHAR} is null)"
             + "    and (t5.name like CONCAT ('%',#{p1.category_name,jdbcType=VARCHAR},'%') or #{p1.category_name,jdbcType=VARCHAR} is null)"
             + "    and (t5.id = #{p1.category_id} or #{p1.category_id} is null) "
@@ -136,7 +139,8 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      */
     @Select("SELECT COUNT(1) FROM m_inventory t1 "
             + "INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id "
-            + "WHERE t2.goods_id = #{goods_id}")
+            + "INNER JOIN m_goods t3 ON t2.goods_id = t3.id "
+            + "WHERE t2.goods_id = #{goods_id} AND t3.is_del = false")
     Integer checkInventoryExists(@Param("goods_id") Integer goods_id);
 
     /**
@@ -146,7 +150,8 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      */
     @Select("SELECT COUNT(1) FROM b_in t1 "
             + "INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id "
-            + "WHERE t2.goods_id = #{goods_id}")
+            + "INNER JOIN m_goods t3 ON t2.goods_id = t3.id "
+            + "WHERE t2.goods_id = #{goods_id} AND t3.is_del = false")
     Integer checkInboundExists(@Param("goods_id") Integer goods_id);
 
     /**
@@ -156,7 +161,8 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      */
     @Select("SELECT COUNT(1) FROM b_out t1 "
             + "INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id "
-            + "WHERE t2.goods_id = #{goods_id}")
+            + "INNER JOIN m_goods t3 ON t2.goods_id = t3.id "
+            + "WHERE t2.goods_id = #{goods_id} AND t3.is_del = false")
     Integer checkOutboundExists(@Param("goods_id") Integer goods_id);
 
     /**
@@ -164,7 +170,9 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      * @param goods_id 物料ID
      * @return 采购订单记录数量
      */
-    @Select("SELECT COUNT(1) FROM b_po_order_detail WHERE goods_id = #{goods_id}")
+    @Select("SELECT COUNT(1) FROM b_po_order_detail t1 "
+            + "INNER JOIN m_goods t2 ON t1.goods_id = t2.id "
+            + "WHERE t1.goods_id = #{goods_id} AND t2.is_del = false")
     Integer checkPurchaseOrderExists(@Param("goods_id") Integer goods_id);
 
     /**
@@ -172,7 +180,9 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      * @param goods_id 物料ID
      * @return 销售订单记录数量
      */
-    @Select("SELECT COUNT(1) FROM b_so_order_detail WHERE goods_id = #{goods_id}")
+    @Select("SELECT COUNT(1) FROM b_so_order_detail t1 "
+            + "INNER JOIN m_goods t2 ON t1.goods_id = t2.id "
+            + "WHERE t1.goods_id = #{goods_id} AND t2.is_del = false")
     Integer checkSalesOrderExists(@Param("goods_id") Integer goods_id);
 
     /**
@@ -181,11 +191,11 @@ public interface MGoodsMapper extends BaseMapper<MGoodsEntity> {
      * @return 关联业务信息
      */
     @Select("SELECT "
-            + "  (SELECT COUNT(1) FROM m_inventory t1 INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id WHERE t2.goods_id = #{goods_id}) as inventory_count, "
-            + "  (SELECT COUNT(1) FROM b_in t1 INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id WHERE t2.goods_id = #{goods_id}) as inbound_count, "
-            + "  (SELECT COUNT(1) FROM b_out t1 INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id WHERE t2.goods_id = #{goods_id}) as outbound_count, "
-            + "  (SELECT COUNT(1) FROM b_po_order_detail WHERE goods_id = #{goods_id}) as purchase_order_count, "
-            + "  (SELECT COUNT(1) FROM b_so_order_detail WHERE goods_id = #{goods_id}) as sales_order_count")
+            + "  (SELECT COUNT(1) FROM m_inventory t1 INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id INNER JOIN m_goods t3 ON t2.goods_id = t3.id WHERE t2.goods_id = #{goods_id} AND t3.is_del = false) as inventory_count, "
+            + "  (SELECT COUNT(1) FROM b_in t1 INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id INNER JOIN m_goods t3 ON t2.goods_id = t3.id WHERE t2.goods_id = #{goods_id} AND t3.is_del = false) as inbound_count, "
+            + "  (SELECT COUNT(1) FROM b_out t1 INNER JOIN m_goods_spec t2 ON t1.sku_id = t2.id INNER JOIN m_goods t3 ON t2.goods_id = t3.id WHERE t2.goods_id = #{goods_id} AND t3.is_del = false) as outbound_count, "
+            + "  (SELECT COUNT(1) FROM b_po_order_detail t1 INNER JOIN m_goods t2 ON t1.goods_id = t2.id WHERE t1.goods_id = #{goods_id} AND t2.is_del = false) as purchase_order_count, "
+            + "  (SELECT COUNT(1) FROM b_so_order_detail t1 INNER JOIN m_goods t2 ON t1.goods_id = t2.id WHERE t1.goods_id = #{goods_id} AND t2.is_del = false) as sales_order_count")
     java.util.Map<String, Object> checkGoodsBusinessAssociations(@Param("goods_id") Integer goods_id);
 
 }

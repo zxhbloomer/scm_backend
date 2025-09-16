@@ -4,12 +4,10 @@ import com.baomidou.dynamic.datasource.creator.DataSourceProperty;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * @note
  */
-@Component
 @EqualsAndHashCode(callSuper = true)
 @Data
 @ConfigurationProperties(prefix = "spring.datasource")

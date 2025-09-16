@@ -338,6 +338,11 @@
             <!-- mybatis-plus-->
             <dependency>
                 <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-generator</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
@@ -883,7 +888,16 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-starter-vector-store-elasticsearch</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+                <version>${project.build.springbootversion}</version>
+            </dependency>
             <!-- Spring AI 中国AI提供商支持 -->
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>
@@ -891,6 +905,25 @@
                 <version>${spring-ai-alibaba.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <!-- Ollama4j Java客户端 -->
+            <dependency>
+                <groupId>io.github.ollama4j</groupId>
+                <artifactId>ollama4j</artifactId>
+                <version>1.0.100</version>
+            </dependency>
+
+            <!-- ModelMapper -->
+            <dependency>
+                <groupId>org.modelmapper</groupId>
+                <artifactId>modelmapper</artifactId>
+                <version>3.1.1</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.bigmodel.openapi</groupId>
+                <artifactId>oapi-java-sdk</artifactId>
+                <version>release-V4-2.4.3</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

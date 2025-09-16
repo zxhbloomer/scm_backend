@@ -45,7 +45,10 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ServletComponentScan
 // session 过期时间，如果EnableRedisHttpSession，则必须在这里制定过期时间:14400 为4个小时
 @EnableRedisHttpSession(maxInactiveIntervalInSeconds=14400, redisNamespace = "{spring}:{session}")
-@EnableMongoRepositories(basePackages = {"com.xinyirun.scm.mongodb.repository"})
+@EnableMongoRepositories(basePackages = {
+        "com.xinyirun.scm.mongodb.repository",
+        "com.xinyirun.scm.ai.repository"
+})
 @MapperScan(basePackages = {
         "com.xinyirun.scm.core.system.mapper",
         "com.xinyirun.scm.quartz.mapper.*",

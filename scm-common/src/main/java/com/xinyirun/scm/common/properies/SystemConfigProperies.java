@@ -1,12 +1,10 @@
 package com.xinyirun.scm.common.properies;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 
 /**
  * @author zxh
  */
-@Component
 @ConfigurationProperties(prefix = "wms.config")
 public class SystemConfigProperies {
 

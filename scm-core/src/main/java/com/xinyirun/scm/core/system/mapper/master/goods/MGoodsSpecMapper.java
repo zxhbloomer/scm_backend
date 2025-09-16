@@ -56,6 +56,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and (concat(ifnull(t.spec,''),                                                                       "
             + "     ifnull(t.name,''),                                                                                  "
             + "     ifnull(t6.name,''),                                                                                 "
@@ -78,8 +79,9 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + "  t6.name , t6.id as goods_id                            "
             + "  from    "
             + "  	       m_goods_spec t                                                  "
-            + "  LEFT JOIN m_category t5 ON t.category_id = t5.id                "
-            + "  LEFT JOIN m_goods t6 ON t6.goods_id = t5.id                "
+            + "  LEFT JOIN m_goods t6 ON t.goods_id = t6.id                "
+            + "  LEFT JOIN m_category t5 ON t6.category_id = t5.id                "
+            + "  where t.is_del = false                "
             )
     List<MGoodsSpecLeftVo> selectLeft(MGoodsSpecLeftVo searchCondition);
 
@@ -91,6 +93,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and t.enable =  true "
             + "    and t.spec =  #{p1} "
             + "      ")
@@ -104,6 +107,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and t.enable =  true "
             + "    and t6.NAME =  #{p1} "
             + "    and t.spec =  #{p2} "
@@ -118,6 +122,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and t.goods_code =  #{p1}"
             + "      ")
     List<MGoodsSpecEntity> selectByGoodsCode(@Param("p1") String code);
@@ -129,7 +134,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
      */
     @Select("   <script>   "
             + common_select
-            + "  where t.id in "
+            + "  where t.is_del = false and t.id in "
             + "        <foreach collection='p1' item='item' index='index' open='(' separator=',' close=')'>    "
             + "         #{item.id,jdbcType=INTEGER}  "
             + "        </foreach>    "
@@ -143,7 +148,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
      */
     @Select("    "
             + common_select
-            + "  where t.id =  #{p1,jdbcType=INTEGER}"
+            + "  where t.is_del = false and t.id =  #{p1,jdbcType=INTEGER}"
             + "      ")
     MGoodsSpecVo selectId(@Param("p1") int id);
 
@@ -154,7 +159,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
      */
     @Select("    "
             + common_select
-            + "  where  t.code =  #{p1.code,jdbcType=VARCHAR}    "
+            + "  where t.is_del = false and t.code =  #{p1.code,jdbcType=VARCHAR}    "
             + "      ")
     MGoodsSpecEntity selectByCodeAppCode(@Param("p1") ApiGoodsSpecVo vo);
 
@@ -165,7 +170,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
      */
     @Select("    "
             + common_select
-            + "  where  t.code =  #{p1,jdbcType=VARCHAR}    "
+            + "  where t.is_del = false and t.code =  #{p1,jdbcType=VARCHAR}    "
             + "      ")
     MGoodsSpecVo selectByCode(@Param("p1") String code);
 
@@ -192,6 +197,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             + "  LEFT JOIN m_goods_spec_prop t7 ON t.prop_id = t7.id                   "
             + " ,(select @row_num:=0) t15                                                                              "
             + "  where true                                                                                            "
+            + "    and t.is_del = false                                                                                "
             + "    and (concat(ifnull(t.spec,''),                                                                      "
             + "     ifnull(t.name,''),                                                                                 "
             + "     ifnull(t6.name,''),                                                                                "
@@ -219,6 +225,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     @Select("<script>    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and t.id not in (SELECT t1.source_sku_id FROM b_material_convert_detail t1 left join b_material_convert t2 "
             + "    ON t1.material_convert_id = t2.id where t1.source_sku_id is not null and t2.is_latested = true       "
             + "    AND (t2.owner_id = #{p1.owner_id} or #{p1.owner_id} is null or #{p1.owner_id} = '')                  "
@@ -241,6 +248,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     @Select("    "
             + common_select
             + "  where true "
+            + "    and t.is_del = false "
             + "    and (t6.id = #{p1.goods_id} or #{p1.goods_id} is null) "
             + "      ")
     List<MGoodsSpecVo> selectListByGoodsId(@Param("p1") MGoodsSpecVo searchCondition);
@@ -271,7 +279,7 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
         LEFT JOIN m_goods t6 ON t.goods_id = t6.id
         LEFT JOIN m_category t5 ON t6.category_id = t5.id
         LEFT JOIN m_goods_spec_prop t7 ON t.prop_id = t7.id
-        WHERE t.delete_status = '0'
+        WHERE t.is_del = false
         """;
 
     @Select({
@@ -308,5 +316,68 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
     })
     List<MGoodsSpecExportVo> selectExportList(@Param("p1") MGoodsSpecVo searchCondition, 
                                               @Param("orderByClause") String orderByClause);
+
+    /**
+     * 校验规格在库存中的使用情况
+     * @param specId 规格ID（对应业务表中的sku_id）
+     * @return 库存记录数量
+     */
+    @Select("""
+        SELECT COUNT(*) 
+        FROM b_daily_inventory t1
+        WHERE t1.sku_id = #{specId} 
+          AND t1.qty > 0
+        """)
+    Integer checkInventoryExists(@Param("specId") Integer specId);
+
+    /**
+     * 校验规格在入库业务中的使用情况
+     * @param specId 规格ID（对应业务表中的sku_id）
+     * @return 入库记录数量
+     */
+    @Select("""
+        SELECT COUNT(*) 
+        FROM b_in t1
+        WHERE t1.sku_id = #{specId} 
+          AND t1.is_del = 0
+        """)
+    Integer checkInboundExists(@Param("specId") Integer specId);
+
+    /**
+     * 校验规格在出库业务中的使用情况
+     * @param specId 规格ID（对应业务表中的sku_id）
+     * @return 出库记录数量
+     */
+    @Select("""
+        SELECT COUNT(*) 
+        FROM b_out t1 
+        WHERE t1.sku_id = #{specId} 
+          AND t1.is_del = 0
+        """)
+    Integer checkOutboundExists(@Param("specId") Integer specId);
+
+    /**
+     * 校验规格在采购订单中的使用情况
+     * @param specId 规格ID（对应业务表中的sku_id）
+     * @return 采购订单明细记录数量
+     */
+    @Select("""
+        SELECT COUNT(*) 
+        FROM b_po_order_detail t1
+        WHERE t1.sku_id = #{specId}
+        """)
+    Integer checkPurchaseOrderExists(@Param("specId") Integer specId);
+
+    /**
+     * 校验规格在销售订单中的使用情况
+     * @param specId 规格ID（对应业务表中的sku_id）
+     * @return 销售订单明细记录数量
+     */
+    @Select("""
+        SELECT COUNT(*) 
+        FROM b_so_order_detail t1 
+        WHERE t1.sku_id = #{specId}
+        """)
+    Integer checkSalesOrderExists(@Param("specId") Integer specId);
 
 }
