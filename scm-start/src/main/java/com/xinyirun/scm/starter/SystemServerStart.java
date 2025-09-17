@@ -59,7 +59,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "com.xinyirun.scm.mq.rabbitmq.log.mapper",
         "com.xinyirun.scm.core.bpm.mapper",
         // AI模块Mapper扫描
-        "com.xinyirun.scm.ai.mapper",
+//        "com.xinyirun.scm.ai.mapper",
             })
 @EnableAsync(proxyTargetClass=true)
 // 启用spring retry
