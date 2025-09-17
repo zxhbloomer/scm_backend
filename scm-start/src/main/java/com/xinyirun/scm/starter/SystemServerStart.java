@@ -58,14 +58,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 //        "com.xinyirun.scm.core.whapp.mapper",
         "com.xinyirun.scm.mq.rabbitmq.log.mapper",
         "com.xinyirun.scm.core.bpm.mapper",
-        "com.xinyirun.scm.report.mapper",
         // AI模块Mapper扫描
-        "com.xinyirun.scm.ai.model",
-        "com.xinyirun.scm.ai.provider", 
-        "com.xinyirun.scm.ai.memory",
-        "com.xinyirun.scm.ai.message",
-        "com.xinyirun.scm.ai.thread",
-        "com.xinyirun.scm.ai.kbase",
+        "com.xinyirun.scm.ai.mapper",
             })
 @EnableAsync(proxyTargetClass=true)
 // 启用spring retry
