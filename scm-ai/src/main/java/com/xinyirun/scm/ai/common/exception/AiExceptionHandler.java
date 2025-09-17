@@ -19,11 +19,4 @@ public class AiExceptionHandler {
         log.error("AI服务不可用: {}", e.getMessage());
         return ResultUtil.OK("AI服务暂时不可用，请稍后重试", ResultEnum.SYSTEM_BUSINESS_ERROR);
     }
-
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public JsonResultAo<String> handleGenericAiError(Exception e) {
-        log.error("AI服务发生未知错误", e);
-        return ResultUtil.OK("AI服务发生错误，请联系管理员", ResultEnum.SYSTEM_ERROR);
-    }
 }
