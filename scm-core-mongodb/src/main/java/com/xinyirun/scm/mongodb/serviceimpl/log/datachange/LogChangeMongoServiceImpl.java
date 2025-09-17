@@ -12,26 +12,20 @@ import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeMongoVo;
 import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeOperateMongoVo;
 import com.xinyirun.scm.bean.system.vo.mongo.log.SLogDataChangeDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogDetailVo;
-import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogFindOrderCodeVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnsVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;
 import com.xinyirun.scm.common.exception.system.BusinessException;
-import com.xinyirun.scm.common.serialtype.SerialType;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
-import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.reflection.ReflectionUtil;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.mongodb.repository.LogDataChangeMongoMainRepository;
 import com.xinyirun.scm.mongodb.repository.LogDataChangeMongoRepository;
 import com.xinyirun.scm.mongodb.repository.LogDataChangeOperateMongoMainRepository;
 import com.xinyirun.scm.mongodb.service.log.datachange.LogChangeMongoService;
-import com.xinyirun.scm.quartz.util.ScheduleUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.quartz.Scheduler;
-import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -48,7 +42,41 @@ import java.util.stream.Collectors;
 import static com.xinyirun.scm.common.utils.pattern.PatternUtils.regexPattern;
 
 /**
- * @数据变动记录
+ * 数据变更日志MongoDB存储服务实现类
+ * 
+ * <h3>🎯 核心功能</h3>
+ * <ul>
+ *   <li><b>数据变更追踪</b>：记录业务表的INSERT、UPDATE、DELETE操作到MongoDB</li>
+ *   <li><b>字段级监控</b>：详细追踪每个字段的变更前后值，支持扩展属性处理</li>
+ *   <li><b>订单编码关联</b>：通过反射机制实时获取业务表的order_code，实现日志与业务数据关联</li>
+ *   <li><b>多维查询</b>：支持按订单编码、请求ID、表名等多种维度查询变更记录</li>
+ * </ul>
+ * 
+ * <h3>🔧 技术特性</h3>
+ * <ul>
+ *   <li><b>反射增强</b>：使用ReflectionUtil.invokex动态调用业务类getOrderCode方法</li>
+ *   <li><b>异常安全</b>：完整的异常处理机制，反射失败不影响主流程</li>
+ *   <li><b>性能优化</b>：已优化删除定时任务，数据插入时直接获取order_code</li>
+ *   <li><b>扩展支持</b>：通过DataChangeLabelAnnotation注解支持字段扩展处理</li>
+ * </ul>
+ * 
+ * <h3>📊 数据流程</h3>
+ * <pre>
+ * 业务表数据变更 → MyBatis拦截器 → DataChangeEvent → 本服务
+ *     ↓
+ * 1. 解析变更数据 → 2. 反射获取order_code → 3. 构建详情记录 → 4. 保存到MongoDB
+ * </pre>
+ * 
+ * <h3>⚠️ 重要说明</h3>
+ * <ul>
+ *   <li>包含【反射代码-严禁删除】标记的方法是核心业务逻辑，删除会影响order_code关联功能</li>
+ *   <li>依赖业务类实现getOrderCode(Integer tableId)方法</li>
+ *   <li>支持多租户数据源切换</li>
+ * </ul>
+ * 
+ * @author SCM开发团队
+ * @since 1.0.0
+ * @version 2.0.0 (已重构优化：移除定时任务，新增反射获取order_code)
  */
 @Slf4j
 @Service
@@ -60,8 +88,6 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
     @Autowired
     LogDataChangeMongoMainRepository mainRepository;
 
-    @Autowired
-    private Scheduler scheduler;
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -86,23 +112,18 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
          *
          */
         if(entity.getDetails().size() > 0) {
+            // 🆕 新增：插入前通过反射获取order_code
+            // ⚠️ 【反射代码-严禁删除】核心业务逻辑：替代定时任务，直接获取order_code
+            enrichEntityWithOrderCode(entity);
+            
+            log.debug("----------------------------------数据变更日志保存开始----------------------------------");
+            log.debug("实体详情: table={}, id={}, order_code={}, details_count={}", 
+                     entity.getTable_name(), entity.getTable_id(), entity.getOrder_code(), entity.getDetails().size());
+            
+            // 执行插入
             repository.save(entity);
-            /**
-             * 根据order_code查询出s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
-             * 如果找不到，发起定时任务，1分钟后，再次查询，如果还是找不到，写异常
-             */
-            SDataChangeLogFindOrderCodeVo sDataChangeLogFindOrderCodeVo = new SDataChangeLogFindOrderCodeVo();
-            sDataChangeLogFindOrderCodeVo.setS_log_data_change_detail_id(entity.getId());
-            try {
-                ScheduleUtils.createJobDataChangeFindOrderCode(scheduler,
-                        SerialType.DATA_CHANGE_FIND_ORDER_CODE,
-                        JSON.toJSONString(sDataChangeLogFindOrderCodeVo),
-                        DataSourceHelper.getCurrentDataSourceName()
-                        );
-            } catch (SchedulerException e) {
-                log.error("定时任务启动失败", e);
-                throw new BusinessException(e);
-            }
+            
+            log.debug("----------------------------------数据变更日志保存完成----------------------------------");
         } else {
             log.debug("----------------------------------数据相同，不做处理----------------------------------");
         }
@@ -129,10 +150,12 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
         SLogDataChangeMainVo mainVo = new SLogDataChangeMainVo();
         BeanUtilsSupport.copyProperties(mainEntity, mainVo);
         
-        // 3. 构建查询条件 - 使用精确匹配而非正则表达式提高效率
-        Criteria criteria = Criteria.where("order_main_id").is(mainEntity.getId());
+        // 3. 构建查询条件 - ✅ 修改：直接通过order_code关联查询，不再使用order_main_id
+        Criteria criteria = Criteria.where("order_code").is(order_code);
         Query query = Query.query(criteria);
         query.with(Sort.by(Sort.Direction.DESC, "u_time")); // 按更新时间降序排序
+        
+        log.debug("查询数据变更详情记录条件: order_code={}", order_code);
         
         // 4. 执行查询并获取结果
         List<SLogDataChangeMongoEntity> changeEntities = mongoTemplate.find(query, SLogDataChangeMongoEntity.class);
@@ -182,7 +205,6 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
         // 执行查询并获取结果
         List<SLogDataChangeMongoEntity> list = mongoTemplate.find(query, SLogDataChangeMongoEntity.class);
 
-//        SLogDataChangeOperateMongoEntity sLogDataChangeOperateMongoEntity = logChangeOperateMongoService.findByRequestId(request_id);
 
         BeanUtilsSupport.copyProperties(sLogDataChangeOperateMongoEntity, sLogDataChangeOperateMongoVo);
 
@@ -207,78 +229,59 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
         return sLogDataChangeOperateMongoVo;
     }
 
+
     /**
-     * 定时任务调用
-     * mongodb操作：
-     * 1、根据s_log_data_change_detail.id查询出order_code。
-     * 2、如果order_code不为空，通过此order_code ,去找s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
-     * 3、如果order_code为空，则需要根据table_id去表中搜索order_code。通过反射去调用。
-     * 4、找到order_code后，通过此order_code ,去找s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
+     * ⚠️ 【反射代码-严禁删除】通过反射获取order_code并设置到实体中
+     * 
+     * 核心功能：替代原有的1分钟定时任务，在数据插入时直接通过反射获取业务表的order_code
+     * 重要性：这是DataChange逻辑优化的核心，删除会导致order_code为空，影响数据关联查询
+     * 
+     * @param entity 数据变更实体
      */
-//    @SysLogAnnotion("数据变更日志定时任务：数据变更日志中，没找到order_code，发起定时任务开始找。")
-    public void findOrderCode(String parameterClass , String parameter) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
-        SDataChangeLogFindOrderCodeVo vo = JSON.parseObject(parameter, SDataChangeLogFindOrderCodeVo.class);
-        log.debug("定时任务：开始");
-        /**
-         * mongodb操作：
-         * 1、根据s_log_data_change_detail.id查询出order_code。
-         * 2、如果order_code不为空，通过此order_code ,去找s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
-         * 3、如果order_code为空，则需要根据table_id去表中搜索order_code。通过反射去调用。
-         * 4、找到order_code后，通过此order_code ,去找s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
-         */
-        SLogDataChangeMongoEntity entity = findById(vo.getS_log_data_change_detail_id());
-        if (entity.getOrder_main_id() != null) {
-            log.debug("定时任务：结束");
-            return;
-        }
-        if (entity.getOrder_code() != null) {
-            // 通过order_code找到s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
-            Optional<SLogDataChangeMainMongoEntity> mainMongoEntity = mainRepository.findByOrderCode(entity.getOrder_code());
-            if (mainMongoEntity.isPresent()) {
-                // 不为空，找到了
-                entity.setOrder_main_id(mainMongoEntity.get().getId());
-                repository.save(entity);
-
-                // 更新SLogDataChangeMainMongoEntity的，u_id，u_name，u_time
-                mainMongoEntity.get().setU_id(entity.getU_id().toString());
-                mainMongoEntity.get().setU_name(entity.getU_name());
-                mainMongoEntity.get().setU_time(entity.getU_time());
-                mainRepository.save(mainMongoEntity.get());;
-                log.debug("定时任务：结束");
-                return;
-            } else {
-                // 为空，写异常，注意定时任务不可以排除异常，记录异常就行了
-//                throw new BusinessException("找不到order_code：" + entity.getOrder_code());
-                log.debug("找不到order_code：" + entity.getOrder_code());
-                log.debug("定时任务：结束");
+    private void enrichEntityWithOrderCode(SLogDataChangeMongoEntity entity) {
+        try {
+            if (StringUtils.isBlank(entity.getOrder_code())) {
+                String order_code = getOrderCodeByReflection(entity);
+                if (StringUtils.isNotBlank(order_code)) {
+                    entity.setOrder_code(order_code);
+                    log.debug("通过反射获取order_code成功: table={}, id={}, order_code={}", 
+                             entity.getTable_name(), entity.getTable_id(), order_code);
+                } else {
+                    log.debug("通过反射获取order_code为空: table={}, id={}", 
+                             entity.getTable_name(), entity.getTable_id());
+                }
             }
-        } else {
-            // 通过table_id去表中搜索order_code。通过反射去调用。
-            String _class_name = entity.getClass_name();
-            String _functionName = "getOrderCode";
-            Object arg1 = entity.getTable_id();
-//            String order_code = (String) ReflectionUtil.invokex(_class_name, _functionName, arg1);
-            // 通过order_code找到s_log_data_change_main中的id，然后更新到s_log_data_change_detail中的order_main_id中
-            Optional<SLogDataChangeMainMongoEntity> mainMongoEntity = mainRepository.findByOrderCode(entity.getOrder_code());
-            if (mainMongoEntity.isPresent()) {
-                // 不为空，找到了
-                entity.setOrder_main_id(mainMongoEntity.get().getId());
-                repository.save(entity);
-
-                // 更新SLogDataChangeMainMongoEntity的，u_id，u_name，u_time
-                mainMongoEntity.get().setU_id(entity.getU_id().toString());
-                mainMongoEntity.get().setU_name(entity.getU_name());
-                mainMongoEntity.get().setU_time(entity.getU_time());
-                mainRepository.save(mainMongoEntity.get());;
-                log.debug("定时任务：结束");
-                return;
-            } else {
-                // 为空，写异常，注意定时任务不可以排除异常，记录异常就行了
-//                throw new BusinessException("找不到order_code：" + entity.getOrder_code());
-                log.debug("找不到order_code：" + entity.getOrder_code());
-                log.debug("定时任务：结束");
-            }
+        } catch (Exception e) {
+            log.warn("通过反射获取order_code失败: class={}, table={}, table_id={}, error={}", 
+                    entity.getClass_name(), entity.getTable_name(), entity.getTable_id(), e.getMessage());
         }
+    }
+
+    /**
+     * ⚠️ 【反射代码-严禁删除】反射调用获取order_code
+     * 
+     * 核心功能：通过ReflectionUtil.invokex调用业务类的getOrderCode方法
+     * 技术实现：动态类加载 + 方法反射调用，替代静态依赖
+     * 异常安全：所有异常向上抛出，由上层方法统一处理
+     * 
+     * @param entity 数据变更实体（包含class_name和table_id）
+     * @return order_code值
+     * @throws ClassNotFoundException 类不存在异常
+     * @throws InvocationTargetException 方法调用异常  
+     * @throws NoSuchMethodException 方法不存在异常
+     * @throws IllegalAccessException 方法访问权限异常
+     */
+    private String getOrderCodeByReflection(SLogDataChangeMongoEntity entity) 
+        throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+        
+        String _class_name = entity.getClass_name();
+        String _functionName = "getOrderCode";
+        Object arg1 = entity.getTable_id();
+        
+        log.debug("准备通过反射调用: class={}, method={}, arg={}", _class_name, _functionName, arg1);
+        
+        Object result = ReflectionUtil.invokex(_class_name, _functionName, arg1);
+        return result != null ? result.toString() : null;
     }
 
     /**
@@ -312,11 +315,8 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
 
         List<SLogDataChangeDetailMongoEntity> details = new ArrayList<>();
 
-//        Object beforeEntity = JSON.parseObject(vo.getBeforeVo().getResult(), BAdjustEntity.class);
-//        Object afterEntity = JSON.parseObject(vo.getAfterVo().getResult(), BAdjustEntity.class);
         switch (vo.getSqlCommandType()) {
             case "INSERT":
-//                Object afterEntity = JSON.parseObject(vo.getAfterVo().getResult(), BAdjustEntity.class);
                 SDataChangeColumnsVo columnsInsertVo = handleInsert(vo.getAfterVo());
                 details = convertToDetailList(columnsInsertVo.getColumns());
                 log.debug("columnsVo:{}", columnsInsertVo);
@@ -349,7 +349,6 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
             case "INSERT":
                 entity.setU_id(vo.getAfterVo().getU_id());
                 entity.setU_name(vo.getAfterVo().getU_name());
-//                entity.setU_time(vo.getAfterVo().getU_time());
                 // 这部分可以通过查询数据来获取
                 entity.setC_time(getCTimeBySelectDb(vo.getAfterVo()));
                 // 这部分可以通过查询数据来获取
@@ -436,9 +435,6 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
                 if(columnVo == null) {
                     continue;
                 } else {
-//                    columnVo.setOld_value(beforeValue);
-//                    columnVo.setNew_value(null);
-//                    columnList.add(columnVo);
                     List<SDataChangeColumnVo> rtns = setDataChangeColumnvo(
                             "DELETE",
                             field,
@@ -484,9 +480,6 @@ public class LogChangeMongoServiceImpl implements LogChangeMongoService {
                     if (areValuesEqual(field, beforeValue, afterValue)) {
                         continue;
                     } else {
-//                        columnVo.setOld_value(beforeValue);
-//                        columnVo.setNew_value(afterValue);
-//                        columnList.add(columnVo);
                         List<SDataChangeColumnVo> rtns = setDataChangeColumnvo(
                                 "UPDATE",
                                 field,

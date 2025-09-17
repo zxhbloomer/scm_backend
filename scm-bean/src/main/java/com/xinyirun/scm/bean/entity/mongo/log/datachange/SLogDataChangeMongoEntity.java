@@ -63,10 +63,6 @@ public class SLogDataChangeMongoEntity implements Serializable {
     @Indexed
     private String order_code;
 
-    /**
-     * 关系主键
-     */
-    private String order_main_id;
 
     /**
      * 调用策略模式_数据变更的类名
