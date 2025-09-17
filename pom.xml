@@ -44,7 +44,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.0</version>
+        <version>3.5.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -54,7 +54,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>17</java.version>
         <project.build.jdk>${java.version}</project.build.jdk>
-        <project.build.springbootversion>3.5.0</project.build.springbootversion>
+        <project.build.springbootversion>3.5.5</project.build.springbootversion>
         <spring.social.version>1.1.6.RELEASE</spring.social.version>
         <poi.version>5.2.4</poi.version>
         <fastjson.version>2.0.53</fastjson.version>
@@ -88,7 +88,7 @@
             <dependency>
                 <groupId>org.springframework.data</groupId>
                 <artifactId>spring-data-redis</artifactId>
-                <version>${project.build.springbootversion}</version>
+                <version>3.5.4</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -159,7 +159,7 @@
             <dependency>
                 <groupId>org.springframework.session</groupId>
                 <artifactId>spring-session-data-redis</artifactId>
-                <version>${project.build.springbootversion}</version>
+                <version>3.5.2</version>
             </dependency>
             <!--            <dependency>-->
             <!--                <groupId>org.springframework.boot</groupId>-->
@@ -207,17 +207,17 @@
             <dependency>
                 <groupId>org.springframework.data</groupId>
                 <artifactId>spring-data-commons</artifactId>
-                <version>${project.build.springbootversion}</version>
+                <version>3.5.4</version>
             </dependency>
             <dependency>
                 <groupId>org.springframework.data</groupId>
                 <artifactId>spring-data-mongodb</artifactId>
-                <version>4.1.2</version>
+                <version>4.5.4</version>
             </dependency>
             <dependency>
                 <groupId>org.mongodb</groupId>
                 <artifactId>bson</artifactId>
-                <version>4.10.2</version>
+                <version>5.6.0</version>
             </dependency>
 
             <!-- rabbitmq -->
