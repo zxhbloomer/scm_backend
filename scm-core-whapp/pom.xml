@@ -170,10 +170,6 @@
 <!--            <artifactId>jsqlparser</artifactId>-->
 <!--        </dependency>-->
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.github.binarywang</groupId>
             <artifactId>weixin-java-mp</artifactId>
         </dependency>
