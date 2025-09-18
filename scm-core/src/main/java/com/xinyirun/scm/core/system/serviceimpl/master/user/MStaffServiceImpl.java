@@ -118,7 +118,7 @@ public class MStaffServiceImpl extends BaseServiceImpl<MStaffMapper, MStaffEntit
     /**
      * 头像临时目录路径，从配置文件中注入，提供系统临时目录作为默认fallback
      */
-    @Value("${wms.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
+    @Value("${scm.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
     private String avatarTempDir;
 
     /**

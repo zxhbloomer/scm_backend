@@ -49,6 +49,13 @@ public class ClickHouseConfig {
             // 压缩配置
             clientBuilder.compressServerResponse(clickHouseProperties.isCompressServerResponse())
                     .compressClientRequest(clickHouseProperties.isCompressClientRequest());
+
+            // 性能配置 - 基于ClickHouse Java v2最佳实践
+            ClickHouseProperties.Performance performance = clickHouseProperties.getPerformance();
+            clientBuilder.setMaxConnections(performance.getMaxConnections())
+                    .setLZ4UncompressedBufferSize(performance.getLz4UncompressedBufferSize())
+                    .setSocketRcvbuf(performance.getSocketReceiveBufferSize())
+                    .setClientNetworkBufferSize(performance.getClientNetworkBufferSize());
             
             // 客户端配置
             ClickHouseProperties.ClientConfig clientConfig = clickHouseProperties.getClient();
@@ -72,7 +79,21 @@ public class ClickHouseConfig {
             
             Client client = clientBuilder.build();
             
-            logger.info("ClickHouse Client V2 初始化成功");
+            // 连接预热 - 基于性能配置
+            if (performance.isWarmupConnections()) {
+                try {
+                    logger.info("开始预热ClickHouse连接池，超时时间: {}秒", performance.getWarmupTimeoutSeconds());
+                    boolean pingResult = client.ping(performance.getWarmupTimeoutSeconds());
+                    logger.info("ClickHouse连接池预热完成，ping结果: {}", pingResult);
+                } catch (Exception e) {
+                    logger.warn("ClickHouse连接预热失败，但不影响后续使用", e);
+                }
+            }
+            
+            logger.info("ClickHouse Client V2 初始化成功，性能配置 - 最大连接数: {}, LZ4缓冲区: {}KB, 网络缓冲区: {}KB", 
+                       performance.getMaxConnections(),
+                       performance.getLz4UncompressedBufferSize() / 1024,
+                       performance.getClientNetworkBufferSize() / 1024);
             return client;
             
         } catch (Exception e) {

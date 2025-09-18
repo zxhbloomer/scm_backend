@@ -411,7 +411,7 @@ public class SystemSecurityConfig {
         private AppIMUserService userDetailService;
         @Autowired
         private AppIMUserJwtTokenService appIMUserJwtTokenServicel;
-        @Value("${wms.security.jwt.base64-secret}")
+        @Value("${scm.security.jwt.base64-secret}")
         private String base64Secret;
         @Value("${spring.security.oauth2.client.provider.[custom].token-uri}")
         private String tokenUri;

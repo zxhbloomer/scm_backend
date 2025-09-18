@@ -67,7 +67,7 @@ public class SystemBaseController {
     private int port;
 
     /** 开发者模式，可以跳过验证码 */
-    @Value("${wms.security.develop-model}")
+    @Value("${scm.security.develop-model}")
     private Boolean developModel;
 
     @Autowired

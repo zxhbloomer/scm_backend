@@ -333,8 +333,8 @@ mybatis-plus:
   type-handlers-package: com.xinyirun.wms.core.config.mybatis.typehandlers
 
 
-#-----------------------wms  Configuration---------
-wms:
+#-----------------------scm  Configuration---------
+scm:
   config:
     log-print: true
     log-save-db: true

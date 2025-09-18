@@ -34,7 +34,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class
     },
     scanBasePackages = {
-            "com.xinyirun.scm.*"
+            "com.xinyirun.scm.*",
+            "com.xinyirunscm.scm.clickhouse"
         })
 @EnableTransactionManagement
 @EnableAspectJAutoProxy(proxyTargetClass = true)

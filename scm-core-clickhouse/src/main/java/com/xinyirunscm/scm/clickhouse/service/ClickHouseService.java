@@ -54,12 +54,46 @@ public class ClickHouseService {
     }
 
     /**
+     * 插入数据变更日志 - POJO自动序列化版本
+     * 基于ClickHouse Java v2最佳实践，使用POJO自动序列化替代手动JSON构建，性能更优
+     */
+    public void insertDataChangeLogV2(ClickHouseLogEntity logEntity) {
+        try {
+            // 设置创建时间
+            if (logEntity.getCreate_time() == null) {
+                logEntity.setCreate_time(LocalDateTime.now());
+            }
+            
+            clickHouseRepository.insertDataChangeLogV2(logEntity);
+            logger.info("POJO序列化插入数据变更日志成功，表: {}, 操作: {}, 记录ID: {}", 
+                       logEntity.getTable_name(), logEntity.getOperation_type(), logEntity.getRecord_id());
+                       
+        } catch (Exception e) {
+            logger.error("POJO序列化插入数据变更日志失败", e);
+            throw new ClickHouseException("POJO序列化插入数据变更日志失败", e);
+        }
+    }
+
+    /**
      * 异步插入数据变更日志
      */
     @Async
     public CompletableFuture<Void> insertDataChangeLogAsync(ClickHouseLogEntity logEntity) {
         try {
             insertDataChangeLog(logEntity);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    /**
+     * 异步插入数据变更日志 - POJO自动序列化版本
+     */
+    @Async
+    public CompletableFuture<Void> insertDataChangeLogAsyncV2(ClickHouseLogEntity logEntity) {
+        try {
+            insertDataChangeLogV2(logEntity);
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
@@ -94,12 +128,53 @@ public class ClickHouseService {
     }
 
     /**
+     * 批量插入数据变更日志 - POJO自动序列化版本
+     * 基于ClickHouse Java v2最佳实践，批量POJO自动序列化，性能更优
+     */
+    public void batchInsertDataChangeLogV2(List<ClickHouseLogEntity> logEntities) {
+        if (logEntities == null || logEntities.isEmpty()) {
+            logger.warn("批量POJO插入数据为空，跳过操作");
+            return;
+        }
+
+        try {
+            // 设置创建时间
+            LocalDateTime now = LocalDateTime.now();
+            for (ClickHouseLogEntity entity : logEntities) {
+                if (entity.getCreate_time() == null) {
+                    entity.setCreate_time(now);
+                }
+            }
+
+            clickHouseRepository.batchInsertDataChangeLogV2(logEntities);
+            logger.info("批量POJO序列化插入数据变更日志成功，数量: {}", logEntities.size());
+            
+        } catch (Exception e) {
+            logger.error("批量POJO序列化插入数据变更日志失败", e);
+            throw new ClickHouseException("批量POJO序列化插入数据变更日志失败", e);
+        }
+    }
+
+    /**
      * 异步批量插入数据变更日志
      */
     @Async
     public CompletableFuture<Void> batchInsertDataChangeLogAsync(List<ClickHouseLogEntity> logEntities) {
         try {
             batchInsertDataChangeLog(logEntities);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    /**
+     * 异步批量插入数据变更日志 - POJO自动序列化版本
+     */
+    @Async
+    public CompletableFuture<Void> batchInsertDataChangeLogAsyncV2(List<ClickHouseLogEntity> logEntities) {
+        try {
+            batchInsertDataChangeLogV2(logEntities);
             return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);

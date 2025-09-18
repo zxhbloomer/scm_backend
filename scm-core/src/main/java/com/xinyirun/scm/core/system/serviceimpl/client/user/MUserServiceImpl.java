@@ -81,7 +81,7 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
     @Autowired
     private CacheManager cacheManager;
 
-    @Value("${wms.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
+    @Value("${scm.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
     private String avatarTempDir;
 
     @PostConstruct

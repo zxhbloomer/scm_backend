@@ -46,7 +46,7 @@ import java.time.LocalDateTime;
 @Slf4j
 public class SysLogAppAspect {
 
-    @Value("${wms.security.jwt.base64-secret}")
+    @Value("${scm.security.jwt.base64-secret}")
     private String base64Secret;
 
     @Autowired

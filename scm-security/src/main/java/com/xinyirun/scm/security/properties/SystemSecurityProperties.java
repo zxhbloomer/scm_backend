@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * security配置文件读取
  */
 @EnableConfigurationProperties({SystemSecurityProperties.class})
-@ConfigurationProperties(prefix = "wms.security")
+@ConfigurationProperties(prefix = "scm.security")
 @Component
 public class SystemSecurityProperties {
     /** session过期后自动获取 */
@@ -30,7 +30,7 @@ public class SystemSecurityProperties {
     private Boolean logSampleModel;
 
 
-    @Value("${wms.security.session.maximum-sessions}")
+    @Value("${scm.security.session.maximum-sessions}")
     private Integer MAX_SESSIONS;
 
     public Integer getMAX_SESSIONS() {

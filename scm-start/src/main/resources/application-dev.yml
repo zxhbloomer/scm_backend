@@ -501,8 +501,8 @@ mybatis-plus:
   mapper-locations: 'classpath:/mapper/*Mapper '
   type-handlers-package: com.xinyirun.wms.core.config.mybatis.typehandlers
 
-#-----------------------wms  Configuration---------
-wms:
+#-----------------------scm  Configuration---------
+scm:
   avatar:
     temp-dir: ./avatar_temp
   config:
@@ -601,6 +601,54 @@ wms:
         redirectUrl: https://www.xinyirunscm.com
         csrfKey: xinyirun
   
+  #-----------------------SCM ClickHouse模块配置---------------------------
+  clickhouse:
+    # ClickHouse模块总开关
+    enabled: true
+    # ClickHouse服务端点配置
+    endpoints:
+      - "http://127.0.0.1:8123"
+    # 数据库名称
+    database: "scm_clickhouse"
+    # 认证信息
+    username: "default"
+    password: ""
+    # 压缩配置
+    compress-server-response: true
+    compress-client-request: false
+    # 客户端配置
+    client:
+      buffer-size: 8192
+      queue-length: 0
+      use-objects-in-array: false
+      use-binary-string: false
+      widen-unsigned-types: false
+    # 超时配置（毫秒）
+    timeout:
+      connection: 30000
+      query: 60000
+      socket: 60000
+      max-execution-time: 300
+    # 重试配置
+    retry:
+      max-attempts: 3
+      delay: 1000
+      multiplier: 2.0
+    # 监控配置
+    monitoring:
+      health-check-enabled: true
+      health-check-interval: 30
+      metrics-enabled: true
+    # 性能配置
+    performance:
+      max-connections: 20
+      lz4-uncompressed-buffer-size: 1048576  # 1MB
+      socket-receive-buffer-size: 1000000    # 1MB
+      client-network-buffer-size: 1000000    # 1MB
+      warmup-connections: true
+      warmup-timeout-seconds: 10
+      preferred-format: "RowBinaryWithNamesAndTypes"
+
   #-----------------------SCM AI模块自定义配置---------------------------
   ai:
     # AI模块总开关

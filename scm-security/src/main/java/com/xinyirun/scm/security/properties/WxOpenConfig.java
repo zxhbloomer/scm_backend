@@ -17,13 +17,13 @@ public class WxOpenConfig {
     /**
      * appid
      */
-    @Value("${wms.wx.open.config.appid}")
+    @Value("${scm.wx.open.config.appid}")
     private String appid;
 
     /**
      * app secret
      */
-    @Value("${wms.wx.open.config.secret}")
+    @Value("${scm.wx.open.config.secret}")
     private String secret;
 
     @Bean

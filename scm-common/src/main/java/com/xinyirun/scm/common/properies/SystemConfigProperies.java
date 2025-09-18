@@ -5,7 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * @author zxh
  */
-@ConfigurationProperties(prefix = "wms.config")
+@ConfigurationProperties(prefix = "scm.config")
 public class SystemConfigProperies {
 
     private boolean simpleModel;

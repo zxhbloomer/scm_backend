@@ -39,7 +39,7 @@ public class ClickHouseHealthChecker {
     /**
      * 定期健康检查
      */
-    @Scheduled(fixedDelayString = "#{@clickHouseHealthChecker.healthCheckInterval * 1000}")
+    @Scheduled(fixedDelay = 30000) // 30秒固定间隔
     public void performHealthCheck() {
         if (!healthCheckEnabled) {
             return;

@@ -2,7 +2,7 @@ package com.xinyirunscm.scm.clickhouse.validation;
 
 import com.xinyirunscm.scm.clickhouse.exception.ClickHouseValidationException;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;

@@ -52,28 +52,28 @@ public class WeChatServiceImpl implements WeChatService {
 
     private static final String AUTHORITIES_KEY = "auth";
 
-    @Value("${wms.security.jwt.base64-secret}")
+    @Value("${scm.security.jwt.base64-secret}")
     private String base64Secret;
 
-    @Value("${wms.wx.open.config.redirectUrl}")
+    @Value("${scm.wx.open.config.redirectUrl}")
     private String wxRedirectUrl;
 
-    @Value("${wms.wx.open.config.csrfKey}")
+    @Value("${scm.wx.open.config.csrfKey}")
     private String CSRF_KEY;
 
-    @Value("${wms.security.jwt.token-validity-in-seconds}")
+    @Value("${scm.security.jwt.token-validity-in-seconds}")
     private long tokenValidityInSeconds;
 
     /**
      * appid
      */
-    @Value("${wms.wx.open.config.appid}")
+    @Value("${scm.wx.open.config.appid}")
     private String wechatAppid;
 
     /**
      * app secret
      */
-    @Value("${wms.wx.open.config.secret}")
+    @Value("${scm.wx.open.config.secret}")
     private String wechatSecret;
 
     @Autowired

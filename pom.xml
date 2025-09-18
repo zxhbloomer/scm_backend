@@ -21,6 +21,7 @@
         <module>./scm-core-mongodb</module>
         <module>./scm-core-bpm</module>
         <module>./scm-core-tenant</module>
+        <module>./scm-core-clickhouse</module>
 <!--        <module>./scm-controller-whapp</module>-->
 <!--        <module>./scm-start-parent</module>-->
 <!--        <module>./scm-start-parent/scm-main-start</module>-->
@@ -508,7 +509,7 @@
             <dependency>
                 <groupId>org.apache.httpcomponents.client5</groupId>
                 <artifactId>httpclient5</artifactId>
-                <version>5.2.1</version>
+                <version>5.5</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -599,6 +600,11 @@
             <dependency>
                 <groupId>com.xinyirun</groupId>
                 <artifactId>scm-core-mongodb</artifactId>
+                <version>${xinyirun.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xinyirun</groupId>
+                <artifactId>scm-core-clickhouse</artifactId>
                 <version>${xinyirun.version}</version>
             </dependency>
             <dependency>
@@ -924,6 +930,13 @@
                 <groupId>cn.bigmodel.openapi</groupId>
                 <artifactId>oapi-java-sdk</artifactId>
                 <version>release-V4-2.4.3</version>
+            </dependency>
+
+<!--            click house-->
+            <dependency>
+                <groupId>com.clickhouse</groupId>
+                <artifactId>client-v2</artifactId>
+                <version>0.9.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

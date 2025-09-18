@@ -70,6 +70,11 @@ public class ClickHouseProperties {
      */
     private Monitoring monitoring = new Monitoring();
 
+    /**
+     * 性能配置
+     */
+    private Performance performance = new Performance();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -156,6 +161,14 @@ public class ClickHouseProperties {
 
     public void setMonitoring(Monitoring monitoring) {
         this.monitoring = monitoring;
+    }
+
+    public Performance getPerformance() {
+        return performance;
+    }
+
+    public void setPerformance(Performance performance) {
+        this.performance = performance;
     }
 
     /**
@@ -247,5 +260,66 @@ public class ClickHouseProperties {
 
         public boolean isMetricsEnabled() { return metricsEnabled; }
         public void setMetricsEnabled(boolean metricsEnabled) { this.metricsEnabled = metricsEnabled; }
+    }
+
+    /**
+     * 性能配置 - 基于ClickHouse Java v2最佳实践
+     */
+    public static class Performance {
+        /**
+         * 最大连接数
+         */
+        private int maxConnections = 20;
+
+        /**
+         * LZ4解压缓冲区大小 (字节)
+         */
+        private int lz4UncompressedBufferSize = 1048576; // 1MB
+
+        /**
+         * Socket接收缓冲区大小 (字节)
+         */
+        private int socketReceiveBufferSize = 1000000; // 1MB
+
+        /**
+         * 客户端网络缓冲区大小 (字节)
+         */
+        private int clientNetworkBufferSize = 1000000; // 1MB
+
+        /**
+         * 是否预热连接池
+         */
+        private boolean warmupConnections = true;
+
+        /**
+         * 连接预热超时时间 (秒)
+         */
+        private int warmupTimeoutSeconds = 10;
+
+        /**
+         * 数据格式（推荐使用RowBinaryWithNamesAndTypes获得更好性能）
+         */
+        private String preferredFormat = "RowBinaryWithNamesAndTypes";
+
+        public int getMaxConnections() { return maxConnections; }
+        public void setMaxConnections(int maxConnections) { this.maxConnections = maxConnections; }
+
+        public int getLz4UncompressedBufferSize() { return lz4UncompressedBufferSize; }
+        public void setLz4UncompressedBufferSize(int lz4UncompressedBufferSize) { this.lz4UncompressedBufferSize = lz4UncompressedBufferSize; }
+
+        public int getSocketReceiveBufferSize() { return socketReceiveBufferSize; }
+        public void setSocketReceiveBufferSize(int socketReceiveBufferSize) { this.socketReceiveBufferSize = socketReceiveBufferSize; }
+
+        public int getClientNetworkBufferSize() { return clientNetworkBufferSize; }
+        public void setClientNetworkBufferSize(int clientNetworkBufferSize) { this.clientNetworkBufferSize = clientNetworkBufferSize; }
+
+        public boolean isWarmupConnections() { return warmupConnections; }
+        public void setWarmupConnections(boolean warmupConnections) { this.warmupConnections = warmupConnections; }
+
+        public int getWarmupTimeoutSeconds() { return warmupTimeoutSeconds; }
+        public void setWarmupTimeoutSeconds(int warmupTimeoutSeconds) { this.warmupTimeoutSeconds = warmupTimeoutSeconds; }
+
+        public String getPreferredFormat() { return preferredFormat; }
+        public void setPreferredFormat(String preferredFormat) { this.preferredFormat = preferredFormat; }
     }
 }

@@ -356,7 +356,7 @@ Comprehensive Excel handling:
 
 **Session/Authentication Issues**:
 - Confirm Redis is running and accessible
-- Check JWT secret configuration: `wms.security.jwt.base64-secret`
+- Check JWT secret configuration: `scm.security.jwt.base64-secret`
 - Verify session namespace: `XINYIRUN_SCM_SESSION_REDIS_KEY`
 
 **BPM Workflow Issues**:

@@ -31,7 +31,7 @@ public class DefaultSmsSender implements SmsCodeSender {
     @Autowired
     private SystemSecurityProperties systemSecurityProperties;
 
-    @Value("${wms.security.code.sms.expire-in}")
+    @Value("${scm.security.code.sms.expire-in}")
     private long expireIn;
 
     @Autowired

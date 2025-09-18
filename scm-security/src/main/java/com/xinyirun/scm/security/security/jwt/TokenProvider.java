@@ -46,9 +46,9 @@ public class TokenProvider implements InitializingBean , AuthenticationProvider 
    private Key key;
 
    public TokenProvider(
-           @Value("${wms.security.jwt.base64-secret}") String base64Secret,
-           @Value("${wms.security.jwt.token-validity-in-seconds}") long tokenValidityInSeconds
-//           @Value("${wms.security.jwt.token-validity-in-seconds-for-remember-me}") long tokenValidityInSecondsForRememberMe
+           @Value("${scm.security.jwt.base64-secret}") String base64Secret,
+           @Value("${scm.security.jwt.token-validity-in-seconds}") long tokenValidityInSeconds
+//           @Value("${scm.security.jwt.token-validity-in-seconds-for-remember-me}") long tokenValidityInSecondsForRememberMe
    ) {
       this.base64Secret = base64Secret;
       this.tokenValidityInMilliseconds = tokenValidityInSeconds ;
