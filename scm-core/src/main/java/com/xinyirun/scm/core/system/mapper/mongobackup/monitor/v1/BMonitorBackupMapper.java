@@ -7,8 +7,8 @@ import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v1.BBkMonitorLogDetail
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v1.BBkMonitorVo;
 import com.xinyirun.scm.bean.system.vo.business.monitor.BMonitorPreviewFileVo;
 import com.xinyirun.scm.bean.system.vo.business.monitor.BMonitorVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v1.BMonitorDataDetailMongoVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v1.BMonitorFilePreviewBackupDataVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v1.BMonitorDataDetailMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v1.BMonitorFilePreviewBackupDataVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SBackupLogVo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.constant.SystemConstants;

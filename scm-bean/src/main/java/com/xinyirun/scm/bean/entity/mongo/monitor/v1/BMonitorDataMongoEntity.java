@@ -1,7 +1,7 @@
 package com.xinyirun.scm.bean.entity.mongo.monitor.v1;
 
 import com.xinyirun.scm.bean.entity.mongo2mysql.monitor.v1.*;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v1.BMonitorDataDetailMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v1.BMonitorDataDetailMongoVo;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.springframework.data.annotation.Id;

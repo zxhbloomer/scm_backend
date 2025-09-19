@@ -2,8 +2,8 @@ package com.xinyirun.scm.mongodb.serviceimpl.log.sys;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.mongo.log.sys.SLogSysMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogSysMongoVo;
+import com.xinyirun.scm.mongodb.bean.entity.SLogSysMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogSysClickHouseVo;
 import com.xinyirun.scm.common.utils.LocalDateTimeUtils;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
@@ -37,10 +37,12 @@ public class LogPcSystemMongoServiceImpl implements LogPcSystemMongoService {
     /**
      * 保存数据到 mongodb
      *
-     * @param entity 实体类
+     * @param Vo 实体类
      */
     @Override
-    public void save(SLogSysMongoEntity entity) {
+    public void save(SLogSysClickHouseVo Vo) {
+        SLogSysMongoEntity entity = new SLogSysMongoEntity();
+        BeanUtilsSupport.copyProperties(Vo, entity);
         mongoTemplate.save(entity);
     }
 
@@ -51,7 +53,7 @@ public class LogPcSystemMongoServiceImpl implements LogPcSystemMongoService {
      * @return
      */
     @Override
-    public IPage<SLogSysMongoVo> selectPage(SLogSysMongoVo searchCondition) {
+    public IPage<SLogSysClickHouseVo> selectPage(SLogSysClickHouseVo searchCondition) {
         // 查询条件
         Criteria criteria = new Criteria();
         // 拼接模糊查询参数
@@ -63,17 +65,17 @@ public class LogPcSystemMongoServiceImpl implements LogPcSystemMongoService {
         // mongodb 分页从 0 开始
         Pageable pageParam = PageRequest.of((int) searchCondition.getPageCondition().getCurrent() - 1,
                 (int) searchCondition.getPageCondition().getSize(), Sort.by(Sort.Direction.DESC, "c_time"));
-        List<SLogSysMongoEntity> list = mongoTemplate.find(query.with(pageParam), SLogSysMongoEntity.class);
-        List<SLogSysMongoVo> resultList = BeanUtilsSupport.copyProperties(list, SLogSysMongoVo.class);
+        List<SLogSysClickHouseVo> list = mongoTemplate.find(query.with(pageParam), SLogSysClickHouseVo.class);
+        List<SLogSysClickHouseVo> resultList = BeanUtilsSupport.copyProperties(list, SLogSysClickHouseVo.class);
 
         // 动态计算最大的limit
         searchCondition.getPageCondition().setLimit_count((int) (searchCondition.getPageCondition().getSize() * 10));
 
         // 根据动态计算的最大limit，计算count
         long count = mongoTemplate.count(query.skip((searchCondition.getPageCondition().getCurrent() - 1) * searchCondition.getPageCondition().getSize())
-                .limit(searchCondition.getPageCondition().getLimit_count()), SLogSysMongoEntity.class);
+                .limit(searchCondition.getPageCondition().getLimit_count()), SLogSysClickHouseVo.class);
 
-        Page<SLogSysMongoVo> result = MongoPageUtil.covertPages(searchCondition.getPageCondition(), count, resultList);
+        Page<SLogSysClickHouseVo> result = MongoPageUtil.covertPages(searchCondition.getPageCondition(), count, resultList);
         // 计算pages，加上之当前页前的pages
         if(count > searchCondition.getPageCondition().getSize()) {
             result.setTotal(count + searchCondition.getPageCondition().getSize()*searchCondition.getPageCondition().getCurrent());
@@ -91,11 +93,11 @@ public class LogPcSystemMongoServiceImpl implements LogPcSystemMongoService {
      * @return
      */
     @Override
-    public SLogSysMongoVo getById(SLogSysMongoVo searchCondition) {
+    public SLogSysClickHouseVo getById(SLogSysClickHouseVo searchCondition) {
         Criteria cr = Criteria.where("id").is(searchCondition.getId());
         Query query = Query.query(cr);
-        SLogSysMongoEntity entity = mongoTemplate.findOne(query, SLogSysMongoEntity.class);
-        return (SLogSysMongoVo) BeanUtilsSupport.copyProperties(entity, SLogSysMongoVo.class);
+        SLogSysClickHouseVo entity = mongoTemplate.findOne(query, SLogSysClickHouseVo.class);
+        return (SLogSysClickHouseVo) BeanUtilsSupport.copyProperties(entity, SLogSysClickHouseVo.class);
     }
 
     /**
@@ -104,7 +106,7 @@ public class LogPcSystemMongoServiceImpl implements LogPcSystemMongoService {
      * @param criteria
      * @param searchCondition
      */
-    private void paramBuilder(Criteria criteria, SLogSysMongoVo searchCondition) {
+    private void paramBuilder(Criteria criteria, SLogSysClickHouseVo searchCondition) {
         // 类型
         if (StringUtils.isNotEmpty(searchCondition.getType())) {
             criteria.and("type").regex(regexPattern(searchCondition.getType()));

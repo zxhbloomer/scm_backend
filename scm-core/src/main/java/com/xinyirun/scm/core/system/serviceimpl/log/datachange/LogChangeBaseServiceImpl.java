@@ -1,17 +1,13 @@
 package com.xinyirun.scm.core.system.serviceimpl.log.datachange;
 
-import com.xinyirun.scm.bean.entity.master.customer.MCustomerEntity;
 import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseEntity;
 import com.xinyirun.scm.bean.entity.master.goods.unit.MUnitEntity;
-import com.xinyirun.scm.bean.entity.master.user.MUserEntity;
 import com.xinyirun.scm.bean.system.vo.master.driver.MDriverVo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.system.vo.master.vehicle.MVehicleVo;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogDataChangeDetailVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogDataChangeDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.config.dict.SDictDataVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
-import com.xinyirun.scm.common.constant.DictConstant;
-import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.core.system.mapper.master.customer.MCustomerMapper;
 import com.xinyirun.scm.core.system.mapper.master.driver.MDriverMapper;
 import com.xinyirun.scm.core.system.mapper.master.enterpise.MEnterpriseMapper;

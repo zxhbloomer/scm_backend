@@ -1,5 +1,7 @@
 package com.xinyirunscm.scm.clickhouse.exception;
 
+import java.io.Serial;
+
 /**
  * ClickHouse 查询执行异常
  * 
@@ -7,6 +9,9 @@ package com.xinyirunscm.scm.clickhouse.exception;
  * @since 1.0.39
  */
 public class ClickHouseQueryException extends ClickHouseException {
+
+    @Serial
+    private static final long serialVersionUID = -766553688814057392L;
 
     private final String sql;
 

@@ -1,8 +1,7 @@
 package com.xinyirun.scm.mongodb.service.log.sys;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xinyirun.scm.bean.entity.mongo.log.sys.SLogSysMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogSysMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogSysClickHouseVo;
 
 /**
  * @author Wang Qianfeng
@@ -13,21 +12,21 @@ public interface LogPcSystemMongoService {
 
     /**
      * 保存数据到 mongodb
-     * @param entity 实体类
+     * @param vo 实体类
      */
-    void save(SLogSysMongoEntity entity);
+    void save(SLogSysClickHouseVo vo);
 
     /**
      * 根据查询信息分页查询
      * @param searchCondition
      * @return
      */
-    IPage<SLogSysMongoVo> selectPage(SLogSysMongoVo searchCondition);
+    IPage<SLogSysClickHouseVo> selectPage(SLogSysClickHouseVo searchCondition);
 
     /**
      * 查询详情
      * @param searchCondition
      * @return
      */
-    SLogSysMongoVo getById(SLogSysMongoVo searchCondition);
+    SLogSysClickHouseVo getById(SLogSysClickHouseVo searchCondition);
 }

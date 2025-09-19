@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.mapper.mongobackup.track;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.bean.entity.business.track.BTrackEntity;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackVo;
-import com.xinyirun.scm.bean.system.vo.mongo.track.BMonitorTrackMongoDataVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.track.BMonitorTrackMongoDataVo;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;

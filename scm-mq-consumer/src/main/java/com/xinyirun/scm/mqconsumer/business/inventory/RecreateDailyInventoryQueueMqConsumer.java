@@ -4,7 +4,8 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.bean.entity.master.warehouse.MWarehouseEntity;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
+import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
@@ -112,15 +113,15 @@ public class RecreateDailyInventoryQueueMqConsumer extends BaseMqConsumer {
 
         } catch (Exception e) {
             // 更新异常 保存日志
-            SLogMqConsumerMongoEntity logEntity = new SLogMqConsumerMongoEntity();
-            logEntity.setMessage_id(message_id);
-            logEntity.setConsumer_c_time(LocalDateTime.now());
-            logEntity.setConsumer_exception(e.getMessage());
-            logEntity.setConsumer_status(false);
-            logEntity.setType("NG");
-            logEntity.setMq_data(JSONObject.toJSONString(messageDataObject));
+            SLogMqConsumerClickHouseVo vo = new SLogMqConsumerClickHouseVo();
+            vo.setMessage_id(message_id);
+            vo.setConsumer_c_time(LocalDateTime.now());
+            vo.setConsumer_exception(e.getMessage());
+            vo.setConsumer_status(0);
+            vo.setType("NG");
+            vo.setMq_data(JSONObject.toJSONString(messageDataObject));
             // 新增 mq 消费者日志
-            consumerService.insert(logEntity, headers, mqSenderAo);
+            consumerService.insert(vo, headers, mqSenderAo);
             log.error("onMessage error", e);
             log.debug("------消费者消费：error-----");
             log.debug(e.getMessage());

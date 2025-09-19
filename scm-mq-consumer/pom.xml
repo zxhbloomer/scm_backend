@@ -57,6 +57,10 @@
       <groupId>com.xinyirun</groupId>
       <artifactId>scm-core-mongodb</artifactId>
     </dependency>
+      <dependency>
+          <groupId>com.xinyirun</groupId>
+          <artifactId>scm-core-clickhouse</artifactId>
+      </dependency>
   </dependencies>
 
   <build>

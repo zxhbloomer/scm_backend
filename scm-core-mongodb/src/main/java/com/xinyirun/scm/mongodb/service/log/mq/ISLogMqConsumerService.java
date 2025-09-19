@@ -1,9 +1,10 @@
 package com.xinyirun.scm.mongodb.service.log.mq;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
+import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogMqConsumerMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerMongoVo;
 
 import java.util.Map;
 
@@ -17,10 +18,10 @@ public interface ISLogMqConsumerService {
 
     /**
      * 新增 消费者日志
-     * @param entity
+     * @param vo
      * @return
      */
-    void insert(SLogMqConsumerMongoEntity entity, Map<String, Object> headers, MqSenderAo mqSenderAo);
+    void insert(SLogMqConsumerClickHouseVo vo, Map<String, Object> headers, MqSenderAo mqSenderAo);
 
     /**
      * 分页查询

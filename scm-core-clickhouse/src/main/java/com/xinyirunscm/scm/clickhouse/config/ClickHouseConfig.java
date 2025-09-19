@@ -1,8 +1,10 @@
 package com.xinyirunscm.scm.clickhouse.config;
 
 import com.clickhouse.client.api.Client;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.xinyirunscm.scm.clickhouse.entity.SLogSysClickHouseEntity;
+import com.xinyirunscm.scm.clickhouse.entity.mq.SLogMqConsumerClickHouseEntity;
+import com.xinyirunscm.scm.clickhouse.entity.mq.SLogMqProducerClickHouseEntity;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,11 +15,11 @@ import org.springframework.context.annotation.Configuration;
  * @author SCM System
  * @since 1.0.39
  */
+@Slf4j
 @Configuration
 @ConditionalOnProperty(prefix = "scm.clickhouse", name = "enabled", havingValue = "true")
 public class ClickHouseConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(ClickHouseConfig.class);
 
     private final ClickHouseProperties clickHouseProperties;
 
@@ -30,7 +32,7 @@ public class ClickHouseConfig {
      */
     @Bean(name = "clickHouseClient")
     public Client clickHouseClient() {
-        logger.info("初始化ClickHouse Client V2，端点: {}", clickHouseProperties.getEndpoints());
+        log.info("初始化ClickHouse Client V2，端点: {}", clickHouseProperties.getEndpoints());
         
         try {
             // 使用Client V2 Builder模式创建客户端
@@ -79,25 +81,30 @@ public class ClickHouseConfig {
             
             Client client = clientBuilder.build();
             
+            // 批量注册所有 POJO 实体类
+            log.info("开始批量注册ClickHouse POJO实体类");
+            registerAllPojoClasses(client);
+            log.info("所有ClickHouse POJO实体类注册完成");
+            
             // 连接预热 - 基于性能配置
             if (performance.isWarmupConnections()) {
                 try {
-                    logger.info("开始预热ClickHouse连接池，超时时间: {}秒", performance.getWarmupTimeoutSeconds());
+                    log.info("开始预热ClickHouse连接池，超时时间: {}秒", performance.getWarmupTimeoutSeconds());
                     boolean pingResult = client.ping(performance.getWarmupTimeoutSeconds());
-                    logger.info("ClickHouse连接池预热完成，ping结果: {}", pingResult);
+                    log.info("ClickHouse连接池预热完成，ping结果: {}", pingResult);
                 } catch (Exception e) {
-                    logger.warn("ClickHouse连接预热失败，但不影响后续使用", e);
+                    log.warn("ClickHouse连接预热失败，但不影响后续使用", e);
                 }
             }
             
-            logger.info("ClickHouse Client V2 初始化成功，性能配置 - 最大连接数: {}, LZ4缓冲区: {}KB, 网络缓冲区: {}KB", 
+            log.info("ClickHouse Client V2 初始化成功，性能配置 - 最大连接数: {}, LZ4缓冲区: {}KB, 网络缓冲区: {}KB", 
                        performance.getMaxConnections(),
                        performance.getLz4UncompressedBufferSize() / 1024,
                        performance.getClientNetworkBufferSize() / 1024);
             return client;
             
         } catch (Exception e) {
-            logger.error("创建ClickHouse Client V2 失败", e);
+            log.error("创建ClickHouse Client V2 失败", e);
             throw new RuntimeException("ClickHouse Client V2 初始化失败", e);
         }
     }
@@ -114,5 +121,29 @@ public class ClickHouseConfig {
                 monitoring.getHealthCheckInterval(),
                 monitoring.isMetricsEnabled()
         );
+    }
+
+    /**
+     * 集中注册所有ClickHouse POJO实体类
+     * 避免在各个Repository中重复注册逻辑
+     */
+    private void registerAllPojoClasses(Client client) {
+        try {
+            // 注册系统日志实体类 (s_log_sys表)
+            client.register(SLogSysClickHouseEntity.class, client.getTableSchema("s_log_sys"));
+            log.info("POJO注册成功: {} -> s_log_sys", SLogSysClickHouseEntity.class.getSimpleName());
+            
+            // 注册MQ消费者日志实体类 (s_log_mq_consumer表)
+            client.register(SLogMqConsumerClickHouseEntity.class, client.getTableSchema("s_log_mq_consumer"));
+            log.info("POJO注册成功: {} -> s_log_mq_consumer", SLogMqConsumerClickHouseEntity.class.getSimpleName());
+            
+            // 注册MQ生产者日志实体类 (s_log_mq_producer表)
+            client.register(SLogMqProducerClickHouseEntity.class, client.getTableSchema("s_log_mq_producer"));
+            log.info("POJO注册成功: {} -> s_log_mq_producer", SLogMqProducerClickHouseEntity.class.getSimpleName());
+            
+        } catch (Exception e) {
+            log.error("ClickHouse POJO实体类批量注册失败", e);
+            throw new RuntimeException("ClickHouse POJO注册失败，应用启动中止", e);
+        }
     }
 }

@@ -1,7 +1,7 @@
 package com.xinyirun.scm.core.system.serviceimpl.mongobackup.file;
 
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.file.SFileMonitorInfoMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.file.SFileMonitorInfoMongoVo;
 import com.xinyirun.scm.core.system.mapper.mongobackup.file.SFileInfoMongoMapper;
 import com.xinyirun.scm.core.system.service.mongobackup.file.ISFileInfoMongoService;
 import com.xinyirun.scm.core.system.serviceimpl.base.v1.BaseServiceImpl;

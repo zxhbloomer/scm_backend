@@ -4,7 +4,8 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
+import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.sys.file.BackupFileVo;
@@ -101,14 +102,14 @@ public class FileBackupConsumer extends BaseMqConsumer {
 
         } catch (Exception e) {
             // 保存日志
-            SLogMqConsumerMongoEntity logEntity = new SLogMqConsumerMongoEntity();
-            logEntity.setMessage_id(message_id);
-            logEntity.setConsumer_c_time(LocalDateTime.now());
-            logEntity.setConsumer_exception(e.getMessage());
-            logEntity.setConsumer_status(false);
-            logEntity.setType("NG");
-            logEntity.setMq_data(JSONObject.toJSONString(messageDataObject));
-            consumerService.insert(logEntity, headers, mqSenderAo);
+            SLogMqConsumerClickHouseVo vo = new SLogMqConsumerClickHouseVo();
+            vo.setMessage_id(message_id);
+            vo.setConsumer_c_time(LocalDateTime.now());
+            vo.setConsumer_exception(e.getMessage());
+            vo.setConsumer_status(0);
+            vo.setType("NG");
+            vo.setMq_data(JSONObject.toJSONString(messageDataObject));
+            consumerService.insert(vo, headers, mqSenderAo);
             log.error("onMessage error", e);
             log.error("------api消费者消费：error-----");
             log.error(e.getMessage());

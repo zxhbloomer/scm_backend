@@ -2,8 +2,7 @@ package com.xinyirun.scm.mongodb.service.log.datachange;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeOperateMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeMainVo;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeOperateMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeOperateMongoVo;
 
 /**
  * 数据变动记录

@@ -3,7 +3,7 @@ package com.xinyirun.scm.mongodb.serviceimpl.log.api;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.entity.mongo.log.api.SLogApiMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogApiMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogApiMongoVo;
 import com.xinyirun.scm.common.utils.LocalDateTimeUtils;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;

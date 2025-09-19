@@ -5,7 +5,7 @@ import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v1.BBkMonitorVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v1.*;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v1.*;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.LimitAnnotion;

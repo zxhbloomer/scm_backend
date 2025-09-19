@@ -3,9 +3,10 @@ package com.xinyirun.scm.controller.mongobackup.log.mq;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogMqConsumerMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
-import com.xinyirun.scm.mongodb.service.log.mq.ISLogMqConsumerService;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,19 +25,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class SLogMqConsumerController {
 
     @Autowired
-    private ISLogMqConsumerService service;
+    private SLogMqConsumerClickHouseService service;
 
-    @SysLogAnnotion("根据查询条件，获取系统日志数据表信息")
+    @SysLogAnnotion("根据查询条件，获取MQ消费者日志数据表信息")
     @PostMapping("/page_list")
-    public ResponseEntity<JsonResultAo<IPage<SLogMqConsumerMongoVo>>> list(@RequestBody(required = false) SLogMqConsumerMongoVo searchCondition)  {
-        IPage<SLogMqConsumerMongoVo> list = service.selectPageList(searchCondition);
+    public ResponseEntity<JsonResultAo<IPage<SLogMqConsumerClickHouseVo>>> list(@RequestBody(required = false) SLogMqConsumerClickHouseVo searchCondition)  {
+        searchCondition.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
+        IPage<SLogMqConsumerClickHouseVo> list = service.selectPageList(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 
-    @SysLogAnnotion("查询消费者详情")
+    @SysLogAnnotion("查询MQ消费者详情")
     @PostMapping("/get")
-    public ResponseEntity<JsonResultAo<SLogMqConsumerMongoVo>> get(@RequestBody(required = false) SLogMqConsumerMongoVo searchCondition)  {
-        SLogMqConsumerMongoVo list = service.getById(searchCondition);
+    public ResponseEntity<JsonResultAo<SLogMqConsumerClickHouseVo>> get(@RequestBody(required = false) SLogMqConsumerClickHouseVo searchCondition)  {
+        searchCondition.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
+        SLogMqConsumerClickHouseVo list = service.getById(searchCondition);
         return ResponseEntity.ok().body(ResultUtil.OK(list));
     }
 

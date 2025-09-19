@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.mongobackup.monitor.v2;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.business.monitor.BMonitorInEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v2.BMonitorInUnloadDataMongoV2Vo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v2.BMonitorInUnloadDataMongoV2Vo;
 import com.xinyirun.scm.core.system.mapper.mongobackup.monitor.v2.BMonitorBackupInV2Mapper;
 import com.xinyirun.scm.core.system.service.mongobackup.monitor.v2.IBMonitorInBackupV2Service;
 import org.springframework.stereotype.Service;

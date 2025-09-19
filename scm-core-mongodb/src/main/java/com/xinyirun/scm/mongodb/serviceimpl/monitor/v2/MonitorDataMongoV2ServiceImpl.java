@@ -3,7 +3,7 @@ package com.xinyirun.scm.mongodb.serviceimpl.monitor.v2;
 import com.xinyirun.scm.bean.entity.mongo.monitor.v2.BMonitorDataMongoEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v2.*;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v2.*;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.common.utils.LocalDateTimeUtils;

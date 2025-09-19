@@ -11,9 +11,9 @@ import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v1.BBkMonitorLogDetail
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v1.BBkMonitorVo;
 import com.xinyirun.scm.bean.system.vo.business.monitor.BMonitorPreviewFileVo;
 import com.xinyirun.scm.bean.system.vo.business.track.BTrackVo;
-import com.xinyirun.scm.bean.system.vo.mongo.file.SFileMonitorInfoMongoVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v1.*;
-import com.xinyirun.scm.bean.system.vo.mongo.track.BMonitorTrackMongoDataVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.file.SFileMonitorInfoMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v1.*;
+import com.xinyirun.scm.bean.system.vo.clickhouse.track.BMonitorTrackMongoDataVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.BackupFileVo;
 import com.xinyirun.scm.bean.system.vo.sys.file.SBackupLogVo;
 import com.xinyirun.scm.common.constant.SystemConstants;

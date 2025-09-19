@@ -1,6 +1,6 @@
 package com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2;
 
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v2.BPreviewBackupDataV2Vo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v2.BPreviewBackupDataV2Vo;
 import lombok.Data;
 
 import java.io.Serializable;

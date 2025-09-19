@@ -1,7 +1,7 @@
 package com.xinyirun.scm.bean.utils.annotation;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeDetailMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeDetailMongoVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnsVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnVo;
 import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;

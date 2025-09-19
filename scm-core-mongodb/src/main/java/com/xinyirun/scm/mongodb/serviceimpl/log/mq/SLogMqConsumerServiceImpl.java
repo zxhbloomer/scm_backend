@@ -2,14 +2,16 @@ package com.xinyirun.scm.mongodb.serviceimpl.log.mq;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
+import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogMqConsumerMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerMongoVo;
 import com.xinyirun.scm.common.utils.LocalDateTimeUtils;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.mongodb.service.log.mq.ISLogMqConsumerService;
 import com.xinyirun.scm.mongodb.util.MongoPageUtil;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -35,25 +37,29 @@ import static com.xinyirun.scm.common.utils.pattern.PatternUtils.regexPattern;
 @Slf4j
 public class SLogMqConsumerServiceImpl implements ISLogMqConsumerService {
 
-
+//使用clickhouse
+//    @Autowired
+//    private MongoTemplate mongoTemplate;
     @Autowired
-    private MongoTemplate mongoTemplate;
+    private SLogMqConsumerClickHouseService sLogMqConsumerClickHouseService;
+
 
     /**
      * 新增 消费者日志
      *
-     * @param entity
+     * @param vo
      * @return
      */
     @Override
-    public void insert(SLogMqConsumerMongoEntity entity, Map<String, Object> headers, MqSenderAo mqSenderAo) {
+    public void insert(SLogMqConsumerClickHouseVo vo, Map<String, Object> headers, MqSenderAo mqSenderAo) {
         try {
-            entity.setConsumer_c_time(LocalDateTime.now());
-            entity.setCode(mqSenderAo.getType());
-            entity.setName(mqSenderAo.getName());
-            entity.setExchange(headers.get("amqp_receivedExchange").toString());
-            entity.setRouting_key(headers.get("amqp_receivedRoutingKey").toString());
-            mongoTemplate.insert(entity);
+            vo.setConsumer_c_time(LocalDateTime.now());
+            vo.setCode(mqSenderAo.getType());
+            vo.setName(mqSenderAo.getName());
+            vo.setExchange(headers.get("amqp_receivedExchange").toString());
+            vo.setRouting_key(headers.get("amqp_receivedRoutingKey").toString());
+//            mongoTemplate.insert(entity);
+            sLogMqConsumerClickHouseService.insert(vo);
         } catch (Exception e) {
             log.error("消费者日志保存错误!!!!!!!!!!!!!!!!!");
             log.error("insert error", e);
@@ -68,34 +74,34 @@ public class SLogMqConsumerServiceImpl implements ISLogMqConsumerService {
      */
     @Override
     public IPage<SLogMqConsumerMongoVo> selectPageList(SLogMqConsumerMongoVo searchCondition) {
-        // 查询条件
-        Criteria criteria = new Criteria();
-        // 拼接模糊查询参数
-        paramBuilder(criteria, searchCondition);
-        // 分页查询
-        Query query = Query.query(criteria);
-        query.fields().exclude("mq_data");
-//        long count = mongoTemplate.count(query, SLogMqConsumerMongoEntity.class);
-        // mongodb 分页从 0 开始
-        Pageable pageParam = PageRequest.of((int) searchCondition.getPageCondition().getCurrent() - 1,
-                (int) searchCondition.getPageCondition().getSize(), Sort.by(Sort.Direction.DESC, "consumer_c_time"));
-        List<SLogMqConsumerMongoEntity> list = mongoTemplate.find(query.with(pageParam), SLogMqConsumerMongoEntity.class);
-        List<SLogMqConsumerMongoVo> resultList = BeanUtilsSupport.copyProperties(list, SLogMqConsumerMongoVo.class);
-
-        // 动态计算最大的limit
-        searchCondition.getPageCondition().setLimit_count((int) (searchCondition.getPageCondition().getSize() * 10));
-        // 根据动态计算的最大limit，计算count
-        long count = mongoTemplate.count(query.skip((searchCondition.getPageCondition().getCurrent() - 1) * searchCondition.getPageCondition().getSize())
-                .limit(searchCondition.getPageCondition().getLimit_count()), SLogMqConsumerMongoEntity.class);
-
-        Page<SLogMqConsumerMongoVo> result = MongoPageUtil.covertPages(searchCondition.getPageCondition(), count, resultList);
-        // 计算pages，加上之当前页前的pages
-        if(count > searchCondition.getPageCondition().getSize()) {
-            result.setTotal(count + searchCondition.getPageCondition().getSize()*searchCondition.getPageCondition().getCurrent());
-        } else {
-            result.setTotal( searchCondition.getPageCondition().getSize()*searchCondition.getPageCondition().getCurrent());
-        }
-        return result;
+//        // 查询条件
+//        Criteria criteria = new Criteria();
+//        // 拼接模糊查询参数
+//        paramBuilder(criteria, searchCondition);
+//        // 分页查询
+//        Query query = Query.query(criteria);
+//        query.fields().exclude("mq_data");
+////        long count = mongoTemplate.count(query, SLogMqConsumerMongoEntity.class);
+//        // mongodb 分页从 0 开始
+//        Pageable pageParam = PageRequest.of((int) searchCondition.getPageCondition().getCurrent() - 1,
+//                (int) searchCondition.getPageCondition().getSize(), Sort.by(Sort.Direction.DESC, "consumer_c_time"));
+//        List<SLogMqConsumerMongoEntity> list = mongoTemplate.find(query.with(pageParam), SLogMqConsumerMongoEntity.class);
+//        List<SLogMqConsumerMongoVo> resultList = BeanUtilsSupport.copyProperties(list, SLogMqConsumerMongoVo.class);
+//
+//        // 动态计算最大的limit
+//        searchCondition.getPageCondition().setLimit_count((int) (searchCondition.getPageCondition().getSize() * 10));
+//        // 根据动态计算的最大limit，计算count
+//        long count = mongoTemplate.count(query.skip((searchCondition.getPageCondition().getCurrent() - 1) * searchCondition.getPageCondition().getSize())
+//                .limit(searchCondition.getPageCondition().getLimit_count()), SLogMqConsumerMongoEntity.class);
+//
+//        Page<SLogMqConsumerMongoVo> result = MongoPageUtil.covertPages(searchCondition.getPageCondition(), count, resultList);
+//        // 计算pages，加上之当前页前的pages
+//        if(count > searchCondition.getPageCondition().getSize()) {
+//            result.setTotal(count + searchCondition.getPageCondition().getSize()*searchCondition.getPageCondition().getCurrent());
+//        } else {
+//            result.setTotal( searchCondition.getPageCondition().getSize()*searchCondition.getPageCondition().getCurrent());
+//        }
+        return null;
     }
 
     /**
@@ -106,10 +112,11 @@ public class SLogMqConsumerServiceImpl implements ISLogMqConsumerService {
      */
     @Override
     public SLogMqConsumerMongoVo getById(SLogMqConsumerMongoVo searchCondition) {
-        Criteria cr = Criteria.where("id").is(searchCondition.getId());
-        Query query = Query.query(cr);
-        SLogMqConsumerMongoEntity entity = mongoTemplate.findOne(query, SLogMqConsumerMongoEntity.class);
-        return (SLogMqConsumerMongoVo) BeanUtilsSupport.copyProperties(entity, SLogMqConsumerMongoVo.class);
+//        Criteria cr = Criteria.where("id").is(searchCondition.getId());
+//        Query query = Query.query(cr);
+//        SLogMqConsumerMongoEntity entity = mongoTemplate.findOne(query, SLogMqConsumerMongoEntity.class);
+//        return (SLogMqConsumerMongoVo) BeanUtilsSupport.copyProperties(entity, SLogMqConsumerMongoVo.class);
+        return null;
     }
 
     /**

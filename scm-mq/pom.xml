@@ -50,7 +50,11 @@
             <groupId>com.xinyirun</groupId>
             <artifactId>scm-bean</artifactId>
         </dependency>
-<!--        <dependency>-->
+        <dependency>
+            <groupId>com.xinyirun</groupId>
+            <artifactId>scm-core-clickhouse</artifactId>
+        </dependency>
+        <!--        <dependency>-->
 <!--            <groupId>com.xinyirun</groupId>-->
 <!--            <artifactId>scm-core</artifactId>-->
 <!--        </dependency>-->

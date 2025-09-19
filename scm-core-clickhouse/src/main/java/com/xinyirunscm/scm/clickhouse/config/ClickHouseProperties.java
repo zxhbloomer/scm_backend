@@ -7,6 +7,8 @@ import java.util.List;
 
 /**
  * ClickHouse Client V2 配置属性类
+ * 完全匹配 application-dev.yml 中的 scm.clickhouse 配置
+ * 支持 kebab-case 到 camelCase 的自动映射
  * 
  * @author SCM System
  * @since 1.0.39
@@ -16,62 +18,74 @@ import java.util.List;
 public class ClickHouseProperties {
 
     /**
-     * 是否启用ClickHouse
+     * 是否启用ClickHouse模块
+     * 对应 YAML: enabled
      */
     private boolean enabled = false;
 
     /**
      * ClickHouse HTTP端点列表 (Client V2使用HTTP协议)
+     * 对应 YAML: endpoints (List)
      */
     private List<String> endpoints = List.of("http://127.0.0.1:8123");
 
     /**
      * 默认数据库名称
+     * 对应 YAML: database
      */
-    private String database = "scm_clickhouse";
+    private String database = "";
 
     /**
-     * 用户名
+     * 用户名 (YAML将覆盖此默认值为 "app")
+     * 对应 YAML: username
      */
-    private String username = "default";
+    private String username = "";
 
     /**
-     * 密码
+     * 密码 (YAML将覆盖此默认值为 "app_password")
+     * 对应 YAML: password
      */
     private String password = "";
 
     /**
      * 是否启用服务器响应压缩
+     * 对应 YAML: compress-server-response
      */
     private boolean compressServerResponse = true;
 
     /**
      * 是否启用客户端请求压缩
+     * 对应 YAML: compress-client-request
      */
     private boolean compressClientRequest = false;
 
     /**
      * 客户端配置
+     * 对应 YAML: client.*
      */
     private ClientConfig client = new ClientConfig();
 
     /**
      * 超时配置
+     * 对应 YAML: timeout.*
      */
     private Timeout timeout = new Timeout();
 
     /**
      * 重试配置
+     * 对应 YAML: retry.*
      */
     private Retry retry = new Retry();
 
     /**
      * 监控配置
+     * 对应 YAML: monitoring.*
      */
     private Monitoring monitoring = new Monitoring();
 
     /**
      * 性能配置
+     * 对应 YAML: performance.*
      */
     private Performance performance = new Performance();
 
@@ -180,12 +194,32 @@ public class ClickHouseProperties {
 
     /**
      * 客户端配置
+     * 对应 YAML: client.*
      */
     public static class ClientConfig {
+        /**
+         * 缓冲区大小 - 对应 YAML: buffer-size
+         */
         private int bufferSize = 8192;
-        private int queueLength = 0; // unlimited
+        
+        /**
+         * 队列长度 - 对应 YAML: queue-length (0表示无限制)
+         */
+        private int queueLength = 0;
+        
+        /**
+         * 数组中使用对象 - 对应 YAML: use-objects-in-array
+         */
         private boolean useObjectsInArray = false;
+        
+        /**
+         * 使用二进制字符串 - 对应 YAML: use-binary-string
+         */
         private boolean useBinaryString = false;
+        
+        /**
+         * 扩展无符号类型 - 对应 YAML: widen-unsigned-types
+         */
         private boolean widenUnsignedTypes = false;
 
         public int getBufferSize() { return bufferSize; }
@@ -206,11 +240,27 @@ public class ClickHouseProperties {
 
     /**
      * 超时配置
+     * 对应 YAML: timeout.*
      */
     public static class Timeout {
+        /**
+         * 连接超时(毫秒) - 对应 YAML: connection
+         */
         private int connection = 30000;
+        
+        /**
+         * 查询超时(毫秒) - 对应 YAML: query
+         */
         private int query = 60000;
+        
+        /**
+         * Socket超时(毫秒) - 对应 YAML: socket
+         */
         private int socket = 60000;
+        
+        /**
+         * 最大执行时间(秒) - 对应 YAML: max-execution-time
+         */
         private int maxExecutionTime = 300;
 
         public int getConnection() { return connection; }
@@ -264,40 +314,42 @@ public class ClickHouseProperties {
 
     /**
      * 性能配置 - 基于ClickHouse Java v2最佳实践
+     * 对应 YAML: performance.*
      */
     public static class Performance {
         /**
-         * 最大连接数
+         * 最大连接数 - 对应 YAML: max-connections
          */
         private int maxConnections = 20;
 
         /**
-         * LZ4解压缓冲区大小 (字节)
+         * LZ4解压缓冲区大小 (字节) - 对应 YAML: lz4-uncompressed-buffer-size
          */
         private int lz4UncompressedBufferSize = 1048576; // 1MB
 
         /**
-         * Socket接收缓冲区大小 (字节)
+         * Socket接收缓冲区大小 (字节) - 对应 YAML: socket-receive-buffer-size
          */
         private int socketReceiveBufferSize = 1000000; // 1MB
 
         /**
-         * 客户端网络缓冲区大小 (字节)
+         * 客户端网络缓冲区大小 (字节) - 对应 YAML: client-network-buffer-size
          */
         private int clientNetworkBufferSize = 1000000; // 1MB
 
         /**
-         * 是否预热连接池
+         * 是否预热连接池 - 对应 YAML: warmup-connections
          */
         private boolean warmupConnections = true;
 
         /**
-         * 连接预热超时时间 (秒)
+         * 连接预热超时时间 (秒) - 对应 YAML: warmup-timeout-seconds
          */
         private int warmupTimeoutSeconds = 10;
 
         /**
          * 数据格式（推荐使用RowBinaryWithNamesAndTypes获得更好性能）
+         * 对应 YAML: preferred-format
          */
         private String preferredFormat = "RowBinaryWithNamesAndTypes";
 

@@ -2,11 +2,8 @@ package com.xinyirun.scm.mongodb.serviceimpl.log.datachange;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.mongo.log.app.SLogAppMongoEntity;
 import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeMainMongoEntity;
-import com.xinyirun.scm.bean.entity.mongo.log.sys.SLogSysMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeMainVo;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogAppMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainVo;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.LocalDateTimeUtils;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
@@ -24,7 +21,6 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 

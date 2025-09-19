@@ -3,7 +3,7 @@ package com.xinyirun.scm.controller.sys.datachangelog;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeOperateMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeOperateMongoVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.mongodb.service.log.datachange.LogChangeMongoService;
 import com.xinyirun.scm.mongodb.service.log.datachange.LogChangeOperateMongoService;

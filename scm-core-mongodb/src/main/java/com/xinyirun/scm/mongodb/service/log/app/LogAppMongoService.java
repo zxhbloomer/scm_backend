@@ -2,7 +2,7 @@ package com.xinyirun.scm.mongodb.service.log.app;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.entity.mongo.log.app.SLogAppMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogAppMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogAppMongoVo;
 
 /**
  * @author Wang Qianfeng

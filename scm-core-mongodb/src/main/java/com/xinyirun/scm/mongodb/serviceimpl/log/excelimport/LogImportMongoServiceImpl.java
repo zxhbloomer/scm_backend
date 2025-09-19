@@ -2,8 +2,8 @@ package com.xinyirun.scm.mongodb.serviceimpl.log.excelimport;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.entity.mongo.log.excelimport.SLogImportMongoEntity;
-import com.xinyirun.scm.bean.entity.mongo.log.sys.SLogSysMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogImportMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogImportMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogSysClickHouseVo;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;
 import com.xinyirun.scm.mongodb.service.log.excelimport.LogImportMongoService;
@@ -56,7 +56,7 @@ public class LogImportMongoServiceImpl implements LogImportMongoService {
         paramBuilder(criteria, searchCondition);
         // 分页查询
         Query query = Query.query(criteria);
-        long count = mongoTemplate.count(query, SLogSysMongoEntity.class);
+        long count = mongoTemplate.count(query, SLogSysClickHouseVo.class);
         // mongodb 分页从 0 开始
         Pageable pageParam = PageRequest.of((int) searchCondition.getPageCondition().getCurrent() - 1,
                 (int) searchCondition.getPageCondition().getSize(), Sort.by(Sort.Direction.DESC, "c_time"));

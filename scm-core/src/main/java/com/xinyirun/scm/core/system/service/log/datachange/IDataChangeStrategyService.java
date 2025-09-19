@@ -1,10 +1,8 @@
 package com.xinyirun.scm.core.system.service.log.datachange;
 
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogDataChangeDetailVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogDataChangeDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogDetailVo;
 import org.apache.ibatis.mapping.BoundSql;
-
-import java.time.LocalDateTime;
 
 /**
  * 策略模式：数据更新记录

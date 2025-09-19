@@ -2,8 +2,8 @@ package com.xinyirun.scm.mongodb.serviceimpl.log.mq;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqProducerMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogMqProducerMongoVo;
+import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqProducerMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqProducerMongoVo;
 import com.xinyirun.scm.common.utils.LocalDateTimeUtils;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.string.StringUtils;

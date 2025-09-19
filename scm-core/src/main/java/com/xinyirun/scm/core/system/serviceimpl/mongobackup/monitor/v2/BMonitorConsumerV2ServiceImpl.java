@@ -3,7 +3,7 @@ package com.xinyirun.scm.core.system.serviceimpl.mongobackup.monitor.v2;
 import com.xinyirun.scm.bean.entity.mongo.monitor.v2.BMonitorDataMongoEntity;
 import com.xinyirun.scm.bean.entity.mongo2mysql.monitor.v2.*;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v2.BMonitorDataDetailMongoV2Vo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v2.BMonitorDataDetailMongoV2Vo;
 import com.xinyirun.scm.common.constant.DictConstant;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.core.system.service.business.bkmonitor.v2.IBBkMonitorLogDetailV2Service;

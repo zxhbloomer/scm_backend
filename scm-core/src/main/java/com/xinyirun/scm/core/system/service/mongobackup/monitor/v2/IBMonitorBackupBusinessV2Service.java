@@ -5,7 +5,7 @@ import com.xinyirun.scm.bean.entity.business.monitor.BMonitorEntity;
 import com.xinyirun.scm.bean.entity.mongo.monitor.v2.BMonitorDataMongoEntity;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorLogDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.bkmonitor.v2.BBkMonitorVo;
-import com.xinyirun.scm.bean.system.vo.mongo.monitor.v2.BMonitorDataDetailMongoV2Vo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.monitor.v2.BMonitorDataDetailMongoV2Vo;
 
 import java.util.List;
 

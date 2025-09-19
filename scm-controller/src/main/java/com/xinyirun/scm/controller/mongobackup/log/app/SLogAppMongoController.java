@@ -3,7 +3,7 @@ package com.xinyirun.scm.controller.mongobackup.log.app;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogAppMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogAppMongoVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.mongodb.service.log.app.LogAppMongoService;
 import lombok.extern.slf4j.Slf4j;

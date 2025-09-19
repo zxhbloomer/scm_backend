@@ -1,7 +1,7 @@
 package com.xinyirun.scm.mongodb.service.log.mq;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogMqProducerMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqProducerMongoVo;
 
 /**
  * @Author:      Wqf

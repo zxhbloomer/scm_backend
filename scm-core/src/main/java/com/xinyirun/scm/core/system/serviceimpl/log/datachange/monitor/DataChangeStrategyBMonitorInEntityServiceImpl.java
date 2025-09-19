@@ -5,7 +5,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONWriter;
 import com.xinyirun.scm.bean.entity.business.monitor.BMonitorInEntity;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
-import com.xinyirun.scm.bean.system.vo.mongo.log.SLogDataChangeDetailVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogDataChangeDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogDetailVo;
 import com.xinyirun.scm.bean.utils.annotation.AnnotationUtil;
 import com.xinyirun.scm.core.system.mapper.business.monitor.BMonitorInMapper;

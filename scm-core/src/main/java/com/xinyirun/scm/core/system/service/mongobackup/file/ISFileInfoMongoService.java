@@ -2,7 +2,7 @@ package com.xinyirun.scm.core.system.service.mongobackup.file;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.file.SFileMonitorInfoMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.file.SFileMonitorInfoMongoVo;
 
 /**
  * <p>

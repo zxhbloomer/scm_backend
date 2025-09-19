@@ -1,9 +1,8 @@
 package com.xinyirun.scm.mongodb.service.log.datachange;
 
 import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeMongoEntity;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeMainVo;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeMongoVo;
-import com.xinyirun.scm.bean.system.vo.mongo.datachange.SLogDataChangeOperateMongoVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeOperateMongoVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogVo;
 
 import java.lang.reflect.InvocationTargetException;

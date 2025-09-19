@@ -171,14 +171,15 @@ spring:
       password: ''
       # Redis服务器连接端口
       port: 6379
-    mongodb:
-      host: 127.0.0.1
-#      host: 47.100.174.228  # 鑫润航大外网
-#      host: 139.196.253.28  # 中林
-      port: 27017
-      database: wms
-      username: wms_db_user
-      password: ScmMongodb123             # 升级成springboot3后，@符号需要修改成%40
+#      暂时停用：使用clickhouse替代
+#    mongodb:
+#      host: 127.0.0.1
+##      host: 47.100.174.228  # 鑫润航大外网
+##      host: 139.196.253.28  # 中林
+#      port: 27017
+#      database: wms
+#      username: wms_db_user
+#      password: ScmMongodb123             # 升级成springboot3后，@符号需要修改成%40
   datasource:
     dynamic:
       p6spy: true
@@ -609,10 +610,10 @@ scm:
     endpoints:
       - "http://127.0.0.1:8123"
     # 数据库名称
-    database: "scm_clickhouse"
+    database: "default"
     # 认证信息
-    username: "default"
-    password: ""
+    username: "app"
+    password: "app_password"
     # 压缩配置
     compress-server-response: true
     compress-client-request: false

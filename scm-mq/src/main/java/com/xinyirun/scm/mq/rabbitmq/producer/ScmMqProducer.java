@@ -2,13 +2,15 @@ package com.xinyirun.scm.mq.rabbitmq.producer;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqProducerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqProducerClickHouseVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqProducerMongoVo;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.mq.MessageProductQueueException;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.redis.RedisUtil;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqProducerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageBuilder;
@@ -17,7 +19,6 @@ import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -46,8 +47,11 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
     @Autowired
     private RedisUtil redisUtil;
 
+//    @Autowired
+//    private MongoTemplate mongoTemplate;
+
     @Autowired
-    private MongoTemplate mongoTemplate;
+    private SLogMqProducerClickHouseService sLogMqProducerClickHouseService;
 
     /**
      * 消息发送
@@ -62,8 +66,8 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
 //        String messageDataJson = JSON.toJSONString(mqSenderAo);
 
         // mongodb 数据库保存
-        SLogMqProducerMongoEntity entity = new SLogMqProducerMongoEntity();
-
+//        SLogMqProducerMongoVo vo = new SLogMqProducerMongoVo();
+        SLogMqProducerClickHouseVo vo = new SLogMqProducerClickHouseVo();
         try {
             // 新增数据
             /**
@@ -80,8 +84,8 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
             CorrelationData correlationData = new CorrelationData(mqSenderAo.getKey());
 
             // 添加生产状态
-            entity.setProducer_status(true);
-            entity.setType("OK");
+            vo.setProducer_status(1);
+            vo.setType("OK");
 
             /**
              * 确认消息是否到达broker服务器
@@ -94,14 +98,14 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
             log.debug("------生产者进入队列：end-----");
         } catch (Exception e) {
             // 更新异常
-            entity.setProducter_exception(LocalDateTime.now().toString() + "---" + e.getMessage());
-            entity.setProducer_status(false);
-            entity.setType("NG");
+            vo.setProducter_exception(LocalDateTime.now().toString() + "---" + e.getMessage());
+            vo.setProducer_status(0);
+            vo.setType("NG");
             log.debug("------生产者进入队列：error-----");
             log.debug(e.getMessage());
             throw new MessageProductQueueException(e);
         } finally {
-            insertToDbService(mqSenderAo, mqenum, messageDataJson, entity);
+            insertToDbService(mqSenderAo, mqenum, messageDataJson, vo);
             log.debug("------生产者进入队列：finally-----");
         }
     }
@@ -122,7 +126,8 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
         String messageDataJson = JSON.toJSONString(mqSenderAo);
 
         // mongodb 数据库保存
-        SLogMqProducerMongoEntity entity = new SLogMqProducerMongoEntity();
+//        SLogMqProducerMongoVo vo = new SLogMqProducerMongoVo();
+        SLogMqProducerClickHouseVo vo =  new SLogMqProducerClickHouseVo();
 
         try {
             // 新增数据
@@ -140,8 +145,8 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
             CorrelationData correlationData = new CorrelationData(mqSenderAo.getKey());
 
             // 添加生产状态
-            entity.setProducer_status(true);
-            entity.setType("OK");
+            vo.setProducer_status(1);
+            vo.setType("OK");
 
             /**
              * 确认消息是否到达broker服务器
@@ -155,14 +160,14 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
             log.debug("------生产者进入队列：end-----");
         } catch (Exception e) {
             // 更新异常
-            entity.setProducter_exception(LocalDateTime.now().toString() + "---" + e.getMessage());
-            entity.setProducer_status(false);
-            entity.setType("NG");
+            vo.setProducter_exception(LocalDateTime.now().toString() + "---" + e.getMessage());
+            vo.setProducer_status(0);
+            vo.setType("NG");
             log.debug("------生产者进入队列：error-----");
             log.debug(e.getMessage());
             throw new MessageProductQueueException(e);
         } finally {
-            insertToDbService(mqSenderAo, mqenum, messageDataJson, entity);
+            insertToDbService(mqSenderAo, mqenum, messageDataJson, vo);
             log.debug("------生产者进入队列：finally-----");
         }
     }
@@ -172,15 +177,16 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
      * 建立消息队列entity_bean
      * @param mqSenderAo
      */
-    private SLogMqProducerMongoEntity buildEntityBean(MqSenderAo mqSenderAo, MQEnum mqenum, String data, SLogMqProducerMongoEntity entity){
-        entity.setCode(mqSenderAo.getType());
-        entity.setName(mqSenderAo.getName());
-        entity.setExchange(mqenum.getExchange());
-        entity.setRouting_key(mqenum.getRouting_key());
-        entity.setMq_data(data);
-        entity.setMessage_id(mqSenderAo.getKey());
-        entity.setProducter_c_time(LocalDateTime.now());
-        return entity;
+    private SLogMqProducerClickHouseVo buildEntityBean(MqSenderAo mqSenderAo, MQEnum mqenum, String data, SLogMqProducerClickHouseVo vo){
+        vo.setCode(mqSenderAo.getType());
+        vo.setName(mqSenderAo.getName());
+        vo.setExchange(mqenum.getExchange());
+        vo.setRouting_key(mqenum.getRouting_key());
+        vo.setMq_data(data);
+        vo.setMessage_id(mqSenderAo.getKey());
+        vo.setProducter_c_time(LocalDateTime.now());
+        vo.setTenant_code(mqSenderAo.getTenant_code());
+        return vo;
     }
 
     /**
@@ -189,10 +195,10 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
      * @param mqenum
      * @param data
      */
-    private SLogMqProducerMongoEntity insertToDbService (MqSenderAo mqSenderAo, MQEnum mqenum, String data, SLogMqProducerMongoEntity entity) {
-        buildEntityBean(mqSenderAo, mqenum, data, entity);
-        SLogMqProducerMongoEntity insertEntity = mongoTemplate.insert(entity);
-        return insertEntity;
+    private void insertToDbService (MqSenderAo mqSenderAo, MQEnum mqenum, String data, SLogMqProducerClickHouseVo vo) {
+        buildEntityBean(mqSenderAo, mqenum, data, vo);
+//        SLogMqProducerMongoVo insertEntity = mongoTemplate.insert(vo);
+        sLogMqProducerClickHouseService.insert(vo);
     }
 
     /**

@@ -3,7 +3,8 @@ package com.xinyirun.scm.mqconsumer.business.log.quartz;
 import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.bean.entity.log.mq.SLogMqEntity;
-import com.xinyirun.scm.bean.entity.mongo.log.mq.SLogMqConsumerMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
+import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.entity.mongo.log.quartz.SJobLogMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.common.exception.mq.MessageConsumerQueueException;
@@ -81,18 +82,28 @@ public class LogQuartzConsumer extends BaseMqConsumer {
 //            logEntity.setConsumer_status(true);
 //            logEntity.setType("OK");
 //            logEntity.setMq_data(JSONObject.toJSONString(messageContext));
-
+            /**
+             *  没有错误，更新mq消费者日志
+             */
+            SLogMqConsumerClickHouseVo consumerVo = new SLogMqConsumerClickHouseVo();
+            consumerVo.setMessage_id(message_id);
+            consumerVo.setConsumer_c_time(LocalDateTime.now());
+            consumerVo.setConsumer_status(0);
+            consumerVo.setType("OK");
+            consumerVo.setTenant_code(mqSenderAo.getTenant_code());
+            consumerVo.setMq_data(JSONObject.toJSONString(messageDataObject));
+            consumerService.insert(consumerVo, headers, mqSenderAo);
         } catch (Exception e) {
             // 保存日志
-            SLogMqConsumerMongoEntity logEntity = new SLogMqConsumerMongoEntity();
-            logEntity.setMessage_id(message_id);
-            logEntity.setConsumer_c_time(LocalDateTime.now());
+            SLogMqConsumerClickHouseVo vo = new SLogMqConsumerClickHouseVo();
+            vo.setMessage_id(message_id);
+            vo.setConsumer_c_time(LocalDateTime.now());
             // 更新异常
-            logEntity.setConsumer_exception(e.getMessage());
-            logEntity.setConsumer_status(false);
-            logEntity.setType("NG");
-            logEntity.setMq_data(JSONObject.toJSONString(messageDataObject));
-            consumerService.insert(logEntity, headers, mqSenderAo);
+            vo.setConsumer_exception(e.getMessage());
+            vo.setConsumer_status(0);
+            vo.setType("NG");
+            vo.setMq_data(JSONObject.toJSONString(messageDataObject));
+            consumerService.insert(vo, headers, mqSenderAo);
             log.error("onMessage error", e);
             log.error("------quartz消费者消费：error-----");
             log.error(e.getMessage());
