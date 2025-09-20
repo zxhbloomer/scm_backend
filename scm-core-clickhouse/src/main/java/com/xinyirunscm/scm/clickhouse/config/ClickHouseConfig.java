@@ -4,6 +4,9 @@ import com.clickhouse.client.api.Client;
 import com.xinyirunscm.scm.clickhouse.entity.SLogSysClickHouseEntity;
 import com.xinyirunscm.scm.clickhouse.entity.mq.SLogMqConsumerClickHouseEntity;
 import com.xinyirunscm.scm.clickhouse.entity.mq.SLogMqProducerClickHouseEntity;
+import com.xinyirunscm.scm.clickhouse.entity.datachange.SLogDataChangeMainClickHouseEntity;
+import com.xinyirunscm.scm.clickhouse.entity.datachange.SLogDataChangeOperateClickHouseEntity;
+import com.xinyirunscm.scm.clickhouse.entity.datachange.SLogDataChangeDetailClickHouseEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -140,6 +143,18 @@ public class ClickHouseConfig {
             // 注册MQ生产者日志实体类 (s_log_mq_producer表)
             client.register(SLogMqProducerClickHouseEntity.class, client.getTableSchema("s_log_mq_producer"));
             log.info("POJO注册成功: {} -> s_log_mq_producer", SLogMqProducerClickHouseEntity.class.getSimpleName());
+            
+            // 注册数据变更主日志实体类 (s_log_data_change_main表)
+            client.register(SLogDataChangeMainClickHouseEntity.class, client.getTableSchema("s_log_data_change_main"));
+            log.info("POJO注册成功: {} -> s_log_data_change_main", SLogDataChangeMainClickHouseEntity.class.getSimpleName());
+            
+            // 注册数据变更操作日志实体类 (s_log_data_change_operate表)
+            client.register(SLogDataChangeOperateClickHouseEntity.class, client.getTableSchema("s_log_data_change_operate"));
+            log.info("POJO注册成功: {} -> s_log_data_change_operate", SLogDataChangeOperateClickHouseEntity.class.getSimpleName());
+            
+            // 注册数据变更详细日志实体类 (s_log_data_change_detail表)
+            client.register(SLogDataChangeDetailClickHouseEntity.class, client.getTableSchema("s_log_data_change_detail"));
+            log.info("POJO注册成功: {} -> s_log_data_change_detail", SLogDataChangeDetailClickHouseEntity.class.getSimpleName());
             
         } catch (Exception e) {
             log.error("ClickHouse POJO实体类批量注册失败", e);

@@ -1,6 +1,7 @@
 package com.xinyirunscm.scm.clickhouse.service.mq;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +35,27 @@ public class SLogMqConsumerClickHouseService {
     }
 
     // ==================== 插入操作 ====================
+
+    /**
+     * 新增 消费者日志
+     *
+     * @param vo
+     * @return
+     */
+    public void insert(SLogMqConsumerClickHouseVo vo, Map<String, Object> headers, MqSenderAo mqSenderAo) {
+        try {
+            vo.setConsumer_c_time(LocalDateTime.now());
+            vo.setCode(mqSenderAo.getType());
+            vo.setName(mqSenderAo.getName());
+            vo.setExchange(headers.get("amqp_receivedExchange").toString());
+            vo.setRouting_key(headers.get("amqp_receivedRoutingKey").toString());
+            vo.setTenant_code(mqSenderAo.getTenant_code());
+            insert(vo);
+        } catch (Exception e) {
+            log.error("消费者日志保存错误!!!!!!!!!!!!!!!!!");
+            log.error("insert error", e);
+        }
+    }
 
     /**
      * 插入系统日志 - 接受 SLogMqConsumerClickHouseVo 参数

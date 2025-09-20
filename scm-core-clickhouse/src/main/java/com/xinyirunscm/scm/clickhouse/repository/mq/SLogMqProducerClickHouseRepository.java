@@ -16,8 +16,6 @@ import java.util.stream.Collectors;
 import com.xinyirunscm.scm.clickhouse.entity.mq.SLogMqProducerClickHouseEntity;
 import com.xinyirunscm.scm.clickhouse.exception.ClickHouseConnectionException;
 import com.xinyirunscm.scm.clickhouse.exception.ClickHouseQueryException;
-import com.xinyirunscm.scm.clickhouse.metrics.ClickHouseMetricsCollector;
-import com.xinyirunscm.scm.clickhouse.security.ClickHouseSqlSanitizer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -47,17 +45,7 @@ public class SLogMqProducerClickHouseRepository {
 
     private final Client clickHouseClient;
 
-    /**
-     * 性能指标收集器 - 可选依赖，当监控启用时才注入
-     */
-    @Autowired(required = false)
-    private ClickHouseMetricsCollector metricsCollector;
     
-    /**
-     * SQL安全构建器 - 防止SQL注入
-     */
-    @Autowired
-    private ClickHouseSqlSanitizer sqlSanitizer;
 
     public SLogMqProducerClickHouseRepository(@Qualifier("clickHouseClient") Client clickHouseClient) {
         this.clickHouseClient = clickHouseClient;
@@ -80,13 +68,6 @@ public class SLogMqProducerClickHouseRepository {
                     .get(30, TimeUnit.SECONDS)) {
                 
                 log.debug("插入系统日志成功，request_id: {}", entity.getMessage_id());
-                
-                // 收集插入指标
-                if (metricsCollector != null) {
-                    metricsCollector.collectInsertMetrics(response, "insert_sys_log", 1);
-                    long duration = System.currentTimeMillis() - startTime;
-                    metricsCollector.collectPojoMetrics("insert_sys_log_single", 1, duration, true);
-                }
                 
             } catch (Exception e) {
                 handleInsertError(e, "插入系统日志失败", "insert_sys_log");
@@ -127,13 +108,6 @@ public class SLogMqProducerClickHouseRepository {
                     .get(60, TimeUnit.SECONDS)) {
                 
                 log.info("批量插入系统日志成功，数量: {}", recordCount);
-                
-                // 收集批量插入指标
-                if (metricsCollector != null) {
-                    metricsCollector.collectInsertMetrics(response, "batch_insert_sys_log", recordCount);
-                    long duration = System.currentTimeMillis() - startTime;
-                    metricsCollector.collectPojoMetrics("batch_insert_sys_log", recordCount, duration, true);
-                }
                 
             } catch (Exception e) {
                 handleInsertError(e, "批量插入系统日志失败", "batch_insert_sys_log");
@@ -401,9 +375,6 @@ public class SLogMqProducerClickHouseRepository {
      * 处理插入错误
      */
     private void handleInsertError(Exception e, String message, String operation) {
-        if (metricsCollector != null) {
-            metricsCollector.collectErrorMetrics(operation, "insert_error", e);
-        }
         log.error(message, e);
         throw new ClickHouseQueryException(message, "INSERT INTO " + TABLE_NAME, e);
     }

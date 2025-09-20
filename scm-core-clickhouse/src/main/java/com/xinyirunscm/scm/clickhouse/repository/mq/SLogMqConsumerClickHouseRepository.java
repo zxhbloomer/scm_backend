@@ -1,25 +1,21 @@
 package com.xinyirunscm.scm.clickhouse.repository.mq;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.clickhouse.client.api.Client;
 import com.clickhouse.client.api.data_formats.ClickHouseBinaryFormatReader;
 import com.clickhouse.client.api.insert.InsertResponse;
 import com.clickhouse.client.api.insert.InsertSettings;
 import com.clickhouse.client.api.query.GenericRecord;
 import com.clickhouse.client.api.query.QueryResponse;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
-import org.apache.commons.lang3.StringUtils;
-import java.util.stream.Collectors;
 import com.xinyirunscm.scm.clickhouse.entity.mq.SLogMqConsumerClickHouseEntity;
 import com.xinyirunscm.scm.clickhouse.exception.ClickHouseConnectionException;
 import com.xinyirunscm.scm.clickhouse.exception.ClickHouseQueryException;
-import com.xinyirunscm.scm.clickhouse.metrics.ClickHouseMetricsCollector;
-import com.xinyirunscm.scm.clickhouse.security.ClickHouseSqlSanitizer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
@@ -30,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * MQ消费者日志 ClickHouse Repository
@@ -46,18 +43,6 @@ public class SLogMqConsumerClickHouseRepository {
     private static final String TABLE_NAME = "s_log_mq_consumer";
 
     private final Client clickHouseClient;
-
-    /**
-     * 性能指标收集器 - 可选依赖，当监控启用时才注入
-     */
-    @Autowired(required = false)
-    private ClickHouseMetricsCollector metricsCollector;
-    
-    /**
-     * SQL安全检查器 - 可选依赖，当安全检查启用时才注入
-     */
-    @Autowired(required = false)
-    private ClickHouseSqlSanitizer sqlSanitizer;
 
     public SLogMqConsumerClickHouseRepository(@Qualifier("clickHouseClient") Client clickHouseClient) {
         this.clickHouseClient = clickHouseClient;
@@ -80,13 +65,6 @@ public class SLogMqConsumerClickHouseRepository {
                     .get(30, TimeUnit.SECONDS)) {
                 
                 log.debug("插入MQ消费者日志成功，message_id: {}", entity.getMessage_id());
-                
-                // 收集插入指标
-                if (metricsCollector != null) {
-                    metricsCollector.collectInsertMetrics(response, "insert_mq_consumer_log", 1);
-                    long duration = System.currentTimeMillis() - startTime;
-                    metricsCollector.collectPojoMetrics("insert_mq_consumer_log_single", 1, duration, true);
-                }
                 
             } catch (Exception e) {
                 handleInsertError(e, "插入MQ消费者日志失败", "insert_mq_consumer_log");
@@ -127,13 +105,6 @@ public class SLogMqConsumerClickHouseRepository {
                     .get(60, TimeUnit.SECONDS)) {
                 
                 log.info("批量插入MQ消费者日志成功，数量: {}", recordCount);
-                
-                // 收集批量插入指标
-                if (metricsCollector != null) {
-                    metricsCollector.collectInsertMetrics(response, "batch_insert_mq_consumer_log", recordCount);
-                    long duration = System.currentTimeMillis() - startTime;
-                    metricsCollector.collectPojoMetrics("batch_insert_mq_consumer_log", recordCount, duration, true);
-                }
                 
             } catch (Exception e) {
                 handleInsertError(e, "批量插入MQ消费者日志失败", "batch_insert_mq_consumer_log");
@@ -401,9 +372,6 @@ public class SLogMqConsumerClickHouseRepository {
      * 处理插入错误
      */
     private void handleInsertError(Exception e, String message, String operation) {
-        if (metricsCollector != null) {
-            metricsCollector.collectErrorMetrics(operation, "insert_error", e);
-        }
         log.error(message, e);
         throw new ClickHouseQueryException(message, "INSERT INTO " + TABLE_NAME, e);
     }

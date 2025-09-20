@@ -3,6 +3,7 @@ package com.xinyirunscm.scm.clickhouse.entity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -21,8 +22,9 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = false)
 public class SLogSysClickHouseEntity implements Serializable {
 
-    private static final long serialVersionUID = -5126665294285188559L;
 
+    @Serial
+    private static final long serialVersionUID = 5520532239510860027L;
     /**
      * 主键ID，自动生成UUID
      * ClickHouse类型：UUID DEFAULT generateUUIDv4()
