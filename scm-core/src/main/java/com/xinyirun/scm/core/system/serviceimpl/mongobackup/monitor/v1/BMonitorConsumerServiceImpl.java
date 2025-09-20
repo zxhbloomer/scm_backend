@@ -10,7 +10,6 @@ import com.xinyirun.scm.core.system.service.business.bkmonitor.v1.IBBkMonitorLog
 import com.xinyirun.scm.core.system.service.business.bkmonitor.v1.IBBkMonitorSyncLogService;
 import com.xinyirun.scm.core.system.service.mongobackup.monitor.v1.*;
 import com.xinyirun.scm.core.system.service.mongobackup.monitorrestore.v1.*;
-import com.xinyirun.scm.mongodb.service.monitor.v1.IMonitorDataMongoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,9 +51,9 @@ public class BMonitorConsumerServiceImpl implements IBMonitorConsumerService {
 
     @Autowired
     private IBMonitorUnloadRestoreService monitorUnloadRestoreService;
-
-    @Autowired
-    private IMonitorDataMongoService monitorDataMongoService;
+//
+//    @Autowired
+//    private IMonitorDataMongoService monitorDataMongoService;
 
     @Autowired
     private IBBkMonitorSyncLogService syncLogService;
@@ -112,7 +111,7 @@ public class BMonitorConsumerServiceImpl implements IBMonitorConsumerService {
         backupService.saveAndFlush(bMonitorDataMongoEntity);
 
         // 保存到mongo
-        monitorDataMongoService.saveAndFlush(bMonitorDataMongoEntity);
+//        monitorDataMongoService.saveAndFlush(bMonitorDataMongoEntity);
 
         // 更新 日志详情 状态
         logDetailService.updateStatus(vo.getLog_detail_id(), DictConstant.DICT_B_MONITOR_BACKUP_DETAIL_STATUS_2);
@@ -134,7 +133,8 @@ public class BMonitorConsumerServiceImpl implements IBMonitorConsumerService {
 
 
         // 先判断是否备份成功
-        BMonitorDataMongoEntity entity = monitorDataMongoService.getEntityByMonitorId(vo.getMonitor_id());
+//        BMonitorDataMongoEntity entity = monitorDataMongoService.getEntityByMonitorId(vo.getMonitor_id());
+        BMonitorDataMongoEntity entity = new BMonitorDataMongoEntity();
 
         if (null == entity || DictConstant.DICT_B_MONITOR_MONGO_IS_RESTORE_T.equals(entity.getIs_restore())) {
 //            log.error("结果 --> {}", DictConstant.DICT_B_MONITOR_MONGO_IS_RESTORE_T.equals(entity.getIs_restore()));

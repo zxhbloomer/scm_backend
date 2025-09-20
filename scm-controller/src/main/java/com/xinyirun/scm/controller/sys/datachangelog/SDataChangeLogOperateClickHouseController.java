@@ -39,7 +39,7 @@ public class SDataChangeLogOperateClickHouseController {
     @SysLogAnnotion("根据查询条件，获取数据变更日志数据表详情")
     @PostMapping("/get")
     @ResponseBody
-    public ResponseEntity<JsonResultAo<SLogDataChangeOperateClickHouseVo>> get(@RequestBody(required = false) SLogDataChangeOperateMongoVo searchCondition)  {
+    public ResponseEntity<JsonResultAo<SLogDataChangeOperateClickHouseVo>> get(@RequestBody(required = false) SLogDataChangeOperateClickHouseVo searchCondition)  {
         SLogDataChangeOperateClickHouseVo detail = logChangeMongoService.findOperationByRequestId(searchCondition.getRequest_id());
         return ResponseEntity.ok().body(ResultUtil.OK(detail));
     }

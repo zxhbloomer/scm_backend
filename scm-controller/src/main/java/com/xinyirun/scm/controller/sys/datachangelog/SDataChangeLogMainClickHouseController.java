@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainClickHouseVo;
-import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainVo;
 import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMongoVo;
 import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeOperateMongoVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -21,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping(value = "/api/v1/log/datachange/main")
 @Slf4j
-public class SDataChangeLogMainMongoController {
+public class SDataChangeLogMainClickHouseController {
 
     @Autowired
     private SLogDataChangeMainClickHouseService logChangeMainMongoService;

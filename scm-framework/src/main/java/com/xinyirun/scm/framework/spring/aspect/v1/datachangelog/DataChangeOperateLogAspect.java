@@ -6,12 +6,14 @@ import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.system.bo.log.sys.SysLogBo;
 import com.xinyirun.scm.bean.system.bo.session.user.system.UserSessionBo;
 import com.xinyirun.scm.bean.system.utils.servlet.ServletUtil;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeOperateClickHouseVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.DataChangeOperateAnnotation;
 import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.properies.SystemConfigProperies;
 import com.xinyirun.scm.common.utils.ExceptionUtil;
 import com.xinyirun.scm.common.utils.IPUtil;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.mq.rabbitmq.producer.business.log.datachange.LogDataChangeProducer;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,7 +65,7 @@ public class DataChangeOperateLogAspect {
         long beginTime = System.currentTimeMillis();
         Object result = point.proceed();
         BigDecimal time =  new BigDecimal(System.currentTimeMillis() - beginTime);
-        SLogDataChangeOperateMongoEntity entity = new SLogDataChangeOperateMongoEntity();
+        SLogDataChangeOperateClickHouseVo vo = new SLogDataChangeOperateClickHouseVo();
         try {
             MethodSignature signature = (MethodSignature) point.getSignature();
             Method method = signature.getMethod();
@@ -71,47 +73,48 @@ public class DataChangeOperateLogAspect {
 
             SysLogBo sysLogBo = getLog(point, time.longValue());
             if (systemConfigProperies.isLogSaveDb()){
-                entity.setPage_name(annotation.page_name());
-                entity.setOperation(annotation.value());
-                entity.setUrl(sysLogBo.getUrl());
-                entity.setTime(sysLogBo.getExecTime());
-                entity.setHttp_method(sysLogBo.getHttpMethod());
-                entity.setClass_name(sysLogBo.getClassName());
-                entity.setClass_method(sysLogBo.getClassMethod());
-                entity.setIp(sysLogBo.getIp());
-                entity.setType(SystemConstants.LOG_FLG.OK);
+                vo.setPage_name(annotation.page_name());
+                vo.setOperation(annotation.value());
+                vo.setUrl(sysLogBo.getUrl());
+                vo.setTime(sysLogBo.getExecTime());
+                vo.setHttp_method(sysLogBo.getHttpMethod());
+                vo.setClass_name(sysLogBo.getClassName());
+                vo.setClass_method(sysLogBo.getClassMethod());
+                vo.setIp(sysLogBo.getIp());
+                vo.setType(SystemConstants.LOG_FLG.OK);
                 // 获取session
                 Object session = ServletUtil.getUserSession();
                 String userSessionJson = null;
                 if(session != null){
                     UserSessionBo userSession = (UserSessionBo)session;
                     userSessionJson = JSON.toJSONString(userSession);
-                    entity.setUser_name(userSession.getUser_info().getLogin_name());
-                    entity.setStaff_name(userSession.getStaff_info().getName());
-                    entity.setStaff_id(userSession.getStaff_info().getId().toString());
+                    vo.setUser_name(userSession.getUser_info().getLogin_name());
+                    vo.setStaff_name(userSession.getStaff_info().getName());
+                    vo.setStaff_id(userSession.getStaff_info().getId().toString());
                 } else {
-                    entity.setUser_name(SecurityUtil.getUser_name());
-                    entity.setStaff_name(SecurityUtil.getUser_name());
-                    entity.setStaff_id(SecurityUtil.getStaff_id().toString());
+                    vo.setUser_name(SecurityUtil.getUser_name());
+                    vo.setStaff_name(SecurityUtil.getUser_name());
+                    vo.setStaff_id(SecurityUtil.getStaff_id().toString());
                 }
-                entity.setException(null);
+                vo.setException(null);
             }
         } catch (Exception e) {
-            entity.setException(e.getMessage());
-            entity.setType(SystemConstants.LOG_FLG.NG);
+            vo.setException(e.getMessage());
+            vo.setType(SystemConstants.LOG_FLG.NG);
             log.error("环绕切面发生异常：",e);
             log.error("环绕切面发生异常--point信息：" ,point);
         }
         ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
         // 从请求中获取requestId
         String requestId = (String) attr.getRequest().getAttribute(SystemConstants.REQUEST_ID);
-        entity.setRequest_id(requestId);
-        entity.setOperate_time(LocalDateTime.now());
+        vo.setRequest_id(requestId);
+        vo.setOperate_time(LocalDateTime.now());
 
         SConfigEntity config = isConfigService.selectByKey(SystemConstants.LOG_DATA_CHANGE);
         if (config != null && "1".equals(config.getValue())) {
             // 向mq推送消息
-            producer.mqSendMq(entity);
+            vo.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
+            producer.mqSendMq(vo);
         }
 
         return result;
@@ -131,43 +134,44 @@ public class DataChangeOperateLogAspect {
         }
         HttpServletRequest request = attributes.getRequest();
 
-        SLogDataChangeOperateMongoEntity entity = new SLogDataChangeOperateMongoEntity();
+        SLogDataChangeOperateClickHouseVo vo = new SLogDataChangeOperateClickHouseVo();
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         DataChangeOperateAnnotation sysLog = method.getAnnotation(DataChangeOperateAnnotation.class);
         if (systemConfigProperies.isLogSaveDb()){
-            entity.setPage_name(sysLog.page_name());
-            entity.setOperation(sysLog.value());
-            entity.setUrl(request.getRequestURL().toString());
-            entity.setTime(null);
-            entity.setHttp_method(request.getMethod());
-            entity.setClass_name(joinPoint.getTarget().getClass().getName());
-            entity.setClass_method(((MethodSignature) joinPoint.getSignature()).getName());
-            entity.setIp(IPUtil.getIpAdd());
-            entity.setType(SystemConstants.LOG_FLG.NG);
+            vo.setPage_name(sysLog.page_name());
+            vo.setOperation(sysLog.value());
+            vo.setUrl(request.getRequestURL().toString());
+            vo.setTime(null);
+            vo.setHttp_method(request.getMethod());
+            vo.setClass_name(joinPoint.getTarget().getClass().getName());
+            vo.setClass_method(((MethodSignature) joinPoint.getSignature()).getName());
+            vo.setIp(IPUtil.getIpAdd());
+            vo.setType(SystemConstants.LOG_FLG.NG);
             // 获取session
             Object session = ServletUtil.getUserSession();
             String userSessionJson = null;
             if(session != null){
                 UserSessionBo userSession = (UserSessionBo)session;
                 userSessionJson = JSON.toJSONString(userSession);
-                entity.setUser_name(userSession.getUser_info().getLogin_name());
-                entity.setStaff_name(userSession.getStaff_info().getName());
-                entity.setStaff_id(userSession.getStaff_info().getId().toString());
+                vo.setUser_name(userSession.getUser_info().getLogin_name());
+                vo.setStaff_name(userSession.getStaff_info().getName());
+                vo.setStaff_id(userSession.getStaff_info().getId().toString());
             }
-            entity.setException(ExceptionUtil.getException(e));
+            vo.setException(ExceptionUtil.getException(e));
         }
 
         ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
         // 从请求中获取requestId
         String requestId = (String) attr.getRequest().getAttribute(SystemConstants.REQUEST_ID);
-        entity.setRequest_id(requestId);
-        entity.setOperate_time(LocalDateTime.now());
+        vo.setRequest_id(requestId);
+        vo.setOperate_time(LocalDateTime.now());
 
         SConfigEntity config = isConfigService.selectByKey(SystemConstants.LOG_DATA_CHANGE);
         if (config != null && "1".equals(config.getValue())) {
+            vo.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
             // 向mq推送消息
-            producer.mqSendMq(entity);
+            producer.mqSendMq(vo);
         }
 
     }

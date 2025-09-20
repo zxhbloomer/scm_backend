@@ -32,7 +32,7 @@ public class MqSenderAoBuilder {
             .key(UuidUtil.randomUUID())
             .type(mqSenderEnum.getCode().toString())
             .name(mqSenderEnum.getName())
-            .tenant_code(DataSourceHelper.getCurrentDataSourceName())
+//            .tenant_code(DataSourceHelper.getCurrentDataSourceName())
             .build();
         return mqSenderAo;
     }

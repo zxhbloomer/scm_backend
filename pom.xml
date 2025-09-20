@@ -18,7 +18,7 @@
         <module>./scm-core-api</module>
         <module>./scm-core-app</module>
 <!--        <module>./scm-core-whapp</module>-->
-        <module>./scm-core-mongodb</module>
+<!--        <module>./scm-core-mongodb</module>-->
         <module>./scm-core-bpm</module>
         <module>./scm-core-tenant</module>
         <module>./scm-core-clickhouse</module>
@@ -200,26 +200,26 @@
                 <version>2.0.3</version>
             </dependency>
             <!-- monogodb -->
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-starter-data-mongodb</artifactId>
-                <version>${project.build.springbootversion}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.springframework.boot</groupId>-->
+<!--                <artifactId>spring-boot-starter-data-mongodb</artifactId>-->
+<!--                <version>${project.build.springbootversion}</version>-->
+<!--            </dependency>-->
             <dependency>
                 <groupId>org.springframework.data</groupId>
                 <artifactId>spring-data-commons</artifactId>
                 <version>3.5.4</version>
             </dependency>
-            <dependency>
-                <groupId>org.springframework.data</groupId>
-                <artifactId>spring-data-mongodb</artifactId>
-                <version>4.5.4</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>bson</artifactId>
-                <version>5.6.0</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>org.springframework.data</groupId>-->
+<!--                <artifactId>spring-data-mongodb</artifactId>-->
+<!--                <version>4.5.4</version>-->
+<!--            </dependency>-->
+<!--            <dependency>-->
+<!--                <groupId>org.mongodb</groupId>-->
+<!--                <artifactId>bson</artifactId>-->
+<!--                <version>5.6.0</version>-->
+<!--            </dependency>-->
 
             <!-- rabbitmq -->
             <dependency>
@@ -582,11 +582,11 @@
 <!--                <artifactId>scm-core-whapp</artifactId>-->
 <!--                <version>${xinyirun.version}</version>-->
 <!--            </dependency>-->
-            <dependency>
-                <groupId>com.xinyirun</groupId>
-                <artifactId>scm-core-mongodb</artifactId>
-                <version>${xinyirun.version}</version>
-            </dependency>
+<!--            <dependency>-->
+<!--                <groupId>com.xinyirun</groupId>-->
+<!--                <artifactId>scm-core-mongodb</artifactId>-->
+<!--                <version>${xinyirun.version}</version>-->
+<!--            </dependency>-->
             <dependency>
                 <groupId>com.xinyirun</groupId>
                 <artifactId>scm-core-clickhouse</artifactId>

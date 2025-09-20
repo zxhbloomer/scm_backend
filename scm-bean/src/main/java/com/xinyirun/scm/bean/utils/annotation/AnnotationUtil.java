@@ -61,33 +61,33 @@ public class AnnotationUtil {
         return dataChangeColumnVo;
     }
 
-    /**
-     * 根据字段名称获取字段的标签信息
-     *
-     * @param entity    实体对象
-     * @param clm_name  字段名称
-     * @return  SLogDataChangeDetailVo对象，包含字段名称和标签信息
-     */
-    public static SLogDataChangeDetailMongoVo getColumnAndLabel(Object entity, String clm_name) {
-        SLogDataChangeDetailMongoVo dataChangeColumnVo = new SLogDataChangeDetailMongoVo();
-
-        if (entity == null) {
-            return null;
-        }
-
-        Field[] fields = entity.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            DataChangeLabelAnnotation label = field.getAnnotation(DataChangeLabelAnnotation.class);
-            if (label != null && StringUtils.isNotEmpty(label.extension())) {
-                if (field.getName().equals(clm_name)) {
-                    // 创建一个 SDataChangeColumnsVo 实例并设置字段名称和注解值
-                    dataChangeColumnVo.setClm_name(field.getName());
-                    dataChangeColumnVo.setClm_label(label.value());
-                }
-            }
-        }
-
-        return dataChangeColumnVo;
-    }
+//    /**
+//     * 根据字段名称获取字段的标签信息
+//     *
+//     * @param entity    实体对象
+//     * @param clm_name  字段名称
+//     * @return  SLogDataChangeDetailVo对象，包含字段名称和标签信息
+//     */
+//    public static SLogDataChangeDetailMongoVo getColumnAndLabel(Object entity, String clm_name) {
+//        SLogDataChangeDetailMongoVo dataChangeColumnVo = new SLogDataChangeDetailMongoVo();
+//
+//        if (entity == null) {
+//            return null;
+//        }
+//
+//        Field[] fields = entity.getClass().getDeclaredFields();
+//        for (Field field : fields) {
+//            DataChangeLabelAnnotation label = field.getAnnotation(DataChangeLabelAnnotation.class);
+//            if (label != null && StringUtils.isNotEmpty(label.extension())) {
+//                if (field.getName().equals(clm_name)) {
+//                    // 创建一个 SDataChangeColumnsVo 实例并设置字段名称和注解值
+//                    dataChangeColumnVo.setClm_name(field.getName());
+//                    dataChangeColumnVo.setClm_label(label.value());
+//                }
+//            }
+//        }
+//
+//        return dataChangeColumnVo;
+//    }
 
 }

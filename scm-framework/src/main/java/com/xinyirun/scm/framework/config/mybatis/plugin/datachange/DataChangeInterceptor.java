@@ -2,8 +2,8 @@ package com.xinyirun.scm.framework.config.mybatis.plugin.datachange;
 
 import com.alibaba.fastjson2.JSONArray;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
-import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeMainMongoEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainClickHouseVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogDetailVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogVo;
 import com.xinyirun.scm.common.annotations.DataChangeEntityAnnotation;
@@ -132,7 +132,7 @@ public class DataChangeInterceptor implements Interceptor {
                     SqlCommandType sqlCommandType = ms.getSqlCommandType();
                     // 获取 SQL 语句的细节
                     BoundSql boundSql = ms.getBoundSql(args[1]);
-                    SLogDataChangeMainMongoEntity dataChangeMain = afterProcessInsertMain(boundSql, dataChange, sqlCommandType.toString());
+                    SLogDataChangeMainClickHouseVo dataChangeMain = afterProcessInsertMain(boundSql, dataChange, sqlCommandType.toString());
                     dataChangeMain.setRequest_id(requestId);
                     applicationEventPublisher.publishEvent(new DataChangeEvent(this, dataChangeMain));
                 } else {
@@ -334,10 +334,10 @@ public class DataChangeInterceptor implements Interceptor {
      * @throws NoSuchMethodException
      * @throws IllegalAccessException
      */
-    public SLogDataChangeMainMongoEntity afterProcessInsertMain(BoundSql boundSql, DataChangeEntityAnnotation dataChange, String sqlCommandType) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
+    public SLogDataChangeMainClickHouseVo afterProcessInsertMain(BoundSql boundSql, DataChangeEntityAnnotation dataChange, String sqlCommandType) throws ClassNotFoundException, InvocationTargetException, NoSuchMethodException, IllegalAccessException {
         if("main".equals(dataChange.type())){
             // 主要的数据：编码表：生成编号时
-            SLogDataChangeMainMongoEntity dataChangeMain = new SLogDataChangeMainMongoEntity();
+            SLogDataChangeMainClickHouseVo dataChangeMain = new SLogDataChangeMainClickHouseVo();
             String _code = getSpecifiedColumnValue(boundSql,"CODE").toString();
             String _type = getSpecifiedColumnValue(boundSql,"TYPE").toString();
             String _name = getSpecifiedColumnValue(boundSql,"NAME").toString();

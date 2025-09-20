@@ -1,20 +1,24 @@
 package com.xinyirun.scm.framework.config.event.define;
 
-import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeMainMongoEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainClickHouseVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogVo;
 import org.springframework.context.ApplicationEvent;
+
+import java.io.Serial;
 
 /**
  * 数据变更事件
  */
 public class DataChangeEvent extends ApplicationEvent {
-    
-    private static final long serialVersionUID = 8929893689628625794L;
+
+
+    @Serial
+    private static final long serialVersionUID = -7723530647667522143L;
 
     // 其他的变化
     private SDataChangeLogVo dataChangeVo;
     // s_code的变化
-    private SLogDataChangeMainMongoEntity dataChangeMain;
+    private SLogDataChangeMainClickHouseVo dataChangeMain;
 
     /**
      * 其他的变化
@@ -31,7 +35,7 @@ public class DataChangeEvent extends ApplicationEvent {
      * @param source
      * @param dataChangeMain
      */
-    public DataChangeEvent(Object source, SLogDataChangeMainMongoEntity dataChangeMain) {
+    public DataChangeEvent(Object source, SLogDataChangeMainClickHouseVo dataChangeMain) {
         super(source);
         this.dataChangeMain = dataChangeMain;
     }
@@ -40,7 +44,7 @@ public class DataChangeEvent extends ApplicationEvent {
         return dataChangeVo;
     }
 
-    public SLogDataChangeMainMongoEntity getDataChangeMain() {
+    public SLogDataChangeMainClickHouseVo getDataChangeMain() {
         return dataChangeMain;
     }
 }
