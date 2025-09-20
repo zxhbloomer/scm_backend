@@ -5,6 +5,7 @@ import com.xinyirun.scm.common.enums.datasource.TenantStatusEnum;
 import com.xinyirun.scm.common.utils.DateUtils;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.datasource.properties.DataSourceProperties;
+import com.xinyirun.scm.common.utils.logging.TenantLogContextHolder;
 import com.xinyirun.scm.core.tenant.service.business.login.ISTenantManagerService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -52,6 +53,9 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
 
 
         if (StringUtils.isNotBlank(tenantId)) {
+            // 设置租户ID到MDC，用于日志文件按租户分离
+            TenantLogContextHolder.setTenantId(tenantId);
+            
             // 检查是否已经存在数据源，如果不存在则注册新的数据源
             Boolean isNotExist = true;
             try {
@@ -116,6 +120,7 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
         // 请求处理完成后，清除租户上下文
+        TenantLogContextHolder.clear();
         DataSourceHelper.close();
         log.debug("清除租户上下文");
     }
