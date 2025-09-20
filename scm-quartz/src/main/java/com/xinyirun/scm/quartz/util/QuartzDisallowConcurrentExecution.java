@@ -1,8 +1,6 @@
 package com.xinyirun.scm.quartz.util;
 
-import com.xinyirun.scm.bean.entity.quartz.SJobEntity;
 import com.xinyirun.scm.bean.system.bo.tenant.manager.quartz.SJobManagerBo;
-import com.xinyirun.scm.bean.system.vo.quartz.SJobVo;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.DisallowConcurrentExecution;
 import org.quartz.JobExecutionContext;

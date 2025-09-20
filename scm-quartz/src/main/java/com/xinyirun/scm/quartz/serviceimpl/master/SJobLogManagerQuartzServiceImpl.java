@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * <p>
  * 定时任务日志 服务实现类
+ * @DS 手动指定使用什么数据库
  * </p>
  */
 @Slf4j
