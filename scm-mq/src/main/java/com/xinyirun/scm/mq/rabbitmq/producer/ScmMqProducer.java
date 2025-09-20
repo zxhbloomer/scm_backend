@@ -19,6 +19,7 @@ import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -171,7 +172,6 @@ public class ScmMqProducer implements RabbitTemplate.ConfirmCallback, RabbitTemp
             log.debug("------生产者进入队列：finally-----");
         }
     }
-
 
     /**
      * 建立消息队列entity_bean

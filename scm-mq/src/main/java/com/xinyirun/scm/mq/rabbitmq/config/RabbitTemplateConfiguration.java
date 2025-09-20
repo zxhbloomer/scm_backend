@@ -115,7 +115,10 @@ public class RabbitTemplateConfiguration implements Serializable {
     @Bean("scm_RabbitTemplate")
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        // 修改为false，实现异步发送，不阻塞等待路由确认
         rabbitTemplate.setMandatory(true);
+        
+        log.info("RabbitTemplate配置为异步发送模式，不阻塞等待路由确认");
         return rabbitTemplate;
     }
 }
