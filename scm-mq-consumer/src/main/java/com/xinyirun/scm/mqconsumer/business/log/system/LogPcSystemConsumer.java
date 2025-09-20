@@ -2,16 +2,15 @@ package com.xinyirun.scm.mqconsumer.business.log.system;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
-import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogSysClickHouseVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
 import com.xinyirun.scm.common.exception.mq.MessageConsumerQueueException;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
-import com.xinyirun.scm.mongodb.service.log.mq.ISLogMqConsumerService;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
 import com.xinyirunscm.scm.clickhouse.service.SLogSysClickHouseService;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
@@ -39,8 +38,11 @@ public class LogPcSystemConsumer extends BaseMqConsumer {
     @Autowired
     private SLogSysClickHouseService sLogSysClickHouseService;
 
+//    @Autowired
+//    private ISLogMqConsumerService consumerService;
+
     @Autowired
-    private ISLogMqConsumerService consumerService;
+    private SLogMqConsumerClickHouseService consumerService;
 
     /**
      * 如果有消息过来，在消费的时候调用这个方法

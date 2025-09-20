@@ -5,7 +5,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.google.common.collect.Lists;
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
-import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.sys.file.BackupFileVo;
@@ -14,9 +13,9 @@ import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.mq.MessageConsumerQueueException;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
-import com.xinyirun.scm.mongodb.service.log.mq.ISLogMqConsumerService;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
@@ -45,8 +44,10 @@ public class FileBackupConsumer extends BaseMqConsumer {
     @Autowired
     private SFileInfoMapper mapper;
 
+//    @Autowired
+//    private ISLogMqConsumerService consumerService;
     @Autowired
-    private ISLogMqConsumerService consumerService;
+    private SLogMqConsumerClickHouseService consumerService;
 
     @Autowired
     private RestTemplate restTemplate;

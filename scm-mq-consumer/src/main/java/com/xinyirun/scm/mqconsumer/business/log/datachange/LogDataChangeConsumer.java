@@ -2,20 +2,19 @@ package com.xinyirun.scm.mqconsumer.business.log.datachange;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeMainMongoEntity;
-import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeOperateMongoEntity;
-import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
-import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeMainClickHouseVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeOperateClickHouseVo;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.SDataChangeLogVo;
 import com.xinyirun.scm.common.exception.mq.MessageConsumerQueueException;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
-import com.xinyirun.scm.mongodb.service.log.datachange.LogChangeMainMongoService;
-import com.xinyirun.scm.mongodb.service.log.datachange.LogChangeMongoService;
-import com.xinyirun.scm.mongodb.service.log.datachange.LogChangeOperateMongoService;
-import com.xinyirun.scm.mongodb.service.log.mq.ISLogMqConsumerService;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
+import com.xinyirunscm.scm.clickhouse.service.datachange.SLogDataChangeDetailClickHouseService;
+import com.xinyirunscm.scm.clickhouse.service.datachange.SLogDataChangeMainClickHouseService;
+import com.xinyirunscm.scm.clickhouse.service.datachange.SLogDataChangeOperateClickHouseService;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
@@ -38,17 +37,25 @@ import java.util.Map;
 public class LogDataChangeConsumer extends BaseMqConsumer {
 
 
+//    @Autowired
+//    private LogChangeMainMongoService logChangeMainMongoService;
     @Autowired
-    private LogChangeMainMongoService logChangeMainMongoService;
+    private SLogDataChangeMainClickHouseService  sLogDataChangeMainClickHouseService;
 
+//    @Autowired
+//    private LogChangeMongoService logChangeMongoService;
     @Autowired
-    private LogChangeMongoService logChangeMongoService;
+    private SLogDataChangeDetailClickHouseService sLogDataChangeDetailClickHouseService;
 
+//    @Autowired
+//    private LogChangeOperateMongoService logChangeOperateMongoService;
     @Autowired
-    private LogChangeOperateMongoService logChangeOperateMongoService;
+    private SLogDataChangeOperateClickHouseService sLogDataChangeOperateClickHouseService;
 
+//    @Autowired
+//    private ISLogMqConsumerService consumerService;
     @Autowired
-    private ISLogMqConsumerService consumerService;
+    private SLogMqConsumerClickHouseService consumerService;
 
     /**
      * 如果有消息过来，在消费的时候调用这个方法
@@ -80,23 +87,26 @@ public class LogDataChangeConsumer extends BaseMqConsumer {
             setTenantDataSource(mqSenderAo);
 
             Object messageContext = MessageUtil.getMessageContextBean(messageDataObject);
-            if (messageContext instanceof  SLogDataChangeMainMongoEntity) {
+            if (messageContext instanceof  SLogDataChangeMainClickHouseVo) {
                 // 保存数据变更日志信息---main表
-                SLogDataChangeMainMongoEntity vo = (SLogDataChangeMainMongoEntity) messageContext;
+                SLogDataChangeMainClickHouseVo vo = (SLogDataChangeMainClickHouseVo) messageContext;
+                vo.setTenant_code(mqSenderAo.getTenant_code());
                 // 保存日志信息
-                logChangeMainMongoService.save(vo);
+                sLogDataChangeMainClickHouseService.insert(vo);
             }
             if (messageContext instanceof SDataChangeLogVo) {
                 // 保存数据变更日志信息---数据表
                 SDataChangeLogVo vo = (SDataChangeLogVo) messageContext;
+                vo.setTenant_code(mqSenderAo.getTenant_code());
                 // 保存日志信息
-                logChangeMongoService.save(vo);
+                sLogDataChangeDetailClickHouseService.insert(vo);
             }
-            if (messageContext instanceof SLogDataChangeOperateMongoEntity) {
+            if (messageContext instanceof SLogDataChangeOperateClickHouseVo) {
                 // 保存数据变更日志信息---操作表
-                SLogDataChangeOperateMongoEntity vo = (SLogDataChangeOperateMongoEntity) messageContext;
+                SLogDataChangeOperateClickHouseVo vo = (SLogDataChangeOperateClickHouseVo) messageContext;
+                vo.setTenant_code(mqSenderAo.getTenant_code());
                 // 保存日志信息
-                logChangeOperateMongoService.save(vo);
+                sLogDataChangeOperateClickHouseService.insert(vo);
             }
             /**
              *  没有错误，更新mq消费者日志

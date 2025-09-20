@@ -5,7 +5,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.bean.entity.master.warehouse.MWarehouseEntity;
 import com.xinyirun.scm.bean.system.vo.clickhouse.log.mq.SLogMqConsumerClickHouseVo;
-import com.xinyirun.scm.mongodb.bean.entity.mq.SLogMqConsumerMongoEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.business.wms.inventory.BDailyInventoryVo;
 import com.xinyirun.scm.bean.system.vo.business.rpd.BProductDailyVo;
@@ -16,9 +15,9 @@ import com.xinyirun.scm.core.system.service.master.warehouse.IMWarehouseService;
 import com.xinyirun.scm.core.system.service.sys.schedule.v2.ISBDailyInventoryNewV2Service;
 import com.xinyirun.scm.core.system.service.sys.schedule.v2.ISBDailyProductV2Service;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
-import com.xinyirun.scm.mongodb.service.log.mq.ISLogMqConsumerService;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
+import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
@@ -46,9 +45,10 @@ public class RecreateDailyInventoryQueueMqConsumer extends BaseMqConsumer {
     // 每日库存
     @Autowired
     private ISBDailyInventoryNewV2Service isbDailyInventoryService;
-
+    //    @Autowired
+//    private ISLogMqConsumerService consumerService;
     @Autowired
-    private ISLogMqConsumerService consumerService;
+    private SLogMqConsumerClickHouseService consumerService;
 
     @Autowired
     private ISBDailyProductV2Service dailyProductV2Service;
