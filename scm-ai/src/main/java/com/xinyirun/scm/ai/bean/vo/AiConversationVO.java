@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.vo;
+package com.xinyirun.scm.ai.bean.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -7,7 +7,6 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**

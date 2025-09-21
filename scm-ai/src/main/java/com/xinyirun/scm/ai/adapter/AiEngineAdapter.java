@@ -4,7 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.config.AiConfiguration;
-import com.xinyirun.scm.ai.entity.AiConversationContent;
+import com.xinyirun.scm.ai.bean.entity.AiConversationContent;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.entity;
+package com.xinyirun.scm.ai.bean.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;

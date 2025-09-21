@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.dto.request;
+package com.xinyirun.scm.ai.bean.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;

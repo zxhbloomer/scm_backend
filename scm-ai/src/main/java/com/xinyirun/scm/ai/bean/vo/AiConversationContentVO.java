@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.vo;
+package com.xinyirun.scm.ai.bean.vo;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;

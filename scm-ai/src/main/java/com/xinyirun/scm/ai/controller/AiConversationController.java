@@ -1,232 +1,199 @@
 package com.xinyirun.scm.ai.controller;
 
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.xinyirun.scm.ai.entity.AiConversation;
-import com.xinyirun.scm.ai.service.IAiConversationService;
-import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
-import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
+import com.xinyirun.scm.ai.bean.dto.request.AiChatRequest;
+import com.xinyirun.scm.ai.bean.dto.request.AiConversationUpdateRequest;
+import com.xinyirun.scm.ai.bean.entity.AiConversation;
+import com.xinyirun.scm.ai.bean.entity.AiConversationContent;
+import com.xinyirun.scm.ai.core.service.AiConversationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
- * AI对话会话控制器
+ * AI对话控制器
  *
- * @author AI Assistant
- * @since 2025-09-21
+ * 提供AI对话的REST API接口，包括对话管理、聊天功能等
+ * 从MeterSphere的AiConversationController迁移而来，适配scm-ai架构
+ *
+ * @Author: jianxing (原作者)
+ * @CreateTime: 2025-05-28 13:44 (原创建时间)
+ * @Migration: 2025-09-21 (迁移到scm-ai)
  */
 @Slf4j
+@Tag(name = "AI对话管理", description = "AI对话相关接口")
 @RestController
-@RequestMapping("/scm/ai/conversation")
-@Tag(name = "AI会话管理", description = "AI对话会话相关接口")
+@RequestMapping("/ai/conversation")
 @Validated
 public class AiConversationController {
 
     @Autowired
-    private IAiConversationService conversationService;
+    private AiConversationService aiConversationService;
 
-    @Operation(summary = "创建会话", description = "创建新的AI对话会话")
-    @PostMapping("/create")
-    public ResponseEntity<JsonResultAo<AiConversation>> createConversation(
-            @Parameter(description = "会话标题") @RequestParam(required = false) String title,
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId,
-            @Parameter(description = "模型提供商") @RequestParam(required = false) String modelProvider,
-            @Parameter(description = "模型名称") @RequestParam(required = false) String modelName) {
-
-        try {
-            AiConversation conversation = conversationService.createConversation(title, userId, modelProvider, modelName);
-            log.info("创建会话成功, conversationId: {}, userId: {}", conversation.getId(), userId);
-            return ResponseEntity.ok().body(ResultUtil.OK(conversation, "创建会话成功"));
-        } catch (Exception e) {
-            log.error("创建会话失败, userId: {}, error: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("创建会话失败: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "更新会话标题", description = "修改会话标题")
-    @PutMapping("/{conversationId}/title")
-    public ResponseEntity<JsonResultAo<Boolean>> updateConversationTitle(
-            @Parameter(description = "会话ID", required = true) @PathVariable @NotNull String conversationId,
-            @Parameter(description = "新标题", required = true) @RequestParam @NotNull String title,
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId) {
-
-        try {
-            Boolean result = conversationService.updateConversationTitle(conversationId, title, userId);
-            if (result) {
-                log.info("更新会话标题成功, conversationId: {}, title: {}", conversationId, title);
-                return ResponseEntity.ok().body(ResultUtil.OK(result, "更新会话标题成功"));
-            } else {
-                throw new RuntimeException("更新会话标题失败");
-            }
-        } catch (Exception e) {
-            log.error("更新会话标题失败, conversationId: {}, error: {}", conversationId, e.getMessage(), e);
-            throw new RuntimeException("更新会话标题失败: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "更新会话状态", description = "修改会话状态")
-    @PutMapping("/{conversationId}/status")
-    public ResponseEntity<JsonResultAo<Boolean>> updateConversationStatus(
-            @Parameter(description = "会话ID", required = true) @PathVariable @NotNull String conversationId,
-            @Parameter(description = "新状态", required = true) @RequestParam @NotNull Integer status,
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId) {
-
-        try {
-            Boolean result = conversationService.updateConversationStatus(conversationId, status, userId);
-            if (result) {
-                log.info("更新会话状态成功, conversationId: {}, status: {}", conversationId, status);
-                return ResponseEntity.ok().body(ResultUtil.OK(result, "更新会话状态成功"));
-            } else {
-                throw new RuntimeException("更新会话状态失败");
-            }
-        } catch (Exception e) {
-            log.error("更新会话状态失败, conversationId: {}, error: {}", conversationId, e.getMessage(), e);
-            throw new RuntimeException("更新会话状态失败: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "删除会话", description = "软删除会话")
-    @DeleteMapping("/{conversationId}")
-    public ResponseEntity<JsonResultAo<Boolean>> deleteConversation(
-            @Parameter(description = "会话ID", required = true) @PathVariable @NotNull String conversationId,
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId) {
-
-        try {
-            Boolean result = conversationService.deleteConversation(conversationId, userId);
-            if (result) {
-                log.info("删除会话成功, conversationId: {}", conversationId);
-                return ResponseEntity.ok().body(ResultUtil.OK(result, "删除会话成功"));
-            } else {
-                throw new RuntimeException("删除会话失败");
-            }
-        } catch (Exception e) {
-            log.error("删除会话失败, conversationId: {}, error: {}", conversationId, e.getMessage(), e);
-            throw new RuntimeException("删除会话失败: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "分页查询用户会话", description = "分页获取用户的会话列表")
-    @GetMapping("/page")
-    public ResponseEntity<JsonResultAo<IPage<AiConversation>>> getConversationsPage(
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId,
-            @Parameter(description = "当前页") @RequestParam(defaultValue = "1") Long current,
-            @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") Long size) {
-
-        try {
-            IPage<AiConversation> page = conversationService.getConversationsByUserId(userId, current, size);
-            log.info("分页查询用户会话成功, userId: {}, total: {}", userId, page.getTotal());
-            return ResponseEntity.ok().body(ResultUtil.OK(page));
-        } catch (Exception e) {
-            log.error("分页查询用户会话失败, userId: {}, error: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("查询失败: " + e.getMessage());
-        }
-    }
-
-    @Operation(summary = "查询用户会话列表", description = "获取用户的所有会话")
+    /**
+     * 获取用户的对话列表
+     *
+     * @param userId 用户ID
+     * @return 对话列表
+     */
     @GetMapping("/list")
-    public ResponseEntity<JsonResultAo<List<AiConversation>>> getConversationsList(
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId,
-            @Parameter(description = "状态筛选") @RequestParam(required = false) Integer status) {
-
-        try {
-            List<AiConversation> conversations;
-            if (status != null) {
-                conversations = conversationService.getConversationsByUserIdAndStatus(userId, status);
-            } else {
-                conversations = conversationService.getConversationsByUserId(userId);
-            }
-            log.info("查询用户会话列表成功, userId: {}, count: {}", userId, conversations.size());
-            return ResponseEntity.ok().body(ResultUtil.OK(conversations, "查询成功"));
-        } catch (Exception e) {
-            log.error("查询用户会话列表失败, userId: {}, error: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("查询失败: " + e.getMessage());
-        }
+    @Operation(summary = "获取对话列表", description = "获取指定用户的所有AI对话列表")
+    public List<AiConversation> list(
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId) {
+        log.debug("获取用户对话列表 - userId: {}", userId);
+        return aiConversationService.list(userId);
     }
 
-    @Operation(summary = "查询最近会话", description = "获取用户最近的会话")
-    @GetMapping("/recent")
-    public ResponseEntity<JsonResultAo<List<AiConversation>>> getRecentConversations(
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId,
-            @Parameter(description = "限制数量") @RequestParam(defaultValue = "10") Integer limit) {
-
-        try {
-            List<AiConversation> conversations = conversationService.getRecentConversations(userId, limit);
-            log.info("查询最近会话成功, userId: {}, count: {}", userId, conversations.size());
-            return ResponseEntity.ok().body(ResultUtil.OK(conversations, "查询成功"));
-        } catch (Exception e) {
-            log.error("查询最近会话失败, userId: {}, error: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("查询失败: " + e.getMessage());
-        }
+    /**
+     * 获取对话的聊天内容列表
+     *
+     * @param conversationId 对话ID
+     * @param userId 用户ID（用于权限验证）
+     * @return 聊天内容列表
+     */
+    @GetMapping("/chat/list/{conversationId}")
+    @Operation(summary = "获取对话内容列表", description = "获取指定对话的所有聊天内容")
+    public List<AiConversationContent> chatList(
+            @Parameter(description = "对话ID", required = true)
+            @PathVariable @NotNull(message = "对话ID不能为空") String conversationId,
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId) {
+        log.debug("获取对话内容列表 - conversationId: {}, userId: {}", conversationId, userId);
+        return aiConversationService.chatList(conversationId, userId);
     }
 
-    @Operation(summary = "搜索会话", description = "根据关键字搜索会话")
-    @GetMapping("/search")
-    public ResponseEntity<JsonResultAo<List<AiConversation>>> searchConversations(
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId,
-            @Parameter(description = "关键字", required = true) @RequestParam @NotNull String keyword) {
-
-        try {
-            List<AiConversation> conversations = conversationService.searchConversations(userId, keyword);
-            log.info("搜索会话成功, userId: {}, keyword: {}, count: {}", userId, keyword, conversations.size());
-            return ResponseEntity.ok().body(ResultUtil.OK(conversations, "搜索成功"));
-        } catch (Exception e) {
-            log.error("搜索会话失败, userId: {}, keyword: {}, error: {}", userId, keyword, e.getMessage(), e);
-            throw new RuntimeException("搜索失败: " + e.getMessage());
-        }
+    /**
+     * 创建新对话
+     *
+     * @param request 聊天请求参数
+     * @return 创建的对话信息
+     */
+    @PostMapping("/add")
+    @Operation(summary = "创建对话", description = "创建新的AI对话")
+    public AiConversation add(@Valid @RequestBody AiChatRequest request) {
+        log.debug("创建对话 - request: {}", request);
+        return aiConversationService.add(request, request.getUser_id().toString());
     }
 
-    @Operation(summary = "获取会话详情", description = "获取会话详细信息")
+    /**
+     * 更新对话信息
+     *
+     * @param request 更新请求参数
+     * @return 更新后的对话信息
+     */
+    @PostMapping("/update")
+    @Operation(summary = "更新对话", description = "更新对话标题和其他属性")
+    public AiConversation update(@Valid @RequestBody AiConversationUpdateRequest request) {
+        log.debug("更新对话 - request: {}", request);
+        return aiConversationService.update(request, request.getUser_id().toString());
+    }
+
+    /**
+     * AI聊天接口
+     *
+     * @param request 聊天请求参数
+     * @return AI回复内容
+     */
+    @PostMapping("/chat")
+    @Operation(summary = "AI聊天", description = "与AI进行对话聊天")
+    public String chat(@Valid @RequestBody AiChatRequest request) {
+        log.debug("AI聊天 - conversationId: {}, userId: {}", request.getConversation_id(), request.getUser_id());
+        return aiConversationService.chat(request, request.getUser_id().toString());
+    }
+
+    /**
+     * 删除对话
+     *
+     * @param conversationId 对话ID
+     * @param userId 用户ID（用于权限验证）
+     */
+    @DeleteMapping("/{conversationId}")
+    @Operation(summary = "删除对话", description = "删除指定的AI对话及其所有内容")
+    public void delete(
+            @Parameter(description = "对话ID", required = true)
+            @PathVariable @NotNull(message = "对话ID不能为空") String conversationId,
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId) {
+        log.debug("删除对话 - conversationId: {}, userId: {}", conversationId, userId);
+        aiConversationService.delete(conversationId, userId);
+    }
+
+    /**
+     * 获取对话详情
+     *
+     * @param conversationId 对话ID
+     * @param userId 用户ID（用于权限验证）
+     * @return 对话详情
+     */
     @GetMapping("/{conversationId}")
-    public ResponseEntity<JsonResultAo<AiConversation>> getConversationDetail(
-            @Parameter(description = "会话ID", required = true) @PathVariable @NotNull String conversationId,
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId) {
-
-        try {
-            AiConversation conversation = conversationService.getConversationDetail(conversationId, userId);
-            log.info("获取会话详情成功, conversationId: {}", conversationId);
-            return ResponseEntity.ok().body(ResultUtil.OK(conversation, "查询成功"));
-        } catch (Exception e) {
-            log.error("获取会话详情失败, conversationId: {}, error: {}", conversationId, e.getMessage(), e);
-            throw new RuntimeException("查询失败: " + e.getMessage());
-        }
+    @Operation(summary = "获取对话详情", description = "获取指定对话的详细信息")
+    public AiConversation get(
+            @Parameter(description = "对话ID", required = true)
+            @PathVariable @NotNull(message = "对话ID不能为空") String conversationId,
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId) {
+        log.debug("获取对话详情 - conversationId: {}, userId: {}", conversationId, userId);
+        return aiConversationService.get(conversationId, userId);
     }
 
-    @Operation(summary = "统计用户会话数量", description = "统计用户的会话总数")
-    @GetMapping("/count")
-    public ResponseEntity<JsonResultAo<Long>> countConversations(
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId) {
-
-        try {
-            Long count = conversationService.countConversationsByUserId(userId);
-            log.info("统计用户会话数量成功, userId: {}, count: {}", userId, count);
-            return ResponseEntity.ok().body(ResultUtil.OK(count, "统计成功"));
-        } catch (Exception e) {
-            log.error("统计用户会话数量失败, userId: {}, error: {}", userId, e.getMessage(), e);
-            throw new RuntimeException("统计失败: " + e.getMessage());
-        }
+    /**
+     * 获取用户最近的对话列表
+     *
+     * @param userId 用户ID
+     * @param limit 限制数量，默认10条
+     * @return 最近的对话列表
+     */
+    @GetMapping("/recent")
+    @Operation(summary = "获取最近对话列表", description = "获取用户最近的对话列表")
+    public List<AiConversation> getRecentConversations(
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId,
+            @Parameter(description = "限制数量", required = false)
+            @RequestParam(defaultValue = "10") Integer limit) {
+        log.debug("获取最近对话列表 - userId: {}, limit: {}", userId, limit);
+        return aiConversationService.getRecentConversations(userId, limit);
     }
 
-    @Operation(summary = "检查会话权限", description = "检查用户是否有权限访问会话")
-    @GetMapping("/{conversationId}/check-access")
-    public ResponseEntity<JsonResultAo<Boolean>> checkConversationAccess(
-            @Parameter(description = "会话ID", required = true) @PathVariable @NotNull String conversationId,
-            @Parameter(description = "用户ID", required = true) @RequestParam @NotNull Long userId) {
+    /**
+     * 搜索对话
+     *
+     * @param userId 用户ID
+     * @param keyword 搜索关键词
+     * @return 匹配的对话列表
+     */
+    @GetMapping("/search")
+    @Operation(summary = "搜索对话", description = "根据关键词搜索用户的对话")
+    public List<AiConversation> searchConversations(
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId,
+            @Parameter(description = "搜索关键词", required = true)
+            @RequestParam @NotNull(message = "搜索关键词不能为空") String keyword) {
+        log.debug("搜索对话 - userId: {}, keyword: {}", userId, keyword);
+        return aiConversationService.searchConversations(userId, keyword);
+    }
 
-        try {
-            Boolean hasAccess = conversationService.checkConversationOwnership(conversationId, userId);
-            log.info("检查会话权限, conversationId: {}, userId: {}, hasAccess: {}", conversationId, userId, hasAccess);
-            return ResponseEntity.ok().body(ResultUtil.OK(hasAccess, "检查完成"));
-        } catch (Exception e) {
-            log.error("检查会话权限失败, conversationId: {}, userId: {}, error: {}", conversationId, userId, e.getMessage(), e);
-            throw new RuntimeException("检查失败: " + e.getMessage());
-        }
+    /**
+     * 批量删除对话
+     *
+     * @param conversationIds 对话ID列表
+     * @param userId 用户ID（用于权限验证）
+     */
+    @DeleteMapping("/batch")
+    @Operation(summary = "批量删除对话", description = "批量删除多个AI对话")
+    public void batchDelete(
+            @Parameter(description = "对话ID列表", required = true)
+            @RequestParam @NotNull(message = "对话ID列表不能为空") List<String> conversationIds,
+            @Parameter(description = "用户ID", required = true)
+            @RequestParam @NotNull(message = "用户ID不能为空") String userId) {
+        log.debug("批量删除对话 - conversationIds: {}, userId: {}", conversationIds, userId);
+        aiConversationService.batchDelete(conversationIds, userId);
     }
 }

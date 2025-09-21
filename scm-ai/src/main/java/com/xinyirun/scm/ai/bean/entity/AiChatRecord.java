@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.entity;
+package com.xinyirun.scm.ai.bean.entity;
 
 import lombok.Data;
 import lombok.experimental.Accessors;

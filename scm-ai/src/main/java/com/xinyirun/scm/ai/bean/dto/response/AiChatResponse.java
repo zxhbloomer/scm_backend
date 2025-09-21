@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.dto.response;
+package com.xinyirun.scm.ai.bean.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.swagger.v3.oas.annotations.media.Schema;
