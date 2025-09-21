@@ -1,4 +1,4 @@
-package io.metersphere.ai.engine.common;
+package com.xinyirun.scm.ai.engine.common;
 
 import lombok.Data;
 

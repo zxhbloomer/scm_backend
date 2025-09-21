@@ -1,8 +1,6 @@
-package io.metersphere.ai.engine.common;
+package com.xinyirun.scm.ai.engine.common;
 
 import lombok.Data;
-
-import java.util.List;
 
 @Data
 public class AIModelParamType {

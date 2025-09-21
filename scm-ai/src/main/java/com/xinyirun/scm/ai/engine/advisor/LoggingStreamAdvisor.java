@@ -1,6 +1,6 @@
-package io.metersphere.ai.engine.advisor;
+package com.xinyirun.scm.ai.engine.advisor;
 
-import io.metersphere.sdk.util.LogUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
  * 这是一个日志拦截器，用于拦截请求并记录日志。
  * 实现了StreamAdvisor 接口，可以在请求处理流程前后插入自定义逻辑。
  */
+@Slf4j
 public class LoggingStreamAdvisor implements StreamAdvisor {
 
     /**
@@ -24,7 +25,7 @@ public class LoggingStreamAdvisor implements StreamAdvisor {
     @Override
     public @NotNull Flux<ChatClientResponse> adviseStream(@NotNull ChatClientRequest advisedRequest, StreamAdvisorChain chain) {
         // 记录请求日志
-        LogUtils.info("Request: " + advisedRequest);
+        log.info("Request: " + advisedRequest);
 
         // 继续执行下一个拦截器并返回响应
         return chain.nextStream(advisedRequest);

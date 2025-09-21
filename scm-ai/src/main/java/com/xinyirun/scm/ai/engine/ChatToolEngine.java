@@ -1,12 +1,14 @@
-package io.metersphere.ai.engine;
+package com.xinyirun.scm.ai.engine;
 
-import io.metersphere.ai.engine.common.AIChatOptions;
-import io.metersphere.ai.engine.holder.ChatClientHolder;
-import io.metersphere.sdk.util.LogUtils;
+import com.xinyirun.scm.ai.engine.common.AIChatOptions;
+import com.xinyirun.scm.ai.engine.holder.ChatClientHolder;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
-import org.springframework.ai.chat.memory.*;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.core.ParameterizedTypeReference;
@@ -36,7 +38,7 @@ import java.util.List;
  * </pre>
  * </p>
  */
-
+@Slf4j
 public class ChatToolEngine {
 
     /**
@@ -140,7 +142,7 @@ public class ChatToolEngine {
          * @return 聊天响应内容
          */
         public String execute() {
-            LogUtils.info("Processing chat request for messages: {}", chatMemory);
+            log.info("Processing chat request for messages: {}", chatMemory);
             return buildRequest()
                     .call()
                     .content();
@@ -153,7 +155,7 @@ public class ChatToolEngine {
          * @return 聊天响应对象
          */
         public ChatResponse executeChatResponse() {
-            LogUtils.info("Starting chat response for messages: {}", chatMemory);
+            log.info("Starting chat response for messages: {}", chatMemory);
             return buildRequest()
                     .call()
                     .chatResponse();
@@ -165,7 +167,7 @@ public class ChatToolEngine {
          * @return 聊天响应内容流
          */
         public Flux<String> executeStream() {
-            LogUtils.info("Starting chat stream for messages: {}", chatMemory);
+            log.info("Starting chat stream for messages: {}", chatMemory);
             return buildRequest()
                     .stream()
                     .content();
@@ -179,7 +181,7 @@ public class ChatToolEngine {
          * @return 结构化的聊天响应
          */
         public <T> T executeStructured(Class<T> clazz) {
-            LogUtils.info("Processing structured chat request for messages: {}", prompt);
+            log.info("Processing structured chat request for messages: {}", prompt);
             return buildRequest()
                     .call()
                     .entity(clazz);
@@ -193,7 +195,7 @@ public class ChatToolEngine {
          * @return 结构化的聊天响应
          */
         public <T> T executeStructured(ParameterizedTypeReference<T> responseType) {
-            LogUtils.info("Processing structured chat request for messages: {}", prompt);
+            log.info("Processing structured chat request for messages: {}", prompt);
             return buildRequest()
                     .call()
                     .entity(responseType);

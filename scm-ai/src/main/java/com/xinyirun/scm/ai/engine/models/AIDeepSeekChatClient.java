@@ -1,9 +1,9 @@
-package io.metersphere.ai.engine.models;
+package com.xinyirun.scm.ai.engine.models;
 
-import io.metersphere.ai.engine.common.AIChatClient;
-import io.metersphere.ai.engine.common.AIChatOptions;
-import io.metersphere.ai.engine.common.AIModelType;
-import io.metersphere.ai.engine.common.AIRegister;
+import com.xinyirun.scm.ai.engine.annotations.AIRegister;
+import com.xinyirun.scm.ai.engine.common.AIChatClient;
+import com.xinyirun.scm.ai.engine.common.AIChatOptions;
+import com.xinyirun.scm.ai.engine.common.AIModelType;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;

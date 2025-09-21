@@ -1,4 +1,6 @@
-package com.xinyirun.scm.ai.engine.common;
+package com.xinyirun.scm.ai.engine.annotations;
+
+import com.xinyirun.scm.ai.engine.common.AIChatClient;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

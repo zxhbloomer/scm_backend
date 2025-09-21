@@ -1,4 +1,4 @@
-package io.metersphere.ai.engine.common;
+package com.xinyirun.scm.ai.engine.common;
 
 public class AIModelType {
     public static final String DEEP_SEEK = "DeepSeek";

@@ -12,8 +12,8 @@
     <!-- name的值是变量的名称，value的值时变量定义的值。通过定义的值会被插入到logger上下文中。定义变量后，可以使“${}”来使用变量。 -->
     <property name="log.path" value="${logPath}" />
     <property name="log.level" value="${logLevel}" />
-    <!-- 定义租户ID变量，如果MDC中未设置，则使用default作为默认值 -->
-    <property name="tenant_code" value="${tenant_code:-master}" />
+    <!-- 租户ID变量，使用SiftingAppender动态分离日志 -->
+    <property name="tenant_code" value="master" />
     <!-- 彩色日志 -->
     <!-- 彩色日志依赖的渲染类 -->
     <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter" />
@@ -39,103 +39,113 @@
 
     <!--输出到文件-->
 
-    <!-- 时间滚动输出 level为 DEBUG 日志 -->
-    <appender name="DEBUG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- 正在记录的日志文件的路径及文件名 -->
-        <file>${logPath}/tenants/${tenant_code}/debug.log</file>
-        <!--日志文件输出格式-->
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
-            <charset>UTF-8</charset> <!-- 设置字符集 -->
-        </encoder>
-        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- 日志归档 -->
-            <fileNamePattern>${logPath}/tenants/${tenant_code}/debug/log-debug-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <!-- 每个日志文件最大500m，保存60天-->
-            <maxFileSize>500MB</maxFileSize>
-            <maxHistory>60</maxHistory>
-        </rollingPolicy>
-        <!-- 此日志文件只记录debug级别的 -->
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>DEBUG</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
+    <!-- 按租户分离的DEBUG日志 -->
+    <appender name="DEBUG_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>tenant_code</key>
+            <defaultValue>master</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="DEBUG_FILE_${tenant_code}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${logPath}/tenants/${tenant_code}/debug.log</file>
+                <encoder>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+                    <charset>UTF-8</charset>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${logPath}/tenants/${tenant_code}/debug/log-debug-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                    <maxFileSize>500MB</maxFileSize>
+                    <maxHistory>60</maxHistory>
+                </rollingPolicy>
+                <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                    <level>DEBUG</level>
+                    <onMatch>ACCEPT</onMatch>
+                    <onMismatch>DENY</onMismatch>
+                </filter>
+            </appender>
+        </sift>
     </appender>
 
-    <!-- 时间滚动输出 level为 INFO 日志 -->
-    <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- 正在记录的日志文件的路径及文件名 -->
-        <file>${logPath}/tenants/${tenant_code}/info.log</file>
-        <!--日志文件输出格式-->
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
-            <charset>UTF-8</charset>
-        </encoder>
-        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <!-- 每天日志归档路径以及格式 -->
-            <fileNamePattern>${logPath}/tenants/${tenant_code}/info/log-info-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <!-- 每个日志文件最大500m，保存60天-->
-            <maxFileSize>500MB</maxFileSize>
-            <maxHistory>60</maxHistory>
-        </rollingPolicy>
-        <!-- 此日志文件只记录info级别的 -->
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>INFO</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
+    <!-- 按租户分离的INFO日志 -->
+    <appender name="INFO_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>tenant_code</key>
+            <defaultValue>master</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="INFO_FILE_${tenant_code}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${logPath}/tenants/${tenant_code}/info.log</file>
+                <encoder>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+                    <charset>UTF-8</charset>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${logPath}/tenants/${tenant_code}/info/log-info-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                    <maxFileSize>500MB</maxFileSize>
+                    <maxHistory>60</maxHistory>
+                </rollingPolicy>
+                <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                    <level>INFO</level>
+                    <onMatch>ACCEPT</onMatch>
+                    <onMismatch>DENY</onMismatch>
+                </filter>
+            </appender>
+        </sift>
     </appender>
 
-    <!-- 时间滚动输出 level为 WARN 日志 -->
-    <appender name="WARN_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- 正在记录的日志文件的路径及文件名 -->
-        <file>${logPath}/tenants/${tenant_code}/warn.log</file>
-        <!--日志文件输出格式-->
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
-            <charset>UTF-8</charset> <!-- 此处设置字符集 -->
-        </encoder>
-        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${logPath}/tenants/${tenant_code}/warn/log-warn-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <!-- 每个日志文件最大500m，保存60天-->
-            <maxFileSize>500MB</maxFileSize>
-            <maxHistory>60</maxHistory>
-        </rollingPolicy>
-        <!-- 此日志文件只记录warn级别的 -->
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>WARN</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
+    <!-- 按租户分离的WARN日志 -->
+    <appender name="WARN_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>tenant_code</key>
+            <defaultValue>master</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="WARN_FILE_${tenant_code}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${logPath}/tenants/${tenant_code}/warn.log</file>
+                <encoder>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+                    <charset>UTF-8</charset>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${logPath}/tenants/${tenant_code}/warn/log-warn-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                    <maxFileSize>500MB</maxFileSize>
+                    <maxHistory>60</maxHistory>
+                </rollingPolicy>
+                <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                    <level>WARN</level>
+                    <onMatch>ACCEPT</onMatch>
+                    <onMismatch>DENY</onMismatch>
+                </filter>
+            </appender>
+        </sift>
     </appender>
 
 
-    <!-- 时间滚动输出 level为 ERROR 日志 -->
-    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <!-- 正在记录的日志文件的路径及文件名 -->
-        <file>${logPath}/tenants/${tenant_code}/error.log</file>
-        <!--日志文件输出格式-->
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
-            <charset>UTF-8</charset> <!-- 此处设置字符集 -->
-        </encoder>
-        <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${logPath}/tenants/${tenant_code}/error/log-error-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-            <!-- 每个日志文件最大500m，保存60天-->
-            <maxFileSize>500MB</maxFileSize>
-            <maxHistory>60</maxHistory>
-        </rollingPolicy>
-        <!-- 此日志文件只记录ERROR级别的 -->
-        <filter class="ch.qos.logback.classic.filter.LevelFilter">
-            <level>ERROR</level>
-            <onMatch>ACCEPT</onMatch>
-            <onMismatch>DENY</onMismatch>
-        </filter>
+    <!-- 按租户分离的ERROR日志 -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
+        <discriminator>
+            <key>tenant_code</key>
+            <defaultValue>master</defaultValue>
+        </discriminator>
+        <sift>
+            <appender name="ERROR_FILE_${tenant_code}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${logPath}/tenants/${tenant_code}/error.log</file>
+                <encoder>
+                    <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+                    <charset>UTF-8</charset>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${logPath}/tenants/${tenant_code}/error/log-error-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+                    <maxFileSize>500MB</maxFileSize>
+                    <maxHistory>60</maxHistory>
+                </rollingPolicy>
+                <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                    <level>ERROR</level>
+                    <onMatch>ACCEPT</onMatch>
+                    <onMismatch>DENY</onMismatch>
+                </filter>
+            </appender>
+        </sift>
     </appender>
     <logger name="org.springframework.web" level="${logLevel}"/>
     <logger name="org.springframework.security" level="${logLevel}"/>

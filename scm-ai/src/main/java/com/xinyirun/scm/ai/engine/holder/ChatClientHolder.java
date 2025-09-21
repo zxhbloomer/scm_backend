@@ -1,9 +1,8 @@
-package io.metersphere.ai.engine.holder;
+package com.xinyirun.scm.ai.engine.holder;
 
-import io.metersphere.ai.engine.common.AIChatClient;
-import io.metersphere.ai.engine.common.AIChatOptions;
-import io.metersphere.ai.engine.common.AIModelType;
-import io.metersphere.ai.engine.common.AIRegister;
+import com.xinyirun.scm.ai.engine.common.AIChatClient;
+import com.xinyirun.scm.ai.engine.common.AIChatOptions;
+import com.xinyirun.scm.ai.engine.annotations.AIRegister;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -52,7 +51,7 @@ public class ChatClientHolder {
      * 该方法使用模型类型（即 {@link AIRegister} 注解中的键）来查找对应的 {@link AIChatClient}，
      * 然后获取并返回关联的 {@link ChatClient}。
      *
-     * @param modelType 模型类型（来自 {@link AIRegister} 注解的值 {@link AIModelType} ）。
+     * @param modelType 模型类型（来自 {@link AIRegister} 注解的值 {@link AIChatOptions} ）。
      * @param options   用于配置 {@link ChatClient} 的选项。
      * @return 与指定模型类型对应的 {@link ChatClient}。
      * @throws IllegalArgumentException 如果未找到与指定键对应的模型类型。

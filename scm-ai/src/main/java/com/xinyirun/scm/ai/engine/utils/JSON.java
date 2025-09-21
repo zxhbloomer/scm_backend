@@ -1,4 +1,4 @@
-package io.metersphere.sdk.util;
+package com.xinyirun.scm.ai.engine.utils;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;

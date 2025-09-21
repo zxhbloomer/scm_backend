@@ -1,7 +1,7 @@
-package io.metersphere.ai.engine.advisor;
+package com.xinyirun.scm.ai.engine.advisor;
 
-import io.metersphere.sdk.util.JSON;
-import io.metersphere.sdk.util.LogUtils;
+import com.xinyirun.scm.ai.engine.utils.JSON;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -12,6 +12,7 @@ import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
  * 这是一个日志拦截器，用于拦截请求并记录日志。
  * 实现了 CallAdvisor 接口，可以在请求处理流程前后插入自定义逻辑。
  */
+@Slf4j
 public class LoggingCallAdvisor implements CallAdvisor {
 
     /**
@@ -25,9 +26,9 @@ public class LoggingCallAdvisor implements CallAdvisor {
     public @NotNull ChatClientResponse adviseCall(@NotNull ChatClientRequest advisedRequest, @NotNull CallAdvisorChain chain) {
         // 记录请求日志
         try {
-            LogUtils.info("Request: {}", JSON.toFormatJSONString(advisedRequest));
+            log.info("Request: {}", JSON.toFormatJSONString(advisedRequest));
         } catch (Exception e) {
-            LogUtils.error("Failed to log request", e);
+            log.error("Failed to log request", e);
         }
         // 继续执行下一个拦截器并返回响应
         return chain.nextCall(advisedRequest);

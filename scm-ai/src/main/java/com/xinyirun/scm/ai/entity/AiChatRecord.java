@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.CompoundIndexes;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -161,6 +162,8 @@ public class AiChatRecord implements Serializable {
     @Data
     @Accessors(chain = true)
     public static class AttachmentInfo implements Serializable {
+        @Serial
+        private static final long serialVersionUID = -4927252465438033768L;
         /**
          * 文件原始名称
          */
@@ -198,6 +201,8 @@ public class AiChatRecord implements Serializable {
     @Data
     @Accessors(chain = true)
     public static class AiModelInfo implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 5630276947718732989L;
         /**
          * AI模型提供商
          * openai, anthropic, zhipuai, dashscope等
@@ -227,6 +232,8 @@ public class AiChatRecord implements Serializable {
     @Data
     @Accessors(chain = true)
     public static class PerformanceStats implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 4813825917483091305L;
         /**
          * Token消耗统计
          * 记录本次对话消耗的token数量

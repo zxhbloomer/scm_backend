@@ -1,7 +1,7 @@
-package io.metersphere.ai.engine.common;
+package com.xinyirun.scm.ai.engine.common;
 
-import io.metersphere.ai.engine.advisor.LoggingCallAdvisor;
-import io.metersphere.ai.engine.advisor.LoggingStreamAdvisor;
+import com.xinyirun.scm.ai.engine.advisor.LoggingCallAdvisor;
+import com.xinyirun.scm.ai.engine.advisor.LoggingStreamAdvisor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.ChatOptions;
