@@ -20,24 +20,20 @@ import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.business.so.socontract.IBSoContractService;
-import com.xinyirun.scm.core.system.service.log.sys.ISLogImportService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.excel.merge.SoContractMergeStrategy;
 import com.xinyirun.scm.excel.upload.SystemExcelReader;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -56,9 +52,6 @@ public class BSoContractController extends SystemBaseController {
 
     @Autowired
     private ISPagesService isPagesService;
-
-    @Autowired
-    private ISLogImportService isLogImportService;
 
     /**
      * 销售合同  新增
@@ -223,7 +216,6 @@ public class BSoContractController extends SystemBaseController {
                 isPagesService.updateImportProcessingFalse(pagesVo);
 
                 sLogImportVo.setType(SystemConstants.LOG_FLG.OK);
-                isLogImportService.insert(sLogImportVo);
                 return ResponseEntity.ok().body(ResultUtil.OK(beans));
             } else {
                 // 读取失败，需要返回错误
@@ -235,7 +227,6 @@ public class BSoContractController extends SystemBaseController {
 
                 sLogImportVo.setType(SystemConstants.LOG_FLG.NG);
                 sLogImportVo.setError_url(errorInfo.getUrl());
-                isLogImportService.insert(sLogImportVo);
                 return ResponseEntity.ok().body(ResultUtil.OK(errorInfo, ResultEnum.IMPORT_DATA_ERROR));
             }
         } catch (Exception e) {

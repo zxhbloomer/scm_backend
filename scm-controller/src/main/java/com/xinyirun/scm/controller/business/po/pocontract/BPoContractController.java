@@ -1,19 +1,14 @@
 package com.xinyirun.scm.controller.business.po.pocontract;
 
 
-import cn.idev.excel.EasyExcel;
-import cn.idev.excel.write.metadata.WriteSheet;
-import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractDetailVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractExportVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractImportVo;
 import com.xinyirun.scm.bean.system.vo.business.po.pocontract.BPoContractVo;
-import com.xinyirun.scm.bean.system.vo.business.wo.BWoExportUtilVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.SLogImportVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
@@ -25,25 +20,20 @@ import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.business.po.pocontract.IBPoContractService;
-import com.xinyirun.scm.core.system.service.log.sys.ISLogImportService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
-import com.xinyirun.scm.excel.export.CustomMergeStrategy;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.excel.merge.PoContractMergeStrategy;
 import com.xinyirun.scm.excel.upload.SystemExcelReader;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -62,9 +52,6 @@ public class BPoContractController extends SystemBaseController {
 
     @Autowired
     private ISPagesService isPagesService;
-
-    @Autowired
-    private ISLogImportService isLogImportService;
 
     /**
      * 采购合同  新增
@@ -239,7 +226,6 @@ public class BPoContractController extends SystemBaseController {
                 isPagesService.updateImportProcessingFalse(pagesVo);
 
                 sLogImportVo.setType(SystemConstants.LOG_FLG.OK);
-                isLogImportService.insert(sLogImportVo);
                 return ResponseEntity.ok().body(ResultUtil.OK(beans));
             } else {
                 // 读取失败，需要返回错误
@@ -251,7 +237,6 @@ public class BPoContractController extends SystemBaseController {
 
                 sLogImportVo.setType(SystemConstants.LOG_FLG.NG);
                 sLogImportVo.setError_url(errorInfo.getUrl());
-                isLogImportService.insert(sLogImportVo);
                 return ResponseEntity.ok().body(ResultUtil.OK(errorInfo, ResultEnum.IMPORT_DATA_ERROR));
             }
         } catch (Exception e) {

@@ -12,7 +12,6 @@ import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.InsertErrorException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.core.system.service.business.po.settlement.IBPoSettlementService;
-import com.xinyirun.scm.core.system.service.log.sys.ISLogImportService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.framework.base.controller.system.v1.SystemBaseController;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,9 +37,6 @@ public class BSettlementController extends SystemBaseController {
 
     @Autowired
     private ISPagesService isPagesService;
-
-    @Autowired
-    private ISLogImportService isLogImportService;
 
     /**
      * 采购结算 新增

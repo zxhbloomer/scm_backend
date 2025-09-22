@@ -132,6 +132,11 @@ public class SLogDataChangeOperateClickHouseVo implements Serializable {
     List<SLogDataChangeDetailClickHouseVo> dataChangeList;
 
     /**
+     * 具体的变更前、变更后的数据
+     */
+    private List<SLogDataChangeDetailOldNewVo> oldNewdetails;
+
+    /**
      * 分页条件
      */
     private PageCondition pageCondition;

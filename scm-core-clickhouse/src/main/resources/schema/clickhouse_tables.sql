@@ -176,3 +176,49 @@ COMMENT '数据变更详细日志表，记录具体的数据变更信息和字�
 ALTER TABLE s_log_data_change_detail ADD INDEX idx_order_code order_code TYPE set(0) GRANULARITY 3;
 ALTER TABLE s_log_data_change_detail ADD INDEX idx_request_id request_id TYPE set(0) GRANULARITY 3;
 ALTER TABLE s_log_data_change_detail ADD INDEX idx_table_name table_name TYPE set(0) GRANULARITY 3;
+
+-- ClickHouse s_job_log 定时任务调度日志表
+DROP TABLE IF EXISTS s_job_log;
+
+CREATE TABLE s_job_log (
+    id UUID DEFAULT generateUUIDv4() COMMENT '主键ID，自动生成UUID',
+    job_id Nullable(UInt64) COMMENT '任务主键',
+    job_name String COMMENT '任务名称',
+    job_group_type LowCardinality(String) COMMENT '任务组类型',
+    job_serial_id Nullable(UInt64) COMMENT '关联编号',
+    job_serial_type Nullable(String) COMMENT '关联表名字',
+    job_desc Nullable(String) COMMENT '任务描述',
+    job_simple_name Nullable(String) COMMENT '任务简称',
+    class_name String COMMENT 'Bean名称',
+    method_name String COMMENT '方法名称',
+    param_class Nullable(String) COMMENT '参数类型',
+    param_data Nullable(String) COMMENT '参数',
+    cron_expression Nullable(String) COMMENT '表达式',
+    concurrent Nullable(UInt8) COMMENT '是否并发执行（0允许 1禁止）',
+    is_cron Nullable(UInt8) COMMENT '判断是否是cron表达式，还是simpletrigger',
+    misfire_policy LowCardinality(String) COMMENT '计划策略：0=默认,1=立即触发执行,2=触发一次执行,3=不触发立即执行',
+    is_del UInt8 COMMENT '是否是已经删除',
+    is_effected Nullable(UInt8) COMMENT '是否有效',
+    fire_time Nullable(DateTime) COMMENT '首次执行时间',
+    scheduled_fire_time Nullable(DateTime) COMMENT '计划首次执行时间',
+    prev_fire_time Nullable(DateTime) COMMENT '上次执行时间',
+    next_fire_time Nullable(DateTime) COMMENT 'next_fire_time',
+    run_times Nullable(UInt32) COMMENT '运行次数',
+    msg Nullable(String) COMMENT '执行情况',
+    c_id Nullable(UInt64) COMMENT '创建人ID',
+    c_name Nullable(String) COMMENT '创建人名称',
+    c_time DateTime COMMENT '创建时间',
+    u_id Nullable(UInt64) COMMENT '修改人ID',
+    u_time Nullable(DateTime) COMMENT '修改时间',
+    tenant_code LowCardinality(String) COMMENT '租户代码'
+) ENGINE = MergeTree()
+PARTITION BY toYYYYMM(c_time)
+ORDER BY (c_time, tenant_code, job_group_type, is_del)
+SETTINGS index_granularity = 8192
+COMMENT '定时任务调度日志表，记录任务执行历史和状态信息';
+
+-- 创建索引
+ALTER TABLE s_job_log ADD INDEX idx_job_id job_id TYPE set(0) GRANULARITY 3;
+ALTER TABLE s_job_log ADD INDEX idx_job_name job_name TYPE ngrambf_v1(3, 256, 2, 0) GRANULARITY 1;
+ALTER TABLE s_job_log ADD INDEX idx_class_name class_name TYPE ngrambf_v1(3, 256, 2, 0) GRANULARITY 1;
+ALTER TABLE s_job_log ADD INDEX idx_method_name method_name TYPE ngrambf_v1(3, 256, 2, 0) GRANULARITY 1;

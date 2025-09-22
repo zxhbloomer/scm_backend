@@ -1,6 +1,5 @@
 package com.xinyirun.scm.bean.system.vo.clickhouse.datachange;
 
-import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeDetailMongoEntity;
 import com.xinyirun.scm.bean.system.vo.common.condition.PageCondition;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

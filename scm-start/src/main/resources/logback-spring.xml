@@ -41,7 +41,9 @@
 
     <!-- 按租户分离的DEBUG日志 -->
     <appender name="DEBUG_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
-        <discriminator>
+        <!-- 添加超时配置，避免并发冲突 -->
+        <timeout>30000</timeout>
+        <discriminator class="ch.qos.logback.classic.sift.MDCBasedDiscriminator">
             <key>tenant_code</key>
             <defaultValue>master</defaultValue>
         </discriminator>
@@ -68,7 +70,9 @@
 
     <!-- 按租户分离的INFO日志 -->
     <appender name="INFO_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
-        <discriminator>
+        <!-- 添加超时配置，避免并发冲突 -->
+        <timeout>30000</timeout>
+        <discriminator class="ch.qos.logback.classic.sift.MDCBasedDiscriminator">
             <key>tenant_code</key>
             <defaultValue>master</defaultValue>
         </discriminator>
@@ -95,7 +99,9 @@
 
     <!-- 按租户分离的WARN日志 -->
     <appender name="WARN_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
-        <discriminator>
+        <!-- 添加超时配置，避免并发冲突 -->
+        <timeout>30000</timeout>
+        <discriminator class="ch.qos.logback.classic.sift.MDCBasedDiscriminator">
             <key>tenant_code</key>
             <defaultValue>master</defaultValue>
         </discriminator>
@@ -123,7 +129,9 @@
 
     <!-- 按租户分离的ERROR日志 -->
     <appender name="ERROR_FILE" class="ch.qos.logback.classic.sift.SiftingAppender">
-        <discriminator>
+        <!-- 添加超时配置，避免并发冲突 -->
+        <timeout>30000</timeout>
+        <discriminator class="ch.qos.logback.classic.sift.MDCBasedDiscriminator">
             <key>tenant_code</key>
             <defaultValue>master</defaultValue>
         </discriminator>
@@ -207,8 +215,10 @@
         <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
         <discardingThreshold >0</discardingThreshold>
         <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
-        <queueSize>512</queueSize>
-        <includeCallerData>true</includeCallerData>
+        <queueSize>1024</queueSize>
+        <includeCallerData>false</includeCallerData>
+        <!-- 添加非阻塞模式，减少等待时间 -->
+        <neverBlock>true</neverBlock>
         <!-- 添加附加的appender,最多只能添加一个 -->
         <appender-ref ref ="DEBUG_FILE"/>
     </appender>
@@ -216,8 +226,10 @@
         <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
         <discardingThreshold >0</discardingThreshold>
         <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
-        <queueSize>512</queueSize>
-        <includeCallerData>true</includeCallerData>
+        <queueSize>1024</queueSize>
+        <includeCallerData>false</includeCallerData>
+        <!-- 添加非阻塞模式，减少等待时间 -->
+        <neverBlock>true</neverBlock>
         <!-- 添加附加的appender,最多只能添加一个 -->
         <appender-ref ref ="INFO_FILE"/>
     </appender>
@@ -227,6 +239,8 @@
         <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
         <queueSize>512</queueSize>
         <includeCallerData>true</includeCallerData>
+        <!-- WARN级别保持阻塞模式，确保重要日志不丢失 -->
+        <neverBlock>false</neverBlock>
         <!-- 添加附加的appender,最多只能添加一个 -->
         <appender-ref ref ="WARN_FILE"/>
     </appender>
@@ -236,6 +250,8 @@
         <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
         <queueSize>512</queueSize>
         <includeCallerData>true</includeCallerData>
+        <!-- ERROR级别保持阻塞模式，确保重要日志不丢失 -->
+        <neverBlock>false</neverBlock>
         <!-- 添加附加的appender,最多只能添加一个 -->
         <appender-ref ref ="ERROR_FILE"/>
     </appender>

@@ -17,7 +17,7 @@ import com.xinyirun.scm.core.system.service.sys.schedule.v2.ISBDailyProductV2Ser
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
-import com.xinyirunscm.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
+import com.xinyirun.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;

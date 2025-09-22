@@ -1,7 +1,6 @@
 package com.xinyirun.scm.framework.spring.aspect.v1.datachangelog;
 
 import com.alibaba.fastjson2.JSON;
-import com.xinyirun.scm.bean.entity.mongo.log.datachange.SLogDataChangeOperateMongoEntity;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.system.bo.log.sys.SysLogBo;
 import com.xinyirun.scm.bean.system.bo.session.user.system.UserSessionBo;

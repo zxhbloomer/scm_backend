@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.bean.system.ao.result.CheckResultAo;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
+import com.xinyirun.scm.bean.system.vo.excel.customer.MEnterpiseExcelVo;
 import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseHisVo;
 import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseImportVo;
 import com.xinyirun.scm.bean.system.vo.master.enterprise.MEnterpriseVo;
-import com.xinyirun.scm.bean.system.vo.excel.customer.MEnterpiseExcelVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.SLogImportVo;
 import com.xinyirun.scm.bean.system.vo.sys.pages.SPagesVo;
 import com.xinyirun.scm.common.annotations.RepeatSubmitAnnotion;
@@ -18,7 +18,6 @@ import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.system.service.master.enterprise.IMEnterpriseService;
-import com.xinyirun.scm.core.system.service.log.sys.ISLogImportService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.excel.upload.SystemExcelReader;
@@ -52,9 +51,6 @@ public class MEnterpriseController extends SystemBaseController {
 
     @Autowired
     private ISPagesService isPagesService;
-
-    @Autowired
-    private ISLogImportService isLogImportService;
 
     @SysLogAnnotion("根据查询条件，获取企业列表")
     @PostMapping("/pagelist")
@@ -229,7 +225,6 @@ public class MEnterpriseController extends SystemBaseController {
                 isPagesService.updateImportProcessingFalse(pagesVo);
 
                 sLogImportVo.setType(SystemConstants.LOG_FLG.OK);
-                isLogImportService.insert(sLogImportVo);
                 return ResponseEntity.ok().body(ResultUtil.OK(beans));
             } else {
                 // 读取失败，需要返回错误
@@ -241,7 +236,6 @@ public class MEnterpriseController extends SystemBaseController {
 
                 sLogImportVo.setType(SystemConstants.LOG_FLG.NG);
                 sLogImportVo.setError_url(errorInfo.getUrl());
-                isLogImportService.insert(sLogImportVo);
                 return ResponseEntity.ok().body(ResultUtil.OK(errorInfo, ResultEnum.IMPORT_DATA_ERROR));
             }
         } catch (Exception e) {

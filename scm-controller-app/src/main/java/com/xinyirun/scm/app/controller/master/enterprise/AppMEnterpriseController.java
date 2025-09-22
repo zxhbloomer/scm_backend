@@ -18,7 +18,6 @@ import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.exception.system.UpdateErrorException;
 import com.xinyirun.scm.common.utils.DateTimeUtil;
 import com.xinyirun.scm.core.app.service.master.enterprise.AppIMEnterpriseService;
-import com.xinyirun.scm.core.system.service.log.sys.ISLogImportService;
 import com.xinyirun.scm.core.system.service.sys.pages.ISPagesService;
 import com.xinyirun.scm.excel.export.EasyExcelUtil;
 import com.xinyirun.scm.excel.upload.SystemExcelReader;
@@ -52,9 +51,6 @@ public class AppMEnterpriseController extends AppBaseController {
 
     @Autowired
     private ISPagesService isPagesService;
-
-    @Autowired
-    private ISLogImportService isLogImportService;
 
     @SysLogAppAnnotion("根据查询条件，获取企业列表")
     @PostMapping("/pagelist")
@@ -189,66 +185,4 @@ public class AppMEnterpriseController extends AppBaseController {
         return ResponseEntity.ok().body(AppResultUtil.OK(AppMEnterpriseVo));
     }
 
-
-    @SysLogAppAnnotion("企业数据导入")
-    @PostMapping("/import")
-    public ResponseEntity<AppJsonResultAo<Object>> importData(@RequestBody(required = false) MEnterpriseImportVo vo, HttpServletResponse response) throws Exception {
-        SPagesVo sPagesVo = new SPagesVo();
-        sPagesVo.setCode(vo.getPage_code());
-        SPagesVo pagesVo = isPagesService.get(sPagesVo);
-        if (Objects.equals(pagesVo.getImport_processing(), Boolean.TRUE)) {
-            throw new BusinessException("还有未完成的导入任务，请稍后重试");
-        }
-        try{
-            SLogImportVo sLogImportVo = new SLogImportVo();
-
-            sLogImportVo.setImport_json(pagesVo.getImport_json());
-            sLogImportVo.setPage_code(pagesVo.getCode());
-            sLogImportVo.setPage_name(pagesVo.getName());
-            sLogImportVo.setUpload_url(vo.getUrl());
-
-
-            isPagesService.updateImportProcessingTrue(pagesVo);
-
-            // 文件下载并check类型
-            // 1、获取模板配置类
-            String json = pagesVo.getImport_json();
-
-            SystemExcelReader pr = super.downloadExcelAndImportData(vo.getUrl(), json);
-            List<MEnterpriseImportVo> beans = pr.readBeans(MEnterpriseImportVo.class);
-
-            if (pr.isDataValid()) {
-                pr.closeAll();
-
-                if (beans.size() == 0) {
-                    isPagesService.updateImportProcessingFalse(pagesVo);
-                    throw new BusinessException("导入失败,导入文件无数据");
-                }
-                // 读取没有错误，开始插入
-                List<MEnterpriseImportVo> AppMEnterpriseVos = service.importData(beans);
-
-                isPagesService.updateImportProcessingFalse(pagesVo);
-
-                sLogImportVo.setType(SystemConstants.LOG_FLG.OK);
-                isLogImportService.insert(sLogImportVo);
-                return ResponseEntity.ok().body(AppResultUtil.OK(beans));
-            } else {
-                // 读取失败，需要返回错误
-                File rtnFile = pr.getValidateResultsInFile(pr.getFileName());
-                MEnterpriseImportVo errorInfo = super.uploadFile(rtnFile.getAbsolutePath(), MEnterpriseImportVo.class);
-                pr.closeAll();
-
-                isPagesService.updateImportProcessingFalse(pagesVo);
-
-                sLogImportVo.setType(SystemConstants.LOG_FLG.NG);
-                sLogImportVo.setError_url(errorInfo.getUrl());
-                isLogImportService.insert(sLogImportVo);
-                return ResponseEntity.ok().body(AppResultUtil.OK(errorInfo, ResultEnum.IMPORT_DATA_ERROR));
-            }
-        } catch (Exception e) {
-            throw e;
-        } finally{
-            isPagesService.updateImportProcessingFalse(pagesVo);
-        }
-    }
 }

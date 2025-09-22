@@ -6,7 +6,7 @@ import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.system.vo.clickhouse.log.SLogSysClickHouseVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
-import com.xinyirunscm.scm.clickhouse.service.SLogSysClickHouseService;
+import com.xinyirun.scm.clickhouse.service.SLogSysClickHouseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

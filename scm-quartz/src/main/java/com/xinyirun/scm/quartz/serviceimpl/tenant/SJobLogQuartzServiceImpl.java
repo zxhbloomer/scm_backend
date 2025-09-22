@@ -1,9 +1,8 @@
 package com.xinyirun.scm.quartz.serviceimpl.tenant;
 
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.bean.entity.mongo.log.quartz.SJobLogMongoEntity;
 import com.xinyirun.scm.bean.entity.quartz.SJobLogEntity;
+import com.xinyirun.scm.bean.system.vo.clickhouse.log.quartz.SJobLogClickHouseVo;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.mq.rabbitmq.producer.business.log.quartz.LogQuartzProducer;
@@ -37,7 +36,7 @@ public class SJobLogQuartzServiceImpl extends ServiceImpl<SJobLogQuartzMapper, S
     @Override
     public void addJobLog(SJobLogEntity jobLog) {
 //        mapper.insert(jobLog);
-        SJobLogMongoEntity entity =(SJobLogMongoEntity) BeanUtilsSupport.copyProperties(jobLog, SJobLogMongoEntity.class);
+        SJobLogClickHouseVo entity =(SJobLogClickHouseVo) BeanUtilsSupport.copyProperties(jobLog, SJobLogClickHouseVo.class);
         // 设置租户code
         entity.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
         producer.mqSendMq(entity);

@@ -1,11 +1,9 @@
 package com.xinyirun.scm.bean.utils.annotation;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.xinyirun.scm.bean.system.vo.clickhouse.datachange.SLogDataChangeDetailMongoVo;
-import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnsVo;
 import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnVo;
+import com.xinyirun.scm.bean.system.vo.sys.log.datachange.annotationutil.SDataChangeColumnsVo;
 import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;
-import com.xinyirun.scm.common.utils.string.StringUtils;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
