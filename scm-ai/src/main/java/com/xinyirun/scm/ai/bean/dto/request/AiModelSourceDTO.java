@@ -67,6 +67,9 @@ public class AiModelSourceDTO {
     @Schema(description = "创建人(操作人）")
     private String createUser;
 
+    @Schema(description = "是否为默认模型")
+    private Boolean isDefault;
+
     @Schema(description = "模型参数配置")
     private List<AdvSettingDTO> advSettingDTOList;
 

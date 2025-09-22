@@ -198,4 +198,5 @@ public class AiConfiguration {
         executor.initialize();
         return executor;
     }
+
 }

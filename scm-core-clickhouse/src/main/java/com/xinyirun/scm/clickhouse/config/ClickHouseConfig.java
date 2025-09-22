@@ -112,19 +112,6 @@ public class ClickHouseConfig {
         }
     }
 
-    /**
-     * 健康检查Bean
-     */
-    @Bean(name = "clickHouseHealthChecker")
-    public ClickHouseHealthChecker clickHouseHealthChecker(Client clickHouseClient) {
-        ClickHouseProperties.Monitoring monitoring = clickHouseProperties.getMonitoring();
-        return new ClickHouseHealthChecker(
-                clickHouseClient,
-                monitoring.isHealthCheckEnabled(),
-                monitoring.getHealthCheckInterval(),
-                monitoring.isMetricsEnabled()
-        );
-    }
 
     /**
      * 集中注册所有ClickHouse POJO实体类

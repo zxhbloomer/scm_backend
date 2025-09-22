@@ -25,7 +25,6 @@ public class AIChatRequest implements Serializable {
     @NotBlank
     private String conversationId;
 
-    @Schema(description = "组织ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank
+    @Schema(description = "组织ID")
     private String organizationId;
 }

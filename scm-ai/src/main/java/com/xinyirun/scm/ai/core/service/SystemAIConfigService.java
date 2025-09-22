@@ -4,7 +4,6 @@ import com.xinyirun.scm.ai.engine.common.AIModelParamType;
 import com.xinyirun.scm.ai.common.exception.MSException;
 import com.xinyirun.scm.ai.common.util.BeanUtils;
 import com.xinyirun.scm.ai.engine.utils.JSON;
-import com.xinyirun.scm.ai.common.util.Translator;
 import com.xinyirun.scm.ai.constants.AIConfigConstants;
 import com.xinyirun.scm.ai.bean.domain.AiModelSource;
 import com.xinyirun.scm.ai.bean.domain.AiModelSourceExample;
@@ -55,7 +54,7 @@ public class SystemAIConfigService {
 
         // 校验模型名称唯一性
         if (isModelNameDuplicated(aiModelSourceDTO.getName(), id, isAddOperation, aiModelSourceDTO.getOwner())) {
-            throw new MSException(Translator.get("system_model_name_exist") + StringUtils.SPACE + aiModelSourceDTO.getName() + StringUtils.SPACE + Translator.get("system_model_name_exist_label"));
+            throw new MSException("模型名称" + StringUtils.SPACE + aiModelSourceDTO.getName() + StringUtils.SPACE + "已被系统中其他用户占用，请更换唯一名称后重试");
         }
 
         // 检查AppKey变更
@@ -269,18 +268,18 @@ public class SystemAIConfigService {
                     .build();
             var response = aiChatBaseService.chat(aiChatOption).content();
             if (StringUtils.isBlank(response)) {
-                throw new MSException(Translator.get("system_model_test_link_error"));
+                throw new MSException("模型链接失败，请检查配置");
             }
         } catch (Exception e) {
             var message = e.getMessage();
             if (StringUtils.isNotBlank(message) && message.contains("-")) {
                 var substring = StringUtils.substringBefore(message, "-");
                 throw new MSException(
-                        String.format("%s[%s]", Translator.get("system_model_test_chat_error"), substring), e
+                        String.format("%s[%s]", "模型调用错误，错误码：", substring), e
                 );
             }
             throw new MSException(
-                    String.format("%s[ Unknown response code: 0 ]", Translator.get("system_model_test_chat_error")), e
+                    String.format("%s[ Unknown response code: 0 ]", "模型调用错误，错误码："), e
             );
         }
     }
@@ -349,11 +348,11 @@ public class SystemAIConfigService {
     public AiModelSourceDTO getModelSourceDTO(String id, String userId) {
         AiModelSource aiModelSource = aiModelSourceMapper.selectByPrimaryKey(id);
         if (aiModelSource == null) {
-            throw new MSException(Translator.get("system_model_not_exist"));
+            throw new MSException("模型信息不存在");
         }
         //检查个人模型查看权限
         if (StringUtils.isNotBlank(userId) && !StringUtils.equalsIgnoreCase(aiModelSource.getOwner(), userId)) {
-            throw new MSException(Translator.get("system_model_not_exist"));
+            throw new MSException("模型信息不存在");
         }
         return getModelSourceDTO(aiModelSource);
     }
@@ -366,33 +365,47 @@ public class SystemAIConfigService {
     /**
      * 根据ID获取模型源数据传输对象
      *
-     * @param id 模型源ID
+     * @param id 模型源ID，如果为null、空字符串或"default"，则获取默认模型
+     * @param userId 用户ID
      * @return 模型源数据传输对象
      */
     public AiModelSourceDTO getModelSourceDTOWithKey(String id, String userId) {
-        AiModelSource aiModelSource = aiModelSourceMapper.selectByPrimaryKey(id);
+        AiModelSource aiModelSource;
+
+        if (StringUtils.isBlank(id) || "default".equals(id)) {
+            // 查询默认模型
+            AiModelSourceExample example = new AiModelSourceExample();
+            example.createCriteria().andIsDefaultEqualTo(true);
+            List<AiModelSource> models = aiModelSourceMapper.selectByExample(example);
+            aiModelSource = models.isEmpty() ? null : models.get(0);
+        } else {
+            // 查询指定ID模型
+            aiModelSource = aiModelSourceMapper.selectByPrimaryKey(id);
+        }
+
         if (aiModelSource == null) {
-            throw new MSException(Translator.get("system_model_not_exist"));
+            throw new MSException("模型信息不存在");
         }
         //检查模型是否开启
         if (!aiModelSource.getStatus()) {
-            throw new MSException(Translator.get("system_model_not_enable"));
+            throw new MSException("模型未启用");
         }
         // 校验权限，全局的和自己的
         if (!StringUtils.equalsAny(aiModelSource.getOwner(), userId, DEFAULT_OWNER)) {
-            throw new MSException(Translator.get("system_model_not_exist"));
+            throw new MSException("模型信息不存在");
         }
         return getModelSourceDTOWithKey(aiModelSource);
     }
 
+
     public void delModelInformation(String id, String userId) {
         AiModelSource aiModelSource = aiModelSourceMapper.selectByPrimaryKey(id);
         if (aiModelSource == null) {
-            throw new MSException(Translator.get("system_model_not_exist"));
+            throw new MSException("模型信息不存在");
         }
         //检查个人模型查看权限
         if (StringUtils.isNotBlank(userId) && !StringUtils.equalsIgnoreCase(aiModelSource.getOwner(), userId)) {
-            throw new MSException(Translator.get("system_model_not_exist"));
+            throw new MSException("模型信息不存在");
         }
         aiModelSourceMapper.deleteByPrimaryKey(id);
     }

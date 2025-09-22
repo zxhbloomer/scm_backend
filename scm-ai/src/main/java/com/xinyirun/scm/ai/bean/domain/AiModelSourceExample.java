@@ -1063,6 +1063,11 @@ public class AiModelSourceExample {
             addCriterion("create_user not between", value1, value2, "createUser");
             return (Criteria) this;
         }
+
+        public Criteria andIsDefaultEqualTo(Boolean value) {
+            addCriterion("is_default =", value, "isDefault");
+            return (Criteria) this;
+        }
     }
 
     public static class Criteria extends GeneratedCriteria {

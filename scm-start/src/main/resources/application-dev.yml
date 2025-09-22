@@ -499,7 +499,7 @@ mybatis-plus:
       id-type: AUTO
       insert-strategy: ALWAYS
       update-strategy: ALWAYS
-  mapper-locations: 'classpath:/mapper/*Mapper '
+  mapper-locations: classpath*:**/*Mapper.xml
   type-handlers-package: com.xinyirun.wms.core.config.mybatis.typehandlers
 
 #-----------------------scm  Configuration---------

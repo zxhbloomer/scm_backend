@@ -79,6 +79,8 @@ public class AiModelSource implements Serializable {
     @Schema(description = "创建人(操作人）")
     private String createUser;
 
+    @Schema(description = "是否为默认模型")
+    private Boolean isDefault;
 
     private static final long serialVersionUID = 1L;
 
@@ -96,7 +98,8 @@ public class AiModelSource implements Serializable {
         apiUrl("api_url", "apiUrl", "VARCHAR", false),
         advSettings("adv_settings", "advSettings", "VARCHAR", false),
         createTime("create_time", "createTime", "BIGINT", false),
-        createUser("create_user", "createUser", "VARCHAR", false);
+        createUser("create_user", "createUser", "VARCHAR", false),
+        isDefault("is_default", "isDefault", "BOOLEAN", false);
 
         private static final String BEGINNING_DELIMITER = "`";
 

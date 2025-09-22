@@ -1,6 +1,5 @@
 package com.xinyirun.scm.ai.common.exception;
 
-import com.xinyirun.scm.ai.common.util.Translator;
 
 /**
  * API 接口状态码
@@ -38,6 +37,6 @@ public interface IResultCode {
      * 如果没有匹配则返回原文
      */
     default String getTranslationMessage(String message) {
-       return Translator.get(message, message);
+       return message;
     }
 }
