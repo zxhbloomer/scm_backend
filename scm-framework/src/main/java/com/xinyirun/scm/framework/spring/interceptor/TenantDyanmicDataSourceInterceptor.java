@@ -40,21 +40,29 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        log.info("&&&&&&&&&&&&&&&& 租户拦截 &&&&&&&&&&&&&&&&");
         String requestURI = request.getRequestURI();
+        
+        log.info("==================== 租户拦截器开始 ====================");
+        log.info("请求URI: {}", requestURI);
+        log.info("请求方法: {}", request.getMethod());
+        log.info("当前线程: {}", Thread.currentThread().getName());
+        
         // 检查是否是无需拦截的路径
         if (isPublicPath(requestURI)) {
-            log.debug("公共路径，无需租户信息: {}", requestURI);
+            log.info("跳过公共路径，无需租户信息: {}", requestURI);
             return true;
         }
 
         // 从请求中获取租户ID
         String tenantId = extractTenantId(request);
-
+        log.info("从请求头X-Tenant-ID获取到租户ID: {}", tenantId);
 
         if (StringUtils.isNotBlank(tenantId)) {
+            log.info("开始设置租户上下文，租户ID: {}", tenantId);
+            
             // 设置租户ID到MDC，用于日志文件按租户分离
             TenantLogContextHolder.setTenantId(tenantId);
+            log.info("已设置租户日志上下文到MDC: {}", TenantLogContextHolder.getTenantId());
             
             // 检查是否已经存在数据源，如果不存在则注册新的数据源
             Boolean isNotExist = true;
@@ -84,15 +92,21 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
                 dataSourceProperties.setDriverClassName("com.mysql.cj.jdbc.Driver");
                 DataSourceHelper.addDataSource(dataSourceProperties);
 
-                log.info("&&&&&&&&&&& 已设置租户:{} 连接信息: {}", tenantId, masterTenant);
-            }else{
-                log.info("&&&&&&&&&&& 当前租户:{}", tenantId);
+                log.info("成功注册新租户数据源 - 租户: {}, URL: {}, 用户: {}", 
+                        tenantId, masterTenant.getUrl(), masterTenant.getUser_name());
+            } else {
+                log.info("租户数据源已存在 - 当前租户: {}", tenantId);
             }
-        }else{
+        } else {
+            log.error("租户ID为空，拒绝请求 - URI: {}, 所有请求头: {}", requestURI, getAllHeaders(request));
             throw new RuntimeException("缺少租户信息");
         }
+        
+        // 设置动态数据源
         DataSourceHelper.use(tenantId);
-        log.debug("设置动态数据连接：设置租户ID到MDC: {}", DataSourceHelper.getCurrentDataSourceName());
+        log.info("已设置动态数据源: {}", DataSourceHelper.getCurrentDataSourceName());
+        log.info("==================== 租户拦截器完成 ====================");
+        
         return true;
     }
 
@@ -119,10 +133,17 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
      */
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        String currentTenant = TenantLogContextHolder.getTenantId();
+        log.info("==================== 租户拦截器清理 ====================");
+        log.info("清理前的租户ID: {}", currentTenant);
+        log.info("请求URI: {}", request.getRequestURI());
+        
         // 请求处理完成后，清除租户上下文
         TenantLogContextHolder.clear();
         DataSourceHelper.close();
-        log.debug("清除租户上下文");
+        
+        log.info("已清除租户上下文和数据源连接");
+        log.info("==================== 租户拦截器清理完成 ====================");
     }
 
     /**
@@ -134,5 +155,16 @@ public class TenantDyanmicDataSourceInterceptor implements HandlerInterceptor {
         String tenantId = request.getHeader("X-Tenant-ID");
 
         return tenantId;
+    }
+    
+    /**
+     * 获取所有请求头信息，用于调试
+     */
+    private String getAllHeaders(HttpServletRequest request) {
+        StringBuilder headers = new StringBuilder();
+        request.getHeaderNames().asIterator().forEachRemaining(name -> {
+            headers.append(name).append("=").append(request.getHeader(name)).append("; ");
+        });
+        return headers.toString();
     }
 }

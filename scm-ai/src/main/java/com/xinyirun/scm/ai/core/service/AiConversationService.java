@@ -6,6 +6,7 @@ import com.xinyirun.scm.ai.bean.domain.AiConversation;
 import com.xinyirun.scm.ai.bean.domain.AiConversationContent;
 import com.xinyirun.scm.ai.bean.domain.AiConversationContentExample;
 import com.xinyirun.scm.ai.bean.domain.AiConversationExample;
+import com.xinyirun.scm.ai.bean.domain.AiPrompt;
 import com.xinyirun.scm.ai.bean.dto.request.AIChatRequest;
 import com.xinyirun.scm.ai.bean.dto.request.AIChatOption;
 import com.xinyirun.scm.ai.bean.dto.request.AIConversationUpdateRequest;
@@ -37,6 +38,22 @@ public class AiConversationService {
     AiConversationMapper aiConversationMapper;
     @Resource
     AiConversationContentMapper aiConversationContentMapper;
+    @Resource
+    AiPromptService aiPromptService;
+
+    /**
+     * 获取默认系统提示词
+     * @return 默认系统提示词，如果不存在返回null
+     */
+    private String getDefaultSystemPrompt() {
+        try {
+            AiPrompt defaultPrompt = aiPromptService.getPromptByCode("CS_DEFAULT");
+            return defaultPrompt != null ? defaultPrompt.getPrompt() : null;
+        } catch (Exception e) {
+            LogUtils.error("获取默认系统提示词失败", e);
+            return null;
+        }
+    }
 
     public String chat(AIChatRequest request, String userId) {
         // 持久化原始提示词
@@ -46,13 +63,19 @@ public class AiConversationService {
                 .conversationId(request.getConversationId())
                 .module(aiChatBaseService.getModule(request, userId))
                 .prompt(request.getPrompt())
+                .system(getDefaultSystemPrompt())
                 .build();
-        String assistantMessage = aiChatBaseService.chatWithMemory(aiChatOption)
-                .content();
 
-        // 持久化回答内容
-        aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), assistantMessage);
-        return assistantMessage;
+        try {
+            String assistantMessage = aiChatBaseService.chatWithMemory(aiChatOption)
+                    .content();
+            // 持久化回答内容
+            aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), assistantMessage);
+            return assistantMessage;
+        } catch (Exception e) {
+            LogUtils.error("AI聊天失败", e);
+            throw e;
+        }
     }
 
     /**
@@ -70,6 +93,7 @@ public class AiConversationService {
                 .conversationId(request.getConversationId())
                 .module(aiChatBaseService.getModule(request, userId))
                 .prompt(request.getPrompt())
+                .system(getDefaultSystemPrompt())
                 .build();
 
         // 创建WebSocket流式处理器
@@ -125,6 +149,7 @@ public class AiConversationService {
                 .conversationId(request.getConversationId())
                 .module(aiChatBaseService.getModule(request, userId))
                 .prompt(request.getPrompt())
+                .system(getDefaultSystemPrompt())
                 .build();
 
         StringBuilder completeContent = new StringBuilder();
