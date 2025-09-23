@@ -85,6 +85,30 @@ public class AiChatBaseService {
     }
 
     /**
+     * 流式聊天并记忆
+     *
+     * @param aiChatOption
+     * @return
+     */
+    public ChatClient.StreamResponseSpec chatWithMemoryStream(AIChatOption aiChatOption) {
+        if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
+            return getClient(aiChatOption.getModule())
+                    .prompt()
+                    .system(aiChatOption.getSystem())
+                    .user(aiChatOption.getPrompt())
+                    .advisors(messageChatMemoryAdvisor)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
+                    .stream();
+        }
+        return getClient(aiChatOption.getModule())
+                .prompt()
+                .user(aiChatOption.getPrompt())
+                .advisors(messageChatMemoryAdvisor)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
+                .stream();
+    }
+
+    /**
      * 获取 AIChatClient
      *
      * @param model 模型配置

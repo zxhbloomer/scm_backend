@@ -1,5 +1,7 @@
 package com.xinyirun.scm.ai.core.service;
 
+import com.xinyirun.scm.ai.adapter.AiEngineAdapter;
+import com.xinyirun.scm.ai.adapter.AiStreamHandler;
 import com.xinyirun.scm.ai.bean.domain.AiConversation;
 import com.xinyirun.scm.ai.bean.domain.AiConversationContent;
 import com.xinyirun.scm.ai.bean.domain.AiConversationContentExample;
@@ -51,6 +53,128 @@ public class AiConversationService {
         // 持久化回答内容
         aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), assistantMessage);
         return assistantMessage;
+    }
+
+    /**
+     * 流式聊天
+     *
+     * @param request 聊天请求
+     * @param userId 用户ID
+     * @param sessionId WebSocket会话ID
+     */
+    public void chatStream(AIChatRequest request, String userId, String sessionId) {
+        // 持久化原始提示词
+        aiChatBaseService.saveUserConversationContent(request.getConversationId(), request.getPrompt());
+
+        AIChatOption aiChatOption = AIChatOption.builder()
+                .conversationId(request.getConversationId())
+                .module(aiChatBaseService.getModule(request, userId))
+                .prompt(request.getPrompt())
+                .build();
+
+        // 创建WebSocket流式处理器
+        AiStreamHandler.WebSocketStreamHandler streamHandler =
+                new AiStreamHandler.WebSocketStreamHandler(sessionId);
+
+        StringBuilder completeContent = new StringBuilder();
+
+        try {
+            // 使用流式聊天
+            aiChatBaseService.chatWithMemoryStream(aiChatOption)
+                .content()
+                .doOnNext(content -> {
+                    // 发送内容片段
+                    streamHandler.onContent(content);
+                    completeContent.append(content);
+                })
+                .doOnComplete(() -> {
+                    // 完成时保存完整内容
+                    String fullContent = completeContent.toString();
+                    aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), fullContent);
+
+                    // 发送完成事件
+                    AiEngineAdapter.AiResponse finalResponse = new AiEngineAdapter.AiResponse();
+                    finalResponse.setContent(fullContent);
+                    finalResponse.setSuccess(true);
+                    streamHandler.onComplete(finalResponse);
+                })
+                .doOnError(error -> {
+                    LogUtils.error(error);
+                    streamHandler.onError(error);
+                })
+                .subscribe();
+
+            // 发送开始事件
+            streamHandler.onStart();
+
+        } catch (Exception e) {
+            LogUtils.error(e);
+            streamHandler.onError(e);
+        }
+    }
+
+    /**
+     * 使用回调方式的流式聊天
+     *
+     * @param request 聊天请求
+     * @param userId 用户ID
+     * @param streamHandler 流式处理器
+     */
+    public void chatStreamWithCallback(AIChatRequest request, String userId, AiStreamHandler.CallbackStreamHandler streamHandler) {
+        AIChatOption aiChatOption = AIChatOption.builder()
+                .conversationId(request.getConversationId())
+                .module(aiChatBaseService.getModule(request, userId))
+                .prompt(request.getPrompt())
+                .build();
+
+        StringBuilder completeContent = new StringBuilder();
+
+        try {
+            // 使用流式聊天
+            aiChatBaseService.chatWithMemoryStream(aiChatOption)
+                .content()
+                .doOnNext(content -> {
+                    // 发送内容片段
+                    streamHandler.onContent(content);
+                    completeContent.append(content);
+                })
+                .doOnComplete(() -> {
+                    // 完成时保存完整内容
+                    String fullContent = completeContent.toString();
+
+                    // 发送完成事件
+                    AiEngineAdapter.AiResponse finalResponse = new AiEngineAdapter.AiResponse();
+                    finalResponse.setContent(fullContent);
+                    finalResponse.setSuccess(true);
+                    streamHandler.onComplete(finalResponse);
+                })
+                .doOnError(error -> {
+                    LogUtils.error(error);
+                    streamHandler.onError(error);
+                })
+                .subscribe();
+
+            // 发送开始事件
+            streamHandler.onStart();
+
+        } catch (Exception e) {
+            LogUtils.error(e);
+            streamHandler.onError(e);
+        }
+    }
+
+    /**
+     * 保存用户消息内容 (从控制器调用)
+     */
+    public void saveUserConversationContent(String conversationId, String content) {
+        aiChatBaseService.saveUserConversationContent(conversationId, content);
+    }
+
+    /**
+     * 保存助手消息内容 (从控制器调用)
+     */
+    public void saveAssistantConversationContent(String conversationId, String content) {
+        aiChatBaseService.saveAssistantConversationContent(conversationId, content);
     }
 
     public AiConversation add(AIChatRequest request, String userId) {

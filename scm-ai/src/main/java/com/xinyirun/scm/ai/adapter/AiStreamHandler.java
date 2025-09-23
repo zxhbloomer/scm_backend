@@ -1,5 +1,11 @@
 package com.xinyirun.scm.ai.adapter;
 
+import com.xinyirun.scm.ai.common.util.CommonBeanFactory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * AI流式响应处理器接口
  * 用于处理AI提供商的流式响应
@@ -105,9 +111,17 @@ public interface AiStreamHandler {
 
         private final String sessionId;
         private final StringBuilder contentBuilder = new StringBuilder();
+        private SimpMessagingTemplate simpMessagingTemplate;
 
         public WebSocketStreamHandler(String sessionId) {
             this.sessionId = sessionId;
+            // 通过Spring上下文获取SimpMessagingTemplate
+            try {
+                this.simpMessagingTemplate = CommonBeanFactory.getBean(SimpMessagingTemplate.class);
+            } catch (Exception e) {
+                // 如果获取失败，记录日志但不抛出异常
+                System.err.println("Failed to get SimpMessagingTemplate: " + e.getMessage());
+            }
         }
 
         @Override
@@ -142,10 +156,23 @@ public interface AiStreamHandler {
          * 发送消息到WebSocket客户端
          */
         private void sendToWebSocket(String type, String content) {
-            // TODO: 实现WebSocket消息发送逻辑
-            // 这里应该通过Spring WebSocket的SimpMessagingTemplate发送消息
-            // simpMessagingTemplate.convertAndSendToUser(sessionId, "/queue/ai-stream",
-            //     Map.of("type", type, "content", content));
+            if (simpMessagingTemplate != null) {
+                try {
+                    Map<String, Object> message = new HashMap<>();
+                    message.put("type", type);
+                    message.put("content", content);
+                    message.put("timestamp", System.currentTimeMillis());
+
+                    // 发送到用户特定的队列
+                    simpMessagingTemplate.convertAndSendToUser(
+                        sessionId,
+                        "/queue/ai-stream",
+                        message
+                    );
+                } catch (Exception e) {
+                    System.err.println("Failed to send WebSocket message: " + e.getMessage());
+                }
+            }
         }
 
         /**
