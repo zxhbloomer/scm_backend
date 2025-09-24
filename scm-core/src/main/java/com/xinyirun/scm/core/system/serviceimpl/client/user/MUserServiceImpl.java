@@ -649,7 +649,7 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
             }
             // 发布用户会话事件
             UserConversationEvent event = new UserConversationEvent(
-                    this, userId, mUserEntity.getConv_uuid(), mUserEntity.getLogin_name(), LocalDateTime.now()
+                    this, userId, mUserEntity.getConv_uuid(), mUserEntity.getLogin_name(), LocalDateTime.now(), DataSourceHelper.getCurrentDataSourceName()
             );
             eventPublisher.publishEvent(event);
 

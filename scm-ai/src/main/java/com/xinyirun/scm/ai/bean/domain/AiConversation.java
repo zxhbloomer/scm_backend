@@ -26,13 +26,18 @@ public class AiConversation implements Serializable {
     @Schema(description = "创建人(操作人）")
     private String createUser;
 
+    @Schema(description = "租户id")
+    @Size(max = 30, message = "{ai_conversation.tenant.length_range}", groups = {Created.class, Updated.class})
+    private String tenant;
+
     private static final long serialVersionUID = 1L;
 
     public enum Column {
         id("id", "id", "VARCHAR", false),
         title("title", "title", "VARCHAR", false),
         createTime("create_time", "createTime", "BIGINT", false),
-        createUser("create_user", "createUser", "VARCHAR", false);
+        createUser("create_user", "createUser", "VARCHAR", false),
+        tenant("tenant", "tenant", "VARCHAR", false);
 
         private static final String BEGINNING_DELIMITER = "`";
 

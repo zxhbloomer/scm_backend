@@ -18,14 +18,16 @@ public class UserConversationEvent extends ApplicationEvent {
     private final Long userId;
     private final String convUuid;
     private final String userName;
+    private final String tenant;
     private final LocalDateTime createTime;
 
-    public UserConversationEvent(Object source, Long userId, String convUuid, String userName, LocalDateTime createTime) {
+    public UserConversationEvent(Object source, Long userId, String convUuid, String userName, LocalDateTime createTime, String tenant) {
         super(source);
         this.userId = userId;
         this.convUuid = convUuid;
         this.userName = userName;
         this.createTime = createTime;
+        this.tenant = tenant;
     }
 
     public Long getUserId() {
@@ -38,6 +40,9 @@ public class UserConversationEvent extends ApplicationEvent {
 
     public String getUserName() {
         return userName;
+    }
+    public String getTenant() {
+        return tenant;
     }
 
     public LocalDateTime getCreateTime() {

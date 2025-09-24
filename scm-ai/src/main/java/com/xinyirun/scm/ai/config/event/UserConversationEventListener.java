@@ -28,7 +28,8 @@ public class UserConversationEventListener {
             aiConversationService.createConversationForUser(
                     event.getConvUuid(),
                     event.getUserId(),
-                    event.getUserName()
+                    event.getUserName(),
+                    event.getTenant()
             );
 
             log.info("AI会话记录创建成功：userId={}, convUuid={}",

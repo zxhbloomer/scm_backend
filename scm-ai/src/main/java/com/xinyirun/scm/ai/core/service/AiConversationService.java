@@ -297,7 +297,7 @@ public class AiConversationService {
      * @param userId 用户ID
      * @param userName 用户名
      */
-    public void createConversationForUser(String convUuid, Long userId, String userName) {
+    public void createConversationForUser(String convUuid, Long userId, String userName, String tenant) {
         try {
             // 检查会话是否已存在
             AiConversation existingConversation = aiConversationMapper.selectByPrimaryKey(convUuid);
@@ -312,6 +312,7 @@ public class AiConversationService {
             aiConversation.setTitle("新对话"); // 设置默认标题
             aiConversation.setCreateUser(String.valueOf(userId));
             aiConversation.setCreateTime(System.currentTimeMillis());
+            aiConversation.setTenant(tenant);
 
             aiConversationMapper.insert(aiConversation);
 
