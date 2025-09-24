@@ -12,7 +12,7 @@ import java.io.Serializable;
 /**
  * 销售结算明细表-源单实体类
  * 
- * @author Claude Code
+ * @author zxh
  * @since 2024-07-24
  */
 @Data

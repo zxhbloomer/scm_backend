@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 /**
  * 销售结算汇总表实体类
  * 
- * @author Claude Code
+ * @Author: zxh
  * @since 2024-07-24
  */
 @Data

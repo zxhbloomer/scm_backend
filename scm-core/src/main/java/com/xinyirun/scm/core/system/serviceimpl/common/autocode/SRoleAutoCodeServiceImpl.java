@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * @ClassName: SRoleAutoCodeServiceImpl
  * @Description: 自动生成编码：角色编号
- * @Author: claude
+ * @Author: zxh
  * @date: 2025/01/18
  * @Version: 1.0
  */

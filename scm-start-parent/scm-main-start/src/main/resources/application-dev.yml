@@ -311,7 +311,7 @@ RestTemplate-ReadTimeout: 150000
 
 #-----------------------日志设置---------------------------
 log:
-  path: D:/spring_log/wms/
+  path: D:/spring_log/wms
   logLevel: DEBUG
 
 #-----------------------mybatis-plus 设置---------

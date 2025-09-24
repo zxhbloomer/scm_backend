@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 /**
  * 销售结算明细-源单-按销售出库结算实体类
  * 
- * @author Claude Code
+ * @Author: zxh
  * @since 2024-07-24
  */
 @Data

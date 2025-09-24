@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * 销售结算附件表实体类
  * 
- * @author Claude Code
+ * @author zxh
  * @since 2024-07-24
  */
 @Data

@@ -21,7 +21,7 @@ import java.util.List;
  * 排除权限列表类型处理器
  * 用于处理MStaffVo中excludePermissionList字段的JSON序列化和反序列化
  * 
- * @author Claude Code
+ * @Author: zxh
  * @date 2025-08-23
  */
 @MappedTypes(value = {List.class})
