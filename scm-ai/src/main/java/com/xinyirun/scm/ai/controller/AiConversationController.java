@@ -80,6 +80,13 @@ public class AiConversationController {
     }
 
     @DS("master")
+    @PostMapping(value = "/clear/{conversationId}")
+    @Operation(summary = "清空对话内容")
+    public void clearConversationContent(@PathVariable String conversationId) {
+        aiConversationService.clearConversationContent(conversationId, SessionUtils.getUserId());
+    }
+
+    @DS("master")
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式聊天 (Spring AI标准)")
     public Flux<ChatResponse> chatStream(@Validated @RequestBody AIChatRequest request) {

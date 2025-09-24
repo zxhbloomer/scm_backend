@@ -247,6 +247,28 @@ public class AiConversationService {
         aiConversationContentMapper.deleteByExample(example);
     }
 
+    /**
+     * 清空对话内容（保留对话记录，只删除消息内容）
+     * @param conversationId 对话ID
+     * @param userId 用户ID
+     */
+    public void clearConversationContent(String conversationId, String userId) {
+        try {
+            // 删除所有对话内容
+            AiConversationContentExample deleteExample = new AiConversationContentExample();
+            deleteExample.createCriteria().andConversationIdEqualTo(conversationId);
+            int deletedCount = aiConversationContentMapper.deleteByExample(deleteExample);
+
+            // 记录操作日志
+            LogUtils.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, deletedCount);
+
+        } catch (Exception e) {
+            LogUtils.error("清空对话内容失败", e);
+            throw new MSException("清空对话内容失败：" + e.getMessage());
+        }
+    }
+
+
     // 权限检查逻辑已删除 - 不再需要用户权限验证
 
     public List<AiConversation> list(String userId) {
