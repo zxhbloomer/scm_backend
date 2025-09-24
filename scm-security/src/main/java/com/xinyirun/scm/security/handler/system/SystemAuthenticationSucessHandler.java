@@ -51,6 +51,9 @@ public class SystemAuthenticationSucessHandler implements AuthenticationSuccessH
             //登录成功 记录最新登录时间
             imUserService.updateLoginDate(SecurityUtil.getLoginUser_id());
 
+            //更新用户AI会话UUID
+            imUserService.updateUserAiConversationUuid(SecurityUtil.getLoginUser_id());
+
             ResponseResultUtil.responseWriteOK(token, response);
         } catch (Exception e) {
             log.error("onAuthenticationSuccess error", e);

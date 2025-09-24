@@ -31,5 +31,10 @@ public class UserInfoVo extends BaseVo implements Serializable {
 
     private String name;
 
+    /**
+     * AI会话UUID
+     */
+    private String conv_uuid;
+
     private UserSessionBo user_session_bean;
 }

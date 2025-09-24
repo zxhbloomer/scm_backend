@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.core.service;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.xinyirun.scm.ai.adapter.AiEngineAdapter;
 import com.xinyirun.scm.ai.adapter.AiStreamHandler;
 import com.xinyirun.scm.ai.bean.domain.AiConversation;
@@ -17,6 +18,7 @@ import com.xinyirun.scm.ai.common.util.LogUtils;
 import com.xinyirun.scm.ai.core.mapper.AiConversationContentMapper;
 import com.xinyirun.scm.ai.core.mapper.AiConversationMapper;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -28,8 +30,10 @@ import java.util.List;
  * @Author: jianxing
  * @CreateTime: 2025-05-28  13:44
  */
+@DS("master")
 @Service
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Slf4j
 public class AiConversationService {
 
     @Resource
@@ -236,7 +240,6 @@ public class AiConversationService {
 
     public void delete(String conversationId, String userId) {
         AiConversation aiConversation = aiConversationMapper.selectByPrimaryKey(conversationId);
-        checkConversationPermission(userId, aiConversation);
         aiConversationMapper.deleteByPrimaryKey(conversationId);
 
         AiConversationContentExample example = new AiConversationContentExample();
@@ -244,14 +247,7 @@ public class AiConversationService {
         aiConversationContentMapper.deleteByExample(example);
     }
 
-    private void checkConversationPermission(String userId, AiConversation aiConversation) {
-        if (aiConversation == null) {
-            throw new MSException(MsHttpResultCode.NOT_FOUND);
-        }
-        if (!StringUtils.equals(aiConversation.getCreateUser(), userId)) {
-            throw new MSException(MsHttpResultCode.FORBIDDEN);
-        }
-    }
+    // 权限检查逻辑已删除 - 不再需要用户权限验证
 
     public List<AiConversation> list(String userId) {
         AiConversationExample example = new AiConversationExample();
@@ -260,8 +256,6 @@ public class AiConversationService {
     }
 
     public List<AiConversationContent> chatList(String conversationId, String userId) {
-        AiConversation aiConversation = aiConversationMapper.selectByPrimaryKey(conversationId);
-        checkConversationPermission(userId, aiConversation);
         AiConversationContentExample example = new AiConversationContentExample();
         example.createCriteria().andConversationIdEqualTo(conversationId);
         example.setOrderByClause("create_time");
@@ -269,11 +263,41 @@ public class AiConversationService {
     }
 
     public AiConversation update(AIConversationUpdateRequest request, String userId) {
-        AiConversation originConversation = aiConversationMapper.selectByPrimaryKey(request.getId());
-        checkConversationPermission(userId, originConversation);
         AiConversation aiConversation = BeanUtils.copyBean(new AiConversation(), request);
         aiConversationMapper.updateByPrimaryKeySelective(aiConversation);
-        originConversation.setTitle(aiConversation.getTitle());
-        return originConversation;
+        return aiConversationMapper.selectByPrimaryKey(request.getId());
+    }
+
+    /**
+     * 为用户创建AI会话记录（由事件触发）
+     *
+     * @param convUuid 会话UUID
+     * @param userId 用户ID
+     * @param userName 用户名
+     */
+    public void createConversationForUser(String convUuid, Long userId, String userName) {
+        try {
+            // 检查会话是否已存在
+            AiConversation existingConversation = aiConversationMapper.selectByPrimaryKey(convUuid);
+            if (existingConversation != null) {
+                LogUtils.info("AI会话记录已存在，跳过创建：convUuid={}", convUuid);
+                return;
+            }
+
+            // 创建AI会话记录
+            AiConversation aiConversation = new AiConversation();
+            aiConversation.setId(convUuid);
+            aiConversation.setTitle("新对话"); // 设置默认标题
+            aiConversation.setCreateUser(String.valueOf(userId));
+            aiConversation.setCreateTime(System.currentTimeMillis());
+
+            aiConversationMapper.insert(aiConversation);
+
+            LogUtils.info("在chat-ai数据库中创建AI会话记录成功 - convUuid={}, userId={}, userName={}",
+                    convUuid, userId, userName);
+        } catch (Exception e) {
+            log.error("创建AI会话记录失败：userId={}, convUuid={}", userId, convUuid, e);
+            throw e; // 重新抛出异常，让调用方处理
+        }
     }
 }

@@ -174,4 +174,9 @@ public class MUserVo extends BaseVo implements Serializable {
      */
     private Boolean pwd_expired;
 
+    /**
+     * AI会话UUID
+     */
+    private String conv_uuid;
+
 }

@@ -50,6 +50,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
+import com.xinyirun.scm.common.event.UserConversationEvent;
 
 /**
  * <p>
@@ -80,6 +83,9 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
 
     @Autowired
     private CacheManager cacheManager;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @Value("${scm.avatar.temp-dir:${java.io.tmpdir}/wms/avatar_temp}")
     private String avatarTempDir;
@@ -171,6 +177,7 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         ui.setIntroduction("我是" + bo.getStaff_info().getName());
         ui.setName(bo.getStaff_info().getName());
         ui.setRoles(new String[]{"admin"});
+        ui.setConv_uuid(bo.getUser_info().getConv_uuid());
         return ui;
     }
 
@@ -262,6 +269,7 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         }
         ui.setIntroduction("我是" + mStaffVo.getName());
         ui.setName(mStaffVo.getName());
+        ui.setConv_uuid(mUserVo.getConv_uuid());
 //        ui.setRoles(new String[]{"admin"});
         return ui;
     }
@@ -624,5 +632,30 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
     @Override
     public MUserEntity getDataById(Integer id) {
         return mUserMapper.selectById(id);
+    }
+
+    @Override
+    @DSTransactional(rollbackFor = Exception.class)
+    @DS("#header.X-Tenant-ID")
+    public void updateUserAiConversationUuid(Long userId) {
+        try {
+            MUserEntity mUserEntity = mUserMapper.selectById(SecurityUtil.getLoginUser_id());
+            if (mUserEntity != null && StringUtils.isBlank(mUserEntity.getConv_uuid())) {
+                String convUuid = UUID.randomUUID().toString();
+
+                mUserEntity.setId(userId);
+                mUserEntity.setConv_uuid(convUuid);
+                this.updateById(mUserEntity);
+            }
+            // 发布用户会话事件
+            UserConversationEvent event = new UserConversationEvent(
+                    this, userId, mUserEntity.getConv_uuid(), mUserEntity.getLogin_name(), LocalDateTime.now()
+            );
+            eventPublisher.publishEvent(event);
+
+            log.info("PC端登录成功后更新AI会话UUID：userId={}, convUuid={}", userId, mUserEntity.getConv_uuid());
+        } catch (Exception e) {
+            log.warn("更新AI会话UUID失败：userId={}", userId, e);
+        }
     }
 }

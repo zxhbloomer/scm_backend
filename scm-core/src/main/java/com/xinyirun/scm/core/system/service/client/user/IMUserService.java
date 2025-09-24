@@ -128,4 +128,10 @@ public interface IMUserService extends IService<MUserEntity> , UserDetailsServic
      */
     MUserEntity getDataById(Integer id);
 
+    /**
+     * 更新用户AI会话UUID
+     * @param userId 用户ID
+     */
+    void updateUserAiConversationUuid(Long userId);
+
 }

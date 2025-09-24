@@ -212,4 +212,10 @@ public class MUserEntity extends BaseEntity<MUserEntity> implements Serializable
      */
     @TableField(value="wx_unionid")
     private String wx_unionid;
+
+    /**
+     * AI会话UUID
+     */
+    @TableField(value="conv_uuid")
+    private String conv_uuid;
 }
