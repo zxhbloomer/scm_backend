@@ -6,7 +6,7 @@ package com.xinyirun.scm.ai.common.enums;
  * 定义AI会话系统中使用的各种枚举类型
  * 包括内容类型、状态、AI模型提供商等
  *
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 public class AiConversationEnums {

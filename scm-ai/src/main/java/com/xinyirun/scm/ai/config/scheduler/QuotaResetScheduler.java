@@ -20,7 +20,7 @@ import java.util.Map;
  * 配额重置定时任务调度器
  * 负责自动重置用户的日配额和月配额
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Component

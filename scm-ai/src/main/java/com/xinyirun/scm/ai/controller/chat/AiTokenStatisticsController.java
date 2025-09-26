@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * AI Token统计控制器
  * 提供Token使用统计、配额查询和管理功能的REST API接口
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Tag(name = "AI Token统计")

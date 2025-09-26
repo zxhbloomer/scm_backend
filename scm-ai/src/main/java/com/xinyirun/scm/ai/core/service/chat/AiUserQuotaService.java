@@ -19,7 +19,7 @@ import java.util.UUID;
  * AI用户配额管理服务
  * 负责用户Token配额的管理、检查和重置功能
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Service

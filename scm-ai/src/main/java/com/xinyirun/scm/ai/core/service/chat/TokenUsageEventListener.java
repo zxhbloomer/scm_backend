@@ -19,7 +19,7 @@ import java.util.UUID;
  * Token使用事件监听器
  * 异步处理Token使用统计、配额管理和告警
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Component

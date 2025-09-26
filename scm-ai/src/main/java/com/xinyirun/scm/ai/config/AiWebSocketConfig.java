@@ -11,7 +11,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
  * AI WebSocket配置类
  * 用于实现实时聊天功能
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Slf4j

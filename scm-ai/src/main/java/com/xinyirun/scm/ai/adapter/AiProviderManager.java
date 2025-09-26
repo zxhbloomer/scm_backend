@@ -11,7 +11,7 @@ import java.util.Map;
  * AI提供商管理器
  * 管理各种AI服务提供商的实现
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Slf4j

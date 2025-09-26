@@ -11,7 +11,7 @@ import java.math.BigDecimal;
  * LLM Token使用事件
  * 用于异步处理Token统计和配额管理
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Getter

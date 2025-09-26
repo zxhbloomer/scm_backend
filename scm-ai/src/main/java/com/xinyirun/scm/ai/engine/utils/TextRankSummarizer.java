@@ -158,30 +158,4 @@ public class TextRankSummarizer {
                 .toArray();
     }
 
-    /**
-     * 测试方法
-     */
-/*    public static void main(String[] args) {
-        // 预设的测试文本
-        String text = "自然语言处理是人工智能的一个重要分支。它研究计算机处理人类语言的方法和技术。自然语言处理可以帮助计算机理解、解释和生成人类语言。现代自然语言处理技术大多基于机器学习，特别是深度学习。近年来，大型语言模型如GPT和BERT在自然语言处理领域取得了突破性进展。这些模型能够执行机器翻译、文本摘要、情感分析等多种任务。";
-
-        // 测试不同摘要长度
-        System.out.println("原文：" + text);
-        System.out.println("\n提取1个句子：" + summarize(text, 1));
-        System.out.println("\n提取2个句子：" + summarize(text, 2));
-        System.out.println("\n提取3个句子：" + summarize(text, 3));
-
-        // 交互式测试
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("\n\n请输入要提取摘要的文本（按回车结束）：");
-        String userText = scanner.nextLine();
-
-        System.out.println("请输入需要提取的句子数量：");
-        int count = scanner.nextInt();
-        scanner.nextLine(); // 消耗换行符
-
-        System.out.println("\n摘要结果：");
-        System.out.println(summarize(userText, count));
-        scanner.close();
-    }*/
 }

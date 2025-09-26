@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * 提供AI会话相关的通用工具方法
  * 包括内容处理、格式化、验证等功能
  *
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 public class AiConversationUtils {

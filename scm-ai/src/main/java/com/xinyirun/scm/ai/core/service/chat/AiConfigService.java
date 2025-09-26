@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * AI配置服务
  * 提供AI系统配置管理和Token价格计算功能
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Service

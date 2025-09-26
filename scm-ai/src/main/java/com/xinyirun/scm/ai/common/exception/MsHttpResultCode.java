@@ -3,7 +3,7 @@ package com.xinyirun.scm.ai.common.exception;
 /**
  * 具有 Http 含义的状态码
  * 抛异常时使用，会将 http 状态码设置成当前的状态码的后三位数字
- * @author jianxing
+ * @author zxh
  */
 public enum MsHttpResultCode implements IResultCode {
 

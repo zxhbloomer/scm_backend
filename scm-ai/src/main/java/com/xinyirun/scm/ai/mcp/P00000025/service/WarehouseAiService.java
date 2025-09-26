@@ -23,7 +23,7 @@ import java.util.Map;
  * 注意：这是对现有IMWarehouseService的AI友好封装
  * 主要目的是为MCP工具提供更简洁、更适合自然语言交互的接口
  * 
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 @Slf4j

@@ -12,7 +12,7 @@ import java.util.concurrent.Executor;
 /**
  * AI模块配置类
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Configuration

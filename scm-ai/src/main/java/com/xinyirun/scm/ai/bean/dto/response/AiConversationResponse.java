@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * AI会话响应DTO
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Data

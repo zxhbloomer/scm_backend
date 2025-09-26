@@ -11,7 +11,7 @@ import java.util.List;
  * Spring AI标准ChatResponse响应格式
  * 用于流式AI聊天输出，遵循Spring AI标准
  *
- * @Author: claude
+ * @Author: SCM-AI
  * @CreateTime: 2025-01-01 00:00
  */
 @Data

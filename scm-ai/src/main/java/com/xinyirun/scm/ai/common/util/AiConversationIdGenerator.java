@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 负责生成AI会话相关的各种ID
  * 包括会话ID、会话内容ID等，确保ID的唯一性和可读性
  *
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 public class AiConversationIdGenerator {

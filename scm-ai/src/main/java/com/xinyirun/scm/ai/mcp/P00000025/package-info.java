@@ -35,7 +35,7 @@
  * - 完善的异常处理和参数验证
  * - JSON格式返回，便于AI理解和处理
  * 
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 package com.xinyirun.scm.ai.mcp.P00000025;

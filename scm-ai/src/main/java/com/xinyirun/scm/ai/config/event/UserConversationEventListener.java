@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * 用户AI会话事件监听器
  *
- * @author SCM-AI模块
+ * @author zxh
  */
 @Component
 @Slf4j

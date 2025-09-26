@@ -95,13 +95,4 @@ public class KeywordDeduplication {
         return String.join("，", uniqueTexts);
     }
 
-    /*public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("请输入要去重的文本：");
-        String text = scanner.nextLine();
-
-        String result = deduplicateText(text);
-        System.out.println("去重后的文本：" + result);
-        scanner.close();
-    }*/
 }

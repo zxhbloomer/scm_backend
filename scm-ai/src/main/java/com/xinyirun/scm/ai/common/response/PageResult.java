@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * AI模块分页结果
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Data

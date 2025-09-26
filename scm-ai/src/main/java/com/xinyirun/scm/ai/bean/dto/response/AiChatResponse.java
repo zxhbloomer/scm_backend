@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 /**
  * AI聊天响应DTO
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Data

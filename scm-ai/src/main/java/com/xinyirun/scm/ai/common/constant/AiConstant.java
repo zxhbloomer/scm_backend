@@ -3,7 +3,7 @@ package com.xinyirun.scm.ai.common.constant;
 /**
  * AI模块常量定义
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 public final class AiConstant {

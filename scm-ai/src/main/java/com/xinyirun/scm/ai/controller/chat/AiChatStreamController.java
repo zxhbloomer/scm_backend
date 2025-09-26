@@ -17,7 +17,7 @@ import java.security.Principal;
  * AI聊天流式输出控制器
  * 处理WebSocket流式聊天请求
  *
- * @author SCM-AI
+ * @author zxh
  * @since 2025-09-22
  */
 @Slf4j

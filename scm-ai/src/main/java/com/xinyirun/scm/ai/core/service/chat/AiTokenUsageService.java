@@ -19,7 +19,7 @@ import java.util.UUID;
  * AI Token使用服务
  * 负责Token使用记录的创建、查询和统计功能
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Service

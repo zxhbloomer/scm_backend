@@ -3,7 +3,7 @@ package com.xinyirun.scm.ai.common.exception;
 
 /**
  * API 接口状态码
- * @author jianxing
+ * @author zxh
  *
  * 1. 如果想返回具有 Http 含义的状态码，使用 MsHttpResultCode
  * 2. 业务状态码，各模块定义自己的状态码枚举类，各自管理

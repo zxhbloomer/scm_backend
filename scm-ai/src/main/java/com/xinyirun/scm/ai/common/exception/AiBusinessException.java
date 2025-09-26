@@ -5,7 +5,7 @@ package com.xinyirun.scm.ai.common.exception;
  *
  * 用于处理AI模块业务逻辑中的异常情况
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 public class AiBusinessException extends RuntimeException {

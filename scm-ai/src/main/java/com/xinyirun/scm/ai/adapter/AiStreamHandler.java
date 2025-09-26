@@ -10,7 +10,7 @@ import java.util.Map;
  * AI流式响应处理器接口
  * 用于处理AI提供商的流式响应
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 public interface AiStreamHandler {
@@ -120,7 +120,7 @@ public interface AiStreamHandler {
                 this.simpMessagingTemplate = CommonBeanFactory.getBean(SimpMessagingTemplate.class);
             } catch (Exception e) {
                 // 如果获取失败，记录日志但不抛出异常
-                System.err.println("Failed to get SimpMessagingTemplate: " + e.getMessage());
+                LogUtils.error("Failed to get SimpMessagingTemplate: " + e.getMessage());
             }
         }
 
@@ -170,7 +170,7 @@ public interface AiStreamHandler {
                         message
                     );
                 } catch (Exception e) {
-                    System.err.println("Failed to send WebSocket message: " + e.getMessage());
+                    LogUtils.error("Failed to send WebSocket message: " + e.getMessage());
                 }
             }
         }

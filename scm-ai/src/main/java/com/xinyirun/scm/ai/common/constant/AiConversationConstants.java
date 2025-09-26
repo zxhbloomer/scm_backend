@@ -6,7 +6,7 @@ package com.xinyirun.scm.ai.common.constant;
  * 定义AI会话系统中使用的各种常量
  * 包括状态码、类型定义、配置参数等
  *
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 public interface AiConversationConstants {

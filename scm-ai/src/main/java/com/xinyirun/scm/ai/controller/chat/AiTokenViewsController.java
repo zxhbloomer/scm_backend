@@ -19,7 +19,7 @@ import java.util.Map;
  * AI Token统计视图查询控制器
  * 提供基于数据库视图的快速查询接口
  *
- * @author Claude AI Assistant
+ * @author zxh
  * @createTime 2025-09-25
  */
 @Tag(name = "AI Token统计视图", description = "基于数据库视图的快速统计查询")

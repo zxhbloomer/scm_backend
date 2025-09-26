@@ -6,7 +6,7 @@ package com.xinyirun.scm.ai.common.exception;
  * 用于处理AI会话业务逻辑中的异常情况
  * 包括会话创建失败、会话内容处理失败等
  *
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 public class AiConversationException extends RuntimeException {

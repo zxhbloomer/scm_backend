@@ -10,7 +10,7 @@ import java.io.Serializable;
 /**
  * AI模块统一API响应结果
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Data

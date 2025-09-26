@@ -18,7 +18,7 @@ import java.util.List;
  * AI引擎适配器
  * 统一不同AI提供商的接口调用
  *
- * @author AI Assistant
+ * @author zxh
  * @since 2025-09-21
  */
 @Slf4j

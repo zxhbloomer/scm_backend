@@ -15,7 +15,7 @@ import java.util.List;
  * 用于业务逻辑处理的会话内容数据传输对象
  * 包含消息的详细信息和相关的AI处理数据
  *
- * @author SCM-AI模块
+ * @author zxh
  * @since 1.0.0
  */
 @Data
