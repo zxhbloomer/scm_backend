@@ -27,4 +27,7 @@ public class AIChatRequest implements Serializable {
 
     @Schema(description = "组织ID")
     private String organizationId;
+
+    @Schema(description = "租户ID")
+    private String tenantId;
 }

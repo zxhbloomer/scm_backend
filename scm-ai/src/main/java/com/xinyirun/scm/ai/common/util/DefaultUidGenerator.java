@@ -63,7 +63,8 @@ public class DefaultUidGenerator implements DisposableBean {
             throw new RuntimeException("Worker id " + workerId + " exceeds the max " + bitsAllocator.getMaxWorkerId());
         }
 
-        LogUtils.info("Initialized bits(1, {}, {}, {}) for workerID:{}", timeBits, workerBits, seqBits, workerId);
+        LogUtils.info("Initialized bits(1, {}, {}, {}) for workerID:{}",
+                new Object[]{timeBits, workerBits, seqBits, workerId});
     }
 
     public long getUID() throws MSException {

@@ -23,6 +23,8 @@ public class AIChatOption implements Serializable {
 
     private String system;
 
+    private String tenant;
+
     public AIChatOption withPrompt(@NotBlank String prompt) {
         this.prompt = prompt;
         return this;

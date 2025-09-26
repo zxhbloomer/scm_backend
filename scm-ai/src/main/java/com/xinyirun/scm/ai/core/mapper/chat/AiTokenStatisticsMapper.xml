@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xinyirun.scm.ai.core.mapper.chat.AiTokenStatisticsMapper">
+
+    <resultMap id="BaseResultMap" type="com.xinyirun.scm.ai.bean.domain.AiTokenStatistics">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="stat_date" jdbcType="DATE" property="statDate" />
+        <result column="tenant" jdbcType="VARCHAR" property="tenant" />
+        <result column="user_id" jdbcType="VARCHAR" property="userId" />
+        <result column="ai_provider" jdbcType="VARCHAR" property="aiProvider" />
+        <result column="ai_model_type" jdbcType="VARCHAR" property="aiModelType" />
+        <result column="usage_count" jdbcType="BIGINT" property="usageCount" />
+        <result column="success_count" jdbcType="BIGINT" property="successCount" />
+        <result column="total_prompt_tokens" jdbcType="BIGINT" property="totalPromptTokens" />
+        <result column="total_completion_tokens" jdbcType="BIGINT" property="totalCompletionTokens" />
+        <result column="total_tokens" jdbcType="BIGINT" property="totalTokens" />
+        <result column="total_cost" jdbcType="DECIMAL" property="totalCost" />
+        <result column="avg_response_time" jdbcType="DECIMAL" property="avgResponseTime" />
+        <result column="create_time" jdbcType="BIGINT" property="createTime" />
+        <result column="update_time" jdbcType="BIGINT" property="updateTime" />
+    </resultMap>
+
+    <sql id="Example_Where_Clause">
+        <where>
+            <foreach collection="oredCriteria" item="criteria" separator="or">
+                <if test="criteria.valid">
+                    <trim prefix="(" prefixOverrides="and" suffix=")">
+                        <foreach collection="criteria.criteria" item="criterion">
+                            <choose>
+                                <when test="criterion.noValue">
+                                    and ${criterion.condition}
+                                </when>
+                                <when test="criterion.singleValue">
+                                    and ${criterion.condition} #{criterion.value}
+                                </when>
+                                <when test="criterion.betweenValue">
+                                    and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                                </when>
+                                <when test="criterion.listValue">
+                                    and ${criterion.condition}
+                                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                                        #{listItem}
+                                    </foreach>
+                                </when>
+                            </choose>
+                        </foreach>
+                    </trim>
+                </if>
+            </foreach>
+        </where>
+    </sql>
+
+    <sql id="Base_Column_List">
+        id, stat_date, tenant, user_id, ai_provider, ai_model_type, usage_count, success_count,
+        total_prompt_tokens, total_completion_tokens, total_tokens, total_cost, avg_response_time,
+        create_time, update_time
+    </sql>
+
+    <!-- 根据日期范围查询统计数据 -->
+    <select id="selectByDateRange" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_token_statistics
+        WHERE stat_date BETWEEN #{startDate,jdbcType=DATE} AND #{endDate,jdbcType=DATE}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId,jdbcType=VARCHAR}
+        </if>
+        ORDER BY stat_date DESC, total_tokens DESC
+    </select>
+
+    <!-- 根据用户和日期查询统计数据 -->
+    <select id="selectByUserAndDate" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_token_statistics
+        WHERE user_id = #{userId,jdbcType=VARCHAR}
+        AND stat_date = #{statDate,jdbcType=DATE}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        ORDER BY total_tokens DESC
+    </select>
+
+    <!-- 根据模型提供商查询统计数据 -->
+    <select id="selectByProvider" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_token_statistics
+        WHERE ai_provider = #{aiProvider,jdbcType=VARCHAR}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        <if test="startDate != null">
+            AND stat_date &gt;= #{startDate,jdbcType=DATE}
+        </if>
+        <if test="endDate != null">
+            AND stat_date &lt;= #{endDate,jdbcType=DATE}
+        </if>
+        ORDER BY stat_date DESC, total_tokens DESC
+    </select>
+
+    <!-- 获取Top用户统计 -->
+    <select id="selectTopUsers" resultType="map">
+        SELECT
+            user_id,
+            tenant,
+            SUM(usage_count) as total_usage,
+            SUM(total_tokens) as total_tokens,
+            SUM(total_cost) as total_cost
+        FROM ai_token_statistics
+        WHERE stat_date BETWEEN #{startDate,jdbcType=DATE} AND #{endDate,jdbcType=DATE}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        GROUP BY user_id, tenant
+        ORDER BY total_tokens DESC
+        LIMIT #{limit,jdbcType=INTEGER}
+    </select>
+
+    <!-- 获取模型使用排行 -->
+    <select id="selectTopModels" resultType="map">
+        SELECT
+            ai_provider,
+            ai_model_type,
+            SUM(usage_count) as total_usage,
+            SUM(total_tokens) as total_tokens,
+            SUM(total_cost) as total_cost,
+            AVG(avg_response_time) as avg_response_time
+        FROM ai_token_statistics
+        WHERE stat_date BETWEEN #{startDate,jdbcType=DATE} AND #{endDate,jdbcType=DATE}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        GROUP BY ai_provider, ai_model_type
+        ORDER BY total_tokens DESC
+        LIMIT #{limit,jdbcType=INTEGER}
+    </select>
+
+    <!-- 获取日期统计汇总 -->
+    <select id="selectDailySummary" resultType="map">
+        SELECT
+            stat_date,
+            SUM(usage_count) as daily_usage,
+            SUM(success_count) as daily_success,
+            SUM(total_tokens) as daily_tokens,
+            SUM(total_cost) as daily_cost,
+            COUNT(DISTINCT user_id) as active_users,
+            COUNT(DISTINCT ai_model_type) as models_used
+        FROM ai_token_statistics
+        WHERE stat_date BETWEEN #{startDate,jdbcType=DATE} AND #{endDate,jdbcType=DATE}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        GROUP BY stat_date
+        ORDER BY stat_date DESC
+    </select>
+
+    <!-- 聚合统计数据插入或更新 -->
+    <insert id="insertOrUpdate" parameterType="com.xinyirun.scm.ai.bean.domain.AiTokenStatistics">
+        INSERT INTO ai_token_statistics (
+            id, stat_date, tenant, user_id, ai_provider, ai_model_type,
+            usage_count, success_count, total_prompt_tokens, total_completion_tokens,
+            total_tokens, total_cost, avg_response_time, create_time, update_time
+        ) VALUES (
+            #{id,jdbcType=VARCHAR}, #{statDate,jdbcType=DATE}, #{tenant,jdbcType=VARCHAR},
+            #{userId,jdbcType=VARCHAR}, #{aiProvider,jdbcType=VARCHAR}, #{aiModelType,jdbcType=VARCHAR},
+            #{usageCount,jdbcType=BIGINT}, #{successCount,jdbcType=BIGINT},
+            #{totalPromptTokens,jdbcType=BIGINT}, #{totalCompletionTokens,jdbcType=BIGINT},
+            #{totalTokens,jdbcType=BIGINT}, #{totalCost,jdbcType=DECIMAL},
+            #{avgResponseTime,jdbcType=DECIMAL}, #{createTime,jdbcType=BIGINT}, #{updateTime,jdbcType=BIGINT}
+        ) ON DUPLICATE KEY UPDATE
+            usage_count = usage_count + VALUES(usage_count),
+            success_count = success_count + VALUES(success_count),
+            total_prompt_tokens = total_prompt_tokens + VALUES(total_prompt_tokens),
+            total_completion_tokens = total_completion_tokens + VALUES(total_completion_tokens),
+            total_tokens = total_tokens + VALUES(total_tokens),
+            total_cost = total_cost + VALUES(total_cost),
+            avg_response_time = (avg_response_time + VALUES(avg_response_time)) / 2,
+            update_time = VALUES(update_time)
+    </insert>
+
+    <!-- 批量删除过期统计数据 -->
+    <delete id="deleteExpiredStats">
+        DELETE FROM ai_token_statistics
+        WHERE stat_date &lt; #{beforeDate,jdbcType=DATE}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+    </delete>
+
+    <!-- 标准MyBatis生成的方法 -->
+    <select id="selectByExample" parameterType="com.xinyirun.scm.ai.bean.domain.AiTokenStatisticsExample" resultMap="BaseResultMap">
+        select
+        <if test="distinct">
+            distinct
+        </if>
+        <include refid="Base_Column_List" />
+        from ai_token_statistics
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+        <if test="orderByClause != null">
+            order by ${orderByClause}
+        </if>
+    </select>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from ai_token_statistics
+        where id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+        delete from ai_token_statistics
+        where id = #{id,jdbcType=VARCHAR}
+    </delete>
+
+    <insert id="insert" parameterType="com.xinyirun.scm.ai.bean.domain.AiTokenStatistics">
+        insert into ai_token_statistics (id, stat_date, tenant, user_id, ai_provider, ai_model_type,
+        usage_count, success_count, total_prompt_tokens, total_completion_tokens, total_tokens,
+        total_cost, avg_response_time, create_time, update_time)
+        values (#{id,jdbcType=VARCHAR}, #{statDate,jdbcType=DATE}, #{tenant,jdbcType=VARCHAR},
+        #{userId,jdbcType=VARCHAR}, #{aiProvider,jdbcType=VARCHAR}, #{aiModelType,jdbcType=VARCHAR},
+        #{usageCount,jdbcType=BIGINT}, #{successCount,jdbcType=BIGINT}, #{totalPromptTokens,jdbcType=BIGINT},
+        #{totalCompletionTokens,jdbcType=BIGINT}, #{totalTokens,jdbcType=BIGINT}, #{totalCost,jdbcType=DECIMAL},
+        #{avgResponseTime,jdbcType=DECIMAL}, #{createTime,jdbcType=BIGINT}, #{updateTime,jdbcType=BIGINT})
+    </insert>
+
+    <insert id="insertSelective" parameterType="com.xinyirun.scm.ai.bean.domain.AiTokenStatistics">
+        insert into ai_token_statistics
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="statDate != null">
+                stat_date,
+            </if>
+            <if test="tenant != null">
+                tenant,
+            </if>
+            <if test="userId != null">
+                user_id,
+            </if>
+            <if test="aiProvider != null">
+                ai_provider,
+            </if>
+            <if test="aiModelType != null">
+                ai_model_type,
+            </if>
+            <if test="usageCount != null">
+                usage_count,
+            </if>
+            <if test="successCount != null">
+                success_count,
+            </if>
+            <if test="totalPromptTokens != null">
+                total_prompt_tokens,
+            </if>
+            <if test="totalCompletionTokens != null">
+                total_completion_tokens,
+            </if>
+            <if test="totalTokens != null">
+                total_tokens,
+            </if>
+            <if test="totalCost != null">
+                total_cost,
+            </if>
+            <if test="avgResponseTime != null">
+                avg_response_time,
+            </if>
+            <if test="createTime != null">
+                create_time,
+            </if>
+            <if test="updateTime != null">
+                update_time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="statDate != null">
+                #{statDate,jdbcType=DATE},
+            </if>
+            <if test="tenant != null">
+                #{tenant,jdbcType=VARCHAR},
+            </if>
+            <if test="userId != null">
+                #{userId,jdbcType=VARCHAR},
+            </if>
+            <if test="aiProvider != null">
+                #{aiProvider,jdbcType=VARCHAR},
+            </if>
+            <if test="aiModelType != null">
+                #{aiModelType,jdbcType=VARCHAR},
+            </if>
+            <if test="usageCount != null">
+                #{usageCount,jdbcType=BIGINT},
+            </if>
+            <if test="successCount != null">
+                #{successCount,jdbcType=BIGINT},
+            </if>
+            <if test="totalPromptTokens != null">
+                #{totalPromptTokens,jdbcType=BIGINT},
+            </if>
+            <if test="totalCompletionTokens != null">
+                #{totalCompletionTokens,jdbcType=BIGINT},
+            </if>
+            <if test="totalTokens != null">
+                #{totalTokens,jdbcType=BIGINT},
+            </if>
+            <if test="totalCost != null">
+                #{totalCost,jdbcType=DECIMAL},
+            </if>
+            <if test="avgResponseTime != null">
+                #{avgResponseTime,jdbcType=DECIMAL},
+            </if>
+            <if test="createTime != null">
+                #{createTime,jdbcType=BIGINT},
+            </if>
+            <if test="updateTime != null">
+                #{updateTime,jdbcType=BIGINT},
+            </if>
+        </trim>
+    </insert>
+
+</mapper>

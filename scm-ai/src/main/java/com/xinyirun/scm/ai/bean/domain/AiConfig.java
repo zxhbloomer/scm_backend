@@ -9,40 +9,48 @@ import java.util.Arrays;
 import lombok.Data;
 
 @Data
-public class AiConversation implements Serializable {
-    @Schema(description = "ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{ai_conversation.id.not_blank}", groups = {Updated.class})
-    @Size(min = 1, max = 50, message = "{ai_conversation.id.length_range}", groups = {Created.class, Updated.class})
+public class AiConfig implements Serializable {
+    @Schema(description = "配置ID", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "{ai_config.id.not_blank}", groups = {Updated.class})
+    @Size(min = 1, max = 50, message = "{ai_config.id.length_range}", groups = {Created.class, Updated.class})
     private String id;
 
-    @Schema(description = "对话标题", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{ai_conversation.title.not_blank}", groups = {Created.class})
-    @Size(min = 1, max = 255, message = "{ai_conversation.title.length_range}", groups = {Created.class, Updated.class})
-    private String title;
+    @Schema(description = "配置键", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "{ai_config.config_key.not_blank}", groups = {Created.class})
+    @Size(min = 1, max = 100, message = "{ai_config.config_key.length_range}", groups = {Created.class, Updated.class})
+    private String configKey;
+
+    @Schema(description = "配置值", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotBlank(message = "{ai_config.config_value.not_blank}", groups = {Created.class})
+    @Size(min = 1, max = 500, message = "{ai_config.config_value.length_range}", groups = {Created.class, Updated.class})
+    private String configValue;
+
+    @Schema(description = "配置说明")
+    @Size(max = 200, message = "{ai_config.description.length_range}", groups = {Created.class, Updated.class})
+    private String description;
+
+    @Schema(description = "租户ID")
+    @Size(max = 30, message = "{ai_config.tenant.length_range}", groups = {Created.class, Updated.class})
+    private String tenant;
 
     @Schema(description = "创建时间")
     private Long createTime;
 
-    @Schema(description = "创建人(操作人）")
-    private String createUser;
+    @Schema(description = "更新时间")
+    private Long updateTime;
 
-    @Schema(description = "租户id")
-    @Size(max = 30, message = "{ai_conversation.tenant.length_range}", groups = {Created.class, Updated.class})
-    private String tenant;
 
-    @Schema(description = "配置ID")
-    @Size(max = 50, message = "{ai_conversation.ai_config_id.length_range}")
-    private String aiConfigId;
 
     private static final long serialVersionUID = 1L;
 
     public enum Column {
         id("id", "id", "VARCHAR", false),
-        title("title", "title", "VARCHAR", false),
-        createTime("create_time", "createTime", "BIGINT", false),
-        createUser("create_user", "createUser", "VARCHAR", false),
+        configKey("config_key", "configKey", "VARCHAR", false),
+        configValue("config_value", "configValue", "VARCHAR", false),
+        description("description", "description", "VARCHAR", false),
         tenant("tenant", "tenant", "VARCHAR", false),
-        aiConfigId("ai_config_id", "aiConfigId", "VARCHAR", false);
+        createTime("create_time", "createTime", "BIGINT", false),
+        updateTime("update_time", "updateTime", "BIGINT", false);
 
         private static final String BEGINNING_DELIMITER = "`";
 

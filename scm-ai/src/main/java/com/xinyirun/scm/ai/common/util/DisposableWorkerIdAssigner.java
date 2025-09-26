@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.common.util;
 
 import com.xinyirun.scm.ai.bean.domain.WorkerNode;
-import com.xinyirun.scm.ai.core.mapper.BaseWorkerNodeMapper;
+import com.xinyirun.scm.ai.core.mapper.chat.BaseWorkerNodeMapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.RandomUtils;
 import org.springframework.stereotype.Service;

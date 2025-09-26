@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xinyirun.scm.ai.core.mapper.chat.AiUserQuotaMapper">
+
+    <resultMap id="BaseResultMap" type="com.xinyirun.scm.ai.bean.domain.AiUserQuota">
+        <id column="id" jdbcType="VARCHAR" property="id" />
+        <result column="user_id" jdbcType="VARCHAR" property="userId" />
+        <result column="tenant" jdbcType="VARCHAR" property="tenant" />
+        <result column="daily_limit" jdbcType="BIGINT" property="dailyLimit" />
+        <result column="monthly_limit" jdbcType="BIGINT" property="monthlyLimit" />
+        <result column="daily_used" jdbcType="BIGINT" property="dailyUsed" />
+        <result column="monthly_used" jdbcType="BIGINT" property="monthlyUsed" />
+        <result column="daily_reset_date" jdbcType="DATE" property="dailyResetDate" />
+        <result column="monthly_reset_date" jdbcType="DATE" property="monthlyResetDate" />
+        <result column="total_cost" jdbcType="DECIMAL" property="totalCost" />
+        <result column="status" jdbcType="TINYINT" property="status" />
+        <result column="create_time" jdbcType="BIGINT" property="createTime" />
+        <result column="update_time" jdbcType="BIGINT" property="updateTime" />
+    </resultMap>
+
+    <sql id="Example_Where_Clause">
+        <where>
+            <foreach collection="oredCriteria" item="criteria" separator="or">
+                <if test="criteria.valid">
+                    <trim prefix="(" prefixOverrides="and" suffix=")">
+                        <foreach collection="criteria.criteria" item="criterion">
+                            <choose>
+                                <when test="criterion.noValue">
+                                    and ${criterion.condition}
+                                </when>
+                                <when test="criterion.singleValue">
+                                    and ${criterion.condition} #{criterion.value}
+                                </when>
+                                <when test="criterion.betweenValue">
+                                    and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                                </when>
+                                <when test="criterion.listValue">
+                                    and ${criterion.condition}
+                                    <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                                        #{listItem}
+                                    </foreach>
+                                </when>
+                            </choose>
+                        </foreach>
+                    </trim>
+                </if>
+            </foreach>
+        </where>
+    </sql>
+
+    <sql id="Base_Column_List">
+        id, user_id, tenant, daily_limit, monthly_limit, daily_used, monthly_used,
+        daily_reset_date, monthly_reset_date, total_cost, status, create_time, update_time
+    </sql>
+
+    <!-- 根据用户ID和租户查询配额 -->
+    <select id="selectByUserIdAndTenant" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_user_quota
+        WHERE user_id = #{userId,jdbcType=VARCHAR}
+        <if test="tenant != null">
+            AND tenant = #{tenant,jdbcType=VARCHAR}
+        </if>
+        LIMIT 1
+    </select>
+
+    <!-- 调用存储过程更新用户Token使用量 -->
+    <update id="callUpdateUserTokenUsage" parameterType="map">
+        CALL UpdateUserTokenUsage(
+            #{userId,jdbcType=VARCHAR},
+            #{tenant,jdbcType=VARCHAR},
+            #{tokenCount,jdbcType=BIGINT},
+            #{cost,jdbcType=DECIMAL}
+        )
+    </update>
+
+    <!-- 调用存储过程重置用户日配额 -->
+    <update id="callResetUserDailyQuota">
+        CALL ResetUserDailyQuota()
+    </update>
+
+    <!-- 调用存储过程重置用户月配额 -->
+    <update id="callResetUserMonthlyQuota">
+        CALL ResetUserMonthlyQuota()
+    </update>
+
+    <!-- 批量查询需要重置日配额的用户 -->
+    <select id="selectUsersNeedDailyReset" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_user_quota
+        WHERE daily_reset_date &lt; CURDATE()
+           OR daily_reset_date IS NULL
+    </select>
+
+    <!-- 批量查询需要重置月配额的用户 -->
+    <select id="selectUsersNeedMonthlyReset" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_user_quota
+        WHERE monthly_reset_date &lt; DATE_FORMAT(NOW(), '%Y-%m-01')
+           OR monthly_reset_date IS NULL
+    </select>
+
+    <!-- 标准MyBatis生成的方法 -->
+    <select id="selectByExample" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuotaExample" resultMap="BaseResultMap">
+        SELECT
+        <if test="distinct">distinct</if>
+        <include refid="Base_Column_List" />
+        FROM ai_user_quota
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+        <if test="orderByClause != null">
+            ORDER BY ${orderByClause}
+        </if>
+    </select>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM ai_user_quota
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </select>
+
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
+        DELETE FROM ai_user_quota
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </delete>
+
+    <delete id="deleteByExample" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuotaExample">
+        DELETE FROM ai_user_quota
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+    </delete>
+
+    <insert id="insert" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuota">
+        INSERT INTO ai_user_quota (id, user_id, tenant, daily_limit, monthly_limit,
+            daily_used, monthly_used, daily_reset_date, monthly_reset_date,
+            total_cost, status, create_time, update_time)
+        VALUES (#{id,jdbcType=VARCHAR}, #{userId,jdbcType=VARCHAR}, #{tenant,jdbcType=VARCHAR},
+            #{dailyLimit,jdbcType=BIGINT}, #{monthlyLimit,jdbcType=BIGINT},
+            #{dailyUsed,jdbcType=BIGINT}, #{monthlyUsed,jdbcType=BIGINT},
+            #{dailyResetDate,jdbcType=DATE}, #{monthlyResetDate,jdbcType=DATE},
+            #{totalCost,jdbcType=DECIMAL}, #{status,jdbcType=TINYINT},
+            #{createTime,jdbcType=BIGINT}, #{updateTime,jdbcType=BIGINT})
+    </insert>
+
+    <insert id="insertSelective" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuota">
+        INSERT INTO ai_user_quota
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">id,</if>
+            <if test="userId != null">user_id,</if>
+            <if test="tenant != null">tenant,</if>
+            <if test="dailyLimit != null">daily_limit,</if>
+            <if test="monthlyLimit != null">monthly_limit,</if>
+            <if test="dailyUsed != null">daily_used,</if>
+            <if test="monthlyUsed != null">monthly_used,</if>
+            <if test="dailyResetDate != null">daily_reset_date,</if>
+            <if test="monthlyResetDate != null">monthly_reset_date,</if>
+            <if test="totalCost != null">total_cost,</if>
+            <if test="status != null">status,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">#{id,jdbcType=VARCHAR},</if>
+            <if test="userId != null">#{userId,jdbcType=VARCHAR},</if>
+            <if test="tenant != null">#{tenant,jdbcType=VARCHAR},</if>
+            <if test="dailyLimit != null">#{dailyLimit,jdbcType=BIGINT},</if>
+            <if test="monthlyLimit != null">#{monthlyLimit,jdbcType=BIGINT},</if>
+            <if test="dailyUsed != null">#{dailyUsed,jdbcType=BIGINT},</if>
+            <if test="monthlyUsed != null">#{monthlyUsed,jdbcType=BIGINT},</if>
+            <if test="dailyResetDate != null">#{dailyResetDate,jdbcType=DATE},</if>
+            <if test="monthlyResetDate != null">#{monthlyResetDate,jdbcType=DATE},</if>
+            <if test="totalCost != null">#{totalCost,jdbcType=DECIMAL},</if>
+            <if test="status != null">#{status,jdbcType=TINYINT},</if>
+            <if test="createTime != null">#{createTime,jdbcType=BIGINT},</if>
+            <if test="updateTime != null">#{updateTime,jdbcType=BIGINT},</if>
+        </trim>
+    </insert>
+
+    <select id="countByExample" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuotaExample" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM ai_user_quota
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+    </select>
+
+    <update id="updateByExampleSelective" parameterType="map">
+        UPDATE ai_user_quota
+        <set>
+            <if test="record.id != null">id = #{record.id,jdbcType=VARCHAR},</if>
+            <if test="record.userId != null">user_id = #{record.userId,jdbcType=VARCHAR},</if>
+            <if test="record.tenant != null">tenant = #{record.tenant,jdbcType=VARCHAR},</if>
+            <if test="record.dailyLimit != null">daily_limit = #{record.dailyLimit,jdbcType=BIGINT},</if>
+            <if test="record.monthlyLimit != null">monthly_limit = #{record.monthlyLimit,jdbcType=BIGINT},</if>
+            <if test="record.dailyUsed != null">daily_used = #{record.dailyUsed,jdbcType=BIGINT},</if>
+            <if test="record.monthlyUsed != null">monthly_used = #{record.monthlyUsed,jdbcType=BIGINT},</if>
+            <if test="record.dailyResetDate != null">daily_reset_date = #{record.dailyResetDate,jdbcType=DATE},</if>
+            <if test="record.monthlyResetDate != null">monthly_reset_date = #{record.monthlyResetDate,jdbcType=DATE},</if>
+            <if test="record.totalCost != null">total_cost = #{record.totalCost,jdbcType=DECIMAL},</if>
+            <if test="record.status != null">status = #{record.status,jdbcType=TINYINT},</if>
+            <if test="record.createTime != null">create_time = #{record.createTime,jdbcType=BIGINT},</if>
+            <if test="record.updateTime != null">update_time = #{record.updateTime,jdbcType=BIGINT},</if>
+        </set>
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+    </update>
+
+    <update id="updateByExample" parameterType="map">
+        UPDATE ai_user_quota
+        SET id = #{record.id,jdbcType=VARCHAR},
+        user_id = #{record.userId,jdbcType=VARCHAR},
+        tenant = #{record.tenant,jdbcType=VARCHAR},
+        daily_limit = #{record.dailyLimit,jdbcType=BIGINT},
+        monthly_limit = #{record.monthlyLimit,jdbcType=BIGINT},
+        daily_used = #{record.dailyUsed,jdbcType=BIGINT},
+        monthly_used = #{record.monthlyUsed,jdbcType=BIGINT},
+        daily_reset_date = #{record.dailyResetDate,jdbcType=DATE},
+        monthly_reset_date = #{record.monthlyResetDate,jdbcType=DATE},
+        total_cost = #{record.totalCost,jdbcType=DECIMAL},
+        status = #{record.status,jdbcType=TINYINT},
+        create_time = #{record.createTime,jdbcType=BIGINT},
+        update_time = #{record.updateTime,jdbcType=BIGINT}
+        <if test="_parameter != null">
+            <include refid="Example_Where_Clause" />
+        </if>
+    </update>
+
+    <update id="updateByPrimaryKeySelective" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuota">
+        UPDATE ai_user_quota
+        <set>
+            <if test="userId != null">user_id = #{userId,jdbcType=VARCHAR},</if>
+            <if test="tenant != null">tenant = #{tenant,jdbcType=VARCHAR},</if>
+            <if test="dailyLimit != null">daily_limit = #{dailyLimit,jdbcType=BIGINT},</if>
+            <if test="monthlyLimit != null">monthly_limit = #{monthlyLimit,jdbcType=BIGINT},</if>
+            <if test="dailyUsed != null">daily_used = #{dailyUsed,jdbcType=BIGINT},</if>
+            <if test="monthlyUsed != null">monthly_used = #{monthlyUsed,jdbcType=BIGINT},</if>
+            <if test="dailyResetDate != null">daily_reset_date = #{dailyResetDate,jdbcType=DATE},</if>
+            <if test="monthlyResetDate != null">monthly_reset_date = #{monthlyResetDate,jdbcType=DATE},</if>
+            <if test="totalCost != null">total_cost = #{totalCost,jdbcType=DECIMAL},</if>
+            <if test="status != null">status = #{status,jdbcType=TINYINT},</if>
+            <if test="createTime != null">create_time = #{createTime,jdbcType=BIGINT},</if>
+            <if test="updateTime != null">update_time = #{updateTime,jdbcType=BIGINT},</if>
+        </set>
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </update>
+
+    <update id="updateByPrimaryKey" parameterType="com.xinyirun.scm.ai.bean.domain.AiUserQuota">
+        UPDATE ai_user_quota
+        SET user_id = #{userId,jdbcType=VARCHAR},
+        tenant = #{tenant,jdbcType=VARCHAR},
+        daily_limit = #{dailyLimit,jdbcType=BIGINT},
+        monthly_limit = #{monthlyLimit,jdbcType=BIGINT},
+        daily_used = #{dailyUsed,jdbcType=BIGINT},
+        monthly_used = #{monthlyUsed,jdbcType=BIGINT},
+        daily_reset_date = #{dailyResetDate,jdbcType=DATE},
+        monthly_reset_date = #{monthlyResetDate,jdbcType=DATE},
+        total_cost = #{totalCost,jdbcType=DECIMAL},
+        status = #{status,jdbcType=TINYINT},
+        create_time = #{createTime,jdbcType=BIGINT},
+        update_time = #{updateTime,jdbcType=BIGINT}
+        WHERE id = #{id,jdbcType=VARCHAR}
+    </update>
+
+</mapper>

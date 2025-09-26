@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.config.AiConfiguration;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -284,6 +285,26 @@ public class AiEngineAdapter {
         private Integer tokensUsed;
 
         /**
+         * Spring AI Usage信息
+         */
+        private Usage usage;
+
+        /**
+         * 输入Token数量
+         */
+        private Long promptTokens;
+
+        /**
+         * 输出Token数量
+         */
+        private Long completionTokens;
+
+        /**
+         * 总Token数量
+         */
+        private Long totalTokens;
+
+        /**
          * 响应时间（毫秒）
          */
         private Long responseTime;
@@ -299,9 +320,59 @@ public class AiEngineAdapter {
         private String modelInfo;
 
         /**
+         * AI提供商名称
+         */
+        private String modelProvider;
+
+        /**
+         * 模型名称
+         */
+        private String modelName;
+
+        /**
          * 请求ID（用于跟踪）
          */
         private String requestId;
+
+        /**
+         * 从Spring AI Usage对象设置Token信息
+         */
+        public void setUsageFromSpringAi(Usage usage) {
+            if (usage != null) {
+                this.usage = usage;
+                this.promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens().longValue() : 0L;
+                this.completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens().longValue() : 0L;
+                this.totalTokens = usage.getTotalTokens() != null ? usage.getTotalTokens().longValue() : 0L;
+                this.tokensUsed = this.totalTokens != null ? this.totalTokens.intValue() : 0;
+            }
+        }
+
+        /**
+         * 获取Token使用信息的便利方法
+         */
+        public Long getPromptTokens() {
+            if (promptTokens != null) return promptTokens;
+            if (usage != null && usage.getPromptTokens() != null) {
+                return usage.getPromptTokens().longValue();
+            }
+            return 0L;
+        }
+
+        public Long getCompletionTokens() {
+            if (completionTokens != null) return completionTokens;
+            if (usage != null && usage.getCompletionTokens() != null) {
+                return usage.getCompletionTokens().longValue();
+            }
+            return 0L;
+        }
+
+        public Long getTotalTokens() {
+            if (totalTokens != null) return totalTokens;
+            if (usage != null && usage.getTotalTokens() != null) {
+                return usage.getTotalTokens().longValue();
+            }
+            return 0L;
+        }
     }
 
     /**

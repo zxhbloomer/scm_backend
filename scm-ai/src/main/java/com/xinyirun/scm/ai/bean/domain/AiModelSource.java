@@ -53,9 +53,8 @@ public class AiModelSource implements Serializable {
     @Size(min = 1, max = 255, message = "{ai_model_source.owner_type.length_range}", groups = {Created.class, Updated.class})
     private String ownerType;
 
-    @Schema(description = "基础名称", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "{ai_model_source.base_name.not_blank}", groups = {Created.class})
-    @Size(min = 1, max = 255, message = "{ai_model_source.base_name.length_range}", groups = {Created.class, Updated.class})
+    @Schema(description = "基础名称")
+    @Size(max = 255, message = "{ai_model_source.base_name.length_range}")
     private String baseName;
 
     @Schema(description = "模型key", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -82,6 +81,10 @@ public class AiModelSource implements Serializable {
     @Schema(description = "是否为默认模型")
     private Boolean isDefault;
 
+    @Schema(description = "配置ID")
+    @Size(max = 50, message = "{ai_model_source.ai_config_id.length_range}")
+    private String aiConfigId;
+
     private static final long serialVersionUID = 1L;
 
     public enum Column {
@@ -99,7 +102,8 @@ public class AiModelSource implements Serializable {
         advSettings("adv_settings", "advSettings", "VARCHAR", false),
         createTime("create_time", "createTime", "BIGINT", false),
         createUser("create_user", "createUser", "VARCHAR", false),
-        isDefault("is_default", "isDefault", "BOOLEAN", false);
+        isDefault("is_default", "isDefault", "BOOLEAN", false),
+        aiConfigId("ai_config_id", "aiConfigId", "VARCHAR", false);
 
         private static final String BEGINNING_DELIMITER = "`";
 

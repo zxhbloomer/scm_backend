@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.config.event;
 
-import com.xinyirun.scm.ai.core.service.AiConversationService;
+import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.common.event.UserConversationEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
