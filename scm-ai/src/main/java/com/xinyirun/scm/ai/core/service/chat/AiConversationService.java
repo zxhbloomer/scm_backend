@@ -124,8 +124,11 @@ public class AiConversationService {
      * @param sessionId WebSocket会话ID
      */
     public void chatStream(AIChatRequest request, String userId, String sessionId) {
+        // 获取模型ID
+        String modelId = aiChatBaseService.getModule(request, userId).getId();
+
         // 持久化原始提示词
-        aiChatBaseService.saveUserConversationContent(request.getConversationId(), request.getPrompt());
+        aiChatBaseService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), modelId);
 
         AIChatOption aiChatOption = AIChatOption.builder()
                 .conversationId(request.getConversationId())
@@ -153,7 +156,7 @@ public class AiConversationService {
                 .doOnComplete(() -> {
                     // 完成时保存完整内容
                     String fullContent = completeContent.toString();
-                    aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), fullContent);
+                    aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), fullContent, modelId);
 
                     // 发送完成事件
                     AiEngineAdapter.AiResponse finalResponse = new AiEngineAdapter.AiResponse();
@@ -184,6 +187,9 @@ public class AiConversationService {
      * @param streamHandler 流式处理器
      */
     public void chatStreamWithCallback(AIChatRequest request, String userId, AiStreamHandler.CallbackStreamHandler streamHandler) {
+        // 获取模型ID
+        final String modelId = aiChatBaseService.getModule(request, userId).getId();
+
         AIChatOption aiChatOption = AIChatOption.builder()
                 .conversationId(request.getConversationId())
                 .module(aiChatBaseService.getModule(request, userId))
@@ -193,6 +199,9 @@ public class AiConversationService {
                 .build();
         StringBuilder completeContent = new StringBuilder();
         final org.springframework.ai.chat.metadata.Usage[] finalUsage = new org.springframework.ai.chat.metadata.Usage[1];
+
+        // 持久化原始提示词
+        aiChatBaseService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), modelId);
 
         try {
             // 使用流式聊天
@@ -213,6 +222,7 @@ public class AiConversationService {
                 .doOnComplete(() -> {
                     // 完成时保存完整内容
                     String fullContent = completeContent.toString();
+                    aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), fullContent, modelId);
 
                     // 发送完成事件
                     AiEngineAdapter.AiResponse finalResponse = new AiEngineAdapter.AiResponse();
@@ -244,15 +254,15 @@ public class AiConversationService {
     /**
      * 保存用户消息内容 (从控制器调用)
      */
-    public void saveUserConversationContent(String conversationId, String content) {
-        aiChatBaseService.saveUserConversationContent(conversationId, content);
+    public void saveUserConversationContent(String conversationId, String content, String modelSourceId) {
+        aiChatBaseService.saveUserConversationContent(conversationId, content, modelSourceId);
     }
 
     /**
      * 保存助手消息内容 (从控制器调用)
      */
-    public void saveAssistantConversationContent(String conversationId, String content) {
-        aiChatBaseService.saveAssistantConversationContent(conversationId, content);
+    public void saveAssistantConversationContent(String conversationId, String content, String modelSourceId) {
+        aiChatBaseService.saveAssistantConversationContent(conversationId, content, modelSourceId);
     }
 
     public AiConversation add(AIChatRequest request, String userId) {

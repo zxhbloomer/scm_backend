@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.adapter;
 
 import com.xinyirun.scm.ai.common.util.CommonBeanFactory;
+import com.xinyirun.scm.ai.common.util.LogUtils;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.HashMap;

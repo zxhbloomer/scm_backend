@@ -373,9 +373,11 @@ public class SystemAIConfigService {
         AiModelSource aiModelSource;
 
         if (StringUtils.isBlank(id) || "default".equals(id)) {
-            // 查询默认模型
+            // 应用MeterSphere核心逻辑：状态过滤 + 排序规则
             AiModelSourceExample example = new AiModelSourceExample();
-            example.createCriteria().andIsDefaultEqualTo(true);
+            example.createCriteria()
+                .andStatusEqualTo(true);                      // 状态过滤：status = true
+            example.setOrderByClause("permission_type ASC"); // 排序规则：ORDER BY permission_type ASC
             List<AiModelSource> models = aiModelSourceMapper.selectByExample(example);
             aiModelSource = models.isEmpty() ? null : models.get(0);
         } else {

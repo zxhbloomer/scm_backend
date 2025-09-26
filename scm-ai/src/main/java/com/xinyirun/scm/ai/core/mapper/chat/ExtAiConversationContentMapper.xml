@@ -3,7 +3,7 @@
 <mapper namespace="com.xinyirun.scm.ai.core.mapper.chat.ExtAiConversationContentMapper">
 
     <select id="selectLastByConversationIdByLimit" resultType="com.xinyirun.scm.ai.bean.domain.AiConversationContent">
-        select id, conversation_id, type, content, create_time
+        select id, conversation_id, type, content, create_time, model_source_id
         from ai_conversation_content
         where conversation_id = #{conversationId}
         order by create_time desc

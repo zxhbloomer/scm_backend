@@ -6,6 +6,7 @@
     <result column="conversation_id" jdbcType="VARCHAR" property="conversationId" />
     <result column="type" jdbcType="VARCHAR" property="type" />
     <result column="create_time" jdbcType="BIGINT" property="createTime" />
+    <result column="model_source_id" jdbcType="VARCHAR" property="modelSourceId" />
   </resultMap>
   <resultMap extends="BaseResultMap" id="ResultMapWithBLOBs" type="com.xinyirun.scm.ai.bean.domain.AiConversationContent">
     <result column="content" jdbcType="LONGVARCHAR" property="content" />
@@ -69,7 +70,7 @@
     </where>
   </sql>
   <sql id="Base_Column_List">
-    id, conversation_id, `type`, create_time
+    id, conversation_id, `type`, create_time, model_source_id
   </sql>
   <sql id="Blob_Column_List">
     content
@@ -115,7 +116,7 @@
   <delete id="deleteByPrimaryKey" parameterType="java.lang.String">
     delete from ai_conversation_content
     where id = #{id,jdbcType=VARCHAR}
-  </delete>
+    </delete>
   <delete id="deleteByExample" parameterType="com.xinyirun.scm.ai.bean.domain.AiConversationContentExample">
     delete from ai_conversation_content
     <if test="_parameter != null">
@@ -124,9 +125,9 @@
   </delete>
   <insert id="insert" parameterType="com.xinyirun.scm.ai.bean.domain.AiConversationContent">
     insert into ai_conversation_content (id, conversation_id, `type`,
-      create_time, content)
+      create_time, model_source_id, content)
     values (#{id,jdbcType=VARCHAR}, #{conversationId,jdbcType=VARCHAR}, #{type,jdbcType=VARCHAR},
-      #{createTime,jdbcType=BIGINT}, #{content,jdbcType=LONGVARCHAR})
+      #{createTime,jdbcType=BIGINT}, #{modelSourceId,jdbcType=VARCHAR}, #{content,jdbcType=LONGVARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.xinyirun.scm.ai.bean.domain.AiConversationContent">
     insert into ai_conversation_content
@@ -142,6 +143,9 @@
       </if>
       <if test="createTime != null">
         create_time,
+      </if>
+      <if test="modelSourceId != null">
+        model_source_id,
       </if>
       <if test="content != null">
         content,
@@ -159,6 +163,9 @@
       </if>
       <if test="createTime != null">
         #{createTime,jdbcType=BIGINT},
+      </if>
+      <if test="modelSourceId != null">
+        #{modelSourceId,jdbcType=VARCHAR},
       </if>
       <if test="content != null">
         #{content,jdbcType=LONGVARCHAR},
@@ -186,6 +193,9 @@
       <if test="record.createTime != null">
         create_time = #{record.createTime,jdbcType=BIGINT},
       </if>
+      <if test="record.modelSourceId != null">
+        model_source_id = #{record.modelSourceId,jdbcType=VARCHAR},
+      </if>
       <if test="record.content != null">
         content = #{record.content,jdbcType=LONGVARCHAR},
       </if>
@@ -200,6 +210,7 @@
       conversation_id = #{record.conversationId,jdbcType=VARCHAR},
       `type` = #{record.type,jdbcType=VARCHAR},
       create_time = #{record.createTime,jdbcType=BIGINT},
+      model_source_id = #{record.modelSourceId,jdbcType=VARCHAR},
       content = #{record.content,jdbcType=LONGVARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
@@ -210,7 +221,11 @@
     set id = #{record.id,jdbcType=VARCHAR},
       conversation_id = #{record.conversationId,jdbcType=VARCHAR},
       `type` = #{record.type,jdbcType=VARCHAR},
-      create_time = #{record.createTime,jdbcType=BIGINT}
+      c_time = #{record.c_time,jdbcType=TIMESTAMP},
+      u_time = #{record.u_time,jdbcType=TIMESTAMP},
+      c_id = #{record.c_id,jdbcType=BIGINT},
+      u_id = #{record.u_id,jdbcType=BIGINT},
+      model_source_id = #{record.modelSourceId,jdbcType=VARCHAR}
     <if test="_parameter != null">
       <include refid="Update_By_Example_Where_Clause" />
     </if>
@@ -227,6 +242,9 @@
       <if test="createTime != null">
         create_time = #{createTime,jdbcType=BIGINT},
       </if>
+      <if test="modelSourceId != null">
+        model_source_id = #{modelSourceId,jdbcType=VARCHAR},
+      </if>
       <if test="content != null">
         content = #{content,jdbcType=LONGVARCHAR},
       </if>
@@ -238,6 +256,7 @@
     set conversation_id = #{conversationId,jdbcType=VARCHAR},
       `type` = #{type,jdbcType=VARCHAR},
       create_time = #{createTime,jdbcType=BIGINT},
+      model_source_id = #{modelSourceId,jdbcType=VARCHAR},
       content = #{content,jdbcType=LONGVARCHAR}
     where id = #{id,jdbcType=VARCHAR}
   </update>
@@ -245,16 +264,17 @@
     update ai_conversation_content
     set conversation_id = #{conversationId,jdbcType=VARCHAR},
       `type` = #{type,jdbcType=VARCHAR},
-      create_time = #{createTime,jdbcType=BIGINT}
+      create_time = #{createTime,jdbcType=BIGINT},
+      model_source_id = #{modelSourceId,jdbcType=VARCHAR}
     where id = #{id,jdbcType=VARCHAR}
   </update>
   <insert id="batchInsert" parameterType="map">
     insert into ai_conversation_content
-    (id, conversation_id, `type`, create_time, content)
+    (id, conversation_id, `type`, create_time, model_source_id, content)
     values
     <foreach collection="list" item="item" separator=",">
       (#{item.id,jdbcType=VARCHAR}, #{item.conversationId,jdbcType=VARCHAR}, #{item.type,jdbcType=VARCHAR},
-        #{item.createTime,jdbcType=BIGINT}, #{item.content,jdbcType=LONGVARCHAR})
+        #{item.createTime,jdbcType=BIGINT}, #{item.modelSourceId,jdbcType=VARCHAR}, #{item.content,jdbcType=LONGVARCHAR})
     </foreach>
   </insert>
   <insert id="batchInsertSelective" parameterType="map">
@@ -278,6 +298,9 @@
         </if>
         <if test="'create_time'.toString() == column.value">
           #{item.createTime,jdbcType=BIGINT}
+        </if>
+        <if test="'model_source_id'.toString() == column.value">
+          #{item.modelSourceId,jdbcType=VARCHAR}
         </if>
         <if test="'content'.toString() == column.value">
           #{item.content,jdbcType=LONGVARCHAR}

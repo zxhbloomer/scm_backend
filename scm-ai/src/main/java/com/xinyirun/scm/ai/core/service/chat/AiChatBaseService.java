@@ -162,21 +162,22 @@ public class AiChatBaseService {
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public AiConversationContent saveUserConversationContent(String conversationId, String content) {
-        return saveConversationContent(conversationId, content, MessageType.USER.getValue());
+    public AiConversationContent saveUserConversationContent(String conversationId, String content, String modelSourceId) {
+        return saveConversationContent(conversationId, content, MessageType.USER.getValue(), modelSourceId);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public AiConversationContent saveAssistantConversationContent(String conversationId, String content) {
-        return saveConversationContent(conversationId, content, MessageType.ASSISTANT.getValue());
+    public AiConversationContent saveAssistantConversationContent(String conversationId, String content, String modelSourceId) {
+        return saveConversationContent(conversationId, content, MessageType.ASSISTANT.getValue(), modelSourceId);
     }
 
-    private AiConversationContent saveConversationContent(String conversationId, String content, String type) {
+    private AiConversationContent saveConversationContent(String conversationId, String content, String type, String modelSourceId) {
         AiConversationContent aiConversationContent = new AiConversationContent();
         aiConversationContent.setId(generateId());
         aiConversationContent.setConversationId(conversationId);
         aiConversationContent.setContent(content);
         aiConversationContent.setType(type);
+        aiConversationContent.setModelSourceId(modelSourceId);
         aiConversationContent.setCreateTime(System.currentTimeMillis());
         aiConversationContentMapper.insert(aiConversationContent);
         return aiConversationContent;

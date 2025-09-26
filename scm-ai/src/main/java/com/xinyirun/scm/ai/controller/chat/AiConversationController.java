@@ -96,8 +96,9 @@ public class AiConversationController {
                     DataSourceHelper.use(request.getTenantId());
                     ScmMessageChatMemory.setCurrentTenant(request.getTenantId());
                 }
-                // 持久化原始提示词
-                aiConversationService.saveUserConversationContent(request.getConversationId(), request.getPrompt());
+                // 持久化原始提示词（需要获取模型ID）
+                // 注意：这里使用chatModelId作为modelSourceId，与业务逻辑保持一致
+                aiConversationService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), request.getChatModelId());
 
                 // 创建回调流式处理器
                 AiStreamHandler.CallbackStreamHandler streamHandler =
@@ -122,7 +123,7 @@ public class AiConversationController {
                                         try {
                                             // 保存完整回复内容
                                             aiConversationService.saveAssistantConversationContent(
-                                                    request.getConversationId(), response.getContent());
+                                                    request.getConversationId(), response.getContent(), request.getChatModelId());
 
                                             // 记录Token使用情况
                                             if (response.getUsage() != null) {

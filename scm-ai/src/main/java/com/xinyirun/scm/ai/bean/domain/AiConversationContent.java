@@ -1,9 +1,13 @@
 package com.xinyirun.scm.ai.bean.domain;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.xinyirun.scm.ai.validation.groups.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import lombok.Data;
@@ -33,6 +37,10 @@ public class AiConversationContent implements Serializable {
     @Size(min = 1, max = 65535, message = "{ai_conversation_content.content.length_range}", groups = {Created.class, Updated.class})
     private String content;
 
+    @Schema(description = "AI模型源ID")
+    @Size(max = 50, message = "{ai_conversation_content.model_source_id.length_range}")
+    private String modelSourceId;
+
     private static final long serialVersionUID = 1L;
 
     public enum Column {
@@ -40,7 +48,8 @@ public class AiConversationContent implements Serializable {
         conversationId("conversation_id", "conversationId", "VARCHAR", false),
         type("type", "type", "VARCHAR", true),
         createTime("create_time", "createTime", "BIGINT", false),
-        content("content", "content", "LONGVARCHAR", false);
+        content("content", "content", "LONGVARCHAR", false),
+        modelSourceId("model_source_id", "modelSourceId", "VARCHAR", false);
 
         private static final String BEGINNING_DELIMITER = "`";
 

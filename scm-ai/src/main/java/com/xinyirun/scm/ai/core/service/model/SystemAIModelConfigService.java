@@ -18,6 +18,7 @@ import com.xinyirun.scm.ai.core.mapper.chat.AiModelSourceMapper;
 import com.xinyirun.scm.ai.core.mapper.chat.ExtAiModelSourceMapper;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.engine.common.AIModelParamType;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import jakarta.annotation.Resource;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -158,11 +159,19 @@ public class SystemAIModelConfigService {
         List<AdvSettingDTO> advSettingDTOS = getAdvSettingDTOS(advSettingDTOList);
         aiModelSource.setAdvSettings(JSON.toJSONString(advSettingDTOS));
         aiModelSource.setCreateTime(System.currentTimeMillis());
+
+        // 统一使用 SecurityUtil.getStaff_code() 获取当前用户编码
+        String currentUserCode = SecurityUtil.getStaff_code();
+
         if (isAddOperation) {
-            aiModelSource.setCreateUser(userId);
+            // 新增操作：使用当前用户编码
+            aiModelSource.setCreateUser(currentUserCode);
         } else {
-            // 更新操作时，保留原创建人
-            aiModelSource.setCreateUser(aiModelSourceDTO.getCreateUser());
+            // 更新操作：如果DTO中有createUser则使用，否则使用当前用户编码
+            String createUser = StringUtils.isNotBlank(aiModelSourceDTO.getCreateUser())
+                ? aiModelSourceDTO.getCreateUser()
+                : currentUserCode;
+            aiModelSource.setCreateUser(createUser);
         }
 
         aiModelSource.setStatus(aiModelSourceDTO.getStatus() != null && aiModelSourceDTO.getStatus());
