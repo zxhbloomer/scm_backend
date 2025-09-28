@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.config;
 
-import com.xinyirun.scm.ai.bean.domain.AiConversationContent;
-import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
+import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
+import com.xinyirun.scm.ai.service.AiConversationContentService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
@@ -44,7 +44,7 @@ public class ScmMessageChatMemory implements ChatMemory {
 
     @Resource
     @Lazy
-    private AiConversationService aiConversationService;
+    private AiConversationContentService aiConversationContentService;
 
     /**
      * 设置当前租户ID
@@ -92,7 +92,11 @@ public class ScmMessageChatMemory implements ChatMemory {
                 DataSourceHelper.use(tenantId);
             }
             // 获取最近的几条聊天，进行记忆 - 通过Service层调用
-            List<AiConversationContent> contents = aiConversationService.getConversationHistory(conversationId, DEFAULT_MAX_MESSAGES)
+            List<AiConversationContentVo> contents = aiConversationContentService.getByConversationId(conversationId)
+                    .stream()
+                    .sorted((a, b) -> b.getCreate_time().compareTo(a.getCreate_time()))
+                    .limit(DEFAULT_MAX_MESSAGES)
+                    .toList()
                     .reversed();
 
             // 先持久化了提示词，会重复，这里去掉最后一条

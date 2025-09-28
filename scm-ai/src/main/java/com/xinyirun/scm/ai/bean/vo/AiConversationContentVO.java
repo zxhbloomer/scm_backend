@@ -253,12 +253,12 @@ public class AiConversationContentVO implements Serializable {
         /**
          * 输入Token数量
          */
-        private Integer input_tokens;
+        private Integer prompt_tokens;
 
         /**
          * 输出Token数量
          */
-        private Integer output_tokens;
+        private Integer completion_tokens;
 
         /**
          * 处理耗时（毫秒）
@@ -567,8 +567,8 @@ public class AiConversationContentVO implements Serializable {
         if (this.performance_stats == null) {
             this.performance_stats = new PerformanceStats()
                 .setToken_usage(0)
-                .setInput_tokens(0)
-                .setOutput_tokens(0)
+                .setPrompt_tokens(0)
+                .setCompletion_tokens(0)
                 .setProcessing_time(0L)
                 .setRetry_count(0);
         }

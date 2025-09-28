@@ -1,8 +1,8 @@
 package com.xinyirun.scm.ai.controller.chat;
 
-import com.xinyirun.scm.ai.bean.dto.request.AIChatRequest;
-import com.xinyirun.scm.ai.common.util.SessionUtils;
-import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
+import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
+import com.xinyirun.scm.ai.service.AiConversationService;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -35,15 +35,16 @@ public class AiChatStreamController {
      * @param principal 用户主体信息
      */
     @MessageMapping("/ai/chat/stream")
-    public void handleStreamChat(@Validated @Payload AIChatRequest request,
+    public void handleStreamChat(@Validated @Payload AIChatRequestVo request,
                                 SimpMessageHeaderAccessor headerAccessor,
                                 Principal principal) {
         try {
             // 获取WebSocket会话ID
             String sessionId = headerAccessor.getSessionId();
 
-            // 获取用户ID (可以从principal或session中获取)
-            String userId = SessionUtils.getUserId();
+            // 获取用户ID (适配当前系统的SecurityUtil)
+            Long operatorId = SecurityUtil.getStaff_id();
+            String userId = operatorId != null ? operatorId.toString() : null;
 
             log.info("接收到流式聊天请求, sessionId: {}, userId: {}, conversationId: {}",
                     sessionId, userId, request.getConversationId());
@@ -80,4 +81,5 @@ public class AiChatStreamController {
         String sessionId = headerAccessor.getSessionId();
         log.info("WebSocket连接断开, sessionId: {}", sessionId);
     }
+
 }

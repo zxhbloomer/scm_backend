@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.config.scheduler;
 
-import com.xinyirun.scm.ai.core.service.chat.AiConfigService;
-import com.xinyirun.scm.ai.core.service.chat.AiUserQuotaService;
+import com.xinyirun.scm.ai.service.AiConfigService;
+import com.xinyirun.scm.ai.service.AiUserQuotaService;
 import com.xinyirun.scm.ai.common.util.LogUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

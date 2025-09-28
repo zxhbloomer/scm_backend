@@ -50,6 +50,9 @@ Thumbs.db
 # Claude Code configuration
 /.claude
 
+# Specs directory
+specs/
+
 
 
 
