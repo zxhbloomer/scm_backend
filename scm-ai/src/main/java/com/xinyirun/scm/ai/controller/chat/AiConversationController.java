@@ -6,7 +6,7 @@ import com.xinyirun.scm.ai.adapter.AiStreamHandler;
 import com.xinyirun.scm.ai.bean.domain.AiConversation;
 import com.xinyirun.scm.ai.bean.domain.AiConversationContent;
 import com.xinyirun.scm.ai.bean.dto.request.AIChatRequest;
-import com.xinyirun.scm.ai.bean.dto.request.AIConversationUpdateRequest;
+import com.xinyirun.scm.ai.bean.dto.request.AiConversationUpdateRequest;
 import com.xinyirun.scm.ai.bean.dto.response.ChatResponse;
 import com.xinyirun.scm.ai.common.util.SessionUtils;
 import com.xinyirun.scm.ai.config.ScmMessageChatMemory;
@@ -57,7 +57,7 @@ public class AiConversationController {
 
     @PostMapping(value = "/update")
     @Operation(summary = "修改对话标题")
-    public AiConversation add(@Validated @RequestBody AIConversationUpdateRequest request) {
+    public AiConversation add(@Validated @RequestBody AiConversationUpdateRequest request) {
         return aiConversationService.update(request, SessionUtils.getUserId());
     }
 

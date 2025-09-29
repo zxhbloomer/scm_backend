@@ -7,7 +7,7 @@ import lombok.Data;
 import java.io.Serializable;
 
 @Data
-public class AIConversationUpdateRequest implements Serializable {
+public class AiConversationUpdateRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 

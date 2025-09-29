@@ -10,7 +10,7 @@ import com.xinyirun.scm.ai.bean.domain.AiConversationExample;
 import com.xinyirun.scm.ai.bean.domain.AiPrompt;
 import com.xinyirun.scm.ai.bean.dto.request.AIChatRequest;
 import com.xinyirun.scm.ai.bean.dto.request.AIChatOption;
-import com.xinyirun.scm.ai.bean.dto.request.AIConversationUpdateRequest;
+import com.xinyirun.scm.ai.bean.dto.request.AiConversationUpdateRequest;
 import com.xinyirun.scm.ai.common.exception.MSException;
 import com.xinyirun.scm.ai.common.util.BeanUtils;
 import com.xinyirun.scm.ai.common.util.LogUtils;
@@ -418,7 +418,7 @@ public class AiConversationService {
         return aiConversationContentMapper.selectByExampleWithBLOBs(example);
     }
 
-    public AiConversation update(AIConversationUpdateRequest request, String userId) {
+    public AiConversation update(AiConversationUpdateRequest request, String userId) {
         AiConversation aiConversation = BeanUtils.copyBean(new AiConversation(), request);
         aiConversationMapper.updateByPrimaryKeySelective(aiConversation);
         return aiConversationMapper.selectByPrimaryKey(request.getId());
