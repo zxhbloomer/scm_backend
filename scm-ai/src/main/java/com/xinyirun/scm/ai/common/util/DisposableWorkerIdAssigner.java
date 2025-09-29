@@ -1,9 +1,10 @@
 package com.xinyirun.scm.ai.common.util;
 
-import com.xinyirun.scm.ai.bean.domain.WorkerNode;
-import com.xinyirun.scm.ai.core.mapper.chat.BaseWorkerNodeMapper;
+import com.xinyirun.scm.ai.bean.entity.worker.WorkerNodeEntity;
+import com.xinyirun.scm.ai.mapper.worker.WorkerNodeMapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.RandomUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -11,9 +12,10 @@ import org.springframework.stereotype.Service;
  * the worker id will be discarded after assigned to the UidGenerator
  */
 @Service
+@Slf4j
 public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
     @Resource
-    private BaseWorkerNodeMapper workerNodeMapper;
+    private WorkerNodeMapper workerNodeMapper;
 
     /**
      * Assign worker id base on database.<p>
@@ -25,15 +27,15 @@ public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
     public long assignWorkerId() {
         // build worker node entity
         try {
-            WorkerNode workerNode = buildWorkerNode();
+            WorkerNodeEntity workerNode = buildWorkerNode();
 
             // add worker node for new (ignore the same IP + PORT)
             workerNodeMapper.insert(workerNode);
-            LogUtils.info("Add worker node:" + workerNode);
+            log.info("Add worker node:" + workerNode);
 
             return workerNode.getId();
         } catch (Exception e) {
-            LogUtils.error("Assign worker id exception. ", e);
+            log.error("Assign worker id exception. ", e);
             return 1;
         }
     }
@@ -41,21 +43,22 @@ public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
     /**
      * Build worker node entity by IP and PORT
      */
-    private WorkerNode buildWorkerNode() {
-        WorkerNode workerNode = new WorkerNode();
+    private WorkerNodeEntity buildWorkerNode() {
+        WorkerNodeEntity workerNode = new WorkerNodeEntity();
         if (DockerUtils.isDocker()) {
             workerNode.setType(WorkerNodeType.CONTAINER.value());
-            workerNode.setHostName(DockerUtils.getDockerHost());
+            workerNode.setHost_name(DockerUtils.getDockerHost());
             workerNode.setPort(DockerUtils.getDockerPort());
 
         } else {
             workerNode.setType(WorkerNodeType.ACTUAL.value());
-            workerNode.setHostName(NetUtils.getLocalAddress());
+            workerNode.setHost_name(NetUtils.getLocalAddress());
             workerNode.setPort(System.currentTimeMillis() + "-" + RandomUtils.nextInt());
         }
-        workerNode.setCreated(System.currentTimeMillis());
-        workerNode.setModified(System.currentTimeMillis());
-        workerNode.setLaunchDate(System.currentTimeMillis());
+        // 使用新的字段名
+        Long currentTime = System.currentTimeMillis();
+        workerNode.setLaunch_date(currentTime);
+        // c_time和u_time会由MyBatis Plus自动填充
         return workerNode;
     }
 

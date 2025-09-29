@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.adapter;
 
 import com.alibaba.fastjson2.JSONObject;
-import com.xinyirun.scm.ai.bean.domain.AiConversationContent;
+import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
 import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.config.AiConfiguration;
@@ -109,7 +109,7 @@ public class AiEngineAdapter {
      * @param modelName 模型名称
      * @return AI请求参数
      */
-    public AiRequest buildRequest(String message, List<AiConversationContent> conversationHistory,
+    public AiRequest buildRequest(String message, List<AiConversationContentEntity> conversationHistory,
                                   String modelProvider, String modelName) {
         AiRequest request = new AiRequest();
 
@@ -157,7 +157,7 @@ public class AiEngineAdapter {
     /**
      * 构建会话上下文
      */
-    private String buildConversationContext(List<AiConversationContent> conversationHistory) {
+    private String buildConversationContext(List<AiConversationContentEntity> conversationHistory) {
         StringBuilder context = new StringBuilder();
 
         // 限制上下文长度，只取最近的消息
@@ -165,7 +165,7 @@ public class AiEngineAdapter {
         int currentLength = 0;
 
         for (int i = conversationHistory.size() - 1; i >= 0; i--) {
-            AiConversationContent content = conversationHistory.get(i);
+            AiConversationContentEntity content = conversationHistory.get(i);
             String messageText = content.getContent();
 
             if (currentLength + messageText.length() > maxContextLength) {
@@ -256,7 +256,7 @@ public class AiEngineAdapter {
         /**
          * 会话ID（用于日志记录）
          */
-        private Long conversationId;
+        private String conversationId;
     }
 
     /**

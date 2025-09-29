@@ -1,34 +1,41 @@
 package com.xinyirun.scm.ai.controller.chat;
 
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.xinyirun.scm.ai.adapter.AiEngineAdapter;
 import com.xinyirun.scm.ai.adapter.AiStreamHandler;
-import com.xinyirun.scm.ai.bean.domain.AiConversation;
-import com.xinyirun.scm.ai.bean.domain.AiConversationContent;
-import com.xinyirun.scm.ai.bean.dto.request.AIChatRequest;
-import com.xinyirun.scm.ai.bean.dto.request.AiConversationUpdateRequest;
-import com.xinyirun.scm.ai.bean.dto.response.ChatResponse;
-import com.xinyirun.scm.ai.common.util.SessionUtils;
+import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
+import com.xinyirun.scm.ai.bean.vo.chat.AiConversationVo;
+import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
+import com.xinyirun.scm.ai.bean.vo.request.AIConversationUpdateRequestVo;
+import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.config.ScmMessageChatMemory;
-import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
+import com.xinyirun.scm.ai.service.AiConversationContentService;
+import com.xinyirun.scm.ai.service.AiConversationService;
+import com.xinyirun.scm.ai.service.AiTokenUsageService;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
 /**
- * @Author: jianxing
- * @CreateTime: 2025-05-28  13:44
+ * AI对话控制器
+ *
+ * 提供AI对话管理功能的REST API接口，包括对话的创建、查询、更新等操作
+ *
+ * @author SCM-AI重构团队
+ * @since 2025-09-28
  */
+@Slf4j
 @Tag(name = "AI对话")
 @RestController
 @RequestMapping(value = "/api/v1/ai/conversation")
@@ -37,65 +44,130 @@ public class AiConversationController {
     @Resource
     private AiConversationService aiConversationService;
 
+    @Resource
+    private AiConversationContentService aiConversationContentService;
+
+    @Resource
+    private AiTokenUsageService aiTokenUsageService;
+
+    /**
+     * 获取用户对话列表
+     */
     @GetMapping(value = "/list")
     @Operation(summary = "对话列表")
-    public List<AiConversation> list() {
-        return aiConversationService.list(SessionUtils.getUserId());
+    @SysLogAnnotion("获取对话列表")
+    public ResponseEntity<List<AiConversationVo>> list() {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        List<AiConversationVo> result = aiConversationService.list(userId);
+        return ResponseEntity.ok(result);
     }
 
+    /**
+     * 获取对话内容列表
+     */
     @GetMapping(value = "/chat/list/{conversationId}")
     @Operation(summary = "对话内容列表")
-    public List<AiConversationContent> chatList(@PathVariable String conversationId) {
-        return aiConversationService.chatList(conversationId, SessionUtils.getUserId());
+    @SysLogAnnotion("获取对话内容")
+    public ResponseEntity<List<AiConversationContentVo>> chatList(@PathVariable String conversationId) {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        List<AiConversationContentVo> result = aiConversationService.chatList(conversationId, userId);
+        return ResponseEntity.ok(result);
     }
 
+    /**
+     * 创建新对话
+     */
     @PostMapping(value = "/add")
     @Operation(summary = "添加对话")
-    public AiConversation add(@Validated @RequestBody AIChatRequest request) {
-        return aiConversationService.add(request, SessionUtils.getUserId());
+    @SysLogAnnotion("创建新对话")
+    public ResponseEntity<AiConversationVo> add(@Validated @RequestBody AIChatRequestVo request) {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        AiConversationVo result = aiConversationService.add(request, userId);
+        return ResponseEntity.ok(result);
     }
 
+    /**
+     * 更新对话信息
+     */
     @PostMapping(value = "/update")
     @Operation(summary = "修改对话标题")
-    public AiConversation add(@Validated @RequestBody AiConversationUpdateRequest request) {
-        return aiConversationService.update(request, SessionUtils.getUserId());
+    @SysLogAnnotion("修改对话标题")
+    public ResponseEntity<AiConversationVo> update(@Validated @RequestBody AIConversationUpdateRequestVo request) {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        AiConversationVo result = aiConversationService.update(request, userId);
+        return ResponseEntity.ok(result);
     }
 
-//    @PostMapping(value = "/chat")
-//    @Operation(summary = "聊天")
-//    public String chat(@Validated @RequestBody AIChatRequest request) {
-//        return aiConversationService.chat(request, SessionUtils.getUserId());
-//    }
-
+    /**
+     * 删除对话
+     */
     @DeleteMapping(value = "/delete/{conversationId}")
     @Operation(summary = "删除对话")
-    public void delete(@PathVariable String conversationId) {
-        aiConversationService.delete(conversationId, SessionUtils.getUserId());
+    @SysLogAnnotion("删除对话")
+    public ResponseEntity<Void> delete(@PathVariable String conversationId) {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        aiConversationService.delete(conversationId, userId);
+        return ResponseEntity.ok().build();
     }
 
+    /**
+     * 清空对话内容
+     */
     @PostMapping(value = "/clear/{conversationId}")
     @Operation(summary = "清空对话内容")
-    public void clearConversationContent(@PathVariable String conversationId) {
-        aiConversationService.clearConversationContent(conversationId, SessionUtils.getUserId());
+    @SysLogAnnotion("清空对话内容")
+    public ResponseEntity<Void> clearConversationContent(@PathVariable String conversationId) {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        aiConversationService.clearConversationContent(conversationId, userId);
+        return ResponseEntity.ok().build();
     }
 
+    /**
+     * 结束对话
+     */
+    @PostMapping(value = "/end/{conversationId}")
+    @Operation(summary = "结束对话")
+    @SysLogAnnotion("结束对话")
+    public ResponseEntity<Void> endConversation(@PathVariable String conversationId) {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
+
+        aiConversationService.endConversation(conversationId, userId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * AI流式聊天
+     */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式聊天 (Spring AI标准)")
-    public Flux<ChatResponse> chatStream(@Validated @RequestBody AIChatRequest request) {
-        // 创建Reactor Sink用于发送数据
-        Sinks.Many<ChatResponse> sink = Sinks.many().multicast().onBackpressureBuffer();
-
+    @SysLogAnnotion("AI流式聊天")
+    public Flux<ChatResponseVo> chatStream(@Validated @RequestBody AIChatRequestVo request) {
         // 获取用户ID
-        String userId = SessionUtils.getUserId();
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : "system";
 
         // 在后台线程异步处理
-        Flux<ChatResponse> responseFlux = Flux.<ChatResponse>create(fluxSink -> {
+        Flux<ChatResponseVo> responseFlux = Flux.<ChatResponseVo>create(fluxSink -> {
             try {
                 // 设置多租户数据源和ThreadLocal
                 if (request.getTenantId() != null && !request.getTenantId().isEmpty()) {
                     DataSourceHelper.use(request.getTenantId());
                     ScmMessageChatMemory.setCurrentTenant(request.getTenantId());
                 }
+                log.debug("租户数据库：{}", request.getTenantId());
                 // 持久化原始提示词（需要获取模型ID）
                 // 注意：这里使用chatModelId作为modelSourceId，与业务逻辑保持一致
                 aiConversationService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), request.getChatModelId());
@@ -107,14 +179,14 @@ public class AiConversationController {
                                     @Override
                                     public void onStreamStart() {
                                         // 发送开始响应 - 空内容块
-                                        ChatResponse startResponse = ChatResponse.createContentChunk("");
+                                        ChatResponseVo startResponse = ChatResponseVo.createContentChunk("");
                                         fluxSink.next(startResponse);
                                     }
 
                                     @Override
                                     public void onStreamContent(String content) {
                                         // 发送内容块
-                                        ChatResponse contentResponse = ChatResponse.createContentChunk(content);
+                                        ChatResponseVo contentResponse = ChatResponseVo.createContentChunk(content);
                                         fluxSink.next(contentResponse);
                                     }
 
@@ -128,13 +200,11 @@ public class AiConversationController {
                                             // 记录Token使用情况
                                             if (response.getUsage() != null) {
                                                 // 通过conversationId获取conversation对象以获取tenant
-                                                AiConversation conversation = aiConversationService.getConversation(request.getConversationId());
-                                                String tenant = conversation != null ? conversation.getTenant() : null;
+                                                AiConversationVo conversation = aiConversationService.getConversation(request.getConversationId());
 
                                                 aiConversationService.recordTokenUsageFromSpringAI(
                                                         request.getConversationId(),
                                                         userId,
-                                                        tenant,  // 从ai_conversation表中获取的tenant
                                                         "OpenAI",  // 根据实际AI提供商
                                                         request.getChatModelId(),
                                                         response.getUsage().getPromptTokens() != null ? response.getUsage().getPromptTokens().longValue() : 0L,
@@ -143,7 +213,7 @@ public class AiConversationController {
                                             }
 
                                             // 发送完成响应
-                                            ChatResponse completeResponse = ChatResponse.createCompleteResponse(
+                                            ChatResponseVo completeResponse = ChatResponseVo.createCompleteResponse(
                                                     response.getContent(), request.getChatModelId());
                                             fluxSink.next(completeResponse);
                                             fluxSink.complete();

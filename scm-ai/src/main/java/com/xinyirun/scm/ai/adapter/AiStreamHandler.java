@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.adapter;
 
 import com.xinyirun.scm.ai.common.util.CommonBeanFactory;
-import com.xinyirun.scm.ai.common.util.LogUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.HashMap;
@@ -108,6 +108,7 @@ public interface AiStreamHandler {
     /**
      * WebSocket流式处理器实现
      */
+    @Slf4j
     class WebSocketStreamHandler implements AiStreamHandler {
 
         private final String sessionId;
@@ -121,7 +122,7 @@ public interface AiStreamHandler {
                 this.simpMessagingTemplate = CommonBeanFactory.getBean(SimpMessagingTemplate.class);
             } catch (Exception e) {
                 // 如果获取失败，记录日志但不抛出异常
-                LogUtils.error("Failed to get SimpMessagingTemplate: " + e.getMessage());
+                log.error("Failed to get SimpMessagingTemplate: " + e.getMessage());
             }
         }
 
@@ -171,7 +172,7 @@ public interface AiStreamHandler {
                         message
                     );
                 } catch (Exception e) {
-                    LogUtils.error("Failed to send WebSocket message: " + e.getMessage());
+                    log.error("Failed to send WebSocket message: " + e.getMessage());
                 }
             }
         }

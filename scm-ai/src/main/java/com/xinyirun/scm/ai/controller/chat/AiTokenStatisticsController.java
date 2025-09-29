@@ -1,27 +1,41 @@
 package com.xinyirun.scm.ai.controller.chat;
 
-import com.baomidou.dynamic.datasource.annotation.DS;
-import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
-import com.xinyirun.scm.ai.core.service.chat.AiUserQuotaService;
-import com.xinyirun.scm.ai.core.service.chat.AiConfigService;
-import com.xinyirun.scm.ai.common.util.SessionUtils;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.xinyirun.scm.ai.bean.vo.statistics.AiTokenStatisticsVo;
+import com.xinyirun.scm.ai.bean.vo.statistics.AiTokenUsageVo;
+import com.xinyirun.scm.ai.bean.vo.statistics.AiUserQuotaVo;
+import com.xinyirun.scm.ai.service.AiTokenStatisticsService;
+import com.xinyirun.scm.ai.service.AiTokenUsageService;
+import com.xinyirun.scm.ai.service.AiUserQuotaService;
+import com.xinyirun.scm.ai.service.AiConfigService;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * AI Token统计控制器
  * 提供Token使用统计、配额查询和管理功能的REST API接口
  *
- * @author zxh
- * @createTime 2025-09-25
+ * @author SCM-AI重构团队
+ * @since 2025-09-28
  */
 @Tag(name = "AI Token统计")
 @RestController
 @RequestMapping(value = "/api/v1/ai/statistics")
 public class AiTokenStatisticsController {
+
+    @Resource
+    private AiTokenStatisticsService aiTokenStatisticsService;
 
     @Resource
     private AiTokenUsageService aiTokenUsageService;
@@ -37,10 +51,14 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/quota")
     @Operation(summary = "获取用户Token配额")
-    public AiUserQuotaService.UserQuotaInfo getUserQuota() {
-        String userId = SessionUtils.getUserId();
+    @SysLogAnnotion("获取Token配额")
+    public ResponseEntity<AiUserQuotaVo> getUserQuota() {
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId != null ? operatorId.toString() : null;
         String tenant = getCurrentTenant();
-        return aiUserQuotaService.getUserQuotaInfo(userId, tenant);
+
+        AiUserQuotaVo result = aiUserQuotaService.getByUserId(userId);
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -48,162 +66,210 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/quota/{userId}")
     @Operation(summary = "获取指定用户Token配额")
-    public AiUserQuotaService.UserQuotaInfo getUserQuota(
+    @SysLogAnnotion("查询用户配额")
+    public ResponseEntity<AiUserQuotaVo> getUserQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId) {
         String tenant = getCurrentTenant();
-        return aiUserQuotaService.getUserQuotaInfo(userId, tenant);
+
+        AiUserQuotaVo result = aiUserQuotaService.getByUserId(userId);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 设置用户Token配额
+     * 创建用户Token配额
      */
     @PostMapping(value = "/quota/{userId}")
-    @Operation(summary = "设置用户Token配额")
-    public void setUserQuota(
+    @Operation(summary = "创建用户Token配额")
+    @SysLogAnnotion("创建用户配额")
+    public ResponseEntity<AiUserQuotaVo> createUserQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId,
-            @Parameter(description = "日限额")
-            @RequestParam(required = false) Long dailyLimit,
-            @Parameter(description = "月限额")
-            @RequestParam(required = false) Long monthlyLimit) {
+            @Parameter(description = "总配额")
+            @RequestParam Long totalQuota) {
 
+        Long operatorId = SecurityUtil.getStaff_id();
         String tenant = getCurrentTenant();
 
-        // 如果没有提供限额，使用默认值
-        if (dailyLimit == null) {
-            dailyLimit = aiConfigService.getDefaultDailyTokenLimit();
-        }
-        if (monthlyLimit == null) {
-            monthlyLimit = aiConfigService.getDefaultMonthlyTokenLimit();
-        }
+        AiUserQuotaVo quotaVo = new AiUserQuotaVo();
+        quotaVo.setUser_id(userId);
+        quotaVo.setTotal_quota(totalQuota);
 
-        aiUserQuotaService.setUserQuota(userId, tenant, dailyLimit, monthlyLimit);
+        AiUserQuotaVo result = aiUserQuotaService.createQuota(quotaVo, operatorId);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 重置用户日配额
+     * 重置用户配额
      */
-    @PostMapping(value = "/quota/{userId}/reset-daily")
-    @Operation(summary = "重置用户日配额")
-    public void resetUserDailyQuota(
+    @PostMapping(value = "/quota/{userId}/reset")
+    @Operation(summary = "重置用户配额")
+    @SysLogAnnotion("重置用户配额")
+    public ResponseEntity<Boolean> resetUserQuota(
             @Parameter(description = "用户ID", required = true)
-            @PathVariable String userId) {
+            @PathVariable String userId,
+            @Parameter(description = "新配额")
+            @RequestParam Long newQuota) {
+
+        Long operatorId = SecurityUtil.getStaff_id();
         String tenant = getCurrentTenant();
-        aiUserQuotaService.resetUserDailyQuota(userId, tenant);
+
+        boolean result = aiUserQuotaService.resetQuota(userId, newQuota, tenant, operatorId);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 重置用户月配额
+     * 检查用户配额是否充足
      */
-    @PostMapping(value = "/quota/{userId}/reset-monthly")
-    @Operation(summary = "重置用户月配额")
-    public void resetUserMonthlyQuota(
-            @Parameter(description = "用户ID", required = true)
-            @PathVariable String userId) {
-        String tenant = getCurrentTenant();
-        aiUserQuotaService.resetUserMonthlyQuota(userId, tenant);
-    }
-
-    /**
-     * 获取当前用户的Token使用统计
-     */
-    @GetMapping(value = "/usage")
-    @Operation(summary = "获取用户Token使用统计")
-    public AiTokenUsageService.UserTokenUsageSummary getUserTokenUsage() {
-        String userId = SessionUtils.getUserId();
-        String tenant = getCurrentTenant();
-        return aiTokenUsageService.getUserTokenUsage(userId, tenant);
-    }
-
-    /**
-     * 获取指定用户的Token使用统计
-     */
-    @GetMapping(value = "/usage/{userId}")
-    @Operation(summary = "获取指定用户Token使用统计")
-    public AiTokenUsageService.UserTokenUsageSummary getUserTokenUsage(
-            @Parameter(description = "用户ID", required = true)
-            @PathVariable String userId) {
-        String tenant = getCurrentTenant();
-        return aiTokenUsageService.getUserTokenUsage(userId, tenant);
-    }
-
-    /**
-     * 获取对话的Token使用统计
-     */
-    @GetMapping(value = "/conversation/{conversationId}")
-    @Operation(summary = "获取对话Token使用统计")
-    public AiTokenUsageService.TokenUsageSummary getConversationTokenUsage(
-            @Parameter(description = "对话ID", required = true)
-            @PathVariable String conversationId) {
-        return aiTokenUsageService.getConversationTokenUsage(conversationId);
-    }
-
-    /**
-     * 检查用户配额是否足够
-     */
-    @GetMapping(value = "/quota/check")
+    @GetMapping(value = "/quota/{userId}/check")
     @Operation(summary = "检查用户配额")
-    public QuotaCheckResult checkUserQuota(
+    @SysLogAnnotion("检查配额充足")
+    public ResponseEntity<Boolean> checkUserQuota(
+            @Parameter(description = "用户ID", required = true)
+            @PathVariable String userId,
             @Parameter(description = "预估Token数")
             @RequestParam(defaultValue = "1000") Long estimatedTokens) {
-        String userId = SessionUtils.getUserId();
+
+        String tenant = getCurrentTenant();
+        boolean result = aiUserQuotaService.checkQuotaSufficient(userId, estimatedTokens, tenant);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 获取Token使用记录
+     */
+    @GetMapping(value = "/usage")
+    @Operation(summary = "获取Token使用记录")
+    @SysLogAnnotion("获取使用记录")
+    public ResponseEntity<IPage<AiTokenUsageVo>> getTokenUsage(
+            @Parameter(description = "用户ID") @RequestParam(required = false) String userId,
+            @Parameter(description = "开始时间") @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @Parameter(description = "结束时间") @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "20") int pageSize) {
+
         String tenant = getCurrentTenant();
 
-        boolean hasEnoughQuota = aiUserQuotaService.checkUserQuota(userId, tenant, estimatedTokens);
-        AiUserQuotaService.UserQuotaInfo quotaInfo = aiUserQuotaService.getUserQuotaInfo(userId, tenant);
+        // 如果没有指定用户ID，使用当前用户
+        if (userId == null) {
+            Long operatorId = SecurityUtil.getStaff_id();
+            userId = operatorId != null ? operatorId.toString() : null;
+        }
 
-        QuotaCheckResult result = new QuotaCheckResult();
-        result.setHasEnoughQuota(hasEnoughQuota);
-        result.setDailyUsed(quotaInfo.getDailyUsed());
-        result.setDailyLimit(quotaInfo.getDailyLimit());
-        result.setMonthlyUsed(quotaInfo.getMonthlyUsed());
-        result.setMonthlyLimit(quotaInfo.getMonthlyLimit());
-        result.setDailyUsagePercent(quotaInfo.getDailyUsagePercent());
-        result.setMonthlyUsagePercent(quotaInfo.getMonthlyUsagePercent());
-
-        return result;
+        IPage<AiTokenUsageVo> result = aiTokenUsageService.getByUserAndTimeRange(
+                userId, startTime, endTime, tenant, pageNum, pageSize);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 获取Token统计配置
+     * 获取对话Token使用记录
      */
-    @GetMapping(value = "/config")
-    @Operation(summary = "获取Token统计配置")
-    public TokenStatisticsConfig getTokenStatisticsConfig() {
-        TokenStatisticsConfig config = new TokenStatisticsConfig();
-        config.setTokenStatisticsEnabled(aiConfigService.isTokenStatisticsEnabled());
-        config.setTokenQuotaCheckEnabled(aiConfigService.isTokenQuotaCheckEnabled());
-        config.setDefaultDailyLimit(aiConfigService.getDefaultDailyTokenLimit());
-        config.setDefaultMonthlyLimit(aiConfigService.getDefaultMonthlyTokenLimit());
-        return config;
+    @GetMapping(value = "/usage/conversation/{conversationId}")
+    @Operation(summary = "获取对话Token使用记录")
+    @SysLogAnnotion("获取对话使用记录")
+    public ResponseEntity<IPage<AiTokenUsageVo>> getConversationTokenUsage(
+            @Parameter(description = "对话ID", required = true)
+            @PathVariable Integer conversationId,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "20") int pageSize) {
+
+        IPage<AiTokenUsageVo> result = aiTokenUsageService.getByConversationId(conversationId, pageNum, pageSize);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 清理配置缓存
+     * 获取用户每日统计数据
      */
-    @PostMapping(value = "/config/clear-cache")
-    @Operation(summary = "清理配置缓存")
-    public void clearConfigCache() {
-        aiConfigService.clearConfigCache();
+    @GetMapping(value = "/daily/{userId}")
+    @Operation(summary = "获取用户每日统计")
+    @SysLogAnnotion("获取每日统计")
+    public ResponseEntity<List<Map<String, Object>>> getUserDailyStatistics(
+            @Parameter(description = "用户ID", required = true)
+            @PathVariable String userId,
+            @Parameter(description = "开始日期") @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "结束日期") @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
+
+        String tenant = getCurrentTenant();
+        List<Map<String, Object>> result = aiTokenStatisticsService.getUserDailyStatistics(
+                userId, startDate, endDate, tenant);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 批量重置所有用户的日配额（管理员功能）
+     * 获取模型使用排行榜
      */
-    @PostMapping(value = "/admin/reset-all-daily-quota")
-    @Operation(summary = "批量重置所有用户日配额")
-    public void resetAllUsersDailyQuota() {
-        aiUserQuotaService.resetAllUsersDailyQuota();
+    @GetMapping(value = "/ranking/models")
+    @Operation(summary = "获取模型使用排行榜")
+    @SysLogAnnotion("获取模型排行")
+    public ResponseEntity<List<Map<String, Object>>> getModelRanking(
+            @Parameter(description = "开始日期") @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "结束日期") @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @Parameter(description = "返回数量") @RequestParam(defaultValue = "10") Integer limit) {
+
+        String tenant = getCurrentTenant();
+        List<Map<String, Object>> result = aiTokenStatisticsService.getModelRanking(
+                startDate, endDate, tenant, limit);
+        return ResponseEntity.ok(result);
     }
 
     /**
-     * 批量重置所有用户的月配额（管理员功能）
+     * 获取用户使用排行榜
      */
-    @PostMapping(value = "/admin/reset-all-monthly-quota")
-    @Operation(summary = "批量重置所有用户月配额")
-    public void resetAllUsersMonthlyQuota() {
-        aiUserQuotaService.resetAllUsersMonthlyQuota();
+    @GetMapping(value = "/ranking/users")
+    @Operation(summary = "获取用户使用排行榜")
+    @SysLogAnnotion("获取用户排行")
+    public ResponseEntity<List<Map<String, Object>>> getUserRanking(
+            @Parameter(description = "开始日期") @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @Parameter(description = "结束日期") @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @Parameter(description = "返回数量") @RequestParam(defaultValue = "10") Integer limit) {
+
+        String tenant = getCurrentTenant();
+        List<Map<String, Object>> result = aiTokenStatisticsService.getUserRanking(
+                startDate, endDate, tenant, limit);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 获取配额即将用尽的用户
+     */
+    @GetMapping(value = "/quota/warning")
+    @Operation(summary = "获取配额预警用户")
+    @SysLogAnnotion("获取配额预警")
+    public ResponseEntity<IPage<AiUserQuotaVo>> getQuotaWarningUsers(
+            @Parameter(description = "阈值百分比") @RequestParam(defaultValue = "0.8") Double threshold,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
+            @Parameter(description = "页大小") @RequestParam(defaultValue = "20") int pageSize) {
+
+        String tenant = getCurrentTenant();
+        IPage<AiUserQuotaVo> result = aiUserQuotaService.getUsersNearQuotaLimit(threshold, tenant, pageNum, pageSize);
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 消费用户配额
+     */
+    @PostMapping(value = "/quota/{userId}/consume")
+    @Operation(summary = "消费用户配额")
+    @SysLogAnnotion("消费用户配额")
+    public ResponseEntity<Boolean> consumeQuota(
+            @Parameter(description = "用户ID", required = true)
+            @PathVariable String userId,
+            @Parameter(description = "消费Token数量")
+            @RequestParam Long consumeTokens) {
+
+        Long operatorId = SecurityUtil.getStaff_id();
+        String tenant = getCurrentTenant();
+
+        boolean result = aiUserQuotaService.consumeQuota(userId, consumeTokens, tenant, operatorId);
+        return ResponseEntity.ok(result);
     }
 
     /**
@@ -213,55 +279,6 @@ public class AiTokenStatisticsController {
     private String getCurrentTenant() {
         // 这里需要根据实际的租户获取逻辑来实现
         // 可能从ThreadLocal、Session、请求头等获取
-        return null;
-    }
-
-    /**
-     * 配额检查结果
-     */
-    public static class QuotaCheckResult {
-        private Boolean hasEnoughQuota;
-        private Long dailyUsed;
-        private Long dailyLimit;
-        private Long monthlyUsed;
-        private Long monthlyLimit;
-        private Double dailyUsagePercent;
-        private Double monthlyUsagePercent;
-
-        // Getters and Setters
-        public Boolean getHasEnoughQuota() { return hasEnoughQuota; }
-        public void setHasEnoughQuota(Boolean hasEnoughQuota) { this.hasEnoughQuota = hasEnoughQuota; }
-        public Long getDailyUsed() { return dailyUsed; }
-        public void setDailyUsed(Long dailyUsed) { this.dailyUsed = dailyUsed; }
-        public Long getDailyLimit() { return dailyLimit; }
-        public void setDailyLimit(Long dailyLimit) { this.dailyLimit = dailyLimit; }
-        public Long getMonthlyUsed() { return monthlyUsed; }
-        public void setMonthlyUsed(Long monthlyUsed) { this.monthlyUsed = monthlyUsed; }
-        public Long getMonthlyLimit() { return monthlyLimit; }
-        public void setMonthlyLimit(Long monthlyLimit) { this.monthlyLimit = monthlyLimit; }
-        public Double getDailyUsagePercent() { return dailyUsagePercent; }
-        public void setDailyUsagePercent(Double dailyUsagePercent) { this.dailyUsagePercent = dailyUsagePercent; }
-        public Double getMonthlyUsagePercent() { return monthlyUsagePercent; }
-        public void setMonthlyUsagePercent(Double monthlyUsagePercent) { this.monthlyUsagePercent = monthlyUsagePercent; }
-    }
-
-    /**
-     * Token统计配置信息
-     */
-    public static class TokenStatisticsConfig {
-        private Boolean tokenStatisticsEnabled;
-        private Boolean tokenQuotaCheckEnabled;
-        private Long defaultDailyLimit;
-        private Long defaultMonthlyLimit;
-
-        // Getters and Setters
-        public Boolean getTokenStatisticsEnabled() { return tokenStatisticsEnabled; }
-        public void setTokenStatisticsEnabled(Boolean tokenStatisticsEnabled) { this.tokenStatisticsEnabled = tokenStatisticsEnabled; }
-        public Boolean getTokenQuotaCheckEnabled() { return tokenQuotaCheckEnabled; }
-        public void setTokenQuotaCheckEnabled(Boolean tokenQuotaCheckEnabled) { this.tokenQuotaCheckEnabled = tokenQuotaCheckEnabled; }
-        public Long getDefaultDailyLimit() { return defaultDailyLimit; }
-        public void setDefaultDailyLimit(Long defaultDailyLimit) { this.defaultDailyLimit = defaultDailyLimit; }
-        public Long getDefaultMonthlyLimit() { return defaultMonthlyLimit; }
-        public void setDefaultMonthlyLimit(Long defaultMonthlyLimit) { this.defaultMonthlyLimit = defaultMonthlyLimit; }
+        return "default";
     }
 }

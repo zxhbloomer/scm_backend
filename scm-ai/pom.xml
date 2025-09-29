@@ -152,6 +152,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- H2 内存数据库用于测试 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>cn.bigmodel.openapi</groupId>
             <artifactId>oapi-java-sdk</artifactId>
