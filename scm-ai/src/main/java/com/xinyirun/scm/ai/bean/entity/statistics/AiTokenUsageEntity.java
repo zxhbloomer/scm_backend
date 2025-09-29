@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 public class AiTokenUsageEntity implements Serializable {
 
     @Serial
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = -3503317847400235662L;
 
     @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
@@ -54,9 +54,6 @@ public class AiTokenUsageEntity implements Serializable {
     @DataChangeLabelAnnotation("使用时间")
     private LocalDateTime usage_time;
 
-    @TableField("tenant")
-    @DataChangeLabelAnnotation("租户")
-    private String tenant;
 
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")

@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Component
+@Slf4j
 public class CommonBeanFactory implements ApplicationContextAware {
     private static ApplicationContext context;
 
@@ -48,7 +50,7 @@ public class CommonBeanFactory implements ApplicationContextAware {
                 return methodFunction.apply(clazz).invoke(bean, args);
             }
         } catch (Exception e) {
-            LogUtils.error(e);
+            log.error(e.getMessage());
         }
         return null;
     }

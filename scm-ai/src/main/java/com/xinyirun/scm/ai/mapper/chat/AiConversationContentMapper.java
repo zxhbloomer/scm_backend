@@ -20,10 +20,10 @@ public interface AiConversationContentMapper extends BaseMapper<AiConversationCo
      * 批量插入会话内容记录
      */
     @Insert("<script>" +
-            "INSERT INTO ai_conversation_content (id, conversation_id, type, create_time, content, model_source_id) " +
+            "INSERT INTO ai_conversation_content (id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id) " +
             "VALUES " +
             "<foreach collection='list' item='item' separator=','>" +
-            "(#{item.id}, #{item.conversationId}, #{item.type}, #{item.createTime}, #{item.content}, #{item.modelSourceId})" +
+            "(#{item.id}, #{item.conversation_id}, #{item.type}, #{item.c_time}, #{item.u_time}, #{item.c_id}, #{item.u_id}, #{item.dbversion}, #{item.content}, #{item.model_source_id})" +
             "</foreach>" +
             "</script>")
     int batchInsert(@Param("list") List<AiConversationContentEntity> list);
@@ -31,38 +31,38 @@ public interface AiConversationContentMapper extends BaseMapper<AiConversationCo
     /**
      * 根据会话ID查询内容列表
      */
-    @Select("SELECT id, conversation_id, type, create_time, content, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id " +
             "FROM ai_conversation_content " +
             "WHERE conversation_id = #{conversationId} " +
-            "ORDER BY create_time ASC")
+            "ORDER BY c_time ASC")
     List<AiConversationContentEntity> selectByConversationId(@Param("conversationId") String conversationId);
 
     /**
      * 根据会话ID查询内容列表(不包含BLOB内容，用于列表显示)
      */
-    @Select("SELECT id, conversation_id, type, create_time, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, model_source_id " +
             "FROM ai_conversation_content " +
             "WHERE conversation_id = #{conversationId} " +
-            "ORDER BY create_time ASC")
+            "ORDER BY c_time ASC")
     List<AiConversationContentEntity> selectByConversationIdWithoutBlob(@Param("conversationId") String conversationId);
 
     /**
      * 根据会话ID和类型查询内容
      */
-    @Select("SELECT id, conversation_id, type, create_time, content, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id " +
             "FROM ai_conversation_content " +
             "WHERE conversation_id = #{conversationId} AND type = #{type} " +
-            "ORDER BY create_time ASC")
+            "ORDER BY c_time ASC")
     List<AiConversationContentEntity> selectByConversationIdAndType(@Param("conversationId") String conversationId,
                                                                    @Param("type") String type);
 
     /**
      * 根据模型源ID查询内容列表
      */
-    @Select("SELECT id, conversation_id, type, create_time, content, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id " +
             "FROM ai_conversation_content " +
             "WHERE model_source_id = #{modelSourceId} " +
-            "ORDER BY create_time DESC")
+            "ORDER BY c_time DESC")
     List<AiConversationContentEntity> selectByModelSourceId(@Param("modelSourceId") String modelSourceId);
 
     /**
@@ -75,22 +75,22 @@ public interface AiConversationContentMapper extends BaseMapper<AiConversationCo
     /**
      * 查询最新的会话内容
      */
-    @Select("SELECT id, conversation_id, type, create_time, content, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id " +
             "FROM ai_conversation_content " +
             "WHERE conversation_id = #{conversationId} " +
-            "ORDER BY create_time DESC " +
+            "ORDER BY c_time DESC " +
             "LIMIT 1")
     AiConversationContentEntity selectLatestByConversationId(@Param("conversationId") String conversationId);
 
     /**
      * 根据时间范围查询内容
      */
-    @Select("SELECT id, conversation_id, type, create_time, content, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id " +
             "FROM ai_conversation_content " +
-            "WHERE create_time >= #{startTime} AND create_time <= #{endTime} " +
-            "ORDER BY create_time DESC")
-    List<AiConversationContentEntity> selectByTimeRange(@Param("startTime") Long startTime,
-                                                       @Param("endTime") Long endTime);
+            "WHERE c_time >= #{startTime} AND c_time <= #{endTime} " +
+            "ORDER BY c_time DESC")
+    List<AiConversationContentEntity> selectByTimeRange(@Param("startTime") java.time.LocalDateTime startTime,
+                                                       @Param("endTime") java.time.LocalDateTime endTime);
 
     /**
      * 删除指定会话的所有内容
@@ -103,6 +103,6 @@ public interface AiConversationContentMapper extends BaseMapper<AiConversationCo
      * 删除指定时间之前的内容
      */
     @Delete("DELETE FROM ai_conversation_content " +
-            "WHERE create_time < #{beforeTime}")
-    int deleteByCreateTimeBefore(@Param("beforeTime") Long beforeTime);
+            "WHERE c_time < #{beforeTime}")
+    int deleteByCreateTimeBefore(@Param("beforeTime") java.time.LocalDateTime beforeTime);
 }

@@ -1,9 +1,8 @@
 package com.xinyirun.scm.ai.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.ai.bean.entity.chat.AiPromptEntity;
+import com.xinyirun.scm.ai.bean.entity.model.AiPromptEntity;
 import com.xinyirun.scm.ai.bean.vo.chat.AiPromptVo;
 import com.xinyirun.scm.ai.mapper.chat.AiPromptMapper;
 import jakarta.annotation.Resource;
@@ -12,9 +11,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,27 +51,17 @@ public class AiPromptService {
     }
 
     /**
-     * 根据提示词类型查询
+     * 根据提示词类型分页查询
      *
-     * @param promptType 提示词类型
-     * @param tenant 租户标识
+     * @param type 提示词类型
      * @param pageNum 页码
      * @param pageSize 页大小
      * @return 提示词分页列表
      */
-    public IPage<AiPromptVo> getByPromptType(String promptType, String tenant, int pageNum, int pageSize) {
+    public IPage<AiPromptVo> getByType(Integer type, int pageNum, int pageSize) {
         try {
             Page<AiPromptEntity> page = new Page<>(pageNum, pageSize);
-            QueryWrapper<AiPromptEntity> wrapper = new QueryWrapper<>();
-
-            wrapper.eq("prompt_type", promptType);
-            if (StringUtils.hasText(tenant)) {
-                wrapper.eq("tenant", tenant);
-            }
-            wrapper.eq("is_active", 1);
-            wrapper.orderByDesc("c_time");
-
-            IPage<AiPromptEntity> entityPage = aiPromptMapper.selectPage(page, wrapper);
+            IPage<AiPromptEntity> entityPage = aiPromptMapper.selectPageByType(page, type);
 
             // 转换为VO分页
             Page<AiPromptVo> voPage = new Page<>(pageNum, pageSize);
@@ -85,7 +72,7 @@ public class AiPromptService {
 
             return voPage;
         } catch (Exception e) {
-            log.error("根据提示词类型查询失败, promptType: {}, tenant: {}", promptType, tenant, e);
+            log.error("根据提示词类型查询失败, type: {}", type, e);
             return new Page<>(pageNum, pageSize);
         }
     }
@@ -93,84 +80,55 @@ public class AiPromptService {
     /**
      * 查询所有有效提示词
      *
-     * @param tenant 租户标识
      * @return 提示词列表
      */
-    public List<AiPromptVo> getAllActivePrompts(String tenant) {
+    public List<AiPromptVo> getAllActivePrompts() {
         try {
-            QueryWrapper<AiPromptEntity> wrapper = new QueryWrapper<>();
-            if (StringUtils.hasText(tenant)) {
-                wrapper.eq("tenant", tenant);
-            }
-            wrapper.eq("is_active", 1);
-            wrapper.orderByAsc("prompt_type", "sort_order");
-
-            List<AiPromptEntity> entities = aiPromptMapper.selectList(wrapper);
+            List<AiPromptEntity> entities = aiPromptMapper.selectAllActivePrompts();
             return entities.stream()
                     .map(this::convertToVo)
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            log.error("查询所有有效提示词失败, tenant: {}", tenant, e);
+            log.error("查询所有有效提示词失败", e);
             return List.of();
         }
     }
 
     /**
-     * 根据提示词名称查询
+     * 根据提示词昵称查询
      *
-     * @param promptName 提示词名称
-     * @param tenant 租户标识
+     * @param nickname 提示词昵称
      * @return 提示词VO
      */
-    public AiPromptVo getByPromptName(String promptName, String tenant) {
+    public AiPromptVo getByNickname(String nickname) {
         try {
-            QueryWrapper<AiPromptEntity> wrapper = new QueryWrapper<>();
-            wrapper.eq("prompt_name", promptName);
-            if (StringUtils.hasText(tenant)) {
-                wrapper.eq("tenant", tenant);
-            }
-            wrapper.eq("is_active", 1);
-
-            AiPromptEntity entity = aiPromptMapper.selectOne(wrapper);
+            AiPromptEntity entity = aiPromptMapper.selectByNickname(nickname);
             if (entity != null) {
                 return convertToVo(entity);
             }
             return null;
         } catch (Exception e) {
-            log.error("根据提示词名称查询失败, promptName: {}, tenant: {}", promptName, tenant, e);
+            log.error("根据提示词昵称查询失败, nickname: {}", nickname, e);
             return null;
         }
     }
 
     /**
-     * 创建新提示词
+     * 根据提示词编码查询
      *
-     * @param promptVo 提示词VO
-     * @param operatorId 操作员ID
-     * @return 创建的提示词VO
+     * @param code 提示词编码
+     * @return 提示词VO
      */
-    @Transactional(rollbackFor = Exception.class)
-    public AiPromptVo createPrompt(AiPromptVo promptVo, Long operatorId) {
+    public AiPromptVo getByCode(String code) {
         try {
-            AiPromptEntity entity = convertToEntity(promptVo);
-
-            LocalDateTime now = LocalDateTime.now();
-            entity.setC_time(now);
-            entity.setC_id(operatorId);
-            entity.setU_time(now);
-            entity.setU_id(operatorId);
-            entity.setDbversion(1);
-
-            int result = aiPromptMapper.insert(entity);
-            if (result > 0) {
-                log.info("创建提示词成功, promptName: {}", entity.getPrompt_name());
+            AiPromptEntity entity = aiPromptMapper.selectByCode(code);
+            if (entity != null) {
                 return convertToVo(entity);
             }
-
             return null;
         } catch (Exception e) {
-            log.error("创建提示词失败", e);
-            throw new RuntimeException("创建提示词失败", e);
+            log.error("根据提示词编码查询失败, code: {}", code, e);
+            return null;
         }
     }
 
@@ -178,17 +136,12 @@ public class AiPromptService {
      * 更新提示词信息
      *
      * @param promptVo 提示词VO
-     * @param operatorId 操作员ID
      * @return 更新结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public boolean updatePrompt(AiPromptVo promptVo, Long operatorId) {
+    public boolean updatePrompt(AiPromptVo promptVo) {
         try {
             AiPromptEntity entity = convertToEntity(promptVo);
-
-            LocalDateTime now = LocalDateTime.now();
-            entity.setU_time(now);
-            entity.setU_id(operatorId);
 
             int result = aiPromptMapper.updateById(entity);
             if (result > 0) {
@@ -204,30 +157,26 @@ public class AiPromptService {
     }
 
     /**
-     * 停用提示词
+     * 创建新提示词
      *
-     * @param promptId 提示词ID
-     * @param operatorId 操作员ID
-     * @return 停用结果
+     * @param promptVo 提示词VO
+     * @return 创建结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public boolean deactivatePrompt(Integer promptId, Long operatorId) {
+    public boolean createPrompt(AiPromptVo promptVo) {
         try {
-            AiPromptEntity entity = new AiPromptEntity();
-            entity.setId(promptId);
-            entity.setU_time(LocalDateTime.now());
-            entity.setU_id(operatorId);
+            AiPromptEntity entity = convertToEntity(promptVo);
 
-            int result = aiPromptMapper.updateById(entity);
+            int result = aiPromptMapper.insert(entity);
             if (result > 0) {
-                log.info("停用提示词成功, promptId: {}", promptId);
+                log.info("创建提示词成功, id: {}", entity.getId());
                 return true;
             }
 
             return false;
         } catch (Exception e) {
-            log.error("停用提示词失败, promptId: {}", promptId, e);
-            throw new RuntimeException("停用提示词失败", e);
+            log.error("创建提示词失败", e);
+            throw new RuntimeException("创建提示词失败", e);
         }
     }
 

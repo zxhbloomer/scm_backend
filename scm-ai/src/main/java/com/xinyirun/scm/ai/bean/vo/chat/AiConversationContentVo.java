@@ -7,6 +7,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -68,7 +69,7 @@ public class AiConversationContentVo implements Serializable {
     /**
      * 创建时间（毫秒时间戳）
      */
-    private Long create_time;
+    private LocalDateTime c_time;
 
     /**
      * 创建时间（格式化字符串）
@@ -104,10 +105,6 @@ public class AiConversationContentVo implements Serializable {
      */
     private String create_user_name;
 
-    /**
-     * 租户ID
-     */
-    private String tenant_id;
 
     /**
      * AI模型源ID
@@ -593,26 +590,4 @@ public class AiConversationContentVo implements Serializable {
         }
     }
 
-    // 兼容方法，用于保持与备份代码的一致性
-
-    /**
-     * 设置会话ID（兼容方法）
-     */
-    public void setConversationId(String conversationId) {
-        this.conversation_id = conversationId;
-    }
-
-    /**
-     * 设置模型源ID（兼容方法）
-     */
-    public void setModelSourceId(String modelSourceId) {
-        this.model_source_id = modelSourceId;
-    }
-
-    /**
-     * 设置创建时间（兼容方法）
-     */
-    public void setCreateTime(Long createTime) {
-        this.create_time = createTime;
-    }
 }

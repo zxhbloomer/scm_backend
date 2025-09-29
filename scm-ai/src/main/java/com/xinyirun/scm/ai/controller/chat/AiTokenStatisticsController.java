@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.service.AiTokenUsageService;
 import com.xinyirun.scm.ai.service.AiUserQuotaService;
 import com.xinyirun.scm.ai.service.AiConfigService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,12 +51,13 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/quota")
     @Operation(summary = "获取用户Token配额")
+    @SysLogAnnotion("获取Token配额")
     public ResponseEntity<AiUserQuotaVo> getUserQuota() {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : null;
         String tenant = getCurrentTenant();
 
-        AiUserQuotaVo result = aiUserQuotaService.getByUserId(userId, tenant);
+        AiUserQuotaVo result = aiUserQuotaService.getByUserId(userId);
         return ResponseEntity.ok(result);
     }
 
@@ -64,12 +66,13 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/quota/{userId}")
     @Operation(summary = "获取指定用户Token配额")
+    @SysLogAnnotion("查询用户配额")
     public ResponseEntity<AiUserQuotaVo> getUserQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId) {
         String tenant = getCurrentTenant();
 
-        AiUserQuotaVo result = aiUserQuotaService.getByUserId(userId, tenant);
+        AiUserQuotaVo result = aiUserQuotaService.getByUserId(userId);
         return ResponseEntity.ok(result);
     }
 
@@ -78,6 +81,7 @@ public class AiTokenStatisticsController {
      */
     @PostMapping(value = "/quota/{userId}")
     @Operation(summary = "创建用户Token配额")
+    @SysLogAnnotion("创建用户配额")
     public ResponseEntity<AiUserQuotaVo> createUserQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId,
@@ -90,7 +94,6 @@ public class AiTokenStatisticsController {
         AiUserQuotaVo quotaVo = new AiUserQuotaVo();
         quotaVo.setUser_id(userId);
         quotaVo.setTotal_quota(totalQuota);
-        quotaVo.setTenant(tenant);
 
         AiUserQuotaVo result = aiUserQuotaService.createQuota(quotaVo, operatorId);
         return ResponseEntity.ok(result);
@@ -101,6 +104,7 @@ public class AiTokenStatisticsController {
      */
     @PostMapping(value = "/quota/{userId}/reset")
     @Operation(summary = "重置用户配额")
+    @SysLogAnnotion("重置用户配额")
     public ResponseEntity<Boolean> resetUserQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId,
@@ -119,6 +123,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/quota/{userId}/check")
     @Operation(summary = "检查用户配额")
+    @SysLogAnnotion("检查配额充足")
     public ResponseEntity<Boolean> checkUserQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId,
@@ -135,6 +140,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/usage")
     @Operation(summary = "获取Token使用记录")
+    @SysLogAnnotion("获取使用记录")
     public ResponseEntity<IPage<AiTokenUsageVo>> getTokenUsage(
             @Parameter(description = "用户ID") @RequestParam(required = false) String userId,
             @Parameter(description = "开始时间") @RequestParam(required = false)
@@ -162,6 +168,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/usage/conversation/{conversationId}")
     @Operation(summary = "获取对话Token使用记录")
+    @SysLogAnnotion("获取对话使用记录")
     public ResponseEntity<IPage<AiTokenUsageVo>> getConversationTokenUsage(
             @Parameter(description = "对话ID", required = true)
             @PathVariable Integer conversationId,
@@ -177,6 +184,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/daily/{userId}")
     @Operation(summary = "获取用户每日统计")
+    @SysLogAnnotion("获取每日统计")
     public ResponseEntity<List<Map<String, Object>>> getUserDailyStatistics(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId,
@@ -196,6 +204,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/ranking/models")
     @Operation(summary = "获取模型使用排行榜")
+    @SysLogAnnotion("获取模型排行")
     public ResponseEntity<List<Map<String, Object>>> getModelRanking(
             @Parameter(description = "开始日期") @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -214,6 +223,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/ranking/users")
     @Operation(summary = "获取用户使用排行榜")
+    @SysLogAnnotion("获取用户排行")
     public ResponseEntity<List<Map<String, Object>>> getUserRanking(
             @Parameter(description = "开始日期") @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
@@ -232,6 +242,7 @@ public class AiTokenStatisticsController {
      */
     @GetMapping(value = "/quota/warning")
     @Operation(summary = "获取配额预警用户")
+    @SysLogAnnotion("获取配额预警")
     public ResponseEntity<IPage<AiUserQuotaVo>> getQuotaWarningUsers(
             @Parameter(description = "阈值百分比") @RequestParam(defaultValue = "0.8") Double threshold,
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int pageNum,
@@ -247,6 +258,7 @@ public class AiTokenStatisticsController {
      */
     @PostMapping(value = "/quota/{userId}/consume")
     @Operation(summary = "消费用户配额")
+    @SysLogAnnotion("消费用户配额")
     public ResponseEntity<Boolean> consumeQuota(
             @Parameter(description = "用户ID", required = true)
             @PathVariable String userId,

@@ -104,10 +104,6 @@ public class AiConversationContentVO implements Serializable {
      */
     private String create_user_name;
 
-    /**
-     * 租户ID
-     */
-    private String tenant_id;
 
     /**
      * AI模型信息

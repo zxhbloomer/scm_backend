@@ -374,7 +374,6 @@ public class AiTokenUsageService {
      * @param conversationId 对话ID
      * @param modelSourceId 模型源ID
      * @param userId 用户ID
-     * @param tenant 租户ID
      * @param aiProvider AI提供商
      * @param aiModelType AI模型类型
      * @param promptTokens 输入Token数
@@ -384,7 +383,7 @@ public class AiTokenUsageService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void recordTokenUsageAsync(String conversationId, String modelSourceId, String userId,
-                                     String tenant, String aiProvider, String aiModelType,
+                                      String aiProvider, String aiModelType,
                                      Long promptTokens, Long completionTokens, Boolean success,
                                      Long responseTime) {
         try {
@@ -411,7 +410,6 @@ public class AiTokenUsageService {
             }
 
             entity.setUser_id(userId);
-            entity.setTenant(tenant);
 
             // 映射token字段
             entity.setPrompt_tokens(promptTokens != null ? promptTokens.intValue() : 0);
@@ -431,7 +429,7 @@ public class AiTokenUsageService {
             }
         } catch (Exception e) {
             log.error("记录Token使用情况失败, conversationId: {}, userId: {}, tenant: {}",
-                    conversationId, userId, tenant, e);
+                    conversationId, userId, e);
         }
     }
 

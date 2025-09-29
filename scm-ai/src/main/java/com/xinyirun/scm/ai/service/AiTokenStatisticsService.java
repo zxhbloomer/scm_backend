@@ -117,7 +117,7 @@ public class AiTokenStatisticsService {
     public List<Map<String, Object>> getUserDailyStatistics(String userId, LocalDateTime startDate,
                                                             LocalDateTime endDate, String tenant) {
         try {
-            return extAiTokenStatisticsMapper.selectUserDailyStatistics(userId, startDate, endDate, tenant);
+            return extAiTokenStatisticsMapper.selectUserDailyStatistics(userId, startDate, endDate);
         } catch (Exception e) {
             log.error("获取用户每日统计数据失败, userId: {}, startDate: {}, endDate: {}, tenant: {}",
                     userId, startDate, endDate, tenant, e);
@@ -137,7 +137,7 @@ public class AiTokenStatisticsService {
     public List<Map<String, Object>> getModelRanking(LocalDateTime startDate, LocalDateTime endDate,
                                                      String tenant, Integer limit) {
         try {
-            return extAiTokenStatisticsMapper.selectModelRanking(startDate, endDate, tenant, limit);
+            return extAiTokenStatisticsMapper.selectModelRanking(startDate, endDate, limit);
         } catch (Exception e) {
             log.error("获取模型使用排行榜失败, startDate: {}, endDate: {}, tenant: {}, limit: {}",
                     startDate, endDate, tenant, limit, e);
@@ -157,7 +157,7 @@ public class AiTokenStatisticsService {
     public List<Map<String, Object>> getUserRanking(LocalDateTime startDate, LocalDateTime endDate,
                                                     String tenant, Integer limit) {
         try {
-            return extAiTokenStatisticsMapper.selectUserRanking(startDate, endDate, tenant, limit);
+            return extAiTokenStatisticsMapper.selectUserRanking(startDate, endDate, limit);
         } catch (Exception e) {
             log.error("获取用户使用排行榜失败, startDate: {}, endDate: {}, tenant: {}, limit: {}",
                     startDate, endDate, tenant, limit, e);
@@ -175,7 +175,7 @@ public class AiTokenStatisticsService {
      */
     public List<Map<String, Object>> getHourlyTrend(LocalDateTime startDate, LocalDateTime endDate, String tenant) {
         try {
-            return extAiTokenStatisticsMapper.selectHourlyTrend(startDate, endDate, tenant);
+            return extAiTokenStatisticsMapper.selectHourlyTrend(startDate, endDate);
         } catch (Exception e) {
             log.error("获取按小时统计趋势数据失败, startDate: {}, endDate: {}, tenant: {}",
                     startDate, endDate, tenant, e);
@@ -192,7 +192,7 @@ public class AiTokenStatisticsService {
      */
     public Map<String, Object> getDailySummary(LocalDateTime statisticsDate, String tenant) {
         try {
-            return extAiTokenStatisticsMapper.selectDailySummary(statisticsDate, tenant);
+            return extAiTokenStatisticsMapper.selectDailySummary(statisticsDate);
         } catch (Exception e) {
             log.error("获取指定日期汇总统计失败, statisticsDate: {}, tenant: {}", statisticsDate, tenant, e);
             return Map.of();
@@ -293,7 +293,7 @@ public class AiTokenStatisticsService {
     @Transactional(rollbackFor = Exception.class)
     public int deleteStatisticsBeforeDate(LocalDateTime beforeDate, String tenant) {
         try {
-            int deleteCount = extAiTokenStatisticsMapper.deleteStatisticsBeforeDate(beforeDate, tenant);
+            int deleteCount = extAiTokenStatisticsMapper.deleteStatisticsBeforeDate(beforeDate);
             log.info("批量删除过期Token统计数据完成, beforeDate: {}, tenant: {}, 删除数量: {}",
                     beforeDate, tenant, deleteCount);
             return deleteCount;

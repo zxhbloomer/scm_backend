@@ -14,7 +14,6 @@ import com.xinyirun.scm.ai.bean.vo.chat.AiPromptVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.common.exception.MSException;
 import com.xinyirun.scm.ai.common.util.BeanUtils;
-import com.xinyirun.scm.ai.common.util.LogUtils;
 import com.xinyirun.scm.ai.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.ai.mapper.chat.AiConversationMapper;
 import com.xinyirun.scm.ai.mapper.model.AiModelSourceMapper;
@@ -37,8 +36,8 @@ import java.util.stream.Collectors;
  * @CreateTime: 2025-05-28  13:44
  */
 @Service
-@Transactional(propagation = Propagation.NOT_SUPPORTED)
 @Slf4j
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class AiConversationService {
 
     @Resource
@@ -66,10 +65,10 @@ public class AiConversationService {
      */
     private String getDefaultSystemPrompt() {
         try {
-            AiPromptVo defaultPrompt = aiPromptService.getByPromptName("CS_DEFAULT", null);
-            return defaultPrompt != null ? defaultPrompt.getPrompt_content() : null;
+            AiPromptVo defaultPrompt = aiPromptService.getByNickname("CS_DEFAULT");
+            return defaultPrompt != null ? defaultPrompt.getPrompt() : null;
         } catch (Exception e) {
-            LogUtils.error("获取默认系统提示词失败", e);
+            log.error("获取默认系统提示词失败", e);
             return null;
         }
     }
@@ -93,7 +92,7 @@ public class AiConversationService {
                 .module(aiChatBaseService.getModule(request, userId))
                 .prompt(request.getPrompt())
                 .system(getDefaultSystemPrompt())
-                .tenant(request.getTenantId())
+                .tenantId(request.getTenantId())
                 .build();
 
         // 创建WebSocket流式处理器
@@ -123,7 +122,7 @@ public class AiConversationService {
                     streamHandler.onComplete(finalResponse);
                 })
                 .doOnError(error -> {
-                    LogUtils.error(error);
+                    log.error(error.getMessage());
                     streamHandler.onError(error);
                 })
                 .subscribe();
@@ -132,7 +131,7 @@ public class AiConversationService {
             streamHandler.onStart();
 
         } catch (Exception e) {
-            LogUtils.error(e);
+            log.error(e.getMessage());
             streamHandler.onError(e);
         }
     }
@@ -153,7 +152,7 @@ public class AiConversationService {
                 .module(aiChatBaseService.getModule(request, userId))
                 .prompt(request.getPrompt())
                 .system(getDefaultSystemPrompt())
-                .tenant(request.getTenantId())
+                .tenantId(request.getTenantId())
                 .build();
         StringBuilder completeContent = new StringBuilder();
         final Usage[] finalUsage = new Usage[1];
@@ -178,6 +177,7 @@ public class AiConversationService {
                     }
                 })
                 .doOnComplete(() -> {
+                    // 异步 手动指定租户数据库
                     DataSourceHelper.use(request.getTenantId());
                     // 完成时保存完整内容
                     String fullContent = completeContent.toString();
@@ -196,7 +196,7 @@ public class AiConversationService {
                     streamHandler.onComplete(finalResponse);
                 })
                 .doOnError(error -> {
-                    LogUtils.error(error);
+                    log.error(error.getMessage());
                     streamHandler.onError(error);
                 })
                 .subscribe();
@@ -205,7 +205,7 @@ public class AiConversationService {
             streamHandler.onStart();
 
         } catch (Exception e) {
-            LogUtils.error(e);
+            log.error(e.getMessage());
             streamHandler.onError(e);
         }
     }
@@ -233,7 +233,7 @@ public class AiConversationService {
                 .conversationId(request.getConversationId())
                 .module(aiChatBaseService.getModule(request, userId))
                 .prompt(prompt)
-                .tenant(request.getTenantId())
+                .tenantId(request.getTenantId())
                 .build();
 
         String conversationTitle = request.getPrompt();
@@ -242,7 +242,7 @@ public class AiConversationService {
                     .content();
             conversationTitle = conversationTitle.replace("\"", "");
         } catch (Exception e) {
-            LogUtils.error(e);
+            log.error(e.getMessage());
         }
 
         if (conversationTitle.length() > 255) {
@@ -251,9 +251,8 @@ public class AiConversationService {
         AiConversationEntity aiConversation = new AiConversationEntity();
         aiConversation.setId(request.getConversationId());
         aiConversation.setTitle(conversationTitle);
-        aiConversation.setCreate_user(userId);
-        aiConversation.setCreate_time(System.currentTimeMillis());
-        aiConversation.setTenant(request.getTenantId());
+        // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
+        // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
         aiConversationMapper.insert(aiConversation);
         return convertToVo(aiConversation);
     }
@@ -280,10 +279,10 @@ public class AiConversationService {
             int deletedCount = aiConversationContentMapper.delete(deleteWrapper);
 
             // 记录操作日志
-            LogUtils.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, deletedCount);
+            log.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, deletedCount);
 
         } catch (Exception e) {
-            LogUtils.error("清空对话内容失败", e);
+            log.error("清空对话内容失败", e);
             throw new MSException("清空对话内容失败：" + e.getMessage());
         }
     }
@@ -313,10 +312,10 @@ public class AiConversationService {
      */
     private String findModelSourceIdByBaseName(String baseName) {
         try {
-            LogUtils.debug("查找模型源ID - baseName: {}", baseName);
+            log.debug("查找模型源ID - baseName: {}", baseName);
             return null;
         } catch (Exception e) {
-            LogUtils.error("查找模型源ID失败 - baseName: {}", baseName, e);
+            log.error("查找模型源ID失败 - baseName: {}", baseName, e);
             return null;
         }
     }
@@ -327,13 +326,12 @@ public class AiConversationService {
      *
      * @param conversationId 对话ID
      * @param userId 用户ID
-     * @param tenant 租户ID
      * @param aiProvider AI提供商
      * @param aiModelType AI模型类型
      * @param promptTokens 输入Token数
      * @param completionTokens 输出Token数
      */
-    public void recordTokenUsageFromSpringAI(String conversationId, String userId, String tenant,
+    public void recordTokenUsageFromSpringAI(String conversationId, String userId,
                                             String aiProvider, String aiModelType,
                                             Long promptTokens, Long completionTokens) {
         try {
@@ -345,7 +343,6 @@ public class AiConversationService {
                     conversationId,
                     modelSourceId, // 根据模型类型查找到的model_source_id
                     userId,
-                    tenant,
                     aiProvider,
                     aiModelType,
                     promptTokens,
@@ -354,11 +351,11 @@ public class AiConversationService {
                     0L    // responseTime
             );
 
-            LogUtils.info("流式聊天回调Token使用记录 - conversationId: {}, userId: {}, tokens: {}",
+            log.info("流式聊天回调Token使用记录 - conversationId: {}, userId: {}, tokens: {}",
                     new Object[]{conversationId, userId, (promptTokens + completionTokens)});
 
         } catch (Exception e) {
-            LogUtils.error("流式聊天回调Token使用记录失败", e);
+            log.error("流式聊天回调Token使用记录失败", e);
             // 记录失败不抛出异常，避免影响主业务流程
         }
     }
@@ -391,7 +388,7 @@ public class AiConversationService {
             // 检查会话是否已存在
             AiConversationEntity existingConversation = aiConversationMapper.selectById(convUuid);
             if (existingConversation != null) {
-                LogUtils.info("AI会话记录已存在，跳过创建：convUuid={}", convUuid);
+                log.info("AI会话记录已存在，跳过创建：convUuid={}", convUuid);
                 return;
             }
 
@@ -399,13 +396,12 @@ public class AiConversationService {
             AiConversationEntity aiConversation = new AiConversationEntity();
             aiConversation.setId(convUuid);
             aiConversation.setTitle("新对话"); // 设置默认标题
-            aiConversation.setCreate_user(String.valueOf(userId));
-            aiConversation.setCreate_time(System.currentTimeMillis());
-            aiConversation.setTenant(tenant);
+            // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
 
             aiConversationMapper.insert(aiConversation);
 
-            LogUtils.info("在chat-ai数据库中创建AI会话记录成功 - convUuid={}, userId={}, userName={}",
+            log.info("在chat-ai数据库中创建AI会话记录成功 - convUuid={}, userId={}, userName={}",
                     convUuid, userId, userName);
         } catch (Exception e) {
             log.error("创建AI会话记录失败：userId={}, convUuid={}", userId, convUuid, e);
@@ -417,13 +413,13 @@ public class AiConversationService {
      * 结束对话
      */
     public void endConversation(String conversationId, String userId) {
-        LogUtils.info("对话已结束 - conversationId: {}, userId: {}", conversationId, userId);
+        log.info("对话已结束 - conversationId: {}, userId: {}", conversationId, userId);
     }
 
     /**
      * 从Spring AI Usage中记录Token使用情况
      */
-    private void recordTokenUsageFromSpringAI(AIChatRequestVo request, String userId, String tenant,
+    private void recordTokenUsageFromSpringAI(AIChatRequestVo request, String userId,
                                              Usage usage, long startTime, boolean success) {
         try {
             long responseTime = System.currentTimeMillis() - startTime;
@@ -441,7 +437,6 @@ public class AiConversationService {
                     request.getConversationId(),
                     request.getChatModelId(), // 模型源ID
                     userId,
-                    tenant,
                     aiProvider,
                     aiModelType,
                     promptTokens,
@@ -450,11 +445,11 @@ public class AiConversationService {
                     responseTime
             );
 
-            LogUtils.debug("Token使用记录已提交 - conversationId: {}, promptTokens: {}, completionTokens: {}",
+            log.debug("Token使用记录已提交 - conversationId: {}, promptTokens: {}, completionTokens: {}",
                     new Object[]{request.getConversationId(), promptTokens, completionTokens});
 
         } catch (Exception e) {
-            LogUtils.error("记录Token使用失败", e);
+            log.error("记录Token使用失败", e);
             // Token记录失败不影响主业务流程
         }
     }
@@ -462,14 +457,13 @@ public class AiConversationService {
     /**
      * 记录失败情况下的Token使用（通常没有Token信息）
      */
-    private void recordTokenUsageOnFailure(AIChatRequestVo request, String userId, String tenant, long responseTime) {
+    private void recordTokenUsageOnFailure(AIChatRequestVo request, String userId,  long responseTime) {
         try {
             // 失败时通常没有Token消耗，记录0
             aiTokenUsageService.recordTokenUsageAsync(
                     request.getConversationId(),
                     request.getChatModelId(),
                     userId,
-                    tenant,
                     "unknown",
                     "unknown",
                     0L,
@@ -478,10 +472,10 @@ public class AiConversationService {
                     responseTime
             );
 
-            LogUtils.debug("失败请求Token记录已提交 - conversationId: {}", request.getConversationId());
+            log.debug("失败请求Token记录已提交 - conversationId: {}", request.getConversationId());
 
         } catch (Exception e) {
-            LogUtils.error("记录失败Token使用失败", e);
+            log.error("记录失败Token使用失败", e);
         }
     }
 
@@ -502,15 +496,6 @@ public class AiConversationService {
         estimatedTokens = estimatedTokens + (estimatedTokens / 2);
 
         return Math.max(estimatedTokens, 100L); // 最少估算100个Token
-    }
-
-    /**
-     * 获取当前租户ID
-     */
-    private String getCurrentTenant() {
-        // 这里需要根据实际的租户获取逻辑来实现
-        // 可能从ThreadLocal、Session、请求头等获取
-        return null;
     }
 
     /**
@@ -570,8 +555,16 @@ public class AiConversationService {
         AiConversationVo vo = new AiConversationVo();
         vo.setId(entity.getId());
         vo.setTitle(entity.getTitle());
-        vo.setCreate_user(entity.getCreate_user());
-        vo.setCreate_time(entity.getCreate_time());
+
+        // 字段映射：Entity使用标准审计字段，VO使用业务字段
+        if (entity.getC_id() != null) {
+            vo.setCreate_user(String.valueOf(entity.getC_id())); // Long -> String转换
+        }
+        if (entity.getC_time() != null) {
+            // LocalDateTime -> Long时间戳转换
+            vo.setCreate_time(entity.getC_time().atZone(java.time.ZoneId.of("Asia/Shanghai")).toEpochSecond() * 1000);
+        }
+
         return vo;
     }
 

@@ -21,24 +21,25 @@ public interface ExtAiConversationContentMapper {
     /**
      * 根据会话ID查询最后N条记录
      */
-    @Select("SELECT id, conversation_id, type, create_time, content, model_source_id " +
+    @Select("SELECT id, conversation_id, type, c_time, u_time, c_id, u_id, dbversion, content, model_source_id " +
             "FROM ai_conversation_content " +
             "WHERE conversation_id = #{conversationId} " +
-            "ORDER BY create_time DESC " +
-            "LIMIT #{limit}")
+            "ORDER BY c_time DESC " +
+            "LIMIT 1, #{limit}")
     List<AiConversationContentVo> selectLastByConversationIdByLimit(@Param("conversationId") String conversationId,
                                                                     @Param("limit") int limit);
 
     /**
      * 根据用户查询最近的会话内容
      */
-    @Select("SELECT acc.id, acc.conversation_id, acc.type, acc.create_time, acc.content, acc.model_source_id " +
+    @Select("SELECT acc.id, acc.conversation_id, acc.type, acc.c_time, acc.u_time, acc.c_id, acc.u_id, acc.dbversion, " +
+            "acc.content, acc.model_source_id " +
             "FROM ai_conversation_content acc " +
             "INNER JOIN ai_conversation ac ON acc.conversation_id = ac.id " +
-            "WHERE ac.create_user = #{userId} " +
-            "ORDER BY acc.create_time DESC " +
+            "WHERE ac.c_id = #{userId} " +
+            "ORDER BY acc.c_time DESC " +
             "LIMIT #{limit}")
-    List<AiConversationContentEntity> selectRecentByUser(@Param("userId") String userId, @Param("limit") int limit);
+    List<AiConversationContentEntity> selectRecentByUser(@Param("userId") Long userId, @Param("limit") int limit);
 
     /**
      * 统计用户的消息数量
@@ -46,19 +47,20 @@ public interface ExtAiConversationContentMapper {
     @Select("SELECT COUNT(*) " +
             "FROM ai_conversation_content acc " +
             "INNER JOIN ai_conversation ac ON acc.conversation_id = ac.id " +
-            "WHERE ac.create_user = #{userId}")
-    long countByUser(@Param("userId") String userId);
+            "WHERE ac.c_id = #{userId}")
+    long countByUser(@Param("userId") Long userId);
 
     /**
      * 查询用户指定类型的消息内容
      */
-    @Select("SELECT acc.id, acc.conversation_id, acc.type, acc.create_time, acc.content, acc.model_source_id " +
+    @Select("SELECT acc.id, acc.conversation_id, acc.type, acc.c_time, acc.u_time, acc.c_id, acc.u_id, acc.dbversion, " +
+            "acc.content, acc.model_source_id " +
             "FROM ai_conversation_content acc " +
             "INNER JOIN ai_conversation ac ON acc.conversation_id = ac.id " +
-            "WHERE ac.create_user = #{userId} AND acc.type = #{type} " +
-            "ORDER BY acc.create_time DESC " +
+            "WHERE ac.c_id = #{userId} AND acc.type = #{type} " +
+            "ORDER BY acc.c_time DESC " +
             "LIMIT #{limit}")
-    List<AiConversationContentEntity> selectByUserAndType(@Param("userId") String userId,
+    List<AiConversationContentEntity> selectByUserAndType(@Param("userId") Long userId,
                                                          @Param("type") String type,
                                                          @Param("limit") int limit);
 
@@ -68,8 +70,8 @@ public interface ExtAiConversationContentMapper {
     @Select("SELECT " +
             "conversation_id, " +
             "COUNT(*) as message_count, " +
-            "MAX(create_time) as last_message_time, " +
-            "MIN(create_time) as first_message_time " +
+            "MAX(c_time) as last_message_time, " +
+            "MIN(c_time) as first_message_time " +
             "FROM ai_conversation_content " +
             "WHERE conversation_id = #{conversationId} " +
             "GROUP BY conversation_id")

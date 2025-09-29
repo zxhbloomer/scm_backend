@@ -2,6 +2,7 @@ package com.xinyirun.scm.ai.config;
 
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
 import com.xinyirun.scm.ai.service.AiConversationContentService;
+import com.xinyirun.scm.ai.service.AiConversationService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
@@ -16,6 +17,7 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,6 +47,10 @@ public class ScmMessageChatMemory implements ChatMemory {
     @Resource
     @Lazy
     private AiConversationContentService aiConversationContentService;
+
+    @Resource
+    @Lazy
+    private AiConversationService aiConversationService;
 
     /**
      * 设置当前租户ID
@@ -92,17 +98,11 @@ public class ScmMessageChatMemory implements ChatMemory {
                 DataSourceHelper.use(tenantId);
             }
             // 获取最近的几条聊天，进行记忆 - 通过Service层调用
-            List<AiConversationContentVo> contents = aiConversationContentService.getByConversationId(conversationId)
-                    .stream()
-                    .sorted((a, b) -> b.getCreate_time().compareTo(a.getCreate_time()))
-                    .limit(DEFAULT_MAX_MESSAGES)
-                    .toList()
-                    .reversed();
+            // 获取对话历史（SQL已跳过最新的用户消息，避免重复）
+            List<AiConversationContentVo> contents = aiConversationService.getConversationHistory(conversationId, DEFAULT_MAX_MESSAGES);
 
-            // 先持久化了提示词，会重复，这里去掉最后一条
-            if (!contents.isEmpty()) {
-                contents.removeLast();
-            }
+            // 反转为时间升序（老消息在前）
+            Collections.reverse(contents);
 
             return contents.stream()
                     .map(conversationContent -> {

@@ -113,19 +113,40 @@ public class AiModelSourceEntity implements Serializable {
     @DataChangeLabelAnnotation("模型参数配置值")
     private String adv_settings;
 
+
     /**
      * 创建时间
      */
-    @TableField("create_time")
-    @DataChangeLabelAnnotation("创建时间")
-    private Long create_time;
+    @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
+    private LocalDateTime c_time;
 
     /**
-     * 创建人(操作人）
+     * 修改时间
      */
-    @TableField("create_user")
-    @DataChangeLabelAnnotation("创建人")
-    private String create_user;
+    @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
+    @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
+    private LocalDateTime u_time;
+
+    /**
+     * 创建人id
+     */
+    @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
+    private Long c_id;
+
+    /**
+     * 修改人id
+     */
+    @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
+    @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
+    private Long u_id;
+
+    /**
+     * 数据版本，乐观锁使用
+     */
+    @TableField("dbversion")
+    private Integer dbversion;
 
     /**
      * 是否为默认模型

@@ -62,10 +62,6 @@ public class AiTokenStatisticsVo implements Serializable {
      */
     private LocalDateTime statistics_date;
 
-    /**
-     * 租户标识
-     */
-    private String tenant;
 
     /**
      * 创建时间

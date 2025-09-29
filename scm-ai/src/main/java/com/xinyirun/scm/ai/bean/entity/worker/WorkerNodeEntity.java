@@ -8,6 +8,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
  * 工作节点实体类
@@ -20,9 +21,7 @@ import java.io.Serializable;
 public class WorkerNodeEntity implements Serializable {
 
     @Serial
-    private static final long serialVersionUID = 1L;
-
-    @TableId(value = "id", type = IdType.AUTO)
+    private static final long serialVersionUID = -7052095200615436463L;    @TableId(value = "id", type = IdType.AUTO)
     private Integer id;
 
     @TableField("host_name")
@@ -41,13 +40,21 @@ public class WorkerNodeEntity implements Serializable {
     @DataChangeLabelAnnotation("启动日期")
     private Long launch_date;
 
-    @TableField("modified")
-    @DataChangeLabelAnnotation("修改时间")
-    private Long modified;
+    @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
+    private LocalDateTime c_time;
 
-    @TableField("created")
-    @DataChangeLabelAnnotation("创建时间")
-    private Long created;
+    @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
+    @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
+    private LocalDateTime u_time;
+
+    @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
+    private Long c_id;
+
+    @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
+    @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
+    private Long u_id;
 
     @TableField("dbversion")
     private Integer dbversion;

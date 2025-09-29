@@ -54,11 +54,7 @@ public class AIChatOptionVo implements Serializable {
     @Schema(description = "系统提示词")
     private String system;
 
-    /**
-     * 租户ID
-     */
-    @Schema(description = "租户ID")
-    private String tenant;
+    private String tenantId;
 
     /**
      * 设置提示词并返回当前对象（链式调用）
@@ -70,4 +66,5 @@ public class AIChatOptionVo implements Serializable {
         this.prompt = prompt;
         return this;
     }
+
 }

@@ -28,34 +28,35 @@ public class AiPromptVo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 主键ID，自增
+     * 主键ID
      */
-    private Integer id;
+    private String id;
 
     /**
-     * 提示词名称
+     * 编号
      */
-    private String prompt_name;
+    private String code;
 
     /**
-     * 提示词内容
+     * 简称
      */
-    private String prompt_content;
+    private String nickname;
 
     /**
-     * 提示词类型
+     * 描述
      */
-    private String prompt_type;
+    private String desc;
 
     /**
-     * 是否系统内置：1-是，0-否
+     * 提示词类型：1-客服提示词，2-知识库提示词
      */
-    private Integer is_system;
+    private Integer type;
 
     /**
-     * 租户标识
+     * 提示词内容，文本格式存储
      */
-    private String tenant;
+    private String prompt;
+
 
     /**
      * 创建时间

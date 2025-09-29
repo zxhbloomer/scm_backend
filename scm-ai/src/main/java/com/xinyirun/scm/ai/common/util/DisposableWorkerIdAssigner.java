@@ -4,6 +4,7 @@ import com.xinyirun.scm.ai.bean.entity.worker.WorkerNodeEntity;
 import com.xinyirun.scm.ai.mapper.worker.WorkerNodeMapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.RandomUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
  * the worker id will be discarded after assigned to the UidGenerator
  */
 @Service
+@Slf4j
 public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
     @Resource
     private WorkerNodeMapper workerNodeMapper;
@@ -29,11 +31,11 @@ public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
 
             // add worker node for new (ignore the same IP + PORT)
             workerNodeMapper.insert(workerNode);
-            LogUtils.info("Add worker node:" + workerNode);
+            log.info("Add worker node:" + workerNode);
 
             return workerNode.getId();
         } catch (Exception e) {
-            LogUtils.error("Assign worker id exception. ", e);
+            log.error("Assign worker id exception. ", e);
             return 1;
         }
     }

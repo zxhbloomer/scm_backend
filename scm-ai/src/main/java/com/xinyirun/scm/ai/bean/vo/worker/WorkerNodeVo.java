@@ -62,10 +62,6 @@ public class WorkerNodeVo implements Serializable {
      */
     private LocalDateTime created;
 
-    /**
-     * 租户标识
-     */
-    private String tenant;
 
     /**
      * 创建时间（审计字段）

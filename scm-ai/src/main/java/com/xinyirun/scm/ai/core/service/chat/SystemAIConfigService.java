@@ -154,13 +154,6 @@ public class SystemAIConfigService {
         List<AdvSettingVo> advSettingVoList = aiModelSourceVo.getAdvSettingVoList();
         List<AdvSettingVo> advSettingVos = getAdvSettingVos(advSettingVoList);
         aiModelSource.setAdv_settings(JSON.toJSONString(advSettingVos));
-        aiModelSource.setCreate_time(System.currentTimeMillis());
-        if (isAddOperation) {
-            aiModelSource.setCreate_user(userId);
-        } else {
-            // 更新操作时，保留原创建人
-            aiModelSource.setCreate_user(aiModelSourceVo.getCreate_user());
-        }
     }
 
     /**
@@ -340,34 +333,6 @@ public class SystemAIConfigService {
         }
 
         return modelSourceVo;
-    }
-
-    /**
-     * 根据ID获取模型源VO
-     *
-     * @param id 模型源ID
-     * @return 模型源VO
-     */
-    public AiModelSourceVo getModelSourceVo(String id, String userId) {
-        AiModelSourceEntity aiModelSource = aiModelSourceMapper.selectById(id);
-        if (aiModelSource == null) {
-            throw new RuntimeException("模型信息不存在");
-        }
-        //检查个人模型查看权限
-        if (StringUtils.isNotBlank(userId) && !userId.equalsIgnoreCase(aiModelSource.getOwner())) {
-            throw new RuntimeException("模型信息不存在");
-        }
-        return getModelSourceVo(aiModelSource);
-    }
-
-    public List<OptionVo> getModelSourceNameList(String userId) {
-        // 按照备份代码逻辑，使用扩展mapper获取启用的模型名称列表
-        List<com.xinyirun.scm.ai.mapper.model.OptionVo> mapperResults = extAiModelSourceMapper.enableSourceNameList(userId);
-        return mapperResults.stream()
-                .map(item -> new OptionVo(
-                        String.valueOf(item.getValue()),
-                        item.getText()))
-                .collect(Collectors.toList());
     }
 
     /**

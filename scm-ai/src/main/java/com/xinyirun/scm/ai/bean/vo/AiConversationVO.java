@@ -70,10 +70,6 @@ public class AiConversationVO implements Serializable {
      */
     private String status_name;
 
-    /**
-     * 租户ID
-     */
-    private String tenant_id;
 
     /**
      * 页面代码

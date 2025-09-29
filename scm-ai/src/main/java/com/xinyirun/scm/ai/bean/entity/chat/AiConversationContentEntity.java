@@ -60,30 +60,35 @@ public class AiConversationContentEntity implements Serializable {
     /**
      * 创建时间
      */
-    @TableField("create_time")
-    @DataChangeLabelAnnotation("创建时间")
-    private Long create_time;
-
-    // 兼容方法，用于保持与备份代码的一致性
+    @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
+    private LocalDateTime c_time;
 
     /**
-     * 设置会话ID（兼容方法）
+     * 修改时间
      */
-    public void setConversationId(String conversationId) {
-        this.conversation_id = conversationId;
-    }
+    @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
+    @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
+    private LocalDateTime u_time;
 
     /**
-     * 设置模型源ID（兼容方法）
+     * 创建人id
      */
-    public void setModelSourceId(String modelSourceId) {
-        this.model_source_id = modelSourceId;
-    }
+    @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
+    private Long c_id;
 
     /**
-     * 设置创建时间（兼容方法）
+     * 修改人id
      */
-    public void setCreateTime(Long createTime) {
-        this.create_time = createTime;
-    }
+    @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
+    @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
+    private Long u_id;
+
+    /**
+     * 数据版本，乐观锁使用
+     */
+    @TableField("dbversion")
+    private Integer dbversion;
+
 }

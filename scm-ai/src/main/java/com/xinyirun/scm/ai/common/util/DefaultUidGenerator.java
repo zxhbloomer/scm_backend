@@ -2,7 +2,7 @@
 package com.xinyirun.scm.ai.common.util;
 
 import com.xinyirun.scm.ai.common.exception.MSException;
-import com.xinyirun.scm.ai.common.util.LogUtils;
+import lombok.extern.slf4j.Slf4j;
 import com.xinyirun.scm.ai.common.util.BitsAllocator;
 import com.xinyirun.scm.ai.common.util.WorkerIdAssigner;
 import com.xinyirun.scm.ai.common.util.TimeUtils;
@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@Slf4j
 public class DefaultUidGenerator implements DisposableBean {
     /**
      * Bits allocate
@@ -63,7 +64,7 @@ public class DefaultUidGenerator implements DisposableBean {
             throw new RuntimeException("Worker id " + workerId + " exceeds the max " + bitsAllocator.getMaxWorkerId());
         }
 
-        LogUtils.info("Initialized bits(1, {}, {}, {}) for workerID:{}",
+        log.info("Initialized bits(1, {}, {}, {}) for workerID:{}",
                 new Object[]{timeBits, workerBits, seqBits, workerId});
     }
 
@@ -71,7 +72,7 @@ public class DefaultUidGenerator implements DisposableBean {
         try {
             return nextId();
         } catch (Exception e) {
-            LogUtils.error("Generate unique id exception. ", e);
+            log.error("Generate unique id exception. ", e);
             throw new RuntimeException(e);
         }
     }
@@ -181,6 +182,6 @@ public class DefaultUidGenerator implements DisposableBean {
 
     @Override
     public void destroy() throws Exception {
-        LogUtils.info("Shutdown UidGenerator...");
+        log.info("Shutdown UidGenerator...");
     }
 }

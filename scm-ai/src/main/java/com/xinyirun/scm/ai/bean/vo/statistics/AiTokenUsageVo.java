@@ -67,10 +67,6 @@ public class AiTokenUsageVo implements Serializable {
      */
     private LocalDateTime usage_time;
 
-    /**
-     * 租户标识
-     */
-    private String tenant;
 
     /**
      * 创建时间

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationEntity;
 import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -20,10 +21,10 @@ public interface AiConversationMapper extends BaseMapper<AiConversationEntity> {
      * 批量插入会话记录
      */
     @Insert("<script>" +
-            "INSERT INTO ai_conversation (id, title, create_time, create_user, tenant, ai_config_id) " +
+            "INSERT INTO ai_conversation (id, title, c_time, u_time, c_id, u_id, dbversion, ai_config_id) " +
             "VALUES " +
             "<foreach collection='list' item='item' separator=','>" +
-            "(#{item.id}, #{item.title}, #{item.createTime}, #{item.createUser}, #{item.tenant}, #{item.aiConfigId})" +
+            "(#{item.id}, #{item.title}, #{item.c_time}, #{item.u_time}, #{item.c_id}, #{item.u_id}, #{item.dbversion}, #{item.ai_config_id})" +
             "</foreach>" +
             "</script>")
     int batchInsert(@Param("list") List<AiConversationEntity> list);
@@ -31,54 +32,52 @@ public interface AiConversationMapper extends BaseMapper<AiConversationEntity> {
     /**
      * 根据用户查询会话列表
      */
-    @Select("SELECT id, title, create_time, create_user, tenant, ai_config_id " +
+    @Select("SELECT id, title, c_time, u_time, c_id, u_id, dbversion, ai_config_id " +
             "FROM ai_conversation " +
-            "WHERE create_user = #{createUser} AND tenant = #{tenant} " +
-            "ORDER BY create_time DESC")
-    List<AiConversationEntity> selectByCreateUser(@Param("createUser") String createUser, @Param("tenant") String tenant);
+            "WHERE c_id = #{cId} " +
+            "ORDER BY c_time DESC")
+    List<AiConversationEntity> selectByCreateUser(@Param("cId") Long cId);
 
     /**
      * 根据租户查询会话列表
      */
-    @Select("SELECT id, title, create_time, create_user, tenant, ai_config_id " +
+    @Select("SELECT id, title, c_time, u_time, c_id, u_id, dbversion, ai_config_id " +
             "FROM ai_conversation " +
-            "WHERE tenant = #{tenant} " +
-            "ORDER BY create_time DESC")
-    List<AiConversationEntity> selectByTenant(@Param("tenant") String tenant);
+            "ORDER BY c_time DESC")
+    List<AiConversationEntity> selectByTenant();
 
     /**
      * 根据标题模糊查询会话
      */
-    @Select("SELECT id, title, create_time, create_user, tenant, ai_config_id " +
+    @Select("SELECT id, title, c_time, u_time, c_id, u_id, dbversion, ai_config_id " +
             "FROM ai_conversation " +
-            "WHERE title LIKE CONCAT('%', #{title}, '%') AND tenant = #{tenant} " +
-            "ORDER BY create_time DESC")
-    List<AiConversationEntity> selectByTitleLike(@Param("title") String title, @Param("tenant") String tenant);
+            "WHERE title LIKE CONCAT('%', #{title}, '%') " +
+            "ORDER BY c_time DESC")
+    List<AiConversationEntity> selectByTitleLike(@Param("title") String title);
 
     /**
      * 根据用户和时间范围查询会话
      */
-    @Select("SELECT id, title, create_time, create_user, tenant, ai_config_id " +
+    @Select("SELECT id, title, c_time, u_time, c_id, u_id, dbversion, ai_config_id " +
             "FROM ai_conversation " +
-            "WHERE create_user = #{createUser} AND tenant = #{tenant} " +
-            "AND create_time >= #{startTime} AND create_time <= #{endTime} " +
-            "ORDER BY create_time DESC")
-    List<AiConversationEntity> selectByUserAndTimeRange(@Param("createUser") String createUser,
-                                                       @Param("tenant") String tenant,
-                                                       @Param("startTime") Long startTime,
-                                                       @Param("endTime") Long endTime);
+            "WHERE c_id = #{cId} " +
+            "AND c_time >= #{startTime} AND c_time <= #{endTime} " +
+            "ORDER BY c_time DESC")
+    List<AiConversationEntity> selectByUserAndTimeRange(@Param("cId") Long cId,
+                                                       @Param("startTime") LocalDateTime startTime,
+                                                       @Param("endTime") LocalDateTime endTime);
 
     /**
      * 统计用户会话数量
      */
     @Select("SELECT COUNT(*) FROM ai_conversation " +
-            "WHERE create_user = #{createUser} AND tenant = #{tenant}")
-    long countByUser(@Param("createUser") String createUser, @Param("tenant") String tenant);
+            "WHERE c_id = #{cId}")
+    long countByUser(@Param("cId") Long cId);
 
     /**
      * 删除指定时间之前的会话
      */
     @Delete("DELETE FROM ai_conversation " +
-            "WHERE create_time < #{beforeTime} AND tenant = #{tenant}")
-    int deleteByCreateTimeBefore(@Param("beforeTime") Long beforeTime, @Param("tenant") String tenant);
+            "WHERE c_time < #{beforeTime}")
+    int deleteByCreateTimeBefore(@Param("beforeTime") LocalDateTime beforeTime);
 }

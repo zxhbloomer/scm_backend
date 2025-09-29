@@ -93,7 +93,7 @@ public class AiChatBaseService {
      */
     public ChatClient.CallResponseSpec chatWithMemory(AIChatOptionVo aiChatOption) {
         // 设置当前租户ID到ThreadLocal
-        ScmMessageChatMemory.setCurrentTenant(aiChatOption.getTenant());
+        ScmMessageChatMemory.setCurrentTenant(aiChatOption.getTenantId());
 
         try {
             if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
@@ -103,7 +103,7 @@ public class AiChatBaseService {
                         .user(aiChatOption.getPrompt())
                         .advisors(messageChatMemoryAdvisor)
                         .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                        .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenant()))
+                        .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
                         .call();
             }
             return getClient(aiChatOption.getModule())
@@ -111,7 +111,7 @@ public class AiChatBaseService {
                     .user(aiChatOption.getPrompt())
                     .advisors(messageChatMemoryAdvisor)
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                    .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenant()))
+                    .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
                     .call();
         } finally {
             // 清理ThreadLocal
@@ -131,7 +131,7 @@ public class AiChatBaseService {
      */
     public ChatClient.StreamResponseSpec chatWithMemoryStream(AIChatOptionVo aiChatOption) {
         // 设置当前租户ID到ThreadLocal
-        ScmMessageChatMemory.setCurrentTenant(aiChatOption.getTenant());
+        ScmMessageChatMemory.setCurrentTenant(aiChatOption.getTenantId());
 
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
             return getClient(aiChatOption.getModule())
@@ -140,7 +140,7 @@ public class AiChatBaseService {
                     .user(aiChatOption.getPrompt())
                     .advisors(messageChatMemoryAdvisor)
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                    .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenant()))
+                    .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
                     .stream();
         }
         return getClient(aiChatOption.getModule())
@@ -148,7 +148,7 @@ public class AiChatBaseService {
                 .user(aiChatOption.getPrompt())
                 .advisors(messageChatMemoryAdvisor)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenant()))
+                .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
                 .stream();
     }
 
@@ -243,11 +243,10 @@ public class AiChatBaseService {
     private AiConversationContentEntity saveConversationContent(String conversationId, String content, String type, String modelSourceId) {
         AiConversationContentEntity aiConversationContent = new AiConversationContentEntity();
         aiConversationContent.setId(generateId());
-        aiConversationContent.setConversationId(conversationId);
+        aiConversationContent.setConversation_id(conversationId);
         aiConversationContent.setContent(content);
         aiConversationContent.setType(type);
-        aiConversationContent.setModelSourceId(modelSourceId);
-        aiConversationContent.setCreateTime(System.currentTimeMillis());
+        aiConversationContent.setModel_source_id(modelSourceId);
         aiConversationContentMapper.insert(aiConversationContent);
         return aiConversationContent;
     }

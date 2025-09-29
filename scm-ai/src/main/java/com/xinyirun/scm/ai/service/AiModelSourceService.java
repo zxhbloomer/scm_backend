@@ -192,11 +192,9 @@ public class AiModelSourceService {
         try {
             AiModelSourceEntity entity = convertToEntity(modelSourceVo);
 
-            Long now = System.currentTimeMillis();
-            entity.setCreate_time(now);
-            entity.setCreate_user(operatorId != null ? operatorId.toString() : null);
             entity.setStatus(true); // 设置为启用状态
-            // 注意：数据库表中没有update_time、is_enabled、dbversion字段
+            // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
 
             int result = aiModelSourceMapper.insert(entity);
             if (result > 0) {
@@ -537,14 +535,10 @@ public class AiModelSourceService {
             }
         }
 
-        // 时间字段转换：数据库中只有create_time(bigint)
-        if (entity.getCreate_time() != null) {
-            vo.setC_time(LocalDateTime.ofEpochSecond(entity.getCreate_time() / 1000, 0, java.time.ZoneOffset.of("+8")));
+        // 时间字段转换：使用标准SCM审计字段c_time(LocalDateTime)
+        if (entity.getC_time() != null) {
+            vo.setC_time(entity.getC_time()); // 直接设置LocalDateTime，无需转换
         }
-        // 注意：数据库表中没有update_time字段
-        // if (entity.getUpdate_time() != null) {
-        //     vo.setU_time(LocalDateTime.ofEpochSecond(entity.getUpdate_time() / 1000, 0, java.time.ZoneOffset.of("+8")));
-        // }
 
         return vo;
     }
@@ -575,14 +569,12 @@ public class AiModelSourceService {
             entity.setAdv_settings(advSettingsJson);
         }
 
-        // 时间字段转换：数据库中只有create_time(bigint)
+        // 注意：时间字段使用标准审计字段，由MyBatis Plus自动填充
+        // c_time 和 c_id 字段有 @TableField(fill = FieldFill.INSERT) 注解，会自动处理
+        // 在VO转Entity时通常不需要手动设置时间字段，除非是特殊的业务需求
         if (vo.getC_time() != null) {
-            entity.setCreate_time(vo.getC_time().atZone(java.time.ZoneId.of("Asia/Shanghai")).toEpochSecond() * 1000);
+            entity.setC_time(vo.getC_time()); // 直接设置LocalDateTime
         }
-        // 注意：数据库表中没有update_time字段
-        // if (vo.getU_time() != null) {
-        //     entity.setUpdate_time(vo.getU_time().atZone(java.time.ZoneId.of("Asia/Shanghai")).toEpochSecond() * 1000);
-        // }
 
         return entity;
     }
@@ -604,17 +596,17 @@ public class AiModelSourceService {
         vo.setIs_enabled(entity.getStatus() != null && entity.getStatus() ? 1 : 0);
 
         // CreateNameVo特有字段 - 创建人名称（这里需要根据实际情况获取用户名称）
-        // TODO: 根据create_user获取实际用户名称
-        vo.setCreateUserName(entity.getCreate_user() != null ? entity.getCreate_user() : "系统用户");
+        // TODO: 根据c_id获取实际用户名称
+        vo.setCreateUserName(entity.getC_id() != null ? entity.getC_id().toString() : "系统用户");
 
-        // 时间字段转换：数据库中只有create_time(bigint)
-        if (entity.getCreate_time() != null) {
-            vo.setC_time(LocalDateTime.ofEpochSecond(entity.getCreate_time() / 1000, 0, java.time.ZoneOffset.of("+8")));
+        // 时间字段转换：使用标准SCM审计字段c_time(LocalDateTime)
+        if (entity.getC_time() != null) {
+            vo.setC_time(entity.getC_time()); // 直接设置LocalDateTime，无需转换
         }
-        // 注意：数据库表中没有update_time字段
-        // if (entity.getUpdate_time() != null) {
-        //     vo.setU_time(LocalDateTime.ofEpochSecond(entity.getUpdate_time() / 1000, 0, java.time.ZoneOffset.of("+8")));
-        // }
+        // 使用标准SCM审计字段u_time(LocalDateTime)
+        if (entity.getU_time() != null) {
+            vo.setU_time(entity.getU_time()); // 直接设置LocalDateTime，无需转换
+        }
 
         return vo;
     }

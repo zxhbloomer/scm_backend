@@ -52,9 +52,6 @@ public class AIChatRequestVo implements Serializable {
     @Schema(description = "组织ID")
     private String organizationId;
 
-    /**
-     * 租户ID
-     */
-    @Schema(description = "租户ID")
     private String tenantId;
+
 }

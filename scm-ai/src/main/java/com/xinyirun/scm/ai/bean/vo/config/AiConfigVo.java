@@ -67,10 +67,6 @@ public class AiConfigVo implements Serializable {
      */
     private Integer sort_order;
 
-    /**
-     * 租户标识
-     */
-    private String tenant;
 
     /**
      * 创建时间

@@ -7,7 +7,6 @@ import com.xinyirun.scm.ai.bean.entity.statistics.AiUserQuotaEntity;
 import com.xinyirun.scm.ai.bean.vo.statistics.AiUserQuotaVo;
 import com.xinyirun.scm.ai.mapper.statistics.AiUserQuotaMapper;
 import com.xinyirun.scm.ai.common.exception.MSException;
-import com.xinyirun.scm.ai.common.util.LogUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -47,11 +46,11 @@ public class AiUserQuotaService {
     public UserQuotaInfo getUserQuotaInfo(String userId, String tenant) {
         try {
             // 查询用户配额
-            AiUserQuotaEntity quota = aiUserQuotaMapper.selectByUserIdAndTenant(userId, tenant);
+            AiUserQuotaEntity quota = aiUserQuotaMapper.selectByUserIdAndTenant(userId);
 
             // 如果用户配额不存在，创建默认配额
             if (quota == null) {
-                quota = createDefaultUserQuota(userId, tenant);
+                quota = createDefaultUserQuota(userId);
             } else {
                 // 检查是否需要重置配额
                 quota = checkAndResetQuota(quota);
@@ -60,7 +59,7 @@ public class AiUserQuotaService {
             return convertToQuotaInfo(quota);
 
         } catch (Exception e) {
-            LogUtils.error("获取用户配额信息失败 - userId: " + userId + ", tenant: " + tenant, e);
+            log.error("获取用户配额信息失败 - userId: " + userId + ", tenant: " + tenant, e);
             throw new MSException("获取用户配额信息失败：" + e.getMessage());
         }
     }
@@ -88,14 +87,14 @@ public class AiUserQuotaService {
 
             // 检查日配额
             if (quotaInfo.getDailyUsed() + estimatedTokens > quotaInfo.getDailyLimit()) {
-                LogUtils.warn("用户日配额不足 - userId: {}, used: {}, limit: {}, estimated: {}",
+                log.warn("用户日配额不足 - userId: {}, used: {}, limit: {}, estimated: {}",
                         new Object[]{userId, quotaInfo.getDailyUsed(), quotaInfo.getDailyLimit(), estimatedTokens});
                 return false;
             }
 
             // 检查月配额
             if (quotaInfo.getMonthlyUsed() + estimatedTokens > quotaInfo.getMonthlyLimit()) {
-                LogUtils.warn("用户月配额不足 - userId: {}, used: {}, limit: {}, estimated: {}",
+                log.warn("用户月配额不足 - userId: {}, used: {}, limit: {}, estimated: {}",
                         new Object[]{userId, quotaInfo.getMonthlyUsed(), quotaInfo.getMonthlyLimit(), estimatedTokens});
                 return false;
             }
@@ -103,7 +102,7 @@ public class AiUserQuotaService {
             return true;
 
         } catch (Exception e) {
-            LogUtils.error("检查用户配额失败 - userId: {}", userId, e);
+            log.error("检查用户配额失败 - userId: {}", userId, e);
             // 检查失败时允许使用，避免影响正常业务
             return true;
         }
@@ -113,25 +112,24 @@ public class AiUserQuotaService {
      * 更新用户Token使用量
      *
      * @param userId 用户ID
-     * @param tenant 租户ID
      * @param tokenCount Token数量
      * @param cost 费用
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void updateTokenUsage(String userId, String tenant, Long tokenCount, BigDecimal cost) {
+    public void updateTokenUsage(String userId, Long tokenCount, BigDecimal cost) {
         try {
             if (tokenCount == null || tokenCount <= 0) {
                 return;
             }
 
             // 调用存储过程 UpdateUserTokenUsage
-            aiUserQuotaMapper.callUpdateUserTokenUsage(userId, tenant, tokenCount, cost);
+            aiUserQuotaMapper.callUpdateUserTokenUsage(userId,  tokenCount, cost);
 
-            LogUtils.debug("用户Token使用量已更新(存储过程) - userId: {}, tokens: {}, cost: {}",
+            log.debug("用户Token使用量已更新(存储过程) - userId: {}, tokens: {}, cost: {}",
                     new Object[]{userId, tokenCount, cost});
 
         } catch (Exception e) {
-            LogUtils.error("更新用户Token使用量失败", e);
+            log.error("更新用户Token使用量失败", e);
             throw e;
         }
     }
@@ -140,31 +138,30 @@ public class AiUserQuotaService {
      * 设置用户配额
      *
      * @param userId 用户ID
-     * @param tenant 租户ID
      * @param dailyLimit 日限额
      * @param monthlyLimit 月限额
      */
     @Transactional(propagation = Propagation.REQUIRED)
-    public void setUserQuota(String userId, String tenant, Long dailyLimit, Long monthlyLimit) {
+    public void setUserQuota(String userId, Long dailyLimit, Long monthlyLimit) {
         try {
-            UserQuotaInfo existingQuota = getUserQuotaInfo(userId, tenant);
+            UserQuotaInfo existingQuota = getUserQuotaInfo(userId, null);
 
             AiUserQuotaEntity quota = new AiUserQuotaEntity();
             quota.setId(existingQuota.getId());
             quota.setUser_id(userId);
-            quota.setTenant(tenant);
             quota.setDaily_limit(dailyLimit);
             quota.setMonthly_limit(monthlyLimit);
-            quota.setUpdate_time(System.currentTimeMillis());
+            // 注意：u_time 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT_UPDATE) 会自动处理修改时间
 
             // 更新数据库
             aiUserQuotaMapper.updateById(quota);
 
-            LogUtils.info("用户配额已设置 - userId: {}, dailyLimit: {}, monthlyLimit: {}",
+            log.info("用户配额已设置 - userId: {}, dailyLimit: {}, monthlyLimit: {}",
                     userId, dailyLimit, monthlyLimit);
 
         } catch (Exception e) {
-            LogUtils.error("设置用户配额失败", e);
+            log.error("设置用户配额失败", e);
             throw new MSException("设置用户配额失败：" + e.getMessage());
         }
     }
@@ -184,15 +181,16 @@ public class AiUserQuotaService {
             quota.setId(quotaInfo.getId());
             quota.setDaily_used(0L);
             quota.setDaily_reset_date(LocalDate.now());
-            quota.setUpdate_time(System.currentTimeMillis());
+            // 注意：u_time 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT_UPDATE) 会自动处理修改时间
 
             // 更新数据库
             aiUserQuotaMapper.updateById(quota);
 
-            LogUtils.info("用户日配额已重置 - userId: {}", userId);
+            log.info("用户日配额已重置 - userId: {}", userId);
 
         } catch (Exception e) {
-            LogUtils.error("重置用户日配额失败", e);
+            log.error("重置用户日配额失败", e);
             throw new MSException("重置用户日配额失败：" + e.getMessage());
         }
     }
@@ -212,15 +210,16 @@ public class AiUserQuotaService {
             quota.setId(quotaInfo.getId());
             quota.setMonthly_used(0L);
             quota.setMonthly_reset_date(LocalDate.now().withDayOfMonth(1));
-            quota.setUpdate_time(System.currentTimeMillis());
+            // 注意：u_time 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT_UPDATE) 会自动处理修改时间
 
             // 更新数据库
             aiUserQuotaMapper.updateById(quota);
 
-            LogUtils.info("用户月配额已重置 - userId: {}", userId);
+            log.info("用户月配额已重置 - userId: {}", userId);
 
         } catch (Exception e) {
-            LogUtils.error("重置用户月配额失败", e);
+            log.error("重置用户月配额失败", e);
             throw new MSException("重置用户月配额失败：" + e.getMessage());
         }
     }
@@ -234,10 +233,10 @@ public class AiUserQuotaService {
             // 调用存储过程
             aiUserQuotaMapper.callResetUserDailyQuota();
 
-            LogUtils.info("所有用户日配额已重置");
+            log.info("所有用户日配额已重置");
 
         } catch (Exception e) {
-            LogUtils.error("批量重置用户日配额失败", e);
+            log.error("批量重置用户日配额失败", e);
             throw new MSException("批量重置用户日配额失败：" + e.getMessage());
         }
     }
@@ -251,10 +250,10 @@ public class AiUserQuotaService {
             // 调用存储过程
             aiUserQuotaMapper.callResetUserMonthlyQuota();
 
-            LogUtils.info("所有用户月配额已重置");
+            log.info("所有用户月配额已重置");
 
         } catch (Exception e) {
-            LogUtils.error("批量重置用户月配额失败", e);
+            log.error("批量重置用户月配额失败", e);
             throw new MSException("批量重置用户月配额失败：" + e.getMessage());
         }
     }
@@ -262,12 +261,11 @@ public class AiUserQuotaService {
     /**
      * 创建默认用户配额
      */
-    private AiUserQuotaEntity createDefaultUserQuota(String userId, String tenant) {
+    private AiUserQuotaEntity createDefaultUserQuota(String userId) {
         try {
             AiUserQuotaEntity quota = new AiUserQuotaEntity();
             quota.setId(UUID.randomUUID().toString().replace("-", ""));
             quota.setUser_id(userId);
-            quota.setTenant(tenant);
             quota.setDaily_limit(aiConfigService.getDefaultDailyTokenLimit());
             quota.setMonthly_limit(aiConfigService.getDefaultMonthlyTokenLimit());
             quota.setDaily_used(0L);
@@ -276,19 +274,19 @@ public class AiUserQuotaService {
             quota.setMonthly_reset_date(LocalDate.now().withDayOfMonth(1));
             quota.setTotal_cost(BigDecimal.ZERO);
             quota.setStatus(true);
-            quota.setCreate_time(System.currentTimeMillis());
-            quota.setUpdate_time(System.currentTimeMillis());
+            // 注意：c_time、u_time、c_id、u_id 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT/INSERT_UPDATE) 会自动处理审计字段
 
             // 保存到数据库
             aiUserQuotaMapper.insert(quota);
 
-            LogUtils.info("已创建默认用户配额 - userId: {}, dailyLimit: {}, monthlyLimit: {}",
+            log.info("已创建默认用户配额 - userId: {}, dailyLimit: {}, monthlyLimit: {}",
                     userId, quota.getDaily_limit(), quota.getMonthly_limit());
 
             return quota;
 
         } catch (Exception e) {
-            LogUtils.error("创建默认用户配额失败", e);
+            log.error("创建默认用户配额失败", e);
             throw e;
         }
     }
@@ -316,7 +314,8 @@ public class AiUserQuotaService {
         }
 
         if (needUpdate) {
-            quota.setUpdate_time(System.currentTimeMillis());
+            // 注意：u_time 字段由MyBatis Plus自动填充，不需要手动设置
+            // @TableField(fill = FieldFill.INSERT_UPDATE) 会自动处理修改时间
             // 更新数据库
             aiUserQuotaMapper.updateById(quota);
         }
@@ -331,7 +330,6 @@ public class AiUserQuotaService {
         UserQuotaInfo info = new UserQuotaInfo();
         info.setId(quota.getId());
         info.setUserId(quota.getUser_id());
-        info.setTenant(quota.getTenant());
         info.setDailyLimit(quota.getDaily_limit() != null ? quota.getDaily_limit() : 0L);
         info.setMonthlyLimit(quota.getMonthly_limit() != null ? quota.getMonthly_limit() : 0L);
         info.setDailyUsed(quota.getDaily_used() != null ? quota.getDaily_used() : 0L);
@@ -345,16 +343,14 @@ public class AiUserQuotaService {
      * 根据用户ID获取配额信息
      *
      * @param userId 用户ID
-     * @param tenant 租户ID
      * @return 用户配额VO
      */
-    public AiUserQuotaVo getByUserId(String userId, String tenant) {
+    public AiUserQuotaVo getByUserId(String userId) {
         try {
-            UserQuotaInfo quotaInfo = getUserQuotaInfo(userId, tenant);
+            UserQuotaInfo quotaInfo = getUserQuotaInfo(userId, null);
 
             AiUserQuotaVo vo = new AiUserQuotaVo();
             vo.setUserId(userId);
-            vo.setTenant(tenant);
             vo.setDailyLimit(quotaInfo.getDailyLimit());
             vo.setMonthlyLimit(quotaInfo.getMonthlyLimit());
             vo.setDailyUsed(quotaInfo.getDailyUsed());
@@ -366,7 +362,7 @@ public class AiUserQuotaService {
 
             return vo;
         } catch (Exception e) {
-            log.error("根据用户ID获取配额信息失败, userId: {}, tenant: {}", userId, tenant, e);
+            log.error("根据用户ID获取配额信息失败, userId: {}", userId, e);
             return null;
         }
     }
@@ -384,9 +380,9 @@ public class AiUserQuotaService {
             Long dailyLimit = quotaVo.getDailyLimit() != null ? quotaVo.getDailyLimit() : quotaVo.getTotal_quota();
             Long monthlyLimit = quotaVo.getMonthlyLimit() != null ? quotaVo.getMonthlyLimit() : quotaVo.getTotal_quota();
 
-            setUserQuota(quotaVo.getUserId(), quotaVo.getTenant(), dailyLimit, monthlyLimit);
+            setUserQuota(quotaVo.getUserId(), dailyLimit, monthlyLimit);
 
-            return getByUserId(quotaVo.getUserId(), quotaVo.getTenant());
+            return getByUserId(quotaVo.getUserId());
         } catch (Exception e) {
             log.error("创建用户配额失败", e);
             throw new RuntimeException("创建用户配额失败", e);
@@ -405,7 +401,7 @@ public class AiUserQuotaService {
     @Transactional(rollbackFor = Exception.class)
     public boolean resetQuota(String userId, Long newQuota, String tenant, Long operatorId) {
         try {
-            setUserQuota(userId, tenant, newQuota, newQuota);
+            setUserQuota(userId, newQuota, newQuota);
             return true;
         } catch (Exception e) {
             log.error("重置用户配额失败, userId: {}, newQuota: {}", userId, newQuota, e);
@@ -472,7 +468,7 @@ public class AiUserQuotaService {
     @Transactional(rollbackFor = Exception.class)
     public boolean consumeQuota(String userId, Long tokenCount, String tenant, Long operatorId) {
         try {
-            updateTokenUsage(userId, tenant, tokenCount, BigDecimal.ZERO);
+            updateTokenUsage(userId, tokenCount, BigDecimal.ZERO);
             return true;
         } catch (Exception e) {
             log.error("消费用户配额失败, userId: {}, tokenCount: {}", userId, tokenCount, e);
@@ -502,7 +498,6 @@ public class AiUserQuotaService {
         public String getUserId() { return userId; }
         public void setUserId(String userId) { this.userId = userId; }
         public String getTenant() { return tenant; }
-        public void setTenant(String tenant) { this.tenant = tenant; }
         public Long getDailyLimit() { return dailyLimit; }
         public void setDailyLimit(Long dailyLimit) { this.dailyLimit = dailyLimit; }
         public Long getMonthlyLimit() { return monthlyLimit; }

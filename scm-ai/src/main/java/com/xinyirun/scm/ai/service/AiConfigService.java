@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import com.xinyirun.scm.ai.common.util.LogUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -60,7 +59,7 @@ public class AiConfigService {
             }
 
             // 从数据库查询
-            AiConfigEntity config = aiConfigMapper.selectByConfigKeyAndTenant(configKey, tenant);
+            AiConfigEntity config = aiConfigMapper.selectByConfigKeyAndTenant(configKey);
             if (config != null) {
                 String value = config.getConfig_value();
                 configCache.put(cacheKey, value);
@@ -77,7 +76,7 @@ public class AiConfigService {
 
             return configValue != null ? configValue : defaultValue;
         } catch (Exception e) {
-            LogUtils.error("获取配置失败，configKey: " + configKey + ", tenant: " + tenant, e);
+            log.error("获取配置失败，configKey: " + configKey + ", tenant: " + tenant, e);
             return defaultValue;
         }
     }
@@ -163,74 +162,6 @@ public class AiConfigService {
     }
 
     /**
-     * 保存配置
-     *
-     * @param configVo 配置VO
-     * @param operatorId 操作员ID
-     * @return 保存结果
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public boolean saveConfig(AiConfigVo configVo, Long operatorId) {
-        try {
-            AiConfigEntity entity = convertToEntity(configVo);
-
-            LocalDateTime now = LocalDateTime.now();
-            if (entity.getId() == null) {
-                int result = aiConfigMapper.insert(entity);
-                if (result > 0) {
-                    // 清除缓存
-                    clearCache(entity.getConfig_key(), entity.getTenant());
-                    log.info("新增配置成功, configKey: {}", entity.getConfig_key());
-                    return true;
-                }
-            } else {
-
-                int result = aiConfigMapper.updateById(entity);
-                if (result > 0) {
-                    // 清除缓存
-                    clearCache(entity.getConfig_key(), entity.getTenant());
-                    log.info("更新配置成功, id: {}", entity.getId());
-                    return true;
-                }
-            }
-
-            return false;
-        } catch (Exception e) {
-            log.error("保存配置失败", e);
-            throw new RuntimeException("保存配置失败", e);
-        }
-    }
-
-    /**
-     * 删除配置
-     *
-     * @param id 配置ID
-     * @return 删除结果
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public boolean deleteConfig(Integer id) {
-        try {
-            AiConfigEntity entity = aiConfigMapper.selectById(id);
-            if (entity == null) {
-                return false;
-            }
-
-            int result = aiConfigMapper.deleteById(id);
-            if (result > 0) {
-                // 清除缓存
-                clearCache(entity.getConfig_key(), entity.getTenant());
-                log.info("删除配置成功, id: {}", id);
-                return true;
-            }
-
-            return false;
-        } catch (Exception e) {
-            log.error("删除配置失败, id: {}", id, e);
-            throw new RuntimeException("删除配置失败", e);
-        }
-    }
-
-    /**
      * 获取布尔配置值
      */
     public Boolean getBooleanConfig(String configKey, String tenant, Boolean defaultValue) {
@@ -253,7 +184,7 @@ public class AiConfigService {
         try {
             return Integer.valueOf(value);
         } catch (NumberFormatException e) {
-            LogUtils.error("配置值格式错误，configKey: " + configKey + ", value: " + value, e);
+            log.error("配置值格式错误，configKey: " + configKey + ", value: " + value, e);
             return defaultValue;
         }
     }
@@ -273,7 +204,7 @@ public class AiConfigService {
         try {
             return Long.valueOf(value);
         } catch (NumberFormatException e) {
-            LogUtils.error("配置值格式错误，configKey: " + configKey + ", value: " + value, e);
+            log.error("配置值格式错误，configKey: " + configKey + ", value: " + value, e);
             return defaultValue;
         }
     }
@@ -286,7 +217,7 @@ public class AiConfigService {
         try {
             return new BigDecimal(value);
         } catch (NumberFormatException e) {
-            LogUtils.error("配置值格式错误，configKey: " + configKey + ", value: " + value, e);
+            log.error("配置值格式错误，configKey: " + configKey + ", value: " + value, e);
             return defaultValue;
         }
     }
@@ -324,7 +255,7 @@ public class AiConfigService {
      */
     public void clearConfigCache() {
         configCache.clear();
-        LogUtils.info("AI配置缓存已清理");
+        log.info("AI配置缓存已清理");
     }
 
     /**

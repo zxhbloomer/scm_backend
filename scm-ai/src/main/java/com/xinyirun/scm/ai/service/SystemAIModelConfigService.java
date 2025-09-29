@@ -154,17 +154,16 @@ public class SystemAIModelConfigService {
         List<AdvSettingVo> advSettingVoList = aiModelSourceVo.getAdvSettingVoList();
         List<AdvSettingVo> advSettingVos = getAdvSettingVos(advSettingVoList);
         aiModelSource.setAdv_settings(JSON.toJSONString(advSettingVos));
-        aiModelSource.setCreate_time(System.currentTimeMillis());
+
+        // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
+        // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
 
         if (isAddOperation) {
-            // 新增操作：使用当前用户编码
-            aiModelSource.setCreate_user(userId);
+            // 新增操作：c_id将由MyBatis Plus自动填充当前用户ID
+            // 这里不需要手动设置，因为Entity字段有@TableField(fill = FieldFill.INSERT)注解
         } else {
-            // 更新操作：如果VO中有createUser则使用，否则使用当前用户编码
-            String createUser = StringUtils.isNotBlank(aiModelSourceVo.getCreate_user())
-                    ? aiModelSourceVo.getCreate_user()
-                    : userId;
-            aiModelSource.setCreate_user(createUser);
+            // 更新操作：保持原有创建人，u_id由MyBatis Plus自动填充当前修改人
+            // 这里也不需要手动设置
         }
     }
 

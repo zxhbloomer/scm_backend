@@ -12,10 +12,12 @@ import com.xinyirun.scm.ai.service.AiConversationContentService;
 import com.xinyirun.scm.ai.service.AiConversationService;
 import com.xinyirun.scm.ai.service.AiTokenUsageService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -33,6 +35,7 @@ import java.util.List;
  * @author SCM-AI重构团队
  * @since 2025-09-28
  */
+@Slf4j
 @Tag(name = "AI对话")
 @RestController
 @RequestMapping(value = "/api/v1/ai/conversation")
@@ -52,6 +55,7 @@ public class AiConversationController {
      */
     @GetMapping(value = "/list")
     @Operation(summary = "对话列表")
+    @SysLogAnnotion("获取对话列表")
     public ResponseEntity<List<AiConversationVo>> list() {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -65,6 +69,7 @@ public class AiConversationController {
      */
     @GetMapping(value = "/chat/list/{conversationId}")
     @Operation(summary = "对话内容列表")
+    @SysLogAnnotion("获取对话内容")
     public ResponseEntity<List<AiConversationContentVo>> chatList(@PathVariable String conversationId) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -78,6 +83,7 @@ public class AiConversationController {
      */
     @PostMapping(value = "/add")
     @Operation(summary = "添加对话")
+    @SysLogAnnotion("创建新对话")
     public ResponseEntity<AiConversationVo> add(@Validated @RequestBody AIChatRequestVo request) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -91,6 +97,7 @@ public class AiConversationController {
      */
     @PostMapping(value = "/update")
     @Operation(summary = "修改对话标题")
+    @SysLogAnnotion("修改对话标题")
     public ResponseEntity<AiConversationVo> update(@Validated @RequestBody AIConversationUpdateRequestVo request) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -104,6 +111,7 @@ public class AiConversationController {
      */
     @DeleteMapping(value = "/delete/{conversationId}")
     @Operation(summary = "删除对话")
+    @SysLogAnnotion("删除对话")
     public ResponseEntity<Void> delete(@PathVariable String conversationId) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -117,6 +125,7 @@ public class AiConversationController {
      */
     @PostMapping(value = "/clear/{conversationId}")
     @Operation(summary = "清空对话内容")
+    @SysLogAnnotion("清空对话内容")
     public ResponseEntity<Void> clearConversationContent(@PathVariable String conversationId) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -130,6 +139,7 @@ public class AiConversationController {
      */
     @PostMapping(value = "/end/{conversationId}")
     @Operation(summary = "结束对话")
+    @SysLogAnnotion("结束对话")
     public ResponseEntity<Void> endConversation(@PathVariable String conversationId) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
@@ -143,6 +153,7 @@ public class AiConversationController {
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式聊天 (Spring AI标准)")
+    @SysLogAnnotion("AI流式聊天")
     public Flux<ChatResponseVo> chatStream(@Validated @RequestBody AIChatRequestVo request) {
         // 获取用户ID
         Long operatorId = SecurityUtil.getStaff_id();
@@ -156,6 +167,7 @@ public class AiConversationController {
                     DataSourceHelper.use(request.getTenantId());
                     ScmMessageChatMemory.setCurrentTenant(request.getTenantId());
                 }
+                log.debug("租户数据库：{}", request.getTenantId());
                 // 持久化原始提示词（需要获取模型ID）
                 // 注意：这里使用chatModelId作为modelSourceId，与业务逻辑保持一致
                 aiConversationService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), request.getChatModelId());
@@ -189,12 +201,10 @@ public class AiConversationController {
                                             if (response.getUsage() != null) {
                                                 // 通过conversationId获取conversation对象以获取tenant
                                                 AiConversationVo conversation = aiConversationService.getConversation(request.getConversationId());
-                                                String tenant = conversation != null ? conversation.getTenant() : null;
 
                                                 aiConversationService.recordTokenUsageFromSpringAI(
                                                         request.getConversationId(),
                                                         userId,
-                                                        tenant,  // 从ai_conversation表中获取的tenant
                                                         "OpenAI",  // 根据实际AI提供商
                                                         request.getChatModelId(),
                                                         response.getUsage().getPromptTokens() != null ? response.getUsage().getPromptTokens().longValue() : 0L,

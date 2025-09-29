@@ -22,7 +22,7 @@ public interface WorkerNodeMapper extends BaseMapper<WorkerNodeEntity> {
     /**
      * 根据主机名和端口查询工作节点
      */
-    @Select("SELECT id, host_name, port, type, launch_date, modified, created, tenant, " +
+    @Select("SELECT id, host_name, port, type, launch_date, tenant, " +
             "c_time, u_time, c_id, u_id, dbversion " +
             "FROM worker_node " +
             "WHERE host_name = #{hostName} AND port = #{port} " +
@@ -32,7 +32,7 @@ public interface WorkerNodeMapper extends BaseMapper<WorkerNodeEntity> {
     /**
      * 查询指定类型的所有工作节点
      */
-    @Select("SELECT id, host_name, port, type, launch_date, modified, created, tenant, " +
+    @Select("SELECT id, host_name, port, type, launch_date, tenant, " +
             "c_time, u_time, c_id, u_id, dbversion " +
             "FROM worker_node " +
             "WHERE type = #{type} " +
@@ -42,18 +42,17 @@ public interface WorkerNodeMapper extends BaseMapper<WorkerNodeEntity> {
     /**
      * 查询活跃的工作节点（最近修改时间在指定分钟内）
      */
-    @Select("SELECT id, host_name, port, type, launch_date, modified, created, tenant, " +
+    @Select("SELECT id, host_name, port, type, launch_date, tenant, " +
             "c_time, u_time, c_id, u_id, dbversion " +
             "FROM worker_node " +
-            "WHERE modified >= DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE) " +
-            "ORDER BY modified DESC")
+            "WHERE u_time >= DATE_SUB(NOW(), INTERVAL #{minutes} MINUTE) " +
+            "ORDER BY u_time DESC")
     List<WorkerNodeEntity> selectActiveNodes(@Param("minutes") Integer minutes);
 
     /**
      * 更新工作节点心跳时间
      */
     @Update("UPDATE worker_node SET " +
-            "modified = NOW(), " +
             "u_time = NOW(), " +
             "u_id = #{userId}, " +
             "dbversion = dbversion + 1 " +
@@ -63,7 +62,7 @@ public interface WorkerNodeMapper extends BaseMapper<WorkerNodeEntity> {
     /**
      * 根据租户查询工作节点
      */
-    @Select("SELECT id, host_name, port, type, launch_date, modified, created, tenant, " +
+    @Select("SELECT id, host_name, port, type, launch_date, tenant, " +
             "c_time, u_time, c_id, u_id, dbversion " +
             "FROM worker_node " +
             "WHERE tenant = #{tenant} " +
@@ -80,10 +79,10 @@ public interface WorkerNodeMapper extends BaseMapper<WorkerNodeEntity> {
      * 批量插入工作节点
      */
     @Insert("<script>" +
-            "INSERT INTO worker_node (host_name, port, type, launch_date, modified, created, tenant, " +
+            "INSERT INTO worker_node (host_name, port, type, launch_date, tenant, " +
             "c_time, u_time, c_id, u_id, dbversion) VALUES " +
             "<foreach collection='list' item='item' separator=','>" +
-            "(#{item.host_name}, #{item.port}, #{item.type}, #{item.launch_date}, #{item.modified}, #{item.created}, #{item.tenant}, " +
+            "(#{item.host_name}, #{item.port}, #{item.type}, #{item.launch_date}, #{item.tenant}, " +
             "#{item.c_time}, #{item.u_time}, #{item.c_id}, #{item.u_id}, #{item.dbversion})" +
             "</foreach>" +
             "</script>")

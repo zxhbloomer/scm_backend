@@ -22,9 +22,6 @@ public class AiUserQuotaVo implements Serializable {
     @Size(min = 1, max = 50, message = "{ai_user_quota.user_id.length_range}", groups = {Created.class, Updated.class})
     private String userId;
 
-    @Schema(description = "租户ID")
-    @Size(max = 30, message = "{ai_user_quota.tenant.length_range}", groups = {Created.class, Updated.class})
-    private String tenant;
 
     @Schema(description = "日Token限额", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "{ai_user_quota.daily_limit.not_null}", groups = {Created.class})
