@@ -2,6 +2,7 @@ package com.xinyirun.scm.ai.bean.vo.statistics;
 
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 用户Token使用汇总VO
@@ -50,10 +51,10 @@ public class UserTokenSummaryVo {
     /**
      * 首次使用时间
      */
-    private Long first_usage_time;
+    private LocalDateTime first_usage_time;
 
     /**
      * 最后使用时间
      */
-    private Long last_usage_time;
+    private LocalDateTime last_usage_time;
 }

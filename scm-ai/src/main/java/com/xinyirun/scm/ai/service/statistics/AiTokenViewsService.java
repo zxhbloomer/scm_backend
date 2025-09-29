@@ -161,4 +161,5 @@ public class AiTokenViewsService {
         vo.setAvg_response_time((BigDecimal) row.get("avg_response_time"));
         return vo;
     }
+
 }

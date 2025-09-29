@@ -414,7 +414,7 @@ public class AiTokenUsageService {
             // 映射token字段
             entity.setPrompt_tokens(promptTokens != null ? promptTokens.intValue() : 0);
             entity.setCompletion_tokens(completionTokens != null ? completionTokens.intValue() : 0);
-            entity.setTotal_tokens((promptTokens != null ? promptTokens.intValue() : 0) + (completionTokens != null ? completionTokens.intValue() : 0));
+            // total_tokens是数据库生成列，自动计算，不需要手动设置
             entity.setUsage_time(LocalDateTime.now());
 
             LocalDateTime now = LocalDateTime.now();
