@@ -51,8 +51,6 @@ public class AiConversationService {
     @Resource
     AiTokenUsageService aiTokenUsageService;
     @Resource
-    AiUserQuotaService aiUserQuotaService;
-    @Resource
     private ExtAiConversationContentMapper extAiConversationContentMapper;
     @Resource
     AiConfigService aiConfigService;
@@ -429,13 +427,13 @@ public class AiConversationService {
             Long completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens().longValue() : 0L;
 
             // 获取AI提供商和模型信息（从请求配置中获取）
-            String aiProvider = "deepseek"; // 默认提供商，实际应该从配置中获取
-            String aiModelType = "deepseek-chat"; // 默认模型，实际应该从配置中获取
+            String aiProvider = "unknown"; // 使用动态模型选择，不再硬编码
+            String aiModelType = "unknown"; // 使用动态模型选择，不再硬编码
 
             // 异步记录Token使用情况
             aiTokenUsageService.recordTokenUsageAsync(
                     request.getConversationId(),
-                    request.getChatModelId(), // 模型源ID
+                    null, // 模型源ID - 已废弃，使用动态模型选择
                     userId,
                     aiProvider,
                     aiModelType,
@@ -462,7 +460,7 @@ public class AiConversationService {
             // 失败时通常没有Token消耗，记录0
             aiTokenUsageService.recordTokenUsageAsync(
                     request.getConversationId(),
-                    request.getChatModelId(),
+                    null, // 模型源ID - 已废弃，使用动态模型选择
                     userId,
                     "unknown",
                     "unknown",
@@ -525,8 +523,8 @@ public class AiConversationService {
         if (response != null && response.getModelProvider() != null) {
             return response.getModelProvider();
         }
-        // 从配置获取默认值
-        return "OpenAI"; // 默认AI提供商
+        // 如果响应中没有提供商信息，返回unknown
+        return "unknown";
     }
 
     /**
@@ -536,8 +534,8 @@ public class AiConversationService {
         if (response != null && response.getModelName() != null) {
             return response.getModelName();
         }
-        // 从配置获取默认值
-        return "gpt-4o"; // 默认AI模型
+        // 如果响应中没有模型信息，返回unknown
+        return "unknown";
     }
 
     /**

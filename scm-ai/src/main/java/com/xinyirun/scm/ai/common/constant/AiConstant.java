@@ -32,17 +32,17 @@ public final class AiConstant {
     /**
      * 消息类型 - 用户消息
      */
-    public static final String MESSAGE_TYPE_USER = "USER";
+    public static final String MESSAGE_TYPE_USER = "user";
 
     /**
      * 消息类型 - AI回复
      */
-    public static final String MESSAGE_TYPE_AI = "AI";
+    public static final String MESSAGE_TYPE_ASSISTANT = "assistant";
 
     /**
      * 消息类型 - 系统消息
      */
-    public static final String MESSAGE_TYPE_SYSTEM = "SYSTEM";
+    public static final String MESSAGE_TYPE_SYSTEM = "system";
 
     // ==================== 处理状态常量 ====================
 

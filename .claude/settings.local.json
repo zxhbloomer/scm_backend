@@ -22,7 +22,22 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "mcp__serena__find_symbol",
-      "mcp__serena__search_for_pattern"
+      "mcp__serena__search_for_pattern",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "mcp__serena__list_dir",
+      "Bash(tree:*)",
+      "mcp__mysql__list_tables",
+      "mcp__serena__activate_project",
+      "mcp__dthink__sequentialthinking",
+      "Read(//d/**)",
+      "Bash(.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly)",
+      "Bash(powershell.exe:*)",
+      "Bash(dir:*)",
+      "Bash(find:*)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

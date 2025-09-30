@@ -82,6 +82,45 @@ public class AiConversationContentService {
     }
 
     /**
+     * 保存对话内容（包含模型信息）
+     *
+     * @param conversationId 对话ID
+     * @param type 内容类型
+     * @param content 内容
+     * @param modelSourceId 模型源ID
+     * @param providerName AI提供商名称
+     * @param baseName 基础模型名称
+     * @param operatorId 操作员ID
+     * @return 保存的对话内容VO
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AiConversationContentVo saveConversationContent(String conversationId, String type, String content,
+                                                          String modelSourceId, String providerName, String baseName, Long operatorId) {
+        try {
+            AiConversationContentEntity entity = new AiConversationContentEntity();
+            entity.setConversation_id(conversationId);
+            entity.setType(type);
+            entity.setContent(content);
+            entity.setModel_source_id(modelSourceId);
+            entity.setProvider_name(providerName);
+            entity.setBase_name(baseName);
+
+            int result = aiConversationContentMapper.insert(entity);
+            if (result > 0) {
+                log.info("保存对话内容成功, conversationId: {}, type: {}, provider: {}, model: {}",
+                        conversationId, type, providerName, baseName);
+                return convertToVo(entity);
+            }
+
+            return null;
+        } catch (Exception e) {
+            log.error("保存对话内容失败, conversationId: {}, provider: {}, model: {}",
+                    conversationId, providerName, baseName, e);
+            throw new RuntimeException("保存对话内容失败", e);
+        }
+    }
+
+    /**
      * 根据ID查询对话内容
      *
      * @param id 内容ID

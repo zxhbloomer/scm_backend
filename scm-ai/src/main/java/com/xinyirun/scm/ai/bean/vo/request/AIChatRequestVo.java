@@ -33,11 +33,10 @@ public class AIChatRequestVo implements Serializable {
     private String prompt;
 
     /**
-     * 聊天模型ID
+     * AI类型
      */
-    @Schema(description = "模型ID", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotBlank(message = "模型ID不能为空")
-    private String chatModelId;
+    @Schema(description = "AI类型 (LLM/VISION/AUDIO)", example = "LLM")
+    private String aiType = "LLM";
 
     /**
      * 对话ID

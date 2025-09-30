@@ -8,10 +8,13 @@ import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIConversationUpdateRequestVo;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.config.ScmMessageChatMemory;
+import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.service.AiConversationContentService;
 import com.xinyirun.scm.ai.service.AiConversationService;
+import com.xinyirun.scm.ai.service.AiModelSelectionService;
 import com.xinyirun.scm.ai.service.AiTokenUsageService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.ai.constants.AICommonConstants;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import io.swagger.v3.oas.annotations.Operation;
@@ -49,6 +52,9 @@ public class AiConversationController {
 
     @Resource
     private AiTokenUsageService aiTokenUsageService;
+
+    @Resource
+    private AiModelSelectionService aiModelSelectionService;
 
     /**
      * 获取用户对话列表
@@ -150,6 +156,7 @@ public class AiConversationController {
 
     /**
      * AI流式聊天
+     * ai chat 入口
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "流式聊天 (Spring AI标准)")
@@ -168,9 +175,22 @@ public class AiConversationController {
                     ScmMessageChatMemory.setCurrentTenant(request.getTenantId());
                 }
                 log.debug("租户数据库：{}", request.getTenantId());
-                // 持久化原始提示词（需要获取模型ID）
-                // 注意：这里使用chatModelId作为modelSourceId，与业务逻辑保持一致
-                aiConversationService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), request.getChatModelId());
+
+                // 动态选择AI模型
+                AiModelSourceEntity selectedModel = aiModelSelectionService.selectAvailableModel(request.getAiType());
+                log.info("已选择AI模型: [提供商: {}, 模型: {}, ID: {}]",
+                        selectedModel.getProvider_name(), selectedModel.getBase_name(), selectedModel.getId());
+
+                // 持久化原始提示词（使用选中的模型信息）
+                aiConversationContentService.saveConversationContent(
+                        request.getConversationId(),
+                        AICommonConstants.MESSAGE_TYPE_USER,
+                        request.getPrompt(),
+                        selectedModel.getId(),
+                        selectedModel.getProvider_name(),
+                        selectedModel.getBase_name(),
+                        operatorId
+                );
 
                 // 创建回调流式处理器
                 AiStreamHandler.CallbackStreamHandler streamHandler =
@@ -193,9 +213,16 @@ public class AiConversationController {
                                     @Override
                                     public void onStreamComplete(AiEngineAdapter.AiResponse response) {
                                         try {
-                                            // 保存完整回复内容
-                                            aiConversationService.saveAssistantConversationContent(
-                                                    request.getConversationId(), response.getContent(), request.getChatModelId());
+                                            // 保存完整回复内容（使用选中的模型信息）
+                                            aiConversationContentService.saveConversationContent(
+                                                    request.getConversationId(),
+                                                    AICommonConstants.MESSAGE_TYPE_ASSISTANT,
+                                                    response.getContent(),
+                                                    selectedModel.getId(),
+                                                    selectedModel.getProvider_name(),
+                                                    selectedModel.getBase_name(),
+                                                    operatorId
+                                            );
 
                                             // 记录Token使用情况
                                             if (response.getUsage() != null) {
@@ -205,8 +232,8 @@ public class AiConversationController {
                                                 aiConversationService.recordTokenUsageFromSpringAI(
                                                         request.getConversationId(),
                                                         userId,
-                                                        "OpenAI",  // 根据实际AI提供商
-                                                        request.getChatModelId(),
+                                                        selectedModel.getProvider_name(),  // 使用动态选择的提供商
+                                                        selectedModel.getId(),  // 使用模型源ID
                                                         response.getUsage().getPromptTokens() != null ? response.getUsage().getPromptTokens().longValue() : 0L,
                                                         response.getUsage().getCompletionTokens() != null ? response.getUsage().getCompletionTokens().longValue() : 0L
                                                 );
@@ -214,7 +241,7 @@ public class AiConversationController {
 
                                             // 发送完成响应
                                             ChatResponseVo completeResponse = ChatResponseVo.createCompleteResponse(
-                                                    response.getContent(), request.getChatModelId());
+                                                    response.getContent(), selectedModel.getId());
                                             fluxSink.next(completeResponse);
                                             fluxSink.complete();
                                         } catch (Exception e) {

@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.core.service.chat;
 
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
+import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
@@ -11,6 +12,7 @@ import com.xinyirun.scm.ai.engine.common.AIChatOptions;
 import com.xinyirun.scm.ai.engine.utils.JSON;
 import com.xinyirun.scm.ai.common.util.CommonBeanFactory;
 import com.xinyirun.scm.ai.mapper.chat.AiConversationContentMapper;
+import com.xinyirun.scm.ai.service.AiModelSelectionService;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -51,18 +53,24 @@ public class AiChatBaseService {
     MessageChatMemoryAdvisor messageChatMemoryAdvisor;
     @Resource
     private AiConversationContentMapper aiConversationContentMapper;
+    @Resource
+    private AiModelSelectionService aiModelSelectionService;
 
     /**
      * 根据聊天请求获取AI模型配置
      *
-     * @param request 聊天请求对象，包含模型ID等信息
+     * @param request 聊天请求对象，包含AI类型等信息
      * @param userId 用户ID，用于权限验证和配置获取
      * @return AiModelSourceVo AI模型源配置对象
      * @throws RuntimeException 当模型配置不存在或无权限访问时抛出异常
      */
     public AiModelSourceVo getModule(AIChatRequestVo request, String userId) {
+        // 使用动态模型选择服务根据AI类型选择合适的模型
+        AiModelSourceEntity selectedModel = aiModelSelectionService.selectAvailableModel(request.getAiType());
+
+        // 通过模型ID获取完整的模型配置VO对象
         return Objects.requireNonNull(CommonBeanFactory.getBean(SystemAIConfigService.class))
-                .getModelSourceVoWithKey(request.getChatModelId(), userId);
+                .getModelSourceVoWithKey(selectedModel.getId(), userId);
     }
 
     /**

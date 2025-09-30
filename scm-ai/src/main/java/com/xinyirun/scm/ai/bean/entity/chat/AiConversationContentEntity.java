@@ -58,6 +58,20 @@ public class AiConversationContentEntity implements Serializable {
     private String model_source_id;
 
     /**
+     * AI提供商名称
+     */
+    @TableField("provider_name")
+    @DataChangeLabelAnnotation("AI提供商名称")
+    private String provider_name;
+
+    /**
+     * 基础模型名称
+     */
+    @TableField("base_name")
+    @DataChangeLabelAnnotation("基础模型名称")
+    private String base_name;
+
+    /**
      * 创建时间
      */
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

@@ -18,17 +18,17 @@ public class AiConversationEnums {
         /**
          * 用户消息
          */
-        USER("USER", "用户消息"),
+        USER("user", "用户消息"),
 
         /**
          * AI回复
          */
-        AI("AI", "AI回复"),
+        ASSISTANT("assistant", "AI回复"),
 
         /**
          * 系统消息
          */
-        SYSTEM("SYSTEM", "系统消息");
+        SYSTEM("system", "系统消息");
 
         private final String code;
         private final String description;

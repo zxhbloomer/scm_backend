@@ -40,9 +40,9 @@ public class AiConversationContentVo implements Serializable {
 
     /**
      * 内容类型
-     * USER - 用户消息
-     * AI - AI回复
-     * SYSTEM - 系统消息
+     * user - 用户消息
+     * assistant - AI回复
+     * system - 系统消息
      */
     private String type;
 
@@ -110,6 +110,16 @@ public class AiConversationContentVo implements Serializable {
      * AI模型源ID
      */
     private String model_source_id;
+
+    /**
+     * AI提供商名称
+     */
+    private String provider_name;
+
+    /**
+     * 基础模型名称
+     */
+    private String base_name;
 
     /**
      * AI模型信息
@@ -408,14 +418,14 @@ public class AiConversationContentVo implements Serializable {
      * 检查是否为AI回复
      */
     public boolean isAiMessage() {
-        return "AI".equals(this.type);
+        return "assistant".equals(this.type);
     }
 
     /**
      * 检查是否为系统消息
      */
     public boolean isSystemMessage() {
-        return "SYSTEM".equals(this.type);
+        return "system".equals(this.type);
     }
 
     /**

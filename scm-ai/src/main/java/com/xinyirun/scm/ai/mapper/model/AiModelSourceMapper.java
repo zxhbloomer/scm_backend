@@ -304,4 +304,37 @@ public interface AiModelSourceMapper extends BaseMapper<AiModelSourceEntity> {
         ORDER BY c_time DESC
         """)
     List<AiModelSourceEntity> selectByPermissionType(@Param("permissionType") String permissionType);
+
+    /**
+     * 根据AI类型自动选择可用模型
+     * 选择逻辑：status=true, 按is_default DESC, c_time DESC排序，取第一条
+     */
+    @Select("""
+        SELECT
+            id,
+            name,
+            type,
+            provider_name,
+            permission_type,
+            status,
+            owner,
+            owner_type,
+            base_name,
+            model_type,
+            app_key,
+            api_url,
+            adv_settings,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
+            dbversion,
+            is_default,
+            ai_config_id
+        FROM ai_model_source
+        WHERE type = #{aiType} AND status = 1
+        ORDER BY is_default DESC, c_time DESC
+        LIMIT 1
+        """)
+    AiModelSourceEntity selectAvailableModel(@Param("aiType") String aiType);
 }
