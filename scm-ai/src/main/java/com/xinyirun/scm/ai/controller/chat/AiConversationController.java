@@ -7,7 +7,6 @@ import com.xinyirun.scm.ai.bean.vo.chat.AiConversationVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIConversationUpdateRequestVo;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
-import com.xinyirun.scm.ai.config.memory.ScmMessageChatMemory;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
@@ -169,10 +168,9 @@ public class AiConversationController {
         // 在后台线程异步处理
         Flux<ChatResponseVo> responseFlux = Flux.<ChatResponseVo>create(fluxSink -> {
             try {
-                // 设置多租户数据源和ThreadLocal
+                // 设置多租户数据源
                 if (request.getTenantId() != null && !request.getTenantId().isEmpty()) {
                     DataSourceHelper.use(request.getTenantId());
-                    ScmMessageChatMemory.setCurrentTenant(request.getTenantId());
                 }
                 log.debug("租户数据库：{}", request.getTenantId());
 
@@ -265,9 +263,8 @@ public class AiConversationController {
         })
         .subscribeOn(Schedulers.boundedElastic()) // 在弹性线程池中执行
         .doFinally(signalType -> {
-            // 清理数据源连接和ThreadLocal
+            // 清理数据源连接
             DataSourceHelper.close();
-            ScmMessageChatMemory.clearCurrentTenant();
         });
 
         return responseFlux;

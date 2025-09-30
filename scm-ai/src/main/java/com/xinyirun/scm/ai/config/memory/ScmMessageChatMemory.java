@@ -30,43 +30,20 @@ public class ScmMessageChatMemory implements ChatMemory {
     private static final int DEFAULT_MAX_MESSAGES = 10;
 
     /**
-     * 租户ID参数键
+     * 租户与会话ID的分隔符
      */
-    public static final String TENANT_ID = "TENANT_ID";
+    private static final String TENANT_SEPARATOR = "::";
 
     /**
      * 当前线程的租户ID存储 - 使用NamedThreadLocal与dynamic-datasource保持一致
+     * 注意：优化后主要从conversationId中解析租户信息，此ThreadLocal作为降级方案
      */
     private static final ThreadLocal<String> CURRENT_TENANT = new NamedThreadLocal<>("tenant-context");
 
-    @Resource
-    @Lazy
-    private AiConversationContentService aiConversationContentService;
 
     @Resource
     @Lazy
     private AiConversationService aiConversationService;
-
-    /**
-     * 设置当前租户ID
-     */
-    public static void setCurrentTenant(String tenantId) {
-        CURRENT_TENANT.set(tenantId);
-    }
-
-    /**
-     * 获取当前租户ID
-     */
-    public static String getCurrentTenant() {
-        return CURRENT_TENANT.get();
-    }
-
-    /**
-     * 清理当前租户ID
-     */
-    public static void clearCurrentTenant() {
-        CURRENT_TENANT.remove();
-    }
 
     @Override
     public void add(String conversationId, List<Message> messages) {
@@ -76,25 +53,15 @@ public class ScmMessageChatMemory implements ChatMemory {
     @Override
     public List<Message> get(String conversationId) {
         try {
-            // 获取当前租户ID
-            String tenantId = getCurrentTenant();
+            // 从conversationId解析租户ID
+            String tenantId = parseTenantId(conversationId);
 
-            // 如果当前线程没有租户信息，尝试从conversationId中恢复
-            if (tenantId == null || tenantId.isEmpty()) {
-                tenantId = extractTenantFromConversationId(conversationId);
-                if (tenantId != null && !tenantId.isEmpty()) {
-                    setCurrentTenant(tenantId);
-                }
-            }
+            // 设置数据源
+            DataSourceHelper.use(tenantId);
 
-            // 关键修复：每次都重新设置DynamicDataSourceContextHolder
-            // 因为Spring AI在不同线程中调用，ThreadLocal会丢失
-            if (tenantId != null && !tenantId.isEmpty()) {
-                DataSourceHelper.use(tenantId);
-            }
-            // 获取最近的几条聊天，进行记忆 - 通过Service层调用
-            // 获取对话历史（SQL已跳过最新的用户消息，避免重复）
-            List<AiConversationContentVo> contents = aiConversationService.getConversationHistory(conversationId, DEFAULT_MAX_MESSAGES);
+            // 查询对话历史
+            List<AiConversationContentVo> contents = aiConversationService.getConversationHistory(
+                conversationId, DEFAULT_MAX_MESSAGES);
 
             // 反转为时间升序（老消息在前）
             Collections.reverse(contents);
@@ -115,10 +82,8 @@ public class ScmMessageChatMemory implements ChatMemory {
                         return message;
                     }).collect(Collectors.toList());
         } finally {
-            // 确保清理数据源连接和ThreadLocal
+            // 确保清理数据源连接
             DataSourceHelper.close();
-            // 注意：这里不清理ThreadLocal，因为可能还需要在同一个线程中使用
-            // ThreadLocal 的清理由调用方负责
         }
     }
 
@@ -128,13 +93,10 @@ public class ScmMessageChatMemory implements ChatMemory {
     }
 
     /**
-     * 从conversationId提取租户信息
-     * 解决InheritableThreadLocal在异步线程中失效的问题
+     * 从conversationId解析租户ID
+     * 格式：tenantId::conversationId
      */
-    private String extractTenantFromConversationId(String conversationId) {
-        // 由于conversationId无法直接确定租户信息，
-        // 这里返回固定的租户ID作为降级方案
-        // TODO: 根据实际业务需求调整租户获取逻辑
-        return "scm_tenant_20250519_001";
+    private String parseTenantId(String conversationId) {
+        return conversationId.split(TENANT_SEPARATOR, 2)[0];
     }
 }

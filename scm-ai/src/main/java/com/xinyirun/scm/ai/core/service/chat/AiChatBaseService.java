@@ -6,7 +6,6 @@ import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AdvSettingVo;
-import com.xinyirun.scm.ai.config.memory.ScmMessageChatMemory;
 import com.xinyirun.scm.ai.engine.ChatToolEngine;
 import com.xinyirun.scm.ai.engine.common.AIChatOptions;
 import com.xinyirun.scm.ai.engine.utils.JSON;
@@ -93,53 +92,13 @@ public class AiChatBaseService {
      *
      * 这种模式下，AI会记忆当前对话的历史内容，能够进行连续对话
      * 使用MessageChatMemoryAdvisor来维护对话上下文
-     * 支持多租户环境，通过ThreadLocal管理租户上下文
+     * 支持多租户环境，租户信息已包含在conversationId中，无需ThreadLocal管理
      *
      * @param aiChatOption 聊天选项配置对象，包含对话ID、提示词、系统指令、租户ID等
      * @return ChatClient.CallResponseSpec Spring AI的响应规格对象，可用于获取AI回复
      */
     public ChatClient.CallResponseSpec chatWithMemory(AIChatOptionVo aiChatOption) {
-        // 设置当前租户ID到ThreadLocal
-        ScmMessageChatMemory.setCurrentTenant(aiChatOption.getTenantId());
-
-        try {
-            if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
-                return getClient(aiChatOption.getModule())
-                        .prompt()
-                        .system(aiChatOption.getSystem())
-                        .user(aiChatOption.getPrompt())
-                        .advisors(messageChatMemoryAdvisor)
-                        .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                        .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
-                        .call();
-            }
-            return getClient(aiChatOption.getModule())
-                    .prompt()
-                    .user(aiChatOption.getPrompt())
-                    .advisors(messageChatMemoryAdvisor)
-                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                    .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
-                    .call();
-        } finally {
-            // 清理ThreadLocal
-            ScmMessageChatMemory.clearCurrentTenant();
-        }
-    }
-
-    /**
-     * 执行AI流式聊天（带记忆模式）
-     *
-     * 流式聊天可以实时接收AI回复的内容片段，提供更好的用户体验
-     * 同样支持记忆功能和多租户环境
-     * 注意：调用方需要负责清理ThreadLocal中的租户信息
-     *
-     * @param aiChatOption 聊天选项配置对象，包含对话ID、提示词、系统指令、租户ID等
-     * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
-     */
-    public ChatClient.StreamResponseSpec chatWithMemoryStream(AIChatOptionVo aiChatOption) {
-        // 设置当前租户ID到ThreadLocal
-        ScmMessageChatMemory.setCurrentTenant(aiChatOption.getTenantId());
-
+        // conversationId已包含租户信息，直接使用即可
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
             return getClient(aiChatOption.getModule())
                     .prompt()
@@ -147,7 +106,34 @@ public class AiChatBaseService {
                     .user(aiChatOption.getPrompt())
                     .advisors(messageChatMemoryAdvisor)
                     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                    .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
+                    .call();
+        }
+        return getClient(aiChatOption.getModule())
+                .prompt()
+                .user(aiChatOption.getPrompt())
+                .advisors(messageChatMemoryAdvisor)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
+                .call();
+    }
+
+    /**
+     * 执行AI流式聊天（带记忆模式）
+     *
+     * 流式聊天可以实时接收AI回复的内容片段，提供更好的用户体验
+     * 同样支持记忆功能和多租户环境，租户信息已包含在conversationId中
+     *
+     * @param aiChatOption 聊天选项配置对象，包含对话ID、提示词、系统指令、租户ID等
+     * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
+     */
+    public ChatClient.StreamResponseSpec chatWithMemoryStream(AIChatOptionVo aiChatOption) {
+        // conversationId已包含租户信息，直接使用即可
+        if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
+            return getClient(aiChatOption.getModule())
+                    .prompt()
+                    .system(aiChatOption.getSystem())
+                    .user(aiChatOption.getPrompt())
+                    .advisors(messageChatMemoryAdvisor)
+                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
                     .stream();
         }
         return getClient(aiChatOption.getModule())
@@ -155,7 +141,6 @@ public class AiChatBaseService {
                 .user(aiChatOption.getPrompt())
                 .advisors(messageChatMemoryAdvisor)
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
-                .advisors(a -> a.param(ScmMessageChatMemory.TENANT_ID, aiChatOption.getTenantId()))
                 .stream();
     }
 
