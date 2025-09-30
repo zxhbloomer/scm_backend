@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.mapper.config;
+package com.xinyirun.scm.ai.core.mapper.config;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.config.AiConfigEntity;

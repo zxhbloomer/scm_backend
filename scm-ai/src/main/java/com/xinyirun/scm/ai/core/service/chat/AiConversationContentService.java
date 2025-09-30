@@ -1,9 +1,9 @@
-package com.xinyirun.scm.ai.service;
+package com.xinyirun.scm.ai.core.service.chat;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
-import com.xinyirun.scm.ai.mapper.chat.AiConversationContentMapper;
+import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;

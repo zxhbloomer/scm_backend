@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.controller.chat;
 
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
-import com.xinyirun.scm.ai.service.AiConversationService;
+import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import lombok.extern.slf4j.Slf4j;

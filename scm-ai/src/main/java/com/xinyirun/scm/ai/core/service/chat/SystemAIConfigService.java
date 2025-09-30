@@ -4,14 +4,11 @@ import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AdvSettingVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
-import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
-import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceCreateNameVo;
-import com.xinyirun.scm.ai.mapper.model.AiModelSourceMapper;
-import com.xinyirun.scm.ai.mapper.model.ExtAiModelSourceMapper;
+import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
+import com.xinyirun.scm.ai.core.mapper.model.ExtAiModelSourceMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import jakarta.annotation.Resource;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
@@ -24,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional(rollbackFor = Exception.class)

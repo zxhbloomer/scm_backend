@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.mapper.model;
+package com.xinyirun.scm.ai.core.mapper.model;
 
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;

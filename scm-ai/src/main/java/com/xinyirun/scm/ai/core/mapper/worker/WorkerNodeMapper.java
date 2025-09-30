@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.mapper.worker;
+package com.xinyirun.scm.ai.core.mapper.worker;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.worker.WorkerNodeEntity;

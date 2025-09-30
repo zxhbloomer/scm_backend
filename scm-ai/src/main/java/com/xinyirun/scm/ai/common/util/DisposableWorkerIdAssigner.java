@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.common.util;
 
 import com.xinyirun.scm.ai.bean.entity.worker.WorkerNodeEntity;
-import com.xinyirun.scm.ai.mapper.worker.WorkerNodeMapper;
+import com.xinyirun.scm.ai.core.mapper.worker.WorkerNodeMapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.RandomUtils;
 import lombok.extern.slf4j.Slf4j;

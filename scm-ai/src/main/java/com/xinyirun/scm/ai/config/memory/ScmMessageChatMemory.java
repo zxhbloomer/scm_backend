@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.config;
+package com.xinyirun.scm.ai.config.memory;
 
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;

@@ -1,11 +1,11 @@
-package com.xinyirun.scm.ai.service;
+package com.xinyirun.scm.ai.core.service.chat;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.statistics.AiTokenUsageEntity;
 import com.xinyirun.scm.ai.bean.vo.statistics.AiTokenUsageVo;
-import com.xinyirun.scm.ai.mapper.statistics.AiTokenUsageMapper;
+import com.xinyirun.scm.ai.core.mapper.statistics.AiTokenUsageMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;

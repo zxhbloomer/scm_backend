@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.constants;
+package com.xinyirun.scm.ai.common.constant;
 
 /**
  * AI模块公共常量

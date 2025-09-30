@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.adapter;
+package com.xinyirun.scm.ai.config.adapter;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;

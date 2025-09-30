@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.adapter;
+package com.xinyirun.scm.ai.config.adapter;
 
 import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import lombok.extern.slf4j.Slf4j;

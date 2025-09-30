@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.mapper.chat;
+package com.xinyirun.scm.ai.core.mapper.chat;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;

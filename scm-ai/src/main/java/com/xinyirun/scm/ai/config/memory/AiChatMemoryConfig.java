@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.config;
+package com.xinyirun.scm.ai.config.memory;
 
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.context.annotation.Bean;

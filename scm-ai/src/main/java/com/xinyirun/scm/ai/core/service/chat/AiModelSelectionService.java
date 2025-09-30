@@ -1,9 +1,8 @@
-package com.xinyirun.scm.ai.service.impl;
+package com.xinyirun.scm.ai.core.service.chat;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
-import com.xinyirun.scm.ai.core.service.chat.AiModelSelectionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,12 +18,11 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
-public class AiModelSelectionServiceImpl implements AiModelSelectionService {
+public class AiModelSelectionService  {
 
     @Autowired
     private AiModelSourceMapper aiModelSourceMapper;
 
-    @Override
     public AiModelSourceEntity selectAvailableModel(String aiType) {
         log.debug("开始选择AI模型，类型: {}", aiType);
 
@@ -54,7 +52,6 @@ public class AiModelSelectionServiceImpl implements AiModelSelectionService {
         return selectedModel;
     }
 
-    @Override
     public boolean hasAvailableModel(String aiType) {
         log.debug("检查是否有可用模型，类型: {}", aiType);
 
@@ -69,7 +66,6 @@ public class AiModelSelectionServiceImpl implements AiModelSelectionService {
         return hasModel;
     }
 
-    @Override
     public AiModelSourceEntity getDefaultModel(String aiType) {
         log.debug("获取默认模型，类型: {}", aiType);
 
@@ -92,7 +88,6 @@ public class AiModelSelectionServiceImpl implements AiModelSelectionService {
         return defaultModel;
     }
 
-    @Override
     public long countAvailableModels(String aiType) {
         log.debug("统计可用模型数量，类型: {}", aiType);
 

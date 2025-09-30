@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.mapper.statistics;
+package com.xinyirun.scm.ai.core.mapper.statistics;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.statistics.AiTokenUsageEntity;

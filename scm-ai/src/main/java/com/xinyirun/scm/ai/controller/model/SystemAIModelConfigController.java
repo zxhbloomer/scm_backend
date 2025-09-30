@@ -3,7 +3,7 @@ package com.xinyirun.scm.ai.controller.model;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
-import com.xinyirun.scm.ai.service.SystemAIModelConfigService;
+import com.xinyirun.scm.ai.core.service.chat.SystemAIModelConfigService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import io.swagger.v3.oas.annotations.Operation;

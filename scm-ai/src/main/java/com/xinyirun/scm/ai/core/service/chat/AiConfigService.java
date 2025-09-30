@@ -1,10 +1,9 @@
-package com.xinyirun.scm.ai.service;
+package com.xinyirun.scm.ai.core.service.chat;
 
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.config.AiConfigEntity;
 import com.xinyirun.scm.ai.bean.vo.config.AiConfigVo;
-import com.xinyirun.scm.ai.mapper.config.AiConfigMapper;
+import com.xinyirun.scm.ai.core.mapper.config.AiConfigMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;

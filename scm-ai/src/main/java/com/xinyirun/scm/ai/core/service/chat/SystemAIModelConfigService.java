@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.service;
+package com.xinyirun.scm.ai.core.service.chat;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -7,7 +7,7 @@ import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AdvSettingVo;
 import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
-import com.xinyirun.scm.ai.mapper.model.AiModelSourceMapper;
+import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;

@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.mapper.model;
+package com.xinyirun.scm.ai.core.mapper.model;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
