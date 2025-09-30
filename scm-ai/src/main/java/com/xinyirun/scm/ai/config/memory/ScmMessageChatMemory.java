@@ -1,13 +1,13 @@
 package com.xinyirun.scm.ai.config.memory;
 
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
-import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
-import org.springframework.context.annotation.Lazy;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.*;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.NamedThreadLocal;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
  * 使用 MessageWindowChatMemory 只能记忆和持久化 max_messages 条消息
  * 该自定义类，能持久化所有消息，并且设置 ai 记忆消息的条数
  */
+@Slf4j
 @Component
 @Transactional(rollbackFor = Exception.class)
 public class ScmMessageChatMemory implements ChatMemory {
@@ -53,6 +54,8 @@ public class ScmMessageChatMemory implements ChatMemory {
     @Override
     public List<Message> get(String conversationId) {
         try {
+            log.debug("聊天的conversationId {}", conversationId);
+
             // 从conversationId解析租户ID
             String tenantId = parseTenantId(conversationId);
 

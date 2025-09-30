@@ -54,7 +54,17 @@ public class SystemAIModelConfigService {
         validateAppKey(aiModelSourceVo, id);
 
         // 创建并填充模型对象
-        AiModelSourceEntity aiModelSource = new AiModelSourceEntity();
+        AiModelSourceEntity aiModelSource;
+        if (isAddOperation) {
+            // 新增操作：创建新对象
+            aiModelSource = new AiModelSourceEntity();
+        } else {
+            // 更新操作：先查询原有数据，避免覆盖未传入的字段
+            aiModelSource = aiModelSourceMapper.selectById(id);
+            if (aiModelSource == null) {
+                throw new RuntimeException("模型信息不存在");
+            }
+        }
         buildModelSource(aiModelSourceVo, userId, aiModelSource, id, isAddOperation);
 
         // 根据操作类型执行不同逻辑
@@ -169,16 +179,38 @@ public class SystemAIModelConfigService {
      */
     private void buildModelSource(AiModelSourceVo aiModelSourceVo, String userId, AiModelSourceEntity aiModelSource, String id, boolean isAddOperation) {
         aiModelSource.setId(id);
-        aiModelSource.setType(aiModelSourceVo.getType());
-        aiModelSource.setName(aiModelSourceVo.getModel_name());
-        aiModelSource.setProvider_name(aiModelSourceVo.getProvider());
-        aiModelSource.setPermission_type(aiModelSourceVo.getPermission_type());
-        aiModelSource.setStatus(aiModelSourceVo.getIs_enabled() != null && aiModelSourceVo.getIs_enabled() == 1);
-        aiModelSource.setOwner_type(aiModelSourceVo.getOwner_type());
-        aiModelSource.setOwner(aiModelSourceVo.getOwner());
-        aiModelSource.setBase_name(aiModelSourceVo.getBase_name());
-        aiModelSource.setApp_key(aiModelSourceVo.getApi_key());
-        aiModelSource.setApi_url(aiModelSourceVo.getApi_url());
+
+        // 更新时只设置非null字段，避免覆盖原有数据
+        if (aiModelSourceVo.getType() != null) {
+            aiModelSource.setType(aiModelSourceVo.getType());
+        }
+        if (aiModelSourceVo.getModel_name() != null) {
+            aiModelSource.setName(aiModelSourceVo.getModel_name());
+        }
+        if (aiModelSourceVo.getProvider() != null) {
+            aiModelSource.setProvider_name(aiModelSourceVo.getProvider());
+        }
+        if (aiModelSourceVo.getPermission_type() != null) {
+            aiModelSource.setPermission_type(aiModelSourceVo.getPermission_type());
+        }
+        if (aiModelSourceVo.getStatus() != null) {
+            aiModelSource.setStatus(Boolean.TRUE.equals(aiModelSourceVo.getStatus()));
+        }
+        if (aiModelSourceVo.getOwner_type() != null) {
+            aiModelSource.setOwner_type(aiModelSourceVo.getOwner_type());
+        }
+        if (aiModelSourceVo.getOwner() != null) {
+            aiModelSource.setOwner(aiModelSourceVo.getOwner());
+        }
+        if (aiModelSourceVo.getBase_name() != null) {
+            aiModelSource.setBase_name(aiModelSourceVo.getBase_name());
+        }
+        if (aiModelSourceVo.getApi_key() != null) {
+            aiModelSource.setApp_key(aiModelSourceVo.getApi_key());
+        }
+        if (aiModelSourceVo.getApi_url() != null) {
+            aiModelSource.setApi_url(aiModelSourceVo.getApi_url());
+        }
 
         // 校验高级参数是否合格，以及默认值设置
         List<AdvSettingVo> advSettingVoList = aiModelSourceVo.getAdvSettingVoList();
@@ -353,10 +385,6 @@ public class SystemAIModelConfigService {
         if (aiModelSource == null) {
             throw new RuntimeException("模型信息不存在");
         }
-        // 检查个人模型查看权限
-        if (StringUtils.isNotBlank(userId) && !userId.equalsIgnoreCase(aiModelSource.getOwner())) {
-            throw new RuntimeException("模型信息不存在");
-        }
         return getModelSourceVo(aiModelSource);
     }
 
@@ -421,7 +449,6 @@ public class SystemAIModelConfigService {
         modelSourceVo.setProvider(modelSource.getProvider_name());
         modelSourceVo.setApi_key(modelSource.getApp_key());
         modelSourceVo.setApi_url(modelSource.getApi_url());
-        modelSourceVo.setIs_enabled(modelSource.getStatus() != null && modelSource.getStatus() ? 1 : 0);
         modelSourceVo.setOwner(modelSource.getOwner());
         modelSourceVo.setOwner_type(modelSource.getOwner_type());
         modelSourceVo.setPermission_type(modelSource.getPermission_type());

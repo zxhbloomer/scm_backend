@@ -63,7 +63,7 @@ public class SystemAIConfigService {
         modelSourceVo.setProvider(modelSource.getProvider_name());
         modelSourceVo.setApi_key(modelSource.getApp_key());
         modelSourceVo.setApi_url(modelSource.getApi_url());
-        modelSourceVo.setIs_enabled(modelSource.getStatus() != null && modelSource.getStatus() ? 1 : 0);
+        modelSourceVo.setStatus(modelSource.getStatus());
         modelSourceVo.setOwner(modelSource.getOwner());
         modelSourceVo.setOwner_type(modelSource.getOwner_type());
         modelSourceVo.setPermission_type(modelSource.getPermission_type());

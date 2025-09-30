@@ -89,6 +89,12 @@ public enum MQEnum {
 			MqInfo.LOG_QUARTZ_QUEUE.exchange,
 			MqInfo.LOG_QUARTZ_QUEUE.routing_key),
 
+	// AI聊天日志队列
+	MQ_LOG_AI_CHAT_QUEUE(MqInfo.LOG_AI_CHAT_QUEUE.queueCode,
+			MqInfo.LOG_AI_CHAT_QUEUE.name,
+			MqInfo.LOG_AI_CHAT_QUEUE.exchange,
+			MqInfo.LOG_AI_CHAT_QUEUE.routing_key),
+
 	// 监管任务备份队列
 	MQ_MONITOR_BACKUP_QUEUE(MqInfo.MONITOR_BACKUP_QUEUE.queueCode,
 			MqInfo.MONITOR_BACKUP_QUEUE.name,
@@ -367,6 +373,14 @@ public enum MQEnum {
 			public static final String name = "调度日志同步";
 			public static final String exchange = "scm_quartz_log";
 			public static final String routing_key = "scm_quartz_log.#";
+		}
+
+		/** AI聊天日志 */
+		public class LOG_AI_CHAT_QUEUE {
+			public static final String queueCode = "scm_ai_chat_log";
+			public static final String name = "AI聊天日志同步";
+			public static final String exchange = "scm_ai_chat_log";
+			public static final String routing_key = "scm_ai_chat_log.#";
 		}
 
 		/** 监管任务队列 */

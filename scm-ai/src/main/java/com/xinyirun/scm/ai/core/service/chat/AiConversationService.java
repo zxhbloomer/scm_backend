@@ -57,7 +57,7 @@ public class AiConversationService {
      */
     private String getDefaultSystemPrompt() {
         try {
-            AiPromptVo defaultPrompt = aiPromptService.getByNickname("CS_DEFAULT");
+            AiPromptVo defaultPrompt = aiPromptService.getByCode("CS_DEFAULT");
             return defaultPrompt != null ? defaultPrompt.getPrompt() : null;
         } catch (Exception e) {
             log.error("获取默认系统提示词失败", e);
@@ -149,9 +149,6 @@ public class AiConversationService {
         StringBuilder completeContent = new StringBuilder();
         final Usage[] finalUsage = new Usage[1];
 
-        // 持久化原始提示词
-        aiChatBaseService.saveUserConversationContent(request.getConversationId(), request.getPrompt(), modelId);
-
         try {
             // 使用流式聊天
             aiChatBaseService.chatWithMemoryStream(aiChatOption)
@@ -169,11 +166,10 @@ public class AiConversationService {
                     }
                 })
                 .doOnComplete(() -> {
-                    // 异步 手动指定租户数据库
+                    // 设置租户数据库上下文
                     DataSourceHelper.use(request.getTenantId());
-                    // 完成时保存完整内容
+                    // 获取完整的AI回复内容
                     String fullContent = completeContent.toString();
-                    aiChatBaseService.saveAssistantConversationContent(request.getConversationId(), fullContent, modelId);
 
                     // 发送完成事件
                     AiEngineAdapter.AiResponse finalResponse = new AiEngineAdapter.AiResponse();

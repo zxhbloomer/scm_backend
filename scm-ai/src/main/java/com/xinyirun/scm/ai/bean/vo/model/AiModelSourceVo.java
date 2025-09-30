@@ -65,9 +65,9 @@ public class AiModelSourceVo implements Serializable {
     private String api_url;
 
     /**
-     * 是否启用：1-启用，0-禁用
+     * 模型连接状态：true-启用，false-禁用
      */
-    private Integer is_enabled;
+    private Boolean status;
 
     /**
      * 模型类型（公有/私有）
