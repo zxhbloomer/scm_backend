@@ -1,0 +1,31 @@
+package com.xinyirun.scm.ai.mapper.config;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.xinyirun.scm.ai.bean.entity.config.AiConfigEntity;
+import org.apache.ibatis.annotations.*;
+import org.springframework.stereotype.Repository;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * AI系统配置表 Mapper接口
+ *
+ * @author AI重构工具
+ * @since 1.0.0
+ */
+@Repository
+@Mapper
+public interface AiConfigMapper extends BaseMapper<AiConfigEntity> {
+
+    /**
+     * 根据配置键和租户查询配置
+     */
+    @Select("""
+        SELECT id, config_key, config_value, description, c_time, u_time, c_id, u_id, dbversion
+        FROM ai_config
+        WHERE config_key = #{configKey}
+        LIMIT 1
+        """)
+    AiConfigEntity selectByConfigKeyAndTenant(@Param("configKey") String configKey);
+
+}

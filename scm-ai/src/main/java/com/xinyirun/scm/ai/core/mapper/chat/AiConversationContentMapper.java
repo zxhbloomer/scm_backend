@@ -16,41 +16,6 @@ import java.util.List;
 @Mapper
 public interface AiConversationContentMapper extends BaseMapper<AiConversationContentEntity> {
 
-    /**
-     * 批量插入会话内容记录
-     */
-    @Insert("""
-    <script>
-        INSERT INTO ai_conversation_content (
-            id,
-            conversation_id,
-            type,
-            c_time,
-            u_time,
-            c_id,
-            u_id,
-            dbversion,
-            content,
-            model_source_id
-        )
-        VALUES
-        <foreach collection='list' item='item' separator=','>
-            (
-                #{item.id},
-                #{item.conversation_id},
-                #{item.type},
-                #{item.c_time},
-                #{item.u_time},
-                #{item.c_id},
-                #{item.u_id},
-                #{item.dbversion},
-                #{item.content},
-                #{item.model_source_id}
-            )
-        </foreach>
-    </script>
-    """)
-    int batchInsert(@Param("list") List<AiConversationContentEntity> list);
 
     /**
      * 根据会话ID查询内容列表

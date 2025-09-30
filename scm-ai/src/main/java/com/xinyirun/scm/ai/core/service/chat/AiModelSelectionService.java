@@ -2,13 +2,11 @@ package com.xinyirun.scm.ai.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
-import com.xinyirun.scm.ai.mapper.model.AiModelSourceMapper;
-import com.xinyirun.scm.ai.service.AiModelSelectionService;
+import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
+import com.xinyirun.scm.ai.core.service.chat.AiModelSelectionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * AI模型选择服务实现类

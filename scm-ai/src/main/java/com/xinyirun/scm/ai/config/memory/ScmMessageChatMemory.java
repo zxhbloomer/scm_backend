@@ -1,21 +1,16 @@
 package com.xinyirun.scm.ai.config;
 
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
-import com.xinyirun.scm.ai.service.AiConversationContentService;
-import com.xinyirun.scm.ai.service.AiConversationService;
+import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
+import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.*;
 import org.springframework.core.NamedThreadLocal;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Collections;
 import java.util.List;
