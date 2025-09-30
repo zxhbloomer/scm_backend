@@ -113,7 +113,7 @@ public class AiModelSourceVo implements Serializable {
     /**
      * 创建人(操作人）
      */
-    private String create_user;
+    private String c_name;
 
     /**
      * 数据版本，乐观锁使用

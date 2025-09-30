@@ -7,6 +7,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -38,24 +39,19 @@ public class AiConversationVO implements Serializable {
     private String title;
 
     /**
-     * 创建用户ID
-     */
-    private String create_user;
-
-    /**
      * 创建用户名称
      */
     private String create_user_name;
 
     /**
-     * 创建时间（毫秒时间戳）
+     * 创建时间
      */
-    private Long create_time;
+    private LocalDateTime c_time;
 
     /**
      * 创建时间（格式化字符串）
      */
-    private String create_time_str;
+    private String c_time_str;
 
     /**
      * 会话状态

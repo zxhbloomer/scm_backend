@@ -18,6 +18,7 @@ import com.xinyirun.scm.ai.core.mapper.chat.ExtAiConversationContentMapper;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.stereotype.Service;
@@ -49,10 +50,6 @@ public class AiConversationService {
     AiTokenUsageService aiTokenUsageService;
     @Resource
     private ExtAiConversationContentMapper extAiConversationContentMapper;
-    @Resource
-    AiConfigService aiConfigService;
-    @Resource
-    AiModelSourceMapper aiModelSourceMapper;
 
     /**
      * 获取默认系统提示词
@@ -205,20 +202,6 @@ public class AiConversationService {
         }
     }
 
-    /**
-     * 保存用户消息内容 (从控制器调用)
-     */
-    public void saveUserConversationContent(String conversationId, String content, String modelSourceId) {
-        aiChatBaseService.saveUserConversationContent(conversationId, content, modelSourceId);
-    }
-
-    /**
-     * 保存助手消息内容 (从控制器调用)
-     */
-    public void saveAssistantConversationContent(String conversationId, String content, String modelSourceId) {
-        aiChatBaseService.saveAssistantConversationContent(conversationId, content, modelSourceId);
-    }
-
     public AiConversationVo add(AIChatRequestVo request, String userId) {
         String prompt = """
                 概况用户输入的主旨生成本轮对话的标题，只返回标题，不带标点符号，最好50字以内，不超过255。
@@ -249,7 +232,9 @@ public class AiConversationService {
         // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
         // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
         aiConversationMapper.insert(aiConversation);
-        return convertToVo(aiConversation);
+        AiConversationVo vo = new AiConversationVo();
+        BeanUtils.copyProperties(aiConversation, vo);
+        return vo;
     }
 
     public void delete(String conversationId, String userId) {
@@ -284,10 +269,14 @@ public class AiConversationService {
 
     public List<AiConversationVo> list(String userId) {
         QueryWrapper<AiConversationEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("create_user", userId);
-        wrapper.orderByDesc("create_time");
+        wrapper.eq("c_id", Long.valueOf(userId)); // 使用c_id字段查询创建人
+        wrapper.orderByDesc("c_time");
         List<AiConversationEntity> entities = aiConversationMapper.selectList(wrapper);
-        return entities.stream().map(this::convertToVo).collect(Collectors.toList());
+        return entities.stream().map(entity -> {
+            AiConversationVo vo = new AiConversationVo();
+            BeanUtils.copyProperties(entity, vo);
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     /**
@@ -297,23 +286,14 @@ public class AiConversationService {
      */
     public AiConversationVo getConversation(String conversationId) {
         AiConversationEntity entity = aiConversationMapper.selectById(conversationId);
-        return entity != null ? convertToVo(entity) : null;
+        if (entity != null) {
+            AiConversationVo vo = new AiConversationVo();
+            BeanUtils.copyProperties(entity, vo);
+            return vo;
+        }
+        return null;
     }
 
-    /**
-     * 根据模型base_name查找对应的model_source_id
-     * @param baseName 模型基础名称（如：deepseek-chat, gpt-4等）
-     * @return model_source_id，如果未找到返回null
-     */
-    private String findModelSourceIdByBaseName(String baseName) {
-        try {
-            log.debug("查找模型源ID - baseName: {}", baseName);
-            return null;
-        } catch (Exception e) {
-            log.error("查找模型源ID失败 - baseName: {}", baseName, e);
-            return null;
-        }
-    }
 
     /**
      * 从Spring AI Usage接口记录Token使用情况（流式聊天回调）
@@ -322,32 +302,30 @@ public class AiConversationService {
      * @param conversationId 对话ID
      * @param userId 用户ID
      * @param aiProvider AI提供商
-     * @param aiModelType AI模型类型
+     * @param modelSourceId 模型源ID
+     * @param modelType 模型类型（base_name）
      * @param promptTokens 输入Token数
      * @param completionTokens 输出Token数
      */
     public void recordTokenUsageFromSpringAI(String conversationId, String userId,
-                                            String aiProvider, String aiModelType,
+                                            String aiProvider, String modelSourceId, String modelType,
                                             Long promptTokens, Long completionTokens) {
         try {
-            // 根据模型类型查找对应的model_source_id
-            String modelSourceId = findModelSourceIdByBaseName(aiModelType);
-
-            // 异步记录Token使用情况
+            // 直接使用传入的modelSourceId，无需查找
             aiTokenUsageService.recordTokenUsageAsync(
                     conversationId,
-                    modelSourceId, // 根据模型类型查找到的model_source_id
+                    modelSourceId, // 直接使用传入的model_source_id
                     userId,
                     aiProvider,
-                    aiModelType,
+                    modelType,     // 使用真正的模型类型
                     promptTokens,
                     completionTokens,
                     true, // success
                     0L    // responseTime
             );
 
-            log.info("流式聊天回调Token使用记录 - conversationId: {}, userId: {}, tokens: {}",
-                    new Object[]{conversationId, userId, (promptTokens + completionTokens)});
+            log.info("流式聊天回调Token使用记录 - conversationId: {}, userId: {}, modelSourceId: {}, modelType: {}, tokens: {}",
+                    conversationId, userId, modelSourceId, modelType, (promptTokens + completionTokens));
 
         } catch (Exception e) {
             log.error("流式聊天回调Token使用记录失败", e);
@@ -358,9 +336,13 @@ public class AiConversationService {
     public List<AiConversationContentVo> chatList(String conversationId, String userId) {
         QueryWrapper<AiConversationContentEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("conversation_id", conversationId);
-        wrapper.orderByAsc("create_time");
+        wrapper.orderByAsc("c_time");
         List<AiConversationContentEntity> entities = aiConversationContentMapper.selectList(wrapper);
-        return entities.stream().map(this::convertContentToVo).collect(Collectors.toList());
+        return entities.stream().map(entity -> {
+            AiConversationContentVo vo = new AiConversationContentVo();
+            BeanUtils.copyProperties(entity, vo);
+            return vo;
+        }).collect(Collectors.toList());
     }
 
     public AiConversationVo update(AIConversationUpdateRequestVo request, String userId) {
@@ -410,131 +392,6 @@ public class AiConversationService {
     public void endConversation(String conversationId, String userId) {
         log.info("对话已结束 - conversationId: {}, userId: {}", conversationId, userId);
     }
-
-    /**
-     * 从Spring AI Usage中记录Token使用情况
-     */
-    private void recordTokenUsageFromSpringAI(AIChatRequestVo request, String userId,
-                                             Usage usage, long startTime, boolean success) {
-        try {
-            long responseTime = System.currentTimeMillis() - startTime;
-
-            // 从Spring AI Usage中获取Token信息
-            Long promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens().longValue() : 0L;
-            Long completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens().longValue() : 0L;
-
-            // 获取AI提供商和模型信息（从请求配置中获取）
-            String aiProvider = "unknown"; // 使用动态模型选择，不再硬编码
-            String aiModelType = "unknown"; // 使用动态模型选择，不再硬编码
-
-            // 异步记录Token使用情况
-            aiTokenUsageService.recordTokenUsageAsync(
-                    request.getConversationId(),
-                    null, // 模型源ID - 已废弃，使用动态模型选择
-                    userId,
-                    aiProvider,
-                    aiModelType,
-                    promptTokens,
-                    completionTokens,
-                    success,
-                    responseTime
-            );
-
-            log.debug("Token使用记录已提交 - conversationId: {}, promptTokens: {}, completionTokens: {}",
-                    new Object[]{request.getConversationId(), promptTokens, completionTokens});
-
-        } catch (Exception e) {
-            log.error("记录Token使用失败", e);
-            // Token记录失败不影响主业务流程
-        }
-    }
-
-    /**
-     * 记录失败情况下的Token使用（通常没有Token信息）
-     */
-    private void recordTokenUsageOnFailure(AIChatRequestVo request, String userId,  long responseTime) {
-        try {
-            // 失败时通常没有Token消耗，记录0
-            aiTokenUsageService.recordTokenUsageAsync(
-                    request.getConversationId(),
-                    null, // 模型源ID - 已废弃，使用动态模型选择
-                    userId,
-                    "unknown",
-                    "unknown",
-                    0L,
-                    0L,
-                    false,
-                    responseTime
-            );
-
-            log.debug("失败请求Token记录已提交 - conversationId: {}", request.getConversationId());
-
-        } catch (Exception e) {
-            log.error("记录失败Token使用失败", e);
-        }
-    }
-
-    /**
-     * 估算Token使用量（简单实现，可以根据实际情况优化）
-     */
-    private Long estimateTokenUsage(String prompt) {
-        if (StringUtils.isBlank(prompt)) {
-            return 0L;
-        }
-
-        // 简单估算：按照字符数的1/4估算Token数
-        // 实际应用中可以使用更精确的Token计算库
-        int charCount = prompt.length();
-        long estimatedTokens = (long) Math.ceil(charCount / 4.0);
-
-        // 预估输出Token（通常是输入的1-2倍）
-        estimatedTokens = estimatedTokens + (estimatedTokens / 2);
-
-        return Math.max(estimatedTokens, 100L); // 最少估算100个Token
-    }
-
-    /**
-     * 从响应中提取输入Token数
-     */
-    private Long extractPromptTokens(AiEngineAdapter.AiResponse response) {
-        if (response != null) {
-            return response.getPromptTokens();
-        }
-        return 0L;
-    }
-
-    /**
-     * 从响应中提取输出Token数
-     */
-    private Long extractCompletionTokens(AiEngineAdapter.AiResponse response) {
-        if (response != null) {
-            return response.getCompletionTokens();
-        }
-        return 0L;
-    }
-
-    /**
-     * 从响应中提取AI提供商信息
-     */
-    private String extractAiProvider(AiEngineAdapter.AiResponse response) {
-        if (response != null && response.getModelProvider() != null) {
-            return response.getModelProvider();
-        }
-        // 如果响应中没有提供商信息，返回unknown
-        return "unknown";
-    }
-
-    /**
-     * 从响应中提取AI模型类型
-     */
-    private String extractAiModelType(AiEngineAdapter.AiResponse response) {
-        if (response != null && response.getModelName() != null) {
-            return response.getModelName();
-        }
-        // 如果响应中没有模型信息，返回unknown
-        return "unknown";
-    }
-
     /**
      * 获取对话历史记录（用于ChatMemory）
      * @param conversationId 对话ID
@@ -545,29 +402,4 @@ public class AiConversationService {
         return extAiConversationContentMapper.selectLastByConversationIdByLimit(conversationId, limit);
     }
 
-    // 转换方法
-    private AiConversationVo convertToVo(AiConversationEntity entity) {
-        AiConversationVo vo = new AiConversationVo();
-        vo.setId(entity.getId());
-        vo.setTitle(entity.getTitle());
-
-        // 字段映射：Entity使用标准审计字段，VO使用业务字段
-        if (entity.getC_id() != null) {
-            vo.setCreate_user(String.valueOf(entity.getC_id())); // Long -> String转换
-        }
-        if (entity.getC_time() != null) {
-            // LocalDateTime -> Long时间戳转换
-            vo.setCreate_time(entity.getC_time().atZone(java.time.ZoneId.of("Asia/Shanghai")).toEpochSecond() * 1000);
-        }
-
-        return vo;
-    }
-
-    private AiConversationContentVo convertContentToVo(AiConversationContentEntity entity) {
-        AiConversationContentVo vo = new AiConversationContentVo();
-        vo.setId(entity.getId());
-        vo.setConversation_id(entity.getConversation_id());
-        vo.setContent(entity.getContent());
-        return vo;
-    }
 }

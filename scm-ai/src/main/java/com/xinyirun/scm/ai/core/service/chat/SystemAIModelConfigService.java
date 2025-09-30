@@ -2,6 +2,7 @@ package com.xinyirun.scm.ai.core.service.chat;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.xinyirun.scm.ai.bean.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
@@ -27,8 +28,6 @@ public class SystemAIModelConfigService {
 
     @Resource
     private AiModelSourceMapper aiModelSourceMapper;
-
-    private static final String DEFAULT_OWNER = "system";
 
     /**
      * 编辑模型配置 - 按照备份代码逻辑迁移
@@ -78,36 +77,67 @@ public class SystemAIModelConfigService {
     }
 
     /**
-     * 设置模型拥有者 - 按照备份代码逻辑
+     * 设置模型拥有者
+     * 根据权限类型确定模型的拥有者：私有模型归用户所有，公共模型归系统所有
      */
     private static void setOwner(AiModelSourceVo aiModelSourceVo, String userId) {
-        if ("PRIVATE".equalsIgnoreCase(aiModelSourceVo.getPermission_type())) {
+        if (ModelConstants.PermissionType.PRIVATE.getCode().equalsIgnoreCase(aiModelSourceVo.getPermission_type())) {
             aiModelSourceVo.setOwner(userId);
         } else {
-            aiModelSourceVo.setOwner(DEFAULT_OWNER);
+            aiModelSourceVo.setOwner(ModelConstants.SYSTEM_OWNER);
         }
     }
 
     /**
-     * 提取验证模型名称是否重复的逻辑 - 按照备份代码逻辑
+     * 判断是否为系统模型
+     */
+    private boolean isSystemModel(String owner) {
+        return ModelConstants.SYSTEM_OWNER.equalsIgnoreCase(owner);
+    }
+
+    /**
+     * 为查询条件添加模型访问权限限制
+     * 系统模型：所有人可见
+     * 个人模型：只有创建者和系统模型可见
+     */
+    private void addModelAccessCondition(QueryWrapper<AiModelSourceEntity> wrapper, String owner) {
+        if (isSystemModel(owner)) {
+            // 系统模型检查：检查所有模型的重名情况
+            // 不需要添加owner条件
+        } else {
+            // 个人模型检查：检查个人模型和系统模型的重名情况
+            wrapper.and(w -> w.eq("owner", owner).or().eq("owner", ModelConstants.SYSTEM_OWNER));
+        }
+    }
+
+    /**
+     * 为查询条件添加用户权限限制
+     * 用户可以访问自己的模型和系统模型
+     */
+    private void addUserPermissionCondition(QueryWrapper<AiModelSourceEntity> wrapper, String userId) {
+        if (StringUtils.isNotBlank(userId)) {
+            wrapper.and(w -> w.eq("owner", userId).or().eq("owner", ModelConstants.SYSTEM_OWNER));
+        } else {
+            wrapper.eq("owner", ModelConstants.SYSTEM_OWNER);
+        }
+    }
+
+    /**
+     * 验证模型名称是否重复
+     * 根据模型拥有者类型，应用不同的重名检查策略
      */
     private boolean isModelNameDuplicated(String name, String id, boolean isAddOperation, String owner) {
         QueryWrapper<AiModelSourceEntity> wrapper = new QueryWrapper<>();
-        if (isAddOperation) {
-            if (DEFAULT_OWNER.equalsIgnoreCase(owner)) {
-                wrapper.eq("name", name); // 如果是系统模型，判断所有数据
-            } else {
-                wrapper.eq("name", name).and(w -> w.eq("owner", owner).or().eq("owner", DEFAULT_OWNER)); // 如果是个人模型，则需要判断当前用户和系统中是否有同名模型
-            }
-        } else {
-            // 更新操作时，排除当前ID
-            if (DEFAULT_OWNER.equalsIgnoreCase(owner)) {
-                wrapper.eq("name", name).ne("id", id); // 系统模型
-            } else {
-                // 个人模型需要owner条件
-                wrapper.eq("name", name).ne("id", id).and(w -> w.eq("owner", owner).or().eq("owner", DEFAULT_OWNER));
-            }
+        wrapper.eq("name", name);
+
+        // 更新操作时排除当前记录
+        if (!isAddOperation) {
+            wrapper.ne("id", id);
         }
+
+        // 应用权限检查逻辑
+        addModelAccessCondition(wrapper, owner);
+
         return aiModelSourceMapper.selectCount(wrapper) > 0;
     }
 
@@ -277,26 +307,34 @@ public class SystemAIModelConfigService {
     }
 
     /**
-     * 获取模型源列表 - 按照备份代码逻辑
+     * 获取模型源列表
+     * 支持按拥有者、提供商、关键词等条件筛选
      */
     public List<AiModelSourceVo> getModelSourceList(AiModelSourceRequestVo aiModelSourceRequest) {
+        // 默认查询系统模型
         if (!StringUtils.isNotBlank(aiModelSourceRequest.getOwner())) {
-            aiModelSourceRequest.setOwner(DEFAULT_OWNER);
+            aiModelSourceRequest.setOwner(ModelConstants.SYSTEM_OWNER);
         }
 
         QueryWrapper<AiModelSourceEntity> wrapper = new QueryWrapper<>();
-        // 添加查询条件
+
+        // 添加拥有者条件
         if (StringUtils.isNotBlank(aiModelSourceRequest.getOwner())) {
             wrapper.eq("owner", aiModelSourceRequest.getOwner());
         }
+
+        // 添加提供商条件
         if (StringUtils.isNotBlank(aiModelSourceRequest.getProviderName())) {
             wrapper.eq("provider_name", aiModelSourceRequest.getProviderName());
         }
+
+        // 添加关键词搜索条件
         if (StringUtils.isNotBlank(aiModelSourceRequest.getKeyword())) {
             wrapper.and(w -> w.like("name", aiModelSourceRequest.getKeyword())
                           .or().like("base_name", aiModelSourceRequest.getKeyword()));
         }
-        wrapper.orderByDesc("create_time");
+
+        wrapper.orderByDesc("c_time"); // 按创建时间倒序
 
         List<AiModelSourceEntity> entities = aiModelSourceMapper.selectList(wrapper);
         List<AiModelSourceVo> resultList = new ArrayList<>();
@@ -323,15 +361,18 @@ public class SystemAIModelConfigService {
     }
 
     /**
-     * 获取模型源名称列表 - 按照备份代码逻辑
+     * 获取模型源名称列表
+     * 返回用户可访问的启用模型（个人模型+系统模型）
      */
     public List<OptionVo> getModelSourceNameList(String userId) {
         QueryWrapper<AiModelSourceEntity> wrapper = new QueryWrapper<>();
         wrapper.eq("status", true); // 只查询启用的模型
-        // 权限过滤：查询用户自己的模型和系统模型
-        wrapper.and(w -> w.eq("owner", userId).or().eq("owner", DEFAULT_OWNER));
+
+        // 应用用户权限过滤
+        addUserPermissionCondition(wrapper, userId);
+
         wrapper.select("id", "name");
-        wrapper.orderByDesc("create_time");
+        wrapper.orderByDesc("c_time"); // 按创建时间倒序
 
         List<AiModelSourceEntity> entities = aiModelSourceMapper.selectList(wrapper);
         return entities.stream()

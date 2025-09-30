@@ -38,6 +38,14 @@ public class AiTokenUsageEntity implements Serializable {
     @DataChangeLabelAnnotation("模型源ID")
     private String model_source_id;
 
+    @TableField("provider_name")
+    @DataChangeLabelAnnotation("AI提供商名称")
+    private String provider_name;
+
+    @TableField("model_type")
+    @DataChangeLabelAnnotation("模型类型")
+    private String model_type;
+
     @TableField("prompt_tokens")
     @DataChangeLabelAnnotation("输入Token数")
     private Long prompt_tokens;
@@ -54,6 +62,25 @@ public class AiTokenUsageEntity implements Serializable {
     @DataChangeLabelAnnotation("使用时间")
     private LocalDateTime usage_time;
 
+    @TableField("token_unit_price")
+    @DataChangeLabelAnnotation("Token单价")
+    private java.math.BigDecimal token_unit_price;
+
+    @TableField("cost")
+    @DataChangeLabelAnnotation("总费用")
+    private java.math.BigDecimal cost;
+
+    @TableField("success")
+    @DataChangeLabelAnnotation("请求是否成功")
+    private Boolean success;
+
+    @TableField("response_time")
+    @DataChangeLabelAnnotation("响应时间(毫秒)")
+    private Long response_time;
+
+    @TableField("ai_config_id")
+    @DataChangeLabelAnnotation("AI配置ID")
+    private String ai_config_id;
 
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")

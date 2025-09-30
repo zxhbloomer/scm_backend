@@ -74,7 +74,7 @@ public class AiConversationContentVo implements Serializable {
     /**
      * 创建时间（格式化字符串）
      */
-    private String create_time_str;
+    private String c_time_str;
 
     /**
      * 处理状态
@@ -95,10 +95,6 @@ public class AiConversationContentVo implements Serializable {
      */
     private String error_message;
 
-    /**
-     * 创建用户ID
-     */
-    private String create_user;
 
     /**
      * 创建用户名称

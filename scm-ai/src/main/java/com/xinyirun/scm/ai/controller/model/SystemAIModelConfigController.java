@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.controller.model;
 
+import com.xinyirun.scm.ai.bean.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
@@ -28,7 +29,7 @@ public class SystemAIModelConfigController {
     @ResponseBody
     public AiModelSourceVo editModuleConfig(@Validated @RequestBody AiModelSourceVo aiModelSourceVo) {
         Long operatorId = SecurityUtil.getStaff_id();
-        String userId = operatorId != null ? operatorId.toString() : "system";
+        String userId = operatorId != null ? operatorId.toString() : ModelConstants.SYSTEM_OWNER;
         return systemAIModelConfigService.editModuleConfig(aiModelSourceVo, userId);
     }
 
@@ -37,7 +38,7 @@ public class SystemAIModelConfigController {
     @SysLogAnnotion("删除模型")
     public void delModelInformation(@PathVariable String id) {
         Long operatorId = SecurityUtil.getStaff_id();
-        String userId = operatorId != null ? operatorId.toString() : "system";
+        String userId = operatorId != null ? operatorId.toString() : ModelConstants.SYSTEM_OWNER;
         systemAIModelConfigService.delModelInformation(id, userId);
     }
 
@@ -55,7 +56,7 @@ public class SystemAIModelConfigController {
     @ResponseBody
     public AiModelSourceVo getModelInformation(@PathVariable String id) {
         Long operatorId = SecurityUtil.getStaff_id();
-        String userId = operatorId != null ? operatorId.toString() : "system";
+        String userId = operatorId != null ? operatorId.toString() : ModelConstants.SYSTEM_OWNER;
         return systemAIModelConfigService.getModelSourceVo(id, userId);
     }
 
@@ -65,7 +66,7 @@ public class SystemAIModelConfigController {
     @ResponseBody
     public List<OptionVo> getModelSourceNameList() {
         Long operatorId = SecurityUtil.getStaff_id();
-        String userId = operatorId != null ? operatorId.toString() : "system";
+        String userId = operatorId != null ? operatorId.toString() : ModelConstants.SYSTEM_OWNER;
         return systemAIModelConfigService.getModelSourceNameList(userId);
     }
 }

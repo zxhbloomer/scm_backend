@@ -113,6 +113,12 @@ public class AiModelSourceEntity implements Serializable {
     @DataChangeLabelAnnotation("模型参数配置值")
     private String adv_settings;
 
+    /**
+     * 创建用户
+     */
+    @TableField("create_user")
+    @DataChangeLabelAnnotation("创建用户")
+    private String create_user;
 
     /**
      * 创建时间

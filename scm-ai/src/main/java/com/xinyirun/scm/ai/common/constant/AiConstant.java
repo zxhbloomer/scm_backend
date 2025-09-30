@@ -27,23 +27,6 @@ public final class AiConstant {
      */
     public static final String CONVERSATION_STATUS_DELETED = "DELETED";
 
-    // ==================== 消息类型常量 ====================
-
-    /**
-     * 消息类型 - 用户消息
-     */
-    public static final String MESSAGE_TYPE_USER = "user";
-
-    /**
-     * 消息类型 - AI回复
-     */
-    public static final String MESSAGE_TYPE_ASSISTANT = "assistant";
-
-    /**
-     * 消息类型 - 系统消息
-     */
-    public static final String MESSAGE_TYPE_SYSTEM = "system";
-
     // ==================== 处理状态常量 ====================
 
     /**

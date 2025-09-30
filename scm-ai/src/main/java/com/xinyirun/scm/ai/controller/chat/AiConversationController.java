@@ -232,8 +232,9 @@ public class AiConversationController {
                                                 aiConversationService.recordTokenUsageFromSpringAI(
                                                         request.getConversationId(),
                                                         userId,
-                                                        selectedModel.getProvider_name(),  // 使用动态选择的提供商
-                                                        selectedModel.getId(),  // 使用模型源ID
+                                                        selectedModel.getProvider_name(),  // AI提供商
+                                                        selectedModel.getId(),             // 模型源ID
+                                                        selectedModel.getBase_name(),      // 模型类型（base_name）
                                                         response.getUsage().getPromptTokens() != null ? response.getUsage().getPromptTokens().longValue() : 0L,
                                                         response.getUsage().getCompletionTokens() != null ? response.getUsage().getCompletionTokens().longValue() : 0L
                                                 );
