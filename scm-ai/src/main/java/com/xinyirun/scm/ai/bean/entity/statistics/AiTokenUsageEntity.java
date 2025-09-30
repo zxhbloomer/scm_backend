@@ -23,12 +23,12 @@ public class AiTokenUsageEntity implements Serializable {
     @Serial
     private static final long serialVersionUID = -3503317847400235662L;
 
-    @TableId(value = "id", type = IdType.AUTO)
-    private Integer id;
+    @TableId(value = "id", type = IdType.INPUT)
+    private String id;
 
     @TableField("conversation_id")
     @DataChangeLabelAnnotation("对话ID")
-    private Integer conversation_id;
+    private String conversation_id;
 
     @TableField("user_id")
     @DataChangeLabelAnnotation("用户ID")
@@ -36,19 +36,19 @@ public class AiTokenUsageEntity implements Serializable {
 
     @TableField("model_source_id")
     @DataChangeLabelAnnotation("模型源ID")
-    private Integer model_source_id;
+    private String model_source_id;
 
     @TableField("prompt_tokens")
     @DataChangeLabelAnnotation("输入Token数")
-    private Integer prompt_tokens;
+    private Long prompt_tokens;
 
     @TableField("completion_tokens")
     @DataChangeLabelAnnotation("输出Token数")
-    private Integer completion_tokens;
+    private Long completion_tokens;
 
-    @TableField("total_tokens")
+    @TableField(value = "total_tokens", insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     @DataChangeLabelAnnotation("总Token数")
-    private Integer total_tokens;
+    private Long total_tokens;
 
     @TableField("usage_time")
     @DataChangeLabelAnnotation("使用时间")

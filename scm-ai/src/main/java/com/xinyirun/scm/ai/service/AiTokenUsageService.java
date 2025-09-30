@@ -390,30 +390,15 @@ public class AiTokenUsageService {
             // 创建Token使用记录
             AiTokenUsageEntity entity = new AiTokenUsageEntity();
 
-            // 处理ID字段的类型转换（String转Integer）
-            if (conversationId != null) {
-                try {
-                    entity.setConversation_id(Integer.valueOf(conversationId));
-                } catch (NumberFormatException e) {
-                    log.warn("对话ID转换失败，使用默认值: {}", conversationId);
-                    entity.setConversation_id(null);
-                }
-            }
-
-            if (modelSourceId != null) {
-                try {
-                    entity.setModel_source_id(Integer.valueOf(modelSourceId));
-                } catch (NumberFormatException e) {
-                    log.warn("模型源ID转换失败，使用默认值: {}", modelSourceId);
-                    entity.setModel_source_id(null);
-                }
-            }
+            // 直接设置String类型的ID字段
+            entity.setConversation_id(conversationId);
+            entity.setModel_source_id(modelSourceId);
 
             entity.setUser_id(userId);
 
             // 映射token字段
-            entity.setPrompt_tokens(promptTokens != null ? promptTokens.intValue() : 0);
-            entity.setCompletion_tokens(completionTokens != null ? completionTokens.intValue() : 0);
+            entity.setPrompt_tokens(promptTokens != null ? promptTokens : 0L);
+            entity.setCompletion_tokens(completionTokens != null ? completionTokens : 0L);
             // total_tokens是数据库生成列，自动计算，不需要手动设置
             entity.setUsage_time(LocalDateTime.now());
 
