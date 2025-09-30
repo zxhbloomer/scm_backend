@@ -9,7 +9,6 @@ public class AIChatOptions {
     private String modelType;
     // 关闭日志顾问，默认开启，true 关闭
     private boolean disableLoggingAdvisor;
-    // todo add more options
     // 用来控制生成的完成的表观创造性的采样温度。较高的值将使输出更加随机，而较低的值将使结果更加集中和确定。不建议修改同一完成请求的温度和 top_p，因为这两个设置的相互作用很难预测。
     private double temperature;
     // 介于 -2.0 和 2.0 之间的数字。正值会根据新标记在文本中出现的频率对其进行惩罚，从而降低模型逐字重复同一行的可能性。

@@ -641,7 +641,12 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         try {
             MUserEntity mUserEntity = mUserMapper.selectById(SecurityUtil.getLoginUser_id());
             if (mUserEntity != null && StringUtils.isBlank(mUserEntity.getConv_uuid())) {
-                String convUuid = UUID.randomUUID().toString();
+                // 获取当前租户ID
+                String tenantId = DataSourceHelper.getCurrentDataSourceName();
+                // 生成实际的会话UUID
+                String actualUuid = UUID.randomUUID().toString();
+                // 构建包含租户信息的conversationId格式：tenantId::actualUuid
+                String convUuid = buildTenantConversationId(tenantId, actualUuid);
 
                 mUserEntity.setId(userId);
                 mUserEntity.setConv_uuid(convUuid);
@@ -657,5 +662,17 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         } catch (Exception e) {
             log.warn("更新AI会话UUID失败：userId={}", userId, e);
         }
+    }
+
+    /**
+     * 构建包含租户信息的conversationId
+     * 格式：tenantId::actualConversationId
+     *
+     * @param tenantId 租户ID
+     * @param actualUuid 实际的会话UUID
+     * @return 包含租户信息的conversationId
+     */
+    private String buildTenantConversationId(String tenantId, String actualUuid) {
+        return tenantId + "::" + actualUuid;
     }
 }
