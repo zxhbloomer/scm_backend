@@ -2,6 +2,7 @@ package com.xinyirun.scm.clickhouse.config;
 
 import com.clickhouse.client.api.Client;
 import com.xinyirun.scm.clickhouse.entity.SLogSysClickHouseEntity;
+import com.xinyirun.scm.clickhouse.entity.ai.SLogAiChatClickHouseEntity;
 import com.xinyirun.scm.clickhouse.entity.mq.SLogMqConsumerClickHouseEntity;
 import com.xinyirun.scm.clickhouse.entity.mq.SLogMqProducerClickHouseEntity;
 import com.xinyirun.scm.clickhouse.entity.datachange.SLogDataChangeMainClickHouseEntity;
@@ -122,6 +123,10 @@ public class ClickHouseConfig {
             // 注册系统日志实体类 (s_log_sys表)
             client.register(SLogSysClickHouseEntity.class, client.getTableSchema("s_log_sys"));
             log.info("POJO注册成功: {} -> s_log_sys", SLogSysClickHouseEntity.class.getSimpleName());
+            
+            // 注册AI聊天日志实体类 (s_log_ai_chat表)
+            client.register(SLogAiChatClickHouseEntity.class, client.getTableSchema("s_log_ai_chat"));
+            log.info("POJO注册成功: {} -> s_log_ai_chat", SLogAiChatClickHouseEntity.class.getSimpleName());
             
             // 注册MQ消费者日志实体类 (s_log_mq_consumer表)
             client.register(SLogMqConsumerClickHouseEntity.class, client.getTableSchema("s_log_mq_consumer"));

@@ -43,16 +43,6 @@ public class SystemAIConfigService {
         return StringUtils.equalsAny(modelOwner, userId, ModelConstants.SYSTEM_OWNER);
     }
 
-    /**
-     * 判断是否为系统公共模型
-     *
-     * @param owner 模型拥有者
-     * @return 是否为系统模型
-     */
-    private boolean isSystemModel(String owner) {
-        return ModelConstants.SYSTEM_OWNER.equalsIgnoreCase(owner);
-    }
-
     private AiModelSourceVo getModelSourceVoWithKey(AiModelSourceEntity modelSource) {
         AiModelSourceVo modelSourceVo = new AiModelSourceVo();
         BeanUtils.copyProperties(modelSource, modelSourceVo);
@@ -115,26 +105,4 @@ public class SystemAIConfigService {
         return getModelSourceVoWithKey(aiModelSource);
     }
 
-
-    /**
-     * 删除模型信息
-     * 只有模型拥有者可以删除自己的模型，系统模型需要管理员权限
-     *
-     * @param id 模型ID
-     * @param userId 用户ID
-     */
-    public void delModelInformation(String id, String userId) {
-        AiModelSourceEntity aiModelSource = aiModelSourceMapper.selectById(id);
-        if (aiModelSource == null) {
-            throw new RuntimeException("模型信息不存在");
-        }
-
-        // 检查删除权限：只有模型拥有者可以删除
-        if (!StringUtils.equalsIgnoreCase(aiModelSource.getOwner(), userId)) {
-            throw new RuntimeException("模型信息不存在");
-        }
-
-        aiModelSourceMapper.deleteById(id);
-        log.info("删除模型信息成功, id: {}, userId: {}", id, userId);
-    }
 }

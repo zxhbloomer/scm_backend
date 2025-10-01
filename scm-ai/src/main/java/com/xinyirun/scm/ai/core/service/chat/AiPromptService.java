@@ -53,25 +53,4 @@ public class AiPromptService {
         }
     }
 
-    /**
-     * 根据提示词昵称查询
-     *
-     * @param nickname 提示词昵称
-     * @return 提示词VO
-     */
-    public AiPromptVo getByNickname(String nickname) {
-        try {
-            AiPromptEntity entity = aiPromptMapper.selectByNickname(nickname);
-            if (entity != null) {
-                AiPromptVo vo = new AiPromptVo();
-                BeanUtils.copyProperties(entity, vo);
-                return vo;
-            }
-            return null;
-        } catch (Exception e) {
-            log.error("根据提示词昵称查询失败, nickname: {}", nickname, e);
-            return null;
-        }
-    }
-
 }

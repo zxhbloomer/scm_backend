@@ -46,7 +46,10 @@
       "Bash(ls:*)",
       "SlashCommand(/specify ai chat 日志记录，按这个方案来设计)",
       "mcp__clickhouse__list_tables",
-      "mcp__serena__find_file"
+      "mcp__serena__find_file",
+      "mcp__clickhouse__list_databases",
+      "mcp__clickhouse__run_select_query",
+      "Bash(jps:*)"
     ],
     "deny": [],
     "ask": []
