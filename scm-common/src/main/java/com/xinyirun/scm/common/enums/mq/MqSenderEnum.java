@@ -28,6 +28,7 @@ public enum MqSenderEnum {
     MQ_LOG_DATA_CHANGE_QUEUE(MqSenderConstants.MQ_LOG_DATA_CHANGE_QUEUE, "操作日志队列-数据更新前更新后"),
     MQ_LOG_APP_QUEUE(MqSenderConstants.MQ_LOG_APP_QUEUE, "app日志"),
     MQ_LOG_QUARTZ_QUEUE(MqSenderConstants.MQ_LOG_QUARTZ_QUEUE, "调度日志"),
+    MQ_LOG_AI_CHAT_QUEUE(MqSenderConstants.MQ_LOG_AI_CHAT_QUEUE, "AI聊天日志"),
     MQ_MONITOR_BACKUP_QUEUE(MqSenderConstants.MQ_MONITOR_BACKUP_QUEUE, "监管任务备份"),
     MQ_MONITOR_RENEW_QUEUE(MqSenderConstants.MQ_MONITOR_RENEW_QUEUE, "监管任务恢复"),
 
@@ -87,6 +88,8 @@ public enum MqSenderEnum {
         public static final String MQ_LOG_DATA_CHANGE_QUEUE = "scm_data_change_log";
         // 调度 日志
         public static final String MQ_LOG_QUARTZ_QUEUE = "scm_quartz_log";
+        // AI聊天日志
+        public static final String MQ_LOG_AI_CHAT_QUEUE = "scm_ai_chat_log";
         // 监管任务备份
         public static final String MQ_MONITOR_BACKUP_QUEUE = "scm_monitor_backup1";
         // 监管任务恢复

@@ -33,14 +33,14 @@ public class AiPromptService {
 
 
     /**
-     * 根据提示词昵称查询
+     * 根据提示词编码查询
      *
-     * @param nickname 提示词昵称
+     * @param code 提示词编码
      * @return 提示词VO
      */
-    public AiPromptVo getByNickname(String nickname) {
+    public AiPromptVo getByCode(String code) {
         try {
-            AiPromptEntity entity = aiPromptMapper.selectByNickname(nickname);
+            AiPromptEntity entity = aiPromptMapper.selectByCode(code);
             if (entity != null) {
                 AiPromptVo vo = new AiPromptVo();
                 BeanUtils.copyProperties(entity, vo);
@@ -48,7 +48,7 @@ public class AiPromptService {
             }
             return null;
         } catch (Exception e) {
-            log.error("根据提示词昵称查询失败, nickname: {}", nickname, e);
+            log.error("根据提示词编码查询失败, code: {}", code, e);
             return null;
         }
     }

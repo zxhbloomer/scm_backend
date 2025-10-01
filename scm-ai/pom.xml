@@ -31,6 +31,11 @@
             <artifactId>scm-core</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.xinyirun</groupId>
+            <artifactId>scm-mq</artifactId>
+        </dependency>
+
         <!-- Spring Boot基础 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

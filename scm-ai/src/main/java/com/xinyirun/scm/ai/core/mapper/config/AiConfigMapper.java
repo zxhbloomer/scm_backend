@@ -17,15 +17,4 @@ import java.util.List;
 @Mapper
 public interface AiConfigMapper extends BaseMapper<AiConfigEntity> {
 
-    /**
-     * 根据配置键和租户查询配置
-     */
-    @Select("""
-        SELECT id, config_key, config_value, description, c_time, u_time, c_id, u_id, dbversion
-        FROM ai_config
-        WHERE config_key = #{configKey}
-        LIMIT 1
-        """)
-    AiConfigEntity selectByConfigKeyAndTenant(@Param("configKey") String configKey);
-
 }

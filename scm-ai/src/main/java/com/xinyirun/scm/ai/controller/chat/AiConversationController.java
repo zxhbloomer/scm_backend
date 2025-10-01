@@ -16,6 +16,7 @@ import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.ai.common.constant.AICommonConstants;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirun.scm.core.system.mapper.client.user.MUserMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -28,6 +29,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+
 
 /**
  * AI对话控制器
@@ -54,6 +56,9 @@ public class AiConversationController {
 
     @Resource
     private AiModelSelectionService aiModelSelectionService;
+
+    @Resource
+    private MUserMapper mUserMapper;
 
     /**
      * 获取用户对话列表
@@ -163,16 +168,14 @@ public class AiConversationController {
     public Flux<ChatResponseVo> chatStream(@Validated @RequestBody AIChatRequestVo request) {
         // 获取用户ID
         Long operatorId = SecurityUtil.getStaff_id();
-        String userId = operatorId != null ? operatorId.toString() : "system";
-
+        String userId =  operatorId.toString() ;
+        String tenant_id = request.getConversationId().split("::", 2)[0];;
+        request.setTenantId(tenant_id);
         // 在后台线程异步处理
         Flux<ChatResponseVo> responseFlux = Flux.<ChatResponseVo>create(fluxSink -> {
             try {
                 // 设置多租户数据源
-                if (request.getTenantId() != null && !request.getTenantId().isEmpty()) {
-                    DataSourceHelper.use(request.getTenantId());
-                }
-                log.debug("租户数据库：{}", request.getTenantId());
+                DataSourceHelper.use(tenant_id);
 
                 // 动态选择AI模型
                 AiModelSourceEntity selectedModel = aiModelSelectionService.selectAvailableModel(request.getAiType());

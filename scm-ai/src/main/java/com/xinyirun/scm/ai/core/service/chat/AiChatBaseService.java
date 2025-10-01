@@ -11,9 +11,15 @@ import com.xinyirun.scm.ai.engine.common.AIChatOptions;
 import com.xinyirun.scm.ai.engine.utils.JSON;
 import com.xinyirun.scm.ai.common.util.CommonBeanFactory;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
+import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
+import com.xinyirun.scm.bean.clickhouse.vo.ai.SLogAiChatVo;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirun.scm.mq.rabbitmq.producer.business.log.ai.LogAiChatProducer;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -44,6 +50,7 @@ import java.util.stream.Collectors;
  * @since 2025-05-28
  */
 @Service
+@Slf4j
 @Transactional(rollbackFor = Exception.class)
 public class AiChatBaseService {
 
@@ -53,6 +60,10 @@ public class AiChatBaseService {
     private AiConversationContentMapper aiConversationContentMapper;
     @Resource
     private AiModelSelectionService aiModelSelectionService;
+    @Resource
+    private AiModelSourceMapper aiModelSourceMapper;
+    @Autowired
+    private LogAiChatProducer logAiChatProducer;
 
     /**
      * 根据聊天请求获取AI模型配置
@@ -239,8 +250,70 @@ public class AiChatBaseService {
         aiConversationContent.setContent(content);
         aiConversationContent.setType(type);
         aiConversationContent.setModel_source_id(modelSourceId);
+
+        // 1. 保存到MySQL
         aiConversationContentMapper.insert(aiConversationContent);
+
+        // 2. 异步发送MQ消息到ClickHouse日志系统
+        try {
+            SLogAiChatVo logVo = buildLogVo(aiConversationContent);
+            logAiChatProducer.mqSendMq(logVo);
+            log.debug("发送AI聊天日志MQ消息成功，conversation_id: {}, type: {}",
+                    conversationId, type);
+        } catch (Exception e) {
+            // 日志发送失败不影响主业务，仅记录错误
+            log.error("发送AI聊天日志MQ消息失败，conversation_id: {}, type: {}",
+                    conversationId, type, e);
+        }
+
         return aiConversationContent;
+    }
+
+    /**
+     * 构建AI聊天日志VO对象
+     *
+     * <p>从MySQL实体对象转换为MQ消息VO对象
+     * <p>补充应用层字段：tenant_code、c_name、request_id
+     * <p>补充模型信息：provider_name、base_name
+     *
+     * @param entity MySQL实体对象
+     * @return SLogAiChatVo MQ消息VO对象
+     */
+    private SLogAiChatVo buildLogVo(AiConversationContentEntity entity) {
+        SLogAiChatVo vo = new SLogAiChatVo();
+
+        // 从entity拷贝基础字段
+        vo.setConversation_id(entity.getConversation_id());
+        vo.setType(entity.getType());
+        vo.setContent(entity.getContent());
+        vo.setModel_source_id(entity.getModel_source_id());
+        vo.setC_id(entity.getC_id());
+        vo.setC_time(entity.getC_time());
+
+        // 设置租户编码（从当前数据源上下文获取）
+        vo.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
+
+        // 设置创建人名称（从entity获取，如果为null则留空）
+        vo.setC_name(entity.getC_id() != null ? String.valueOf(entity.getC_id()) : null);
+
+        // 设置请求标识（使用conversation_id作为请求标识）
+        vo.setRequest_id(entity.getConversation_id());
+
+        // 获取模型信息（provider_name和base_name）
+        if (StringUtils.isNotBlank(entity.getModel_source_id())) {
+            try {
+                AiModelSourceEntity modelSource = aiModelSourceMapper.selectById(entity.getModel_source_id());
+                if (modelSource != null) {
+                    vo.setProvider_name(modelSource.getProvider_name());
+                    vo.setBase_name(modelSource.getBase_name());
+                }
+            } catch (Exception e) {
+                log.warn("获取AI模型信息失败，model_source_id: {}", entity.getModel_source_id(), e);
+                // 失败时provider_name和base_name保持null（ClickHouse表允许null）
+            }
+        }
+
+        return vo;
     }
 
     /**
