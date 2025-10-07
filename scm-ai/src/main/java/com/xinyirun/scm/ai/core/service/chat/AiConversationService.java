@@ -233,6 +233,7 @@ public class AiConversationService {
      * 该方法与Spring AI框架集成，用于记录实际的Token消耗
      *
      * @param conversationId 对话ID
+     * @param conversationContentId ASSISTANT消息ID（关联ai_conversation_content表）
      * @param userId 用户ID
      * @param aiProvider AI提供商
      * @param modelSourceId 模型源ID
@@ -240,14 +241,15 @@ public class AiConversationService {
      * @param promptTokens 输入Token数
      * @param completionTokens 输出Token数
      */
-    public void recordTokenUsageFromSpringAI(String conversationId, String userId,
+    public void recordTokenUsageFromSpringAI(String conversationId, String conversationContentId, String userId,
                                             String aiProvider, String modelSourceId, String modelType,
                                             Long promptTokens, Long completionTokens) {
         try {
             // 直接使用传入的modelSourceId，无需查找
             aiTokenUsageService.recordTokenUsageAsync(
                     conversationId,
-                    modelSourceId, // 直接使用传入的model_source_id
+                    conversationContentId, // ASSISTANT消息ID
+                    modelSourceId,         // 模型源ID
                     userId,
                     aiProvider,
                     modelType,     // 使用真正的模型类型

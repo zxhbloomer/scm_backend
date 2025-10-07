@@ -50,6 +50,10 @@ public class ProducerConfiguration {
          * TODO：初始化项目中使用的mq
          */
         binding(rabbitAdmin, MQEnum.MQ_LOG_QUARTZ_QUEUE);
+        // AI模块队列初始化
+        binding(rabbitAdmin, MQEnum.MQ_AI_DOCUMENT_INDEXING_QUEUE);
+        binding(rabbitAdmin, MQEnum.MQ_AI_DOCUMENT_DELETION_QUEUE);
+        binding(rabbitAdmin, MQEnum.MQ_AI_KB_DELETION_QUEUE);
         return binding;
     }
 

@@ -180,7 +180,7 @@ public class AiConversationController {
                 // 动态选择AI模型
                 AiModelSourceEntity selectedModel = aiModelSelectionService.selectAvailableModel(request.getAiType());
                 log.info("已选择AI模型: [提供商: {}, 模型: {}, ID: {}]",
-                        selectedModel.getProvider_name(), selectedModel.getBase_name(), selectedModel.getId());
+                        selectedModel.getProviderName(), selectedModel.getBaseName(), selectedModel.getId());
 
                 // 持久化原始提示词（使用选中的模型信息）
                 aiConversationContentService.saveConversationContent(
@@ -188,8 +188,8 @@ public class AiConversationController {
                         AICommonConstants.MESSAGE_TYPE_USER,
                         request.getPrompt(),
                         selectedModel.getId(),
-                        selectedModel.getProvider_name(),
-                        selectedModel.getBase_name(),
+                        selectedModel.getProviderName(),
+                        selectedModel.getBaseName(),
                         operatorId
                 );
 
@@ -220,8 +220,8 @@ public class AiConversationController {
                                                     AICommonConstants.MESSAGE_TYPE_ASSISTANT,
                                                     response.getContent(),
                                                     selectedModel.getId(),
-                                                    selectedModel.getProvider_name(),
-                                                    selectedModel.getBase_name(),
+                                                    selectedModel.getProviderName(),
+                                                    selectedModel.getBaseName(),
                                                     operatorId
                                             );
 
@@ -232,10 +232,11 @@ public class AiConversationController {
 
                                                 aiConversationService.recordTokenUsageFromSpringAI(
                                                         request.getConversationId(),
-                                                        userId,
-                                                        selectedModel.getProvider_name(),  // AI提供商
+                                                        null,                              // conversationContentId (ASSISTANT消息ID，在此处为null)
+                                                        String.valueOf(userId),            // 将userId转换为String
+                                                        selectedModel.getProviderName(),   // AI提供商
                                                         selectedModel.getId(),             // 模型源ID
-                                                        selectedModel.getBase_name(),      // 模型类型（base_name）
+                                                        selectedModel.getBaseName(),       // 模型类型（base_name）
                                                         response.getUsage().getPromptTokens() != null ? response.getUsage().getPromptTokens().longValue() : 0L,
                                                         response.getUsage().getCompletionTokens() != null ? response.getUsage().getCompletionTokens().longValue() : 0L
                                                 );

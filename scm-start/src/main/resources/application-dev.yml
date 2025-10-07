@@ -279,10 +279,19 @@ spring:
 #        druid:
   # Elasticsearch配置
   elasticsearch:
-    uris: http://127.0.0.1:19200
+    uris: http://127.0.0.1:9200
     connection-timeout: 1s
     socket-timeout: 30s
-  
+
+  # Neo4j配置 - 用于知识图谱存储
+  neo4j:
+    uri: bolt://127.0.0.1:7687
+    authentication:
+      username: neo4j
+      password: Password123
+    connection-timeout: 30s
+    max-connection-pool-size: 50
+
   #   OAuth2 Client/Login配置
   security:
     oauth2:
@@ -445,7 +454,23 @@ spring:
         enabled: false
       embedding:
         enabled: false
-    
+
+    # Ollama配置 - 本地AI模型（用于知识库RAG）
+    ollama:
+      base-url: http://127.0.0.1:11434
+      chat:
+        enabled: true
+        options:
+          model: qwen2.5:7b  # 使用Qwen 7B模型
+          temperature: 0.7
+          max-tokens: 2048
+          num-ctx: 4096  # 上下文长度
+      embedding:
+        enabled: true
+        options:
+          model: all-minilm:l6-v2  # 384维向量模型
+          dimensions: 384
+
     # 彻底禁用所有向量存储自动配置
     vectorstore:
       enabled: false

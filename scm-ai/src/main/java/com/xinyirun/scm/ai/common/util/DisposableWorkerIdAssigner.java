@@ -47,17 +47,17 @@ public class DisposableWorkerIdAssigner implements WorkerIdAssigner {
         WorkerNodeEntity workerNode = new WorkerNodeEntity();
         if (DockerUtils.isDocker()) {
             workerNode.setType(WorkerNodeType.CONTAINER.value());
-            workerNode.setHost_name(DockerUtils.getDockerHost());
+            workerNode.setHostName(DockerUtils.getDockerHost());
             workerNode.setPort(DockerUtils.getDockerPort());
 
         } else {
             workerNode.setType(WorkerNodeType.ACTUAL.value());
-            workerNode.setHost_name(NetUtils.getLocalAddress());
+            workerNode.setHostName(NetUtils.getLocalAddress());
             workerNode.setPort(System.currentTimeMillis() + "-" + RandomUtils.nextInt());
         }
         // 使用新的字段名
         Long currentTime = System.currentTimeMillis();
-        workerNode.setLaunch_date(currentTime);
+        workerNode.setLaunchDate(currentTime);
         // c_time和u_time会由MyBatis Plus自动填充
         return workerNode;
     }

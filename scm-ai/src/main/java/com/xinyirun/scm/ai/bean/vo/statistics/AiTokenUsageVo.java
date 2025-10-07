@@ -48,6 +48,11 @@ public class AiTokenUsageVo implements Serializable {
     private Integer model_source_id;
 
     /**
+     * 关联的消息ID
+     */
+    private String conversation_content_id;
+
+    /**
      * 输入Token数
      */
     private Integer prompt_tokens;

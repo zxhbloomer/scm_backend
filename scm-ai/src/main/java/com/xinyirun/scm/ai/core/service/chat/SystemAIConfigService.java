@@ -50,19 +50,19 @@ public class SystemAIConfigService {
         // 字段映射
         modelSourceVo.setId(modelSource.getId());
         modelSourceVo.setModel_name(modelSource.getName());
-        modelSourceVo.setProvider(modelSource.getProvider_name());
-        modelSourceVo.setApi_key(modelSource.getApp_key());
-        modelSourceVo.setApi_url(modelSource.getApi_url());
+        modelSourceVo.setProvider(modelSource.getProviderName());
+        modelSourceVo.setApi_key(modelSource.getAppKey());
+        modelSourceVo.setApi_url(modelSource.getApiUrl());
         modelSourceVo.setStatus(modelSource.getStatus());
         modelSourceVo.setOwner(modelSource.getOwner());
-        modelSourceVo.setOwner_type(modelSource.getOwner_type());
-        modelSourceVo.setPermission_type(modelSource.getPermission_type());
-        modelSourceVo.setBase_name(modelSource.getBase_name());
+        modelSourceVo.setOwner_type(modelSource.getOwnerType());
+        modelSourceVo.setPermission_type(modelSource.getPermissionType());
+        modelSourceVo.setBase_name(modelSource.getBaseName());
         modelSourceVo.setType(modelSource.getType());
 
         // 处理高级设置
-        if (StringUtils.isNotBlank(modelSource.getAdv_settings())) {
-            List<AdvSettingVo> advSettingVoList = JSON.parseArray(modelSource.getAdv_settings(), AdvSettingVo.class);
+        if (StringUtils.isNotBlank(modelSource.getAdvSettings())) {
+            List<AdvSettingVo> advSettingVoList = JSON.parseArray(modelSource.getAdvSettings(), AdvSettingVo.class);
             modelSourceVo.setAdvSettingVoList(advSettingVoList);
         }
 

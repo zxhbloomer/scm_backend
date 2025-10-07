@@ -26,7 +26,7 @@ public class WorkerNodeEntity implements Serializable {
 
     @TableField("host_name")
     @DataChangeLabelAnnotation("主机名")
-    private String host_name;
+    private String hostName;
 
     @TableField("port")
     @DataChangeLabelAnnotation("端口")
@@ -38,23 +38,23 @@ public class WorkerNodeEntity implements Serializable {
 
     @TableField("launch_date")
     @DataChangeLabelAnnotation("启动日期")
-    private Long launch_date;
+    private Long launchDate;
 
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
-    private LocalDateTime c_time;
+    private LocalDateTime createTime;
 
     @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
-    private LocalDateTime u_time;
+    private LocalDateTime updateTime;
 
     @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
-    private Long c_id;
+    private Long cId;
 
     @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
-    private Long u_id;
+    private Long uId;
 
     @TableField("dbversion")
     private Integer dbversion;

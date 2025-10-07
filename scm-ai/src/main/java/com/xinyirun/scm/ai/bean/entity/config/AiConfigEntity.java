@@ -39,14 +39,14 @@ public class AiConfigEntity implements Serializable {
      */
     @TableField("config_key")
     @DataChangeLabelAnnotation("配置键")
-    private String config_key;
+    private String configKey;
 
     /**
      * 配置值
      */
     @TableField("config_value")
     @DataChangeLabelAnnotation("配置值")
-    private String config_value;
+    private String configValue;
 
     /**
      * 配置说明
@@ -61,28 +61,28 @@ public class AiConfigEntity implements Serializable {
      */
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
-    private LocalDateTime c_time;
+    private LocalDateTime createTime;
 
     /**
      * 修改时间
      */
     @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
-    private LocalDateTime u_time;
+    private LocalDateTime updateTime;
 
     /**
      * 创建人id
      */
     @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
-    private Long c_id;
+    private Long cId;
 
     /**
      * 修改人id
      */
     @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
-    private Long u_id;
+    private Long uId;
 
     /**
      * 数据版本，乐观锁使用

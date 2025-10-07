@@ -168,9 +168,9 @@ public class SystemAIModelConfigService {
         if (oldSource == null) {
             return; // 新增模型源时不需要验证AppKey
         }
-        String oldKey = maskSkString(oldSource.getApp_key());
+        String oldKey = maskSkString(oldSource.getAppKey());
         if (oldKey.equalsIgnoreCase(aiModelSourceVo.getApi_key())) {
-            aiModelSourceVo.setApi_key(oldSource.getApp_key());
+            aiModelSourceVo.setApi_key(oldSource.getAppKey());
         }
     }
 
@@ -188,34 +188,34 @@ public class SystemAIModelConfigService {
             aiModelSource.setName(aiModelSourceVo.getModel_name());
         }
         if (aiModelSourceVo.getProvider() != null) {
-            aiModelSource.setProvider_name(aiModelSourceVo.getProvider());
+            aiModelSource.setProviderName(aiModelSourceVo.getProvider());
         }
         if (aiModelSourceVo.getPermission_type() != null) {
-            aiModelSource.setPermission_type(aiModelSourceVo.getPermission_type());
+            aiModelSource.setPermissionType(aiModelSourceVo.getPermission_type());
         }
         if (aiModelSourceVo.getStatus() != null) {
             aiModelSource.setStatus(Boolean.TRUE.equals(aiModelSourceVo.getStatus()));
         }
         if (aiModelSourceVo.getOwner_type() != null) {
-            aiModelSource.setOwner_type(aiModelSourceVo.getOwner_type());
+            aiModelSource.setOwnerType(aiModelSourceVo.getOwner_type());
         }
         if (aiModelSourceVo.getOwner() != null) {
             aiModelSource.setOwner(aiModelSourceVo.getOwner());
         }
         if (aiModelSourceVo.getBase_name() != null) {
-            aiModelSource.setBase_name(aiModelSourceVo.getBase_name());
+            aiModelSource.setBaseName(aiModelSourceVo.getBase_name());
         }
         if (aiModelSourceVo.getApi_key() != null) {
-            aiModelSource.setApp_key(aiModelSourceVo.getApi_key());
+            aiModelSource.setAppKey(aiModelSourceVo.getApi_key());
         }
         if (aiModelSourceVo.getApi_url() != null) {
-            aiModelSource.setApi_url(aiModelSourceVo.getApi_url());
+            aiModelSource.setApiUrl(aiModelSourceVo.getApi_url());
         }
 
         // 校验高级参数是否合格，以及默认值设置
         List<AdvSettingVo> advSettingVoList = aiModelSourceVo.getAdvSettingVoList();
         List<AdvSettingVo> advSettingVos = getAdvSettingVos(advSettingVoList);
-        aiModelSource.setAdv_settings(JSON.toJSONString(advSettingVos));
+        aiModelSource.setAdvSettings(JSON.toJSONString(advSettingVos));
 
         // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
         // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
@@ -430,7 +430,7 @@ public class SystemAIModelConfigService {
      */
     private AiModelSourceVo getModelSourceVo(AiModelSourceEntity modelSource) {
         AiModelSourceVo modelSourceVo = getModelSourceVoWithKey(modelSource);
-        modelSourceVo.setApi_key(maskSkString(modelSource.getApp_key()));
+        modelSourceVo.setApi_key(maskSkString(modelSource.getAppKey()));
         return modelSourceVo;
     }
 
@@ -446,18 +446,18 @@ public class SystemAIModelConfigService {
             modelSourceVo.setId(modelSource.getId());
         }
         modelSourceVo.setModel_name(modelSource.getName());
-        modelSourceVo.setProvider(modelSource.getProvider_name());
-        modelSourceVo.setApi_key(modelSource.getApp_key());
-        modelSourceVo.setApi_url(modelSource.getApi_url());
+        modelSourceVo.setProvider(modelSource.getProviderName());
+        modelSourceVo.setApi_key(modelSource.getAppKey());
+        modelSourceVo.setApi_url(modelSource.getApiUrl());
         modelSourceVo.setOwner(modelSource.getOwner());
-        modelSourceVo.setOwner_type(modelSource.getOwner_type());
-        modelSourceVo.setPermission_type(modelSource.getPermission_type());
-        modelSourceVo.setBase_name(modelSource.getBase_name());
+        modelSourceVo.setOwner_type(modelSource.getOwnerType());
+        modelSourceVo.setPermission_type(modelSource.getPermissionType());
+        modelSourceVo.setBase_name(modelSource.getBaseName());
         modelSourceVo.setType(modelSource.getType());
 
         // 处理高级设置
-        if (StringUtils.isNotBlank(modelSource.getAdv_settings())) {
-            List<AdvSettingVo> advSettingVoList = JSON.parseArray(modelSource.getAdv_settings(), AdvSettingVo.class);
+        if (StringUtils.isNotBlank(modelSource.getAdvSettings())) {
+            List<AdvSettingVo> advSettingVoList = JSON.parseArray(modelSource.getAdvSettings(), AdvSettingVo.class);
             modelSourceVo.setAdvSettingVoList(advSettingVoList);
         }
 

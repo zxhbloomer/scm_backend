@@ -27,12 +27,12 @@ public class AiModelSelectionService  {
         log.debug("开始选择AI模型，类型: {}", aiType);
 
         // 构建查询条件：type = aiType AND status = true
-        // 排序：is_default DESC, c_time DESC
+        // 排序：is_default DESC, create_time DESC
         LambdaQueryWrapper<AiModelSourceEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AiModelSourceEntity::getType, aiType)
                 .eq(AiModelSourceEntity::getStatus, true)
-                .orderByDesc(AiModelSourceEntity::getIs_default)
-                .orderByDesc(AiModelSourceEntity::getC_time)
+                .orderByDesc(AiModelSourceEntity::getIsDefault)
+                .orderByDesc(AiModelSourceEntity::getCreateTime)
                 .last("LIMIT 1");
 
         AiModelSourceEntity selectedModel = aiModelSourceMapper.selectOne(queryWrapper);
@@ -45,8 +45,8 @@ public class AiModelSelectionService  {
 
         log.info("成功选择AI模型: [类型: {}, 提供商: {}, 模型: {}, ID: {}]",
                 selectedModel.getType(),
-                selectedModel.getProvider_name(),
-                selectedModel.getBase_name(),
+                selectedModel.getProviderName(),
+                selectedModel.getBaseName(),
                 selectedModel.getId());
 
         return selectedModel;
