@@ -61,6 +61,14 @@
           <groupId>com.xinyirun</groupId>
           <artifactId>scm-core-clickhouse</artifactId>
       </dependency>
+      <dependency>
+          <groupId>com.xinyirun</groupId>
+          <artifactId>scm-ai</artifactId>
+      </dependency>
+      <dependency>
+          <groupId>commons-io</groupId>
+          <artifactId>commons-io</artifactId>
+      </dependency>
   </dependencies>
 
   <build>

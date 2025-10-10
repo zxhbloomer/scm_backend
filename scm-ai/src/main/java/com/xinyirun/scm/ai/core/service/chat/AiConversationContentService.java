@@ -56,12 +56,12 @@ public class AiConversationContentService {
                                                           String modelSourceId, String providerName, String baseName, Long operatorId) {
         try {
             AiConversationContentEntity entity = new AiConversationContentEntity();
-            entity.setConversation_id(conversationId);
+            entity.setConversationId(conversationId);
             entity.setType(type);
             entity.setContent(content);
-            entity.setModel_source_id(modelSourceId);
-            entity.setProvider_name(providerName);
-            entity.setBase_name(baseName);
+            entity.setModelSourceId(modelSourceId);
+            entity.setProviderName(providerName);
+            entity.setBaseName(baseName);
 
             // 1. 保存到MySQL
             int result = aiConversationContentMapper.insert(entity);
@@ -111,21 +111,22 @@ public class AiConversationContentService {
         SLogAiChatVo vo = new SLogAiChatVo();
 
         // 从entity拷贝基础字段
-        vo.setConversation_id(entity.getConversation_id());
+        vo.setConversation_id(entity.getConversationId());
         vo.setType(entity.getType());
         vo.setContent(entity.getContent());
-        vo.setModel_source_id(entity.getModel_source_id());
-        vo.setC_id(entity.getC_id());
-        vo.setC_time(entity.getC_time());
+        vo.setModel_source_id(entity.getModelSourceId());
+        vo.setC_id(entity.getCId());
+        // MyBatis Plus自动填充只在数据库层面，不会回填到entity对象，所以直接使用当前时间
+        vo.setC_time(java.time.LocalDateTime.now());
 
         // 设置租户编码（从当前数据源上下文获取）
         vo.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
 
         // 设置创建人名称（从entity获取，如果为null则留空）
-        vo.setC_name(entity.getC_id() != null ? String.valueOf(entity.getC_id()) : null);
+        vo.setC_name(entity.getCId() != null ? String.valueOf(entity.getCId()) : null);
 
         // 设置请求标识（使用conversation_id作为请求标识）
-        vo.setRequest_id(entity.getConversation_id());
+        vo.setRequest_id(entity.getConversationId());
 
         // 设置模型信息（使用方法参数传入的值）
         if (StringUtils.isNotBlank(providerName)) {

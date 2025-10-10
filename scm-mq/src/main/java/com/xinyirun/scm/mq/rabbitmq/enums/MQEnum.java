@@ -134,6 +134,23 @@ public enum MQEnum {
 			MqInfo.MQ_SCHEDULE_CALC_QTY_QUEUE.exchange,
 			MqInfo.MQ_SCHEDULE_CALC_QTY_QUEUE.routing_key),
 
+	// AI文档索引队列
+	MQ_AI_DOCUMENT_INDEXING_QUEUE(MqInfo.AI_DOCUMENT_INDEXING_QUEUE.queueCode,
+			MqInfo.AI_DOCUMENT_INDEXING_QUEUE.name,
+			MqInfo.AI_DOCUMENT_INDEXING_QUEUE.exchange,
+			MqInfo.AI_DOCUMENT_INDEXING_QUEUE.routing_key),
+
+	// AI文档删除队列
+	MQ_AI_DOCUMENT_DELETION_QUEUE(MqInfo.AI_DOCUMENT_DELETION_QUEUE.queueCode,
+			MqInfo.AI_DOCUMENT_DELETION_QUEUE.name,
+			MqInfo.AI_DOCUMENT_DELETION_QUEUE.exchange,
+			MqInfo.AI_DOCUMENT_DELETION_QUEUE.routing_key),
+
+	// AI知识库删除队列
+	MQ_AI_KB_DELETION_QUEUE(MqInfo.AI_KB_DELETION_QUEUE.queueCode,
+			MqInfo.AI_KB_DELETION_QUEUE.name,
+			MqInfo.AI_KB_DELETION_QUEUE.exchange,
+			MqInfo.AI_KB_DELETION_QUEUE.routing_key),
 
 	;
 
@@ -437,6 +454,30 @@ public enum MQEnum {
 			public static final String name = "重新计算物流订单数量";
 			public static final String exchange = "scm_schedule_calc_qty";
 			public static final String routing_key = "scm_schedule_calc_qty.#";
+		}
+
+		/** AI文档索引队列 */
+		public class AI_DOCUMENT_INDEXING_QUEUE {
+			public static final String queueCode = "scm_ai_document_indexing";
+			public static final String name = "AI文档索引队列";
+			public static final String exchange = "scm_ai_document_indexing_exchange";
+			public static final String routing_key = "scm_ai_document_indexing.#";
+		}
+
+		/** AI文档删除队列 */
+		public class AI_DOCUMENT_DELETION_QUEUE {
+			public static final String queueCode = "scm_ai_document_deletion";
+			public static final String name = "AI文档删除队列";
+			public static final String exchange = "scm_ai_document_deletion_exchange";
+			public static final String routing_key = "scm_ai_document_deletion.#";
+		}
+
+		/** AI知识库删除队列 */
+		public class AI_KB_DELETION_QUEUE {
+			public static final String queueCode = "scm_ai_kb_deletion";
+			public static final String name = "AI知识库删除队列";
+			public static final String exchange = "scm_ai_kb_deletion_exchange";
+			public static final String routing_key = "scm_ai_kb_deletion.#";
 		}
 
 	}

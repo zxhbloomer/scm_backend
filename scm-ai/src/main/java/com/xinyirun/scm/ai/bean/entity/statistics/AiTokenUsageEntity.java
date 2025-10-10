@@ -28,43 +28,47 @@ public class AiTokenUsageEntity implements Serializable {
 
     @TableField("conversation_id")
     @DataChangeLabelAnnotation("对话ID")
-    private String conversation_id;
+    private String conversationId;
 
     @TableField("user_id")
     @DataChangeLabelAnnotation("用户ID")
-    private String user_id;
+    private String userId;
 
     @TableField("model_source_id")
     @DataChangeLabelAnnotation("模型源ID")
-    private String model_source_id;
+    private String modelSourceId;
+
+    @TableField("conversation_content_id")
+    @DataChangeLabelAnnotation("关联的消息ID")
+    private String conversationContentId;
 
     @TableField("provider_name")
     @DataChangeLabelAnnotation("AI提供商名称")
-    private String provider_name;
+    private String providerName;
 
     @TableField("model_type")
     @DataChangeLabelAnnotation("模型类型")
-    private String model_type;
+    private String modelType;
 
     @TableField("prompt_tokens")
     @DataChangeLabelAnnotation("输入Token数")
-    private Long prompt_tokens;
+    private Long promptTokens;
 
     @TableField("completion_tokens")
     @DataChangeLabelAnnotation("输出Token数")
-    private Long completion_tokens;
+    private Long completionTokens;
 
     @TableField(value = "total_tokens", insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
     @DataChangeLabelAnnotation("总Token数")
-    private Long total_tokens;
+    private Long totalTokens;
 
     @TableField("usage_time")
     @DataChangeLabelAnnotation("使用时间")
-    private LocalDateTime usage_time;
+    private LocalDateTime usageTime;
 
     @TableField("token_unit_price")
     @DataChangeLabelAnnotation("Token单价")
-    private java.math.BigDecimal token_unit_price;
+    private java.math.BigDecimal tokenUnitPrice;
 
     @TableField("cost")
     @DataChangeLabelAnnotation("总费用")
@@ -76,27 +80,27 @@ public class AiTokenUsageEntity implements Serializable {
 
     @TableField("response_time")
     @DataChangeLabelAnnotation("响应时间(毫秒)")
-    private Long response_time;
+    private Long responseTime;
 
     @TableField("ai_config_id")
     @DataChangeLabelAnnotation("AI配置ID")
-    private String ai_config_id;
+    private String aiConfigId;
 
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
-    private LocalDateTime c_time;
+    private LocalDateTime createTime;
 
     @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
-    private LocalDateTime u_time;
+    private LocalDateTime updateTime;
 
     @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
     @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
-    private Long c_id;
+    private Long cId;
 
     @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
     @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
-    private Long u_id;
+    private Long uId;
 
     @TableField("dbversion")
     private Integer dbversion;

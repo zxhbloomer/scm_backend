@@ -45,4 +45,13 @@ public interface ISFileService extends IService<SFileEntity> {
      * 获取附件信息
      */
     List<SFileInfoVo> selectFileInfo(Integer id);
+
+    /**
+     * 根据业务类型和业务ID查询文件信息
+     *
+     * @param serialType 业务类型（如 "ai_knowledge_base_item"）
+     * @param serialId 业务ID（如 知识项ID）
+     * @return 文件信息列表
+     */
+    List<SFileInfoVo> selectFileInfoBySerialTypeAndId(String serialType, Integer serialId);
 }

@@ -52,7 +52,13 @@ Thumbs.db
 
 # Specs directory
 specs/
+claudedocs/
 
+# Temporary files
+*.rsls
+nul
+*.backup
+*.bak
 
 
 

@@ -69,12 +69,12 @@
         <batik.version>1.7</batik.version>
         <weixin-java-mp.version>4.6.3.B</weixin-java-mp.version>
         <commons-fileupload.version>1.4</commons-fileupload.version>
-        <commons-io.version>2.13.0</commons-io.version>
+        <commons-io.version>2.20.0</commons-io.version>
         <antisamy.varsion>1.6.4</antisamy.varsion>
         <jeasypoi.version>2.1.6</jeasypoi.version>
         <!--        <knife4j.version>3.0.3</knife4j.version>-->
         <!-- Spring AI 版本管理 -->
-        <spring-ai.version>1.0.1</spring-ai.version>
+        <spring-ai.version>1.0.3</spring-ai.version>
         <spring-ai-alibaba.version>1.0.0.3</spring-ai-alibaba.version>
         <ansj_seg.version>5.1.6</ansj_seg.version>
     </properties>
@@ -282,7 +282,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.12.0</version>
+                <version>3.19.0</version>
             </dependency>
             <dependency>
                 <groupId>commons-lang</groupId>
@@ -494,6 +494,11 @@
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons-io.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
             </dependency>
             <!-- apache -->
             <dependency>

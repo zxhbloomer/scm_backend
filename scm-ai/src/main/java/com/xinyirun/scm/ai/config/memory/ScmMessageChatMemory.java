@@ -10,8 +10,6 @@ import org.springframework.ai.chat.messages.*;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.NamedThreadLocal;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,10 +17,12 @@ import java.util.stream.Collectors;
 /**
  * 使用 MessageWindowChatMemory 只能记忆和持久化 max_messages 条消息
  * 该自定义类，能持久化所有消息，并且设置 ai 记忆消息的条数
+ *
+ * 注意：此类在Reactor响应式流中被调用，不应使用@Transactional
+ * 底层的查询方法已声明为NOT_SUPPORTED，不需要事务管理
  */
 @Slf4j
 @Component
-@Transactional(rollbackFor = Exception.class)
 public class ScmMessageChatMemory implements ChatMemory {
 
     /**

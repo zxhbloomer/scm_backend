@@ -155,4 +155,146 @@ public final class AiConstant {
      * 错误代码 - 参数无效
      */
     public static final String ERROR_INVALID_PARAMETER = "INVALID_PARAMETER";
+
+    // ==================== AI配置键常量（ai_config表config_key字段）====================
+
+    /**
+     * 嵌入模型提供商（siliconflow, ollama）
+     */
+    public static final String EMBEDDING_PROVIDER = "EMBEDDING_PROVIDER";
+
+    /**
+     * 嵌入模型名称
+     */
+    public static final String EMBEDDING_MODEL = "EMBEDDING_MODEL";
+
+    /**
+     * 嵌入模型向量维度
+     */
+    public static final String EMBEDDING_DIMENSIONS = "EMBEDDING_DIMENSIONS";
+
+    // ==================== 硅基流动配置 ====================
+
+    /**
+     * 硅基流动 API Key
+     */
+    public static final String EMBEDDING_SILICONFLOW_API_KEY = "EMBEDDING_SILICONFLOW_API_KEY";
+
+    /**
+     * 硅基流动 API Base URL
+     */
+    public static final String EMBEDDING_SILICONFLOW_API_BASE = "EMBEDDING_SILICONFLOW_API_BASE";
+
+    /**
+     * 硅基流动嵌入模型名称
+     */
+    public static final String EMBEDDING_SILICONFLOW_MODEL = "EMBEDDING_SILICONFLOW_MODEL";
+
+    // ==================== Ollama配置 ====================
+
+    /**
+     * Ollama Base URL
+     */
+    public static final String EMBEDDING_OLLAMA_BASE_URL = "EMBEDDING_OLLAMA_BASE_URL";
+
+    /**
+     * Ollama嵌入模型名称
+     */
+    public static final String EMBEDDING_OLLAMA_MODEL = "EMBEDDING_OLLAMA_MODEL";
+
+    // ==================== RAG知识库LLM配置 ====================
+
+    /**
+     * RAG使用的LLM提供商（DeepSeek | Open AI | ZhiPu AI）
+     */
+    public static final String RAG_PROVIDER = "RAG_PROVIDER";
+
+    /**
+     * RAG DeepSeek API Key
+     */
+    public static final String RAG_DEEPSEEK_API_KEY = "RAG_DEEPSEEK_API_KEY";
+
+    /**
+     * RAG DeepSeek API Base URL
+     */
+    public static final String RAG_DEEPSEEK_API_BASE = "RAG_DEEPSEEK_API_BASE";
+
+    /**
+     * RAG DeepSeek 模型名称
+     */
+    public static final String RAG_DEEPSEEK_MODEL = "RAG_DEEPSEEK_MODEL";
+
+    /**
+     * RAG DeepSeek 温度
+     */
+    public static final String RAG_DEEPSEEK_TEMPERATURE = "RAG_DEEPSEEK_TEMPERATURE";
+
+    /**
+     * RAG DeepSeek 最大Token
+     */
+    public static final String RAG_DEEPSEEK_MAX_TOKENS = "RAG_DEEPSEEK_MAX_TOKENS";
+
+    /**
+     * RAG OpenAI API Key
+     */
+    public static final String RAG_OPENAI_API_KEY = "RAG_OPENAI_API_KEY";
+
+    /**
+     * RAG OpenAI API Base URL
+     */
+    public static final String RAG_OPENAI_API_BASE = "RAG_OPENAI_API_BASE";
+
+    /**
+     * RAG OpenAI 模型名称
+     */
+    public static final String RAG_OPENAI_MODEL = "RAG_OPENAI_MODEL";
+
+    /**
+     * RAG 智谱AI API Key
+     */
+    public static final String RAG_ZHIPUAI_API_KEY = "RAG_ZHIPUAI_API_KEY";
+
+    /**
+     * RAG 智谱AI API Base URL
+     */
+    public static final String RAG_ZHIPUAI_API_BASE = "RAG_ZHIPUAI_API_BASE";
+
+    /**
+     * RAG 智谱AI 模型名称
+     */
+    public static final String RAG_ZHIPUAI_MODEL = "RAG_ZHIPUAI_MODEL";
+
+    // ==================== DeepSeek配置（聊天对话专用）====================
+
+    /**
+     * DeepSeek API Key
+     */
+    public static final String DEEPSEEK_API_KEY = "DEEPSEEK_API_KEY";
+
+    /**
+     * DeepSeek API Base URL
+     */
+    public static final String DEEPSEEK_API_BASE = "DEEPSEEK_API_BASE";
+
+    /**
+     * DeepSeek 聊天模型名称
+     */
+    public static final String DEEPSEEK_CHAT_MODEL = "DEEPSEEK_CHAT_MODEL";
+
+    // ==================== 智谱AI配置 ====================
+
+    /**
+     * 智谱AI API Key
+     */
+    public static final String ZHIPUAI_API_KEY = "ZHIPUAI_API_KEY";
+
+    /**
+     * 智谱AI API Base URL
+     */
+    public static final String ZHIPUAI_API_BASE = "ZHIPUAI_API_BASE";
+
+    /**
+     * 智谱AI 聊天模型名称
+     */
+    public static final String ZHIPUAI_CHAT_MODEL = "ZHIPUAI_CHAT_MODEL";
 }

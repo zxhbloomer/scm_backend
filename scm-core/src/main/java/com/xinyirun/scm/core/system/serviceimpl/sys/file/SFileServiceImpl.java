@@ -120,5 +120,25 @@ public class SFileServiceImpl extends BaseServiceImpl<SFileMapper, SFileEntity> 
         return sFileInfoVos;
     }
 
-    
+    /**
+     * 根据业务类型和业务ID查询文件信息
+     *
+     * @param serialType 业务类型（如 "ai_knowledge_base_item"）
+     * @param serialId 业务ID（如 知识项ID）
+     * @return 文件信息列表
+     */
+    @Override
+    public List<SFileInfoVo> selectFileInfoBySerialTypeAndId(String serialType, Integer serialId) {
+        // 1. 使用SQL方法根据serial_type和serial_id查询s_file表
+        SFileVo sFileVo = mapper.selectBySerial(serialType, serialId);
+
+        // 2. 如果没有找到s_file记录，返回空列表
+        if (sFileVo == null) {
+            return new ArrayList<>();
+        }
+
+        // 3. 调用现有方法查询s_file_info
+        return selectFileInfo(sFileVo.getId());
+    }
+
 }

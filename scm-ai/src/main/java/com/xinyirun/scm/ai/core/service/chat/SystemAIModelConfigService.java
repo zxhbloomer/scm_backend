@@ -8,6 +8,7 @@ import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AdvSettingVo;
 import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
+import com.xinyirun.scm.ai.bean.vo.response.ModelOptionVo;
 import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,9 +170,9 @@ public class SystemAIModelConfigService {
         if (oldSource == null) {
             return; // 新增模型源时不需要验证AppKey
         }
-        String oldKey = maskSkString(oldSource.getApp_key());
+        String oldKey = maskSkString(oldSource.getAppKey());
         if (oldKey.equalsIgnoreCase(aiModelSourceVo.getApi_key())) {
-            aiModelSourceVo.setApi_key(oldSource.getApp_key());
+            aiModelSourceVo.setApi_key(oldSource.getAppKey());
         }
     }
 
@@ -188,34 +190,34 @@ public class SystemAIModelConfigService {
             aiModelSource.setName(aiModelSourceVo.getModel_name());
         }
         if (aiModelSourceVo.getProvider() != null) {
-            aiModelSource.setProvider_name(aiModelSourceVo.getProvider());
+            aiModelSource.setProviderName(aiModelSourceVo.getProvider());
         }
         if (aiModelSourceVo.getPermission_type() != null) {
-            aiModelSource.setPermission_type(aiModelSourceVo.getPermission_type());
+            aiModelSource.setPermissionType(aiModelSourceVo.getPermission_type());
         }
         if (aiModelSourceVo.getStatus() != null) {
             aiModelSource.setStatus(Boolean.TRUE.equals(aiModelSourceVo.getStatus()));
         }
         if (aiModelSourceVo.getOwner_type() != null) {
-            aiModelSource.setOwner_type(aiModelSourceVo.getOwner_type());
+            aiModelSource.setOwnerType(aiModelSourceVo.getOwner_type());
         }
         if (aiModelSourceVo.getOwner() != null) {
             aiModelSource.setOwner(aiModelSourceVo.getOwner());
         }
         if (aiModelSourceVo.getBase_name() != null) {
-            aiModelSource.setBase_name(aiModelSourceVo.getBase_name());
+            aiModelSource.setBaseName(aiModelSourceVo.getBase_name());
         }
         if (aiModelSourceVo.getApi_key() != null) {
-            aiModelSource.setApp_key(aiModelSourceVo.getApi_key());
+            aiModelSource.setAppKey(aiModelSourceVo.getApi_key());
         }
         if (aiModelSourceVo.getApi_url() != null) {
-            aiModelSource.setApi_url(aiModelSourceVo.getApi_url());
+            aiModelSource.setApiUrl(aiModelSourceVo.getApi_url());
         }
 
         // 校验高级参数是否合格，以及默认值设置
         List<AdvSettingVo> advSettingVoList = aiModelSourceVo.getAdvSettingVoList();
         List<AdvSettingVo> advSettingVos = getAdvSettingVos(advSettingVoList);
-        aiModelSource.setAdv_settings(JSON.toJSONString(advSettingVos));
+        aiModelSource.setAdvSettings(JSON.toJSONString(advSettingVos));
 
         // 注意：c_time 和 c_id 字段由MyBatis Plus自动填充，不需要手动设置
         // @TableField(fill = FieldFill.INSERT) 会自动处理创建时间和创建人
@@ -390,22 +392,112 @@ public class SystemAIModelConfigService {
 
     /**
      * 获取模型源名称列表
-     * 返回用户可访问的启用模型（个人模型+系统模型）
+     *
+     * <p>返回用户可访问的启用模型（个人模型+系统模型）</p>
+     * <p>返回格式：{modelId, modelName, modelTitle, enable, modelPlatform}</p>
      */
-    public List<OptionVo> getModelSourceNameList(String userId) {
+    public List<ModelOptionVo> getModelSourceNameList(String userId) {
         QueryWrapper<AiModelSourceEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("status", true); // 只查询启用的模型
+        wrapper.eq("status", true);
 
-        // 应用用户权限过滤
         addUserPermissionCondition(wrapper, userId);
 
-        wrapper.select("id", "name");
-        wrapper.orderByDesc("c_time"); // 按创建时间倒序
+        wrapper.select("id", "name", "base_name", "provider_name", "status");
+        wrapper.orderByDesc("is_default", "c_time");
 
         List<AiModelSourceEntity> entities = aiModelSourceMapper.selectList(wrapper);
         return entities.stream()
-                .map(entity -> new OptionVo(entity.getId(), entity.getName()))
+                .map(this::buildModelOptionVo)
                 .collect(java.util.stream.Collectors.toList());
+    }
+
+    /**
+     * 构建模型选项VO对象
+     *
+     * <p>组装模型ID、名称、标题、平台等信息</p>
+     */
+    private ModelOptionVo buildModelOptionVo(AiModelSourceEntity entity) {
+        ModelOptionVo vo = new ModelOptionVo();
+
+        vo.setModelId(entity.getId());
+        vo.setModelName(normalizeModelName(entity));
+        vo.setModelTitle(buildModelTitle(entity));
+        vo.setEnable(entity.getStatus());
+        vo.setModelPlatform(entity.getProviderName());
+
+        return vo;
+    }
+
+    /**
+     * 规范化模型名称
+     *
+     * <p>确保返回技术标识格式（如gpt-4-turbo）</p>
+     * <p>如果name字段不规范，动态生成标准名称</p>
+     * <p>标准格式：provider-basename（全小写，空格替换为连字符）</p>
+     */
+    private String normalizeModelName(AiModelSourceEntity entity) {
+        String name = entity.getName();
+
+        if (StringUtils.isBlank(name) ||
+            (!name.contains("-") && !isKnownModelName(name))) {
+
+            String providerName = entity.getProviderName();
+            String provider = StringUtils.isNotBlank(providerName)
+                ? providerName.toLowerCase()
+                : "unknown";
+
+            if (StringUtils.isNotBlank(entity.getBaseName())) {
+                return provider + "-" +
+                       entity.getBaseName().toLowerCase().replace(" ", "-");
+            } else {
+                return provider + "-model-" + entity.getId();
+            }
+        }
+
+        return name;
+    }
+
+    /**
+     * 构建模型显示标题
+     *
+     * <p>格式：供应商 - 基础名称（如：OpenAI - GPT-4 Turbo）</p>
+     * <p>如果供应商名称为空，直接返回基础名称</p>
+     */
+    private String buildModelTitle(AiModelSourceEntity entity) {
+        String providerName = entity.getProviderName();
+
+        // 如果供应商名称为空或null，直接返回模型名称
+        if (StringUtils.isBlank(providerName)) {
+            if (StringUtils.isNotBlank(entity.getBaseName())) {
+                return entity.getBaseName();
+            }
+            return entity.getName();
+        }
+
+        // 正常情况：供应商 - 模型名称
+        if (StringUtils.isNotBlank(entity.getBaseName())) {
+            return providerName + " - " + entity.getBaseName();
+        }
+        return providerName + " - " + entity.getName();
+    }
+
+    /**
+     * 判断是否为知名模型名称
+     */
+    private boolean isKnownModelName(String name) {
+        if (StringUtils.isBlank(name)) {
+            return false;
+        }
+
+        List<String> knownModels = Arrays.asList(
+            "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo",
+            "claude-3-opus", "claude-3-sonnet", "claude-3-haiku",
+            "gemini-pro", "gemini-1.5-pro",
+            "llama-3-70b", "llama-3-8b",
+            "qwen-turbo", "qwen-plus", "qwen-max"
+        );
+
+        return knownModels.contains(name.toLowerCase());
     }
 
     /**
@@ -430,7 +522,7 @@ public class SystemAIModelConfigService {
      */
     private AiModelSourceVo getModelSourceVo(AiModelSourceEntity modelSource) {
         AiModelSourceVo modelSourceVo = getModelSourceVoWithKey(modelSource);
-        modelSourceVo.setApi_key(maskSkString(modelSource.getApp_key()));
+        modelSourceVo.setApi_key(maskSkString(modelSource.getAppKey()));
         return modelSourceVo;
     }
 
@@ -446,18 +538,18 @@ public class SystemAIModelConfigService {
             modelSourceVo.setId(modelSource.getId());
         }
         modelSourceVo.setModel_name(modelSource.getName());
-        modelSourceVo.setProvider(modelSource.getProvider_name());
-        modelSourceVo.setApi_key(modelSource.getApp_key());
-        modelSourceVo.setApi_url(modelSource.getApi_url());
+        modelSourceVo.setProvider(modelSource.getProviderName());
+        modelSourceVo.setApi_key(modelSource.getAppKey());
+        modelSourceVo.setApi_url(modelSource.getApiUrl());
         modelSourceVo.setOwner(modelSource.getOwner());
-        modelSourceVo.setOwner_type(modelSource.getOwner_type());
-        modelSourceVo.setPermission_type(modelSource.getPermission_type());
-        modelSourceVo.setBase_name(modelSource.getBase_name());
+        modelSourceVo.setOwner_type(modelSource.getOwnerType());
+        modelSourceVo.setPermission_type(modelSource.getPermissionType());
+        modelSourceVo.setBase_name(modelSource.getBaseName());
         modelSourceVo.setType(modelSource.getType());
 
         // 处理高级设置
-        if (StringUtils.isNotBlank(modelSource.getAdv_settings())) {
-            List<AdvSettingVo> advSettingVoList = JSON.parseArray(modelSource.getAdv_settings(), AdvSettingVo.class);
+        if (StringUtils.isNotBlank(modelSource.getAdvSettings())) {
+            List<AdvSettingVo> advSettingVoList = JSON.parseArray(modelSource.getAdvSettings(), AdvSettingVo.class);
             modelSourceVo.setAdvSettingVoList(advSettingVoList);
         }
 

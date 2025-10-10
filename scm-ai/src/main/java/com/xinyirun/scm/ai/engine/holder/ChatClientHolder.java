@@ -64,4 +64,14 @@ public class ChatClientHolder {
 
         return model.chatClient(options);
     }
+
+    /**
+     * 根据模型类型获取 AIChatClient 实例（用于动态创建ChatModel）
+     *
+     * @param modelType 模型类型
+     * @return AIChatClient 实例，如果未找到返回null
+     */
+    public static AIChatClient getChatClientByType(String modelType) {
+        return MODEL_MAP.get(modelType);
+    }
 }

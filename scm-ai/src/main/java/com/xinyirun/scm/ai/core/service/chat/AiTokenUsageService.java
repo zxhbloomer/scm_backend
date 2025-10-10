@@ -39,6 +39,7 @@ public class AiTokenUsageService {
      * 异步记录Token使用情况
      *
      * @param conversationId 对话ID
+     * @param conversationContentId 关联的消息ID（ASSISTANT消息ID）
      * @param modelSourceId 模型源ID
      * @param userId 用户ID
      * @param aiProvider AI提供商
@@ -49,7 +50,7 @@ public class AiTokenUsageService {
      * @param responseTime 响应时间
      */
     @Transactional(rollbackFor = Exception.class)
-    public void recordTokenUsageAsync(String conversationId, String modelSourceId, String userId,
+    public void recordTokenUsageAsync(String conversationId, String conversationContentId, String modelSourceId, String userId,
                                       String aiProvider, String aiModelType,
                                      Long promptTokens, Long completionTokens, Boolean success,
                                      Long responseTime) {
@@ -61,26 +62,27 @@ public class AiTokenUsageService {
             entity.setId(UUID.randomUUID().toString());
 
             // 设置基本信息字段
-            entity.setConversation_id(conversationId);
-            entity.setModel_source_id(modelSourceId);
-            entity.setUser_id(userId);
+            entity.setConversationId(conversationId);
+            entity.setConversationContentId(conversationContentId);
+            entity.setModelSourceId(modelSourceId);
+            entity.setUserId(userId);
 
             // 设置AI提供商和模型信息
-            entity.setProvider_name(aiProvider);
-            entity.setModel_type(aiModelType);
+            entity.setProviderName(aiProvider);
+            entity.setModelType(aiModelType);
 
             // 设置Token使用情况
-            entity.setPrompt_tokens(promptTokens != null ? promptTokens : 0L);
-            entity.setCompletion_tokens(completionTokens != null ? completionTokens : 0L);
+            entity.setPromptTokens(promptTokens != null ? promptTokens : 0L);
+            entity.setCompletionTokens(completionTokens != null ? completionTokens : 0L);
             // total_tokens是数据库生成列，自动计算，不需要手动设置
 
             // 设置请求结果信息
             entity.setSuccess(success != null ? success : Boolean.TRUE);
-            entity.setResponse_time(responseTime != null ? responseTime : 0L);
-            entity.setUsage_time(LocalDateTime.now());
+            entity.setResponseTime(responseTime != null ? responseTime : 0L);
+            entity.setUsageTime(LocalDateTime.now());
 
             // 设置费用相关字段（暂时设置为默认值，后续可扩展）
-            entity.setToken_unit_price(java.math.BigDecimal.ZERO);
+            entity.setTokenUnitPrice(java.math.BigDecimal.ZERO);
             entity.setCost(java.math.BigDecimal.ZERO);
 
             // ai_config_id字段暂时保持null，后续根据业务需要设置
@@ -88,7 +90,7 @@ public class AiTokenUsageService {
             int result = aiTokenUsageMapper.insert(entity);
             if (result > 0) {
                 log.debug("记录Token使用情况成功, conversationId: {}, userId: {}, totalTokens: {}",
-                        conversationId, userId, entity.getTotal_tokens());
+                        conversationId, userId, entity.getTotalTokens());
             }
         } catch (Exception e) {
             log.error("记录Token使用情况失败, conversationId: {}, userId: {}, tenant: {}",
