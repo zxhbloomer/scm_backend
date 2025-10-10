@@ -4,6 +4,7 @@ import com.xinyirun.scm.ai.bean.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
+import com.xinyirun.scm.ai.bean.vo.response.ModelOptionVo;
 import com.xinyirun.scm.ai.core.service.chat.SystemAIModelConfigService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -64,7 +65,7 @@ public class SystemAIModelConfigController {
     @Operation(summary = "系统设置-查看模型名称集合")
     @SysLogAnnotion("查看模型名称集合")
     @ResponseBody
-    public List<OptionVo> getModelSourceNameList() {
+    public List<ModelOptionVo> getModelSourceNameList() {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : ModelConstants.SYSTEM_OWNER;
         return systemAIModelConfigService.getModelSourceNameList(userId);

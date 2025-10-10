@@ -3,11 +3,11 @@ package com.xinyirun.scm.ai.controller.rag;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
-import com.xinyirun.scm.ai.service.KnowledgeBaseService;
-import com.xinyirun.scm.ai.service.DocumentProcessingService;
+import com.xinyirun.scm.ai.core.service.KnowledgeBaseService;
+import com.xinyirun.scm.ai.core.service.DocumentProcessingService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
-import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +15,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -36,7 +37,7 @@ import java.util.List;
 @Slf4j
 @Tag(name = "AI知识库管理")
 @RestController
-@RequestMapping("/knowledge-base")
+@RequestMapping("/api/v1/ai/knowledge-base")
 @Validated
 public class KnowledgeBaseController {
 
@@ -220,6 +221,24 @@ public class KnowledgeBaseController {
     }
 
     /**
+     * 批量创建知识项（从前端上传的文件数组）
+     */
+    @PostMapping("/item/batch-create")
+    @Operation(summary = "批量创建知识项")
+    @SysLogAnnotion("批量创建知识项")
+    public ResponseEntity<JsonResultAo<List<AiKnowledgeBaseItemVo>>> batchCreate(
+            @Valid @RequestBody BatchCreateRequestVo request) {
+
+        List<AiKnowledgeBaseItemVo> results = documentProcessingService.batchCreateItems(
+            request.getKbUuid(),
+            request.getDoc_att_files(),
+            request.getIndexAfterUpload()
+        );
+
+        return ResponseEntity.ok().body(ResultUtil.OK(results, "批量创建成功"));
+    }
+
+    /**
      * 批量索引请求VO
      */
     public static class KbItemIndexBatchReq {
@@ -297,6 +316,44 @@ public class KnowledgeBaseController {
 
         public void setIndexTypes(String indexTypes) {
             this.indexTypes = indexTypes;
+        }
+    }
+
+    /**
+     * 批量创建请求VO
+     */
+    public static class BatchCreateRequestVo {
+
+        @NotBlank(message = "知识库UUID不能为空")
+        private String kbUuid;
+
+        @NotEmpty(message = "文件列表不能为空")
+        private List<SFileInfoVo> doc_att_files;
+
+        private Boolean indexAfterUpload = true;
+
+        public String getKbUuid() {
+            return kbUuid;
+        }
+
+        public void setKbUuid(String kbUuid) {
+            this.kbUuid = kbUuid;
+        }
+
+        public List<SFileInfoVo> getDoc_att_files() {
+            return doc_att_files;
+        }
+
+        public void setDoc_att_files(List<SFileInfoVo> doc_att_files) {
+            this.doc_att_files = doc_att_files;
+        }
+
+        public Boolean getIndexAfterUpload() {
+            return indexAfterUpload;
+        }
+
+        public void setIndexAfterUpload(Boolean indexAfterUpload) {
+            this.indexAfterUpload = indexAfterUpload;
         }
     }
 }

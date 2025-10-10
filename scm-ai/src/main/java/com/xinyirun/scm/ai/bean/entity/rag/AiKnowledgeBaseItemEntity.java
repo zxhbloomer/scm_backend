@@ -19,10 +19,10 @@ import java.time.LocalDateTime;
 public class AiKnowledgeBaseItemEntity {
 
     /**
-     * 主键ID（UUID字符串）
+     * 主键ID（自增）
      */
-    @TableId(type = IdType.ASSIGN_ID)
-    private String id;
+    @TableId(type = IdType.AUTO)
+    private Integer id;
 
     /**
      * 文档UUID（业务主键，32字符无连字符）
@@ -118,7 +118,19 @@ public class AiKnowledgeBaseItemEntity {
      * 向量化状态变更时间
      */
     @TableField("embedding_status_change_time")
-    private Long embeddingStatusChangeTime;
+    private LocalDateTime embeddingStatusChangeTime;
+
+    /**
+     * 图谱化状态(1-待处理,2-处理中,3-已完成,4-失败)
+     */
+    @TableField("graphical_status")
+    private Integer graphicalStatus;
+
+    /**
+     * 图谱化状态变更时间
+     */
+    @TableField("graphical_status_change_time")
+    private LocalDateTime graphicalStatusChangeTime;
 
     /**
      * 创建时间（时间戳毫秒）

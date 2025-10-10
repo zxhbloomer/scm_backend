@@ -1,10 +1,10 @@
 package com.xinyirun.scm.mqconsumer.business.ai;
 
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
-import com.xinyirun.scm.ai.service.DocumentIndexingService;
+import com.xinyirun.scm.ai.core.service.DocumentIndexingService;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
@@ -22,6 +22,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -89,14 +90,21 @@ public class DocumentIndexingConsumer extends BaseMqConsumer {
                     item_uuid, kb_uuid, file_name, index_types);
 
             // 2. 更新文档状态为"索引中" (embedding_status: 2-处理中)
-            LambdaUpdateWrapper<AiKnowledgeBaseItemEntity> updateWrapper = new LambdaUpdateWrapper<>();
-            updateWrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, item_uuid);
-            updateWrapper.set(AiKnowledgeBaseItemEntity::getEmbeddingStatus, 2); // 2-处理中
-            updateWrapper.set(AiKnowledgeBaseItemEntity::getEmbeddingStatusChangeTime, System.currentTimeMillis());
-            itemMapper.update(null, updateWrapper);
+            LambdaQueryWrapper<AiKnowledgeBaseItemEntity> queryWrapper = new LambdaQueryWrapper<>();
+            queryWrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, item_uuid);
+            AiKnowledgeBaseItemEntity item = itemMapper.selectOne(queryWrapper);
+
+            if (item == null) {
+                throw new RuntimeException("文档不存在: " + item_uuid);
+            }
+
+            item.setEmbeddingStatus(2); // 2-处理中
+            item.setEmbeddingStatusChangeTime(LocalDateTime.now());
+            itemMapper.updateById(item);
 
             // 3. 执行文档索引处理（对应aideepin的asyncIndex）
-            documentIndexingService.processDocument(item_uuid, kb_uuid, file_url, file_name, index_types);
+            String tenantCode = mqSenderAo.getTenant_code();
+            documentIndexingService.processDocument(tenantCode, item_uuid, kb_uuid, file_url, file_name, index_types);
 
             log.info("文档索引处理完成，item_uuid: {}", item_uuid);
 

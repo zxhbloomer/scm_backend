@@ -116,7 +116,8 @@ public class AiConversationContentService {
         vo.setContent(entity.getContent());
         vo.setModel_source_id(entity.getModelSourceId());
         vo.setC_id(entity.getCId());
-        vo.setC_time(entity.getCreateTime());
+        // MyBatis Plus自动填充只在数据库层面，不会回填到entity对象，所以直接使用当前时间
+        vo.setC_time(java.time.LocalDateTime.now());
 
         // 设置租户编码（从当前数据源上下文获取）
         vo.setTenant_code(DataSourceHelper.getCurrentDataSourceName());

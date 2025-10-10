@@ -44,7 +44,7 @@ public class ClickHouseGlobalExceptionHandler {
      */
     @ExceptionHandler(ClickHouseValidationException.class)
     public ResponseEntity<Map<String, Object>> handleValidationException(ClickHouseValidationException e) {
-        logger.warn("ClickHouse输入验证失败: {}", e.getMessage());
+        logger.error("ClickHouse输入验证失败: {}", e.getMessage());
         
         Map<String, Object> errorResponse = createErrorResponse(
             e.getErrorCode(),
@@ -97,7 +97,7 @@ public class ClickHouseGlobalExceptionHandler {
      */
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<Map<String, Object>> handleSecurityException(SecurityException e) {
-        logger.warn("ClickHouse安全违规: {}", e.getMessage());
+        logger.error("ClickHouse安全违规: {}", e.getMessage());
         
         Map<String, Object> errorResponse = createErrorResponse(
             "SECURITY_VIOLATION",
@@ -114,7 +114,7 @@ public class ClickHouseGlobalExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgumentException(IllegalArgumentException e) {
-        logger.warn("ClickHouse非法参数: {}", e.getMessage());
+        logger.error("ClickHouse非法参数: {}", e.getMessage());
         
         Map<String, Object> errorResponse = createErrorResponse(
             "ILLEGAL_ARGUMENT",

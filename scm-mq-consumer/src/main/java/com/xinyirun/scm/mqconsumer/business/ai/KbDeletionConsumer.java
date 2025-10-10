@@ -1,9 +1,9 @@
 package com.xinyirun.scm.mqconsumer.business.ai;
 
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.ai.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
-import com.xinyirun.scm.ai.repository.neo4j.EntityRepository;
-import com.xinyirun.scm.ai.repository.neo4j.KnowledgeBaseSegmentRepository;
+import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
+import com.xinyirun.scm.ai.core.repository.neo4j.EntityRepository;
+import com.xinyirun.scm.ai.core.repository.neo4j.KnowledgeBaseSegmentRepository;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;

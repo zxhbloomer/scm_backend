@@ -2,7 +2,7 @@ package com.xinyirun.scm.ai.controller.rag;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
-import com.xinyirun.scm.ai.service.DocumentProcessingService;
+import com.xinyirun.scm.ai.core.service.DocumentProcessingService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @Tag(name = "AI文档管理")
 @RestController
-@RequestMapping("/knowledge-base-item")
+@RequestMapping("/api/v1/ai/knowledge-base-item")
 @Validated
 public class DocumentController {
 

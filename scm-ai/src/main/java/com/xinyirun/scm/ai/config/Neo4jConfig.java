@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @since 2025-10-02
  */
 @Configuration
-@EnableNeo4jRepositories(basePackages = "com.xinyirun.scm.ai.repository.neo4j")
+@EnableNeo4jRepositories(basePackages = "com.xinyirun.scm.ai.core.repository.neo4j")
 @EnableTransactionManagement
 public class Neo4jConfig {
 

@@ -4,8 +4,6 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.*;
 
-import java.time.LocalDateTime;
-
 /**
  * Elasticsearch 向量嵌入文档实体类
  *
@@ -57,9 +55,15 @@ public class AiKnowledgeBaseEmbeddingDoc {
     private String segmentText;
 
     /**
-     * 向量嵌入（384维，all-minilm-l6-v2模型）
+     * Token数量（用于计费和统计）
      */
-    @Field(type = FieldType.Dense_Vector, dims = 384)
+    @Field(type = FieldType.Integer)
+    private Integer tokenCount;
+
+    /**
+     * 向量嵌入（1024维，硅基流动BAAI/bge-m3模型）
+     */
+    @Field(type = FieldType.Dense_Vector, dims = 1024)
     private float[] embedding;
 
     /**
@@ -75,8 +79,8 @@ public class AiKnowledgeBaseEmbeddingDoc {
     private Long tenantId;
 
     /**
-     * 创建时间
+     * 创建时间（时间戳，毫秒）
      */
-    @Field(type = FieldType.Date, format = DateFormat.date_time)
-    private LocalDateTime createTime;
+    @Field(type = FieldType.Long)
+    private Long createTime;
 }

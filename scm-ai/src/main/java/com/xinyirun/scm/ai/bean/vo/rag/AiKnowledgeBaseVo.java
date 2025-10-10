@@ -56,22 +56,87 @@ public class AiKnowledgeBaseVo {
     private Integer itemCount;
 
     /**
-     * 总Token数量
+     * 是否严格模式(0-非严格,1-严格)
      */
-    private Long totalTokens;
+    private Integer isStrict;
 
     /**
-     * 租户ID
+     * 文档切块重叠数量
      */
-    private Long tenantId;
+    private Integer ingestMaxOverlap;
 
     /**
-     * 创建时间（时间戳毫秒）
+     * 索引时使用的LLM模型名称
      */
-    private Long createTime;
+    private String ingestModelName;
 
     /**
-     * 创建人
+     * 索引时使用的LLM模型ID
      */
-    private String createUser;
+    private String ingestModelId;
+
+    /**
+     * Token估计器
+     */
+    private String ingestTokenEstimator;
+
+    /**
+     * 向量化模型
+     */
+    private String ingestEmbeddingModel;
+
+    /**
+     * 检索最大结果数
+     */
+    private Integer retrieveMaxResults;
+
+    /**
+     * 检索最小分数
+     */
+    private java.math.BigDecimal retrieveMinScore;
+
+    /**
+     * LLM温度参数
+     */
+    private java.math.BigDecimal queryLlmTemperature;
+
+    /**
+     * 系统消息模板
+     */
+    private String querySystemMessage;
+
+    /**
+     * 点赞数
+     */
+    private Integer starCount;
+
+    /**
+     * 向量数量
+     */
+    private Integer embeddingCount;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime c_time;
+
+    /**
+     * 修改时间
+     */
+    private LocalDateTime u_time;
+
+    /**
+     * 创建人id
+     */
+    private Long c_id;
+
+    /**
+     * 修改人id
+     */
+    private Long u_id;
+
+    /**
+     * 数据版本，乐观锁使用
+     */
+    private Integer dbversion;
 }

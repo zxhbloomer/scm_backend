@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.controller.rag;
 
-import com.xinyirun.scm.ai.service.GraphRetrievalService;
+import com.xinyirun.scm.ai.core.service.GraphRetrievalService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,7 +24,7 @@ import java.util.Map;
 @Slf4j
 @Tag(name = "AI知识图谱查询")
 @RestController
-@RequestMapping("/knowledge-base-graph")
+@RequestMapping("/api/v1/ai/knowledge-base-graph")
 @Validated
 public class GraphQueryController {
 

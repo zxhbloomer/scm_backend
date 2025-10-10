@@ -6,10 +6,10 @@ import com.xinyirun.scm.ai.bean.vo.rag.QaRefEmbeddingVo;
 import com.xinyirun.scm.ai.bean.vo.rag.RefGraphVo;
 import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
-import com.xinyirun.scm.ai.service.RagService;
-import com.xinyirun.scm.ai.service.elasticsearch.VectorRetrievalService;
-import com.xinyirun.scm.ai.service.rag.AiKnowledgeBaseQaRefGraphService;
-import com.xinyirun.scm.ai.service.rag.AiKnowledgeBaseQaService;
+import com.xinyirun.scm.ai.core.service.RagService;
+import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
+import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
+import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
@@ -37,7 +37,7 @@ import java.util.List;
 @Slf4j
 @Tag(name = "AI知识库问答")
 @RestController
-@RequestMapping("/knowledge-base/qa")
+@RequestMapping("/api/v1/ai/knowledge-base/qa")
 @Validated
 @RequiredArgsConstructor
 public class KnowledgeBaseQAController {
@@ -61,7 +61,7 @@ public class KnowledgeBaseQAController {
             @PathVariable String kbUuid,
             @RequestBody @Validated QARecordRequestVo req) {
 
-        Long userId = SecurityUtil.getAppJwtBaseBo().getUser_Id();
+        Long userId = SecurityUtil.getStaff_id();
         // 数据库级别多租户，不需要从JWT获取tenantId
 
         AiKnowledgeBaseQaVo result = aiKnowledgeBaseQaService.add(kbUuid, req, userId, null);
@@ -85,7 +85,7 @@ public class KnowledgeBaseQAController {
             @RequestParam(required = false) Integer maxResults,
             @RequestParam(required = false) Double minScore) {
 
-        Long userId = SecurityUtil.getAppJwtBaseBo().getUser_Id();
+        Long userId = SecurityUtil.getStaff_id();
         // 数据库级别多租户，不需要从JWT获取tenantId
 
         return ragService.sseAsk(qaUuid, userId, null, maxResults, minScore);
@@ -109,7 +109,7 @@ public class KnowledgeBaseQAController {
             @NotNull @Min(1) @RequestParam Integer currentPage,
             @NotNull @Min(10) @RequestParam Integer pageSize) {
 
-        Long userId = SecurityUtil.getAppJwtBaseBo().getUser_Id();
+        Long userId = SecurityUtil.getStaff_id();
 
         IPage<AiKnowledgeBaseQaVo> result = aiKnowledgeBaseQaService.search(
                 kbUuid, keyword, userId, currentPage, pageSize
@@ -128,7 +128,7 @@ public class KnowledgeBaseQAController {
     @Operation(summary = "删除问答记录（软删除）")
     @SysLogAnnotion("删除问答记录")
     public ResponseEntity<JsonResultAo<Boolean>> del(@PathVariable String uuid) {
-        Long userId = SecurityUtil.getAppJwtBaseBo().getUser_Id();
+        Long userId = SecurityUtil.getStaff_id();
 
         boolean result = aiKnowledgeBaseQaService.softDelete(uuid, userId);
 
@@ -176,7 +176,7 @@ public class KnowledgeBaseQAController {
     @Operation(summary = "清空当前用户的所有问答记录")
     @SysLogAnnotion("清空问答记录")
     public ResponseEntity<JsonResultAo<Boolean>> clear() {
-        Long userId = SecurityUtil.getAppJwtBaseBo().getUser_Id();
+        Long userId = SecurityUtil.getStaff_id();
 
         boolean result = aiKnowledgeBaseQaService.clearByCurrentUser(userId);
 
