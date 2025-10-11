@@ -4,12 +4,14 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.elasticsearch.AiKnowledgeBaseEmbeddingDoc;
 import com.xinyirun.scm.ai.config.AiModelProvider;
+import com.xinyirun.scm.ai.core.event.VectorIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.service.splitter.OverlappingTokenTextSplitter;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.embedding.EmbeddingResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.IndexOperations;
@@ -96,6 +98,9 @@ public class ElasticsearchIndexingService {
     @Autowired
     private ElasticsearchTemplate elasticsearchTemplate;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
     /**
      * 执行文档向量化索引
      * 对应aideepin的EmbeddingRAG.ingest()
@@ -144,10 +149,38 @@ public class ElasticsearchIndexingService {
             }
 
             log.info("向量化索引完成，item_uuid: {}, 成功索引: {} 个文本段", item.getItemUuid(), indexedCount);
+
+            // 发布向量索引完成事件
+            String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+            VectorIndexCompletedEvent event = new VectorIndexCompletedEvent(
+                this,
+                item.getKbUuid(),
+                item.getItemUuid(),
+                true,
+                null,
+                indexedCount,
+                tenantCode
+            );
+            eventPublisher.publishEvent(event);
+
             return indexedCount;
 
         } catch (Exception e) {
             log.error("向量化索引失败，item_uuid: {}, 错误: {}", item.getItemUuid(), e.getMessage(), e);
+
+            // 发布向量索引失败事件
+            String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+            VectorIndexCompletedEvent event = new VectorIndexCompletedEvent(
+                this,
+                item.getKbUuid(),
+                item.getItemUuid(),
+                false,
+                e.getMessage(),
+                0,
+                tenantCode
+            );
+            eventPublisher.publishEvent(event);
+
             throw new RuntimeException("向量化索引失败: " + e.getMessage(), e);
         }
     }
@@ -236,7 +269,6 @@ public class ElasticsearchIndexingService {
         metadata.put("kb_item_uuid", item.getItemUuid());
 
         // scm-ai扩展字段
-        metadata.put("tenant_id", item.getTenantId());
         metadata.put("segment_index", segmentIndex);
         metadata.put("total_segments", totalSegments);
         metadata.put("file_name", item.getSourceFileName());
@@ -366,5 +398,45 @@ public class ElasticsearchIndexingService {
             log.error("文档向量删除失败，item_uuid: {}, 错误: {}", itemUuid, e.getMessage(), e);
             throw new RuntimeException("文档向量删除失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 统计知识库的文本段数量
+     * 用于知识库统计服务
+     *
+     * @param kb_uuid 知识库UUID (格式: tenant_code::uuid)
+     * @return 文本段总数
+     */
+    public Long countSegmentsByKbUuid(String kb_uuid) {
+        try {
+            NativeQuery query = NativeQuery.builder()
+                    .withQuery(q -> q.term(t -> t.field("kb_uuid").value(kb_uuid)))
+                    .build();
+
+            IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);
+            long count = elasticsearchTemplate.count(query, index);
+
+            log.debug("统计知识库文本段数量，kb_uuid: {}, count: {}", kb_uuid, count);
+            return count;
+
+        } catch (Exception e) {
+            log.error("统计知识库文本段数量失败，kb_uuid: {}", kb_uuid, e);
+            return 0L;
+        }
+    }
+
+    /**
+     * 从kb_uuid中提取tenant_code
+     * kb_uuid格式: tenant_code::uuid
+     *
+     * @param kb_uuid 知识库UUID
+     * @return tenant_code
+     */
+    private String extractTenantCodeFromKbUuid(String kb_uuid) {
+        if (kb_uuid == null || !kb_uuid.contains("::")) {
+            log.warn("kb_uuid格式不正确，无法提取tenant_code: {}", kb_uuid);
+            return "";
+        }
+        return kb_uuid.split("::")[0];
     }
 }

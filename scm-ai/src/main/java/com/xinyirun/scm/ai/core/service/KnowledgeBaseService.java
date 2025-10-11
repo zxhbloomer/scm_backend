@@ -249,7 +249,9 @@ public class KnowledgeBaseService {
 
         // 2. TODO: 保存文件到外部文件服务（暂时模拟）
         String fileName = file.getOriginalFilename();
-        String itemUuid = UuidUtil.createShort();
+        String tenantCode = DataSourceHelper.getCurrentDataSourceName();
+        String uuid = UuidUtil.createShort();
+        String itemUuid = tenantCode + "::" + uuid;
         String fileUrl = "http://file.xinyirunscm.com/kb/" + kbUuid + "/" + itemUuid + "/" + fileName;
 
         // 3. 创建知识库文档项（MySQL）

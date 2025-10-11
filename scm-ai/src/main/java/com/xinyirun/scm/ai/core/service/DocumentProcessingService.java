@@ -11,6 +11,7 @@ import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
 import com.xinyirun.scm.common.utils.UuidUtil;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileService;
@@ -78,7 +79,10 @@ public class DocumentProcessingService {
 
         if (entity.getItemUuid() == null || entity.getItemUuid().isEmpty()) {
             // 新增
-            entity.setItemUuid(UuidUtil.createShort());
+            String tenantCode = DataSourceHelper.getCurrentDataSourceName();
+            String uuid = UuidUtil.createShort();
+            String itemUuid = tenantCode + "::" + uuid;
+            entity.setItemUuid(itemUuid);
             entity.setEmbeddingStatus(0);
             itemMapper.insert(entity);
         } else {
@@ -188,7 +192,10 @@ public class DocumentProcessingService {
         for (SFileInfoVo fileInfo : docAttFiles) {
             // 1. 创建知识项记录
             AiKnowledgeBaseItemEntity entity = new AiKnowledgeBaseItemEntity();
-            entity.setItemUuid(UuidUtil.createShort());
+            String tenantCode = DataSourceHelper.getCurrentDataSourceName();
+            String uuid = UuidUtil.createShort();
+            String itemUuid = tenantCode + "::" + uuid;
+            entity.setItemUuid(itemUuid);
             entity.setKbId(kb.getId());  // ✅ 设置知识库ID
             entity.setKbUuid(kbUuid);
             entity.setTitle(fileInfo.getFileName());  // 使用文件名作为标题

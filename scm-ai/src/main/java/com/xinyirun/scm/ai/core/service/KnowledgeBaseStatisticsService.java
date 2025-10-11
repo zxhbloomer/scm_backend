@@ -1,120 +1,221 @@
 package com.xinyirun.scm.ai.core.service;
 
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
+import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
+import com.xinyirun.scm.ai.core.event.GraphIndexCompletedEvent;
+import com.xinyirun.scm.ai.core.event.VectorIndexCompletedEvent;
+import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
-import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchIndexingService;
-import lombok.RequiredArgsConstructor;
+import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
- * AI知识库统计服务
+ * 知识库统计服务
+ * 负责更新知识库和文档的索引状态及统计信息
  *
- * <p>被Quartz反射调用的目标服务类</p>
- * <p>对应aideepin: KnowledgeBaseService.asyncUpdateStatistic()</p>
- *
- * <h3>调用链：</h3>
- * <ol>
- *   <li>DocumentIndexingService.finally{} - 文档索引完成后触发</li>
- *   <li>ScheduleUtils.createJobKnowledgeBaseStatistics() - 创建Quartz任务</li>
- *   <li>AbstractQuartzJob.execute() - 自动切换到租户数据源（三重上下文保障）</li>
- *   <li>通过反射调用本方法：updateStatistics(KnowledgeBaseStatisticsParamVo)</li>
- *   <li>统计embedding数量并更新MySQL</li>
- *   <li>AbstractQuartzJob.after() - 自动记录日志到双库</li>
- * </ol>
- *
- * <h3>与aideepin的对比：</h3>
- * <table>
- *   <tr>
- *     <th>维度</th>
- *     <th>aideepin</th>
- *     <th>scm-ai（本类）</th>
- *   </tr>
- *   <tr>
- *     <td>调度方式</td>
- *     <td>@Scheduled(fixedDelay=60000)</td>
- *     <td>Quartz SimpleTrigger（单次执行）</td>
- *   </tr>
- *   <tr>
- *     <td>触发机制</td>
- *     <td>定时轮询Redis Set</td>
- *     <td>文档索引完成后直接创建任务</td>
- *   </tr>
- *   <tr>
- *     <td>租户隔离</td>
- *     <td>单租户架构</td>
- *     <td>AbstractQuartzJob三重上下文保障</td>
- *   </tr>
- *   <tr>
- *     <td>执行日志</td>
- *     <td>无</td>
- *     <td>自动记录到s_job_log + s_job_log_manager</td>
- *   </tr>
- * </table>
- *
- * @author SCM AI Team
- * @since 2025-10-11
+ * @author SCM System
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class KnowledgeBaseStatisticsService {
 
-    private final AiKnowledgeBaseMapper knowledgeBaseMapper;
-    private final ElasticsearchIndexingService elasticsearchIndexingService;
+    @Autowired
+    private AiKnowledgeBaseItemMapper itemMapper;
+
+    @Autowired
+    private AiKnowledgeBaseMapper kbMapper;
+
+    @Autowired
+    private ElasticsearchIndexingService esService;
+
+    @Autowired
+    private Neo4jGraphIndexingService neo4jService;
 
     /**
-     * 更新指定知识库的统计数据
+     * 更新文档的向量索引状态
+     * 标准操作：selectById → set修改 → updateById
      *
-     * <p>⚠️ 方法签名必须严格匹配：</p>
-     * <ul>
-     *   <li>访问修饰符：public</li>
-     *   <li>返回类型：void</li>
-     *   <li>方法名：updateStatistics（对应SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.METHOD_NAME）</li>
-     *   <li>参数类型：KnowledgeBaseStatisticsParamVo（对应SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.PARAM_CLASS）</li>
-     * </ul>
-     *
-     * <p>参考aideepin代码：</p>
-     * <pre>
-     * {@literal @Scheduled}(fixedDelay = 60 * 1000)
-     * public void asyncUpdateStatistic() {
-     *     Set<String> kbUuidList = stringRedisTemplate.opsForSet().members(KB_STATISTIC_RECALCULATE_SIGNAL);
-     *     if (CollectionUtils.isEmpty(kbUuidList)) {
-     *         return;
-     *     }
-     *     for (String kbUuid : kbUuidList) {
-     *         int embeddingCount = embeddingService.countByKbUuid(kbUuid);
-     *         baseMapper.updateStatByUuid(kbUuid, embeddingCount);
-     *         stringRedisTemplate.opsForSet().remove(KB_STATISTIC_RECALCULATE_SIGNAL, kbUuid);
-     *     }
-     * }
-     * </pre>
-     *
-     * @param param 参数对象（包含kbUuid、tenantCode、triggerReason）
+     * @param kb_item_uuid 文档UUID
+     * @param status 状态：PENDING/INDEXING/COMPLETED/FAILED
+     * @param error_message 错误信息（失败时）
      */
-    public void updateStatistics(KnowledgeBaseStatisticsParamVo param) {
-        String kbUuid = param.getKbUuid();
-        String tenantCode = param.getTenantCode();
-        String triggerReason = param.getTriggerReason();
+    @Transactional(rollbackFor = Exception.class)
+    public void updateItemVectorIndexStatus(String kb_item_uuid, String status, String error_message) {
+        AiKnowledgeBaseItemEntity item = itemMapper.selectByItemUuid(kb_item_uuid);
+        if (item == null) {
+            log.warn("文档不存在，无法更新向量索引状态: {}", kb_item_uuid);
+            return;
+        }
 
-        log.info("开始执行AI知识库统计任务，kbUuid: {}, tenant: {}, trigger: {}",
-                kbUuid, tenantCode, triggerReason);
+        // 设置向量化状态: 1-待处理, 2-处理中, 3-已完成, 4-失败
+        if ("COMPLETED".equals(status)) {
+            item.setEmbeddingStatus(3);
+        } else if ("FAILED".equals(status)) {
+            item.setEmbeddingStatus(4);
+        }
+        item.setEmbeddingStatusChangeTime(java.time.LocalDateTime.now());
+
+        int updCount = itemMapper.updateById(item);
+        if (updCount == 0) {
+            log.error("更新文档向量索引状态失败，数据可能已被修改: {}", kb_item_uuid);
+        }
+
+        log.info("更新文档向量索引状态成功: kb_item_uuid={}, status={}", kb_item_uuid, status);
+    }
+
+    /**
+     * 更新文档的图谱索引状态
+     * 标准操作：selectById → set修改 → updateById
+     *
+     * @param kb_item_uuid 文档UUID
+     * @param status 状态：PENDING/INDEXING/COMPLETED/FAILED
+     * @param error_message 错误信息（失败时）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateItemGraphIndexStatus(String kb_item_uuid, String status, String error_message) {
+        AiKnowledgeBaseItemEntity item = itemMapper.selectByItemUuid(kb_item_uuid);
+        if (item == null) {
+            log.warn("文档不存在，无法更新图谱索引状态: {}", kb_item_uuid);
+            return;
+        }
+
+        // 设置图谱化状态: 1-待处理, 2-处理中, 3-已完成, 4-失败
+        if ("COMPLETED".equals(status)) {
+            item.setGraphicalStatus(3);
+        } else if ("FAILED".equals(status)) {
+            item.setGraphicalStatus(4);
+        }
+        item.setGraphicalStatusChangeTime(java.time.LocalDateTime.now());
+
+        int updCount = itemMapper.updateById(item);
+        if (updCount == 0) {
+            log.error("更新文档图谱索引状态失败: {}", kb_item_uuid);
+        }
+
+        log.info("更新文档图谱索引状态成功: kb_item_uuid={}, status={}", kb_item_uuid, status);
+    }
+
+    /**
+     * 更新知识库的统计信息（全量统计）
+     * 标准操作：selectById → 查询统计SQL → set修改 → updateById
+     *
+     * @param kb_uuid 知识库UUID
+     * @param tenant_code 租户代码
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateKnowledgeBaseStatistics(String kb_uuid, String tenant_code) {
+        try {
+            DataSourceHelper.use(tenant_code);
+
+            AiKnowledgeBaseEntity kb = kbMapper.selectByKbUuid(kb_uuid);
+            if (kb == null) {
+                log.warn("知识库不存在，无法更新统计信息: {}", kb_uuid);
+                return;
+            }
+
+            // 统计已完成索引的文档数量（embeddingStatus=3）
+            Long item_count = itemMapper.countByKbUuidAndEmbeddingStatus(kb_uuid, 3);
+
+            // 统计向量段数量
+            long segment_count = esService.countSegmentsByKbUuid(kb_uuid);
+
+            kb.setItemCount(item_count != null ? item_count.intValue() : 0);
+            kb.setEmbeddingCount((int) segment_count);
+
+            int updCount = kbMapper.updateById(kb);
+            if (updCount == 0) {
+                log.error("更新知识库统计失败，数据可能已被修改: {}", kb_uuid);
+            }
+
+            log.info("更新知识库统计成功: kb_uuid={}, itemCount={}, embeddingCount={}",
+                    kb_uuid, item_count, segment_count);
+
+        } finally {
+            DataSourceHelper.close();
+        }
+    }
+
+    /**
+     * 定时任务调用入口：更新知识库统计信息
+     * 此方法由 Quartz 调度器调用
+     *
+     * @param paramVo 参数对象（包含 kbUuid 和 tenantCode）
+     */
+    public void updateStatistics(KnowledgeBaseStatisticsParamVo paramVo) {
+        log.info("定时任务开始执行知识库统计更新: kbUuid={}, tenantCode={}, reason={}",
+                paramVo.getKbUuid(), paramVo.getTenantCode(), paramVo.getTriggerReason());
 
         try {
-            // 统计向量数量（Elasticsearch）
-            // 注意：此时AbstractQuartzJob已自动切换到租户数据源
-            long embeddingCount = elasticsearchIndexingService.countEmbeddingsByKbUuid(kbUuid);
+            updateKnowledgeBaseStatistics(paramVo.getKbUuid(), paramVo.getTenantCode());
+            log.info("定时任务执行完成: kbUuid={}", paramVo.getKbUuid());
+        } catch (Exception e) {
+            log.error("定时任务执行失败: kbUuid={}, error={}", paramVo.getKbUuid(), e.getMessage(), e);
+            throw new RuntimeException("知识库统计更新失败: " + e.getMessage(), e);
+        }
+    }
 
-            // 更新知识库统计（MySQL - 租户库）
-            // 对应aideepin: baseMapper.updateStatByUuid(kbUuid, embeddingCount)
-            knowledgeBaseMapper.updateStatByUuid(kbUuid, (int) embeddingCount);
+    /**
+     * 监听向量索引完成事件
+     */
+    @Async("ragTaskExecutor")
+    @EventListener
+    public void onVectorIndexCompleted(VectorIndexCompletedEvent event) {
+        log.info("接收到向量索引完成事件: kb_item_uuid={}, success={}",
+                event.getKb_item_uuid(), event.isSuccess());
 
-            log.info("知识库统计更新成功，kbUuid: {}, embeddingCount: {}", kbUuid, embeddingCount);
+        try {
+            DataSourceHelper.use(event.getTenant_code());
+
+            if (event.isSuccess()) {
+                updateItemVectorIndexStatus(event.getKb_item_uuid(), "COMPLETED", null);
+            } else {
+                updateItemVectorIndexStatus(event.getKb_item_uuid(), "FAILED", event.getError_message());
+            }
+
+            if (event.isSuccess()) {
+                updateKnowledgeBaseStatistics(event.getKb_uuid(), event.getTenant_code());
+            }
 
         } catch (Exception e) {
-            log.error("知识库统计更新失败，kbUuid: {}, error: {}", kbUuid, e.getMessage(), e);
-            // 注意：抛出异常会被AbstractQuartzJob捕获并记录到日志表
-            throw new RuntimeException("统计更新失败: " + e.getMessage(), e);
+            log.error("处理向量索引完成事件失败", e);
+        } finally {
+            DataSourceHelper.close();
+        }
+    }
+
+    /**
+     * 监听图谱索引完成事件
+     */
+    @Async("ragTaskExecutor")
+    @EventListener
+    public void onGraphIndexCompleted(GraphIndexCompletedEvent event) {
+        log.info("接收到图谱索引完成事件: kb_item_uuid={}, success={}",
+                event.getKb_item_uuid(), event.isSuccess());
+
+        try {
+            DataSourceHelper.use(event.getTenant_code());
+
+            if (event.isSuccess()) {
+                updateItemGraphIndexStatus(event.getKb_item_uuid(), "COMPLETED", null);
+            } else {
+                updateItemGraphIndexStatus(event.getKb_item_uuid(), "FAILED", event.getError_message());
+            }
+
+            if (event.isSuccess()) {
+                updateKnowledgeBaseStatistics(event.getKb_uuid(), event.getTenant_code());
+            }
+
+        } catch (Exception e) {
+            log.error("处理图谱索引完成事件失败", e);
+        } finally {
+            DataSourceHelper.close();
         }
     }
 }

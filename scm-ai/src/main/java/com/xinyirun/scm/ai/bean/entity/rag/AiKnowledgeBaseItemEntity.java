@@ -79,12 +79,6 @@ public class AiKnowledgeBaseItemEntity {
     private Long sourceFileUploadTime;
 
     /**
-     * 租户ID
-     */
-    @TableField("tenant_id")
-    private Long tenantId;
-
-    /**
      * 标题向量数据
      */
     @TableField("title_vector")

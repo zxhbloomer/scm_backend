@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseGraphSegmentEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.config.AiModelProvider;
+import com.xinyirun.scm.ai.core.event.GraphIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseGraphSegmentService;
 import com.xinyirun.scm.ai.core.service.splitter.OverlappingTokenTextSplitter;
 import com.xinyirun.scm.common.utils.UuidUtil;
@@ -18,6 +19,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -76,6 +78,9 @@ public class Neo4jGraphIndexingService {
 
     @Autowired
     private AiKnowledgeBaseGraphSegmentService graphSegmentService;
+
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * 执行文档图谱化索引
@@ -147,10 +152,40 @@ public class Neo4jGraphIndexingService {
 
             log.info("图谱化索引完成，item_uuid: {}, 总计实体: {}, 总计关系: {}",
                     item.getItemUuid(), totalEntities, totalRelations);
+
+            // 发布图谱索引完成事件
+            String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+            GraphIndexCompletedEvent event = new GraphIndexCompletedEvent(
+                this,
+                item.getKbUuid(),
+                item.getItemUuid(),
+                true,
+                null,
+                totalEntities,
+                totalRelations,
+                tenantCode
+            );
+            eventPublisher.publishEvent(event);
+
             return totalEntities + "," + totalRelations;
 
         } catch (Exception e) {
             log.error("图谱化索引失败，item_uuid: {}, 错误: {}", item.getItemUuid(), e.getMessage(), e);
+
+            // 发布图谱索引失败事件
+            String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+            GraphIndexCompletedEvent event = new GraphIndexCompletedEvent(
+                this,
+                item.getKbUuid(),
+                item.getItemUuid(),
+                false,
+                e.getMessage(),
+                0,
+                0,
+                tenantCode
+            );
+            eventPublisher.publishEvent(event);
+
             throw new RuntimeException("图谱化索引失败: " + e.getMessage(), e);
         }
     }
@@ -415,7 +450,6 @@ public class Neo4jGraphIndexingService {
             params.put("name", standardizedName);
             params.put("kb_uuid", item.getKbUuid());
             params.put("kb_item_uuid", item.getItemUuid());
-            params.put("tenant_id", item.getTenantId());
             params.put("type", entity.getType());
             params.put("description", entity.getDescription());
             params.put("segmentUuid", segmentUuid);
@@ -576,5 +610,68 @@ public class Neo4jGraphIndexingService {
         private String toEntityName;
         private String type;
         private String description;
+    }
+
+    /**
+     * 统计知识库的图谱元素数量
+     * 用于知识库统计服务
+     *
+     * @param kb_uuid 知识库UUID (格式: tenant_code::uuid)
+     * @return Map包含 entity_count(实体数) 和 relation_count(关系数)
+     */
+    public Map<String, Long> countGraphElementsByKbUuid(String kb_uuid) {
+        Map<String, Long> result = new HashMap<>();
+        try (Session session = neo4jDriver.session()) {
+            // 统计实体数量
+            String entityQuery = """
+                MATCH (n:KnowledgeEntity)
+                WHERE n.kb_uuid = $kb_uuid
+                RETURN count(n) as count
+                """;
+
+            Long entityCount = session.run(entityQuery, Map.of("kb_uuid", kb_uuid))
+                    .single()
+                    .get("count")
+                    .asLong();
+
+            // 统计关系数量
+            String relationQuery = """
+                MATCH ()-[r:KNOWLEDGE_RELATION]->()
+                WHERE r.kb_uuid = $kb_uuid
+                RETURN count(r) as count
+                """;
+
+            Long relationCount = session.run(relationQuery, Map.of("kb_uuid", kb_uuid))
+                    .single()
+                    .get("count")
+                    .asLong();
+
+            result.put("entity_count", entityCount);
+            result.put("relation_count", relationCount);
+
+            log.debug("统计知识库图谱元素数量，kb_uuid: {}, entity_count: {}, relation_count: {}",
+                     kb_uuid, entityCount, relationCount);
+
+        } catch (Exception e) {
+            log.error("统计知识库图谱元素数量失败，kb_uuid: {}", kb_uuid, e);
+            result.put("entity_count", 0L);
+            result.put("relation_count", 0L);
+        }
+        return result;
+    }
+
+    /**
+     * 从kb_uuid中提取tenant_code
+     * kb_uuid格式: tenant_code::uuid
+     *
+     * @param kb_uuid 知识库UUID
+     * @return tenant_code
+     */
+    private String extractTenantCodeFromKbUuid(String kb_uuid) {
+        if (kb_uuid == null || !kb_uuid.contains("::")) {
+            log.warn("kb_uuid格式不正确，无法提取tenant_code: {}", kb_uuid);
+            return "";
+        }
+        return kb_uuid.split("::")[0];
     }
 }

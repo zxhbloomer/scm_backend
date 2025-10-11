@@ -5,7 +5,6 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 
 /**
  * AI知识库 Mapper接口
@@ -17,24 +16,42 @@ import org.apache.ibatis.annotations.Update;
 public interface AiKnowledgeBaseMapper extends BaseMapper<AiKnowledgeBaseEntity> {
 
     /**
-     * 更新知识库统计数据
-     * 更新 embedding_count 和 item_count（通过子查询计算）
+     * 按UUID查询知识库（用于Bean操作的selectById）
      *
-     * @param kbUuid 知识库UUID
-     * @param embeddingCount 向量数量
+     * @param kb_uuid 知识库UUID
+     * @return 知识库实体
      */
-    @Update("""
-        UPDATE ai_knowledge_base
-        SET item_count = (
-                SELECT COUNT(1)
-                FROM ai_knowledge_base_item
-                WHERE kb_uuid = #{kbUuid}
-                  AND embedding_status = 3
-            ),
-            embedding_count = #{embeddingCount}
-        WHERE kb_uuid = #{kbUuid}
+    @Select("""
+        SELECT
+            id,
+            kb_uuid AS kbUuid,
+            title,
+            remark,
+            is_public AS isPublic,
+            is_strict AS isStrict,
+            ingest_max_overlap AS ingestMaxOverlap,
+            ingest_model_name AS ingestModelName,
+            ingest_model_id AS ingestModelId,
+            ingest_token_estimator AS ingestTokenEstimator,
+            ingest_embedding_model AS ingestEmbeddingModel,
+            retrieve_max_results AS retrieveMaxResults,
+            retrieve_min_score AS retrieveMinScore,
+            query_llm_temperature AS queryLlmTemperature,
+            query_system_message AS querySystemMessage,
+            star_count AS starCount,
+            embedding_count AS embeddingCount,
+            owner_id AS ownerId,
+            owner_name AS ownerName,
+            item_count AS itemCount,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
+            dbversion
+        FROM ai_knowledge_base
+        WHERE kb_uuid = #{kb_uuid}
     """)
-    void updateStatByUuid(@Param("kbUuid") String kbUuid, @Param("embeddingCount") Integer embeddingCount);
+    AiKnowledgeBaseEntity selectByKbUuid(@Param("kb_uuid") String kb_uuid);
 
     /**
      * 根据文档UUID获取知识库
@@ -43,7 +60,32 @@ public interface AiKnowledgeBaseMapper extends BaseMapper<AiKnowledgeBaseEntity>
      * @return 知识库实体
      */
     @Select("""
-        SELECT kb.*
+        SELECT
+            kb.id,
+            kb.kb_uuid AS kbUuid,
+            kb.title,
+            kb.remark,
+            kb.is_public AS isPublic,
+            kb.is_strict AS isStrict,
+            kb.ingest_max_overlap AS ingestMaxOverlap,
+            kb.ingest_model_name AS ingestModelName,
+            kb.ingest_model_id AS ingestModelId,
+            kb.ingest_token_estimator AS ingestTokenEstimator,
+            kb.ingest_embedding_model AS ingestEmbeddingModel,
+            kb.retrieve_max_results AS retrieveMaxResults,
+            kb.retrieve_min_score AS retrieveMinScore,
+            kb.query_llm_temperature AS queryLlmTemperature,
+            kb.query_system_message AS querySystemMessage,
+            kb.star_count AS starCount,
+            kb.embedding_count AS embeddingCount,
+            kb.owner_id AS ownerId,
+            kb.owner_name AS ownerName,
+            kb.item_count AS itemCount,
+            kb.c_time,
+            kb.u_time,
+            kb.c_id,
+            kb.u_id,
+            kb.dbversion
         FROM ai_knowledge_base kb
         INNER JOIN ai_knowledge_base_item item ON kb.kb_uuid = item.kb_uuid
         WHERE item.item_uuid = #{itemUuid}
