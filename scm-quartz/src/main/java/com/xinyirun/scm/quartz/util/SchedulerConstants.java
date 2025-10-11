@@ -49,4 +49,23 @@ public class SchedulerConstants {
         public static final String METHOD_NAME = "materialConvert";
         public static final String PARAM_CLASS = "com.xinyirun.scm.bean.system.vo.business.materialconvert.BMaterialConvertVo";
     }
+
+    /**
+     * AI知识库统计
+     */
+    public static class KNOWLEDGE_BASE_STATISTICS {
+        public static final String JOB_NAME = "AI知识库统计";
+        public static final String JOB_GROUP_TYPE = DictConstant.DICT_SYS_JOB_GROUP_TYPE_AI_KB_STATISTICS;
+        public static final String JOB_DESC = "更新AI知识库的embedding_count等统计数据";
+        // 0=默认,1=立即触发执行,2=触发一次执行,3=不触发立即执行
+        public static final String MISFIRE_POLICY = "2"; // 触发一次执行
+        public static final Boolean CONCURRENT = false;
+        public static final Boolean IS_CRON = false; // 使用SimpleTrigger单次执行
+        public static final Boolean IS_DEL = false;
+        public static final Boolean IS_EFFECTED = true;
+        public static final Integer NEXT_FIRE_SECONDS = 5; // 5秒后执行
+        public static final String CLASS_NAME = "com.xinyirun.scm.ai.core.service.KnowledgeBaseStatisticsService";
+        public static final String METHOD_NAME = "updateStatistics";
+        public static final String PARAM_CLASS = "com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo";
+    }
 }

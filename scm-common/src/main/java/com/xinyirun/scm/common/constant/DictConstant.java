@@ -938,6 +938,7 @@ public class DictConstant {
     public static final String DICT_SYS_JOB_GROUP_TYPE_DAILY_INVENTORY_DIFF = "02";
     public static final String DICT_SYS_JOB_GROUP_TYPE_MATERIAL_CONVERT = "03";
     public static final String DICT_SYS_JOB_GROUP_TYPE_DATA_CHANGE = "08";
+    public static final String DICT_SYS_JOB_GROUP_TYPE_AI_KB_STATISTICS = "10"; // AI知识库统计
 
     /**
      * 仓库分组定义：1一级；2二级；3三级

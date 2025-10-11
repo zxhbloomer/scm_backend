@@ -39,16 +39,17 @@ public class JobInvokeUtil {
         String param_class = sysJob.getParam_class();
         String param_data = sysJob.getParam_data();
 
-        Class<?>[] paramTypes = new Class[] {String.class, String.class};
+        // 动态加载参数类型（根据param_class）
+        Class<?> paramType = Class.forName(param_class);
+        Class<?>[] paramTypes = new Class[] {paramType};
+
+        // 将JSON字符串反序列化为参数对象
+        Object paramObject = com.alibaba.fastjson2.JSON.parseObject(param_data, paramType);
 
         SpringBeanUtils.invokeMethod(class_name,
                                     method_name,
                                     paramTypes,
-                                    param_class,
-                                    param_data);
-
-//        SpringBeanUtils.callFunction(class_name,method_name, param_class,param_data );
-
+                                    paramObject);  // 传入实际对象，不是字符串
     }
 
     /**

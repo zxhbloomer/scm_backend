@@ -22,6 +22,7 @@ public class LogQuartzProducer {
 
     public void mqSendMq(SJobLogClickHouseVo data){
         MqSenderAo ao = MqSenderAoBuilder.buildMqSenderAo(data, MqSenderEnum.MQ_LOG_QUARTZ_QUEUE);
+        ao.setTenant_code(data.getTenant_code());
         // 发送消息
         mqProducer.send(ao, MQEnum.MQ_LOG_QUARTZ_QUEUE);
     }

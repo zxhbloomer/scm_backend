@@ -89,20 +89,7 @@ public class DocumentIndexingConsumer extends BaseMqConsumer {
             log.info("开始处理文档索引，item_uuid: {}, kb_uuid: {}, file_name: {}, index_types: {}",
                     item_uuid, kb_uuid, file_name, index_types);
 
-            // 2. 更新文档状态为"索引中" (embedding_status: 2-处理中)
-            LambdaQueryWrapper<AiKnowledgeBaseItemEntity> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, item_uuid);
-            AiKnowledgeBaseItemEntity item = itemMapper.selectOne(queryWrapper);
-
-            if (item == null) {
-                throw new RuntimeException("文档不存在: " + item_uuid);
-            }
-
-            item.setEmbeddingStatus(2); // 2-处理中
-            item.setEmbeddingStatusChangeTime(LocalDateTime.now());
-            itemMapper.updateById(item);
-
-            // 3. 执行文档索引处理（对应aideepin的asyncIndex）
+            // 2. 执行文档索引处理（状态更新在 DocumentIndexingService 中处理）
             String tenantCode = mqSenderAo.getTenant_code();
             documentIndexingService.processDocument(tenantCode, item_uuid, kb_uuid, file_url, file_name, index_types);
 
@@ -110,13 +97,6 @@ public class DocumentIndexingConsumer extends BaseMqConsumer {
 
         } catch (Exception e) {
             log.error("文档索引处理失败，message_id: {}, error: {}", message_id, e.getMessage(), e);
-
-            // 记录失败日志到ClickHouse
-            // consumerService.insert(vo, headers, mqSenderAo);
-
-            // 更新文档状态为"索引失败"
-            // TODO: 从消息中获取item_uuid并更新状态
-
             throw new RuntimeException("文档索引处理失败", e);
 
         } finally {

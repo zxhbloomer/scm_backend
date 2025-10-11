@@ -8,6 +8,7 @@ import com.xinyirun.scm.clickhouse.entity.mq.SLogMqProducerClickHouseEntity;
 import com.xinyirun.scm.clickhouse.entity.datachange.SLogDataChangeMainClickHouseEntity;
 import com.xinyirun.scm.clickhouse.entity.datachange.SLogDataChangeOperateClickHouseEntity;
 import com.xinyirun.scm.clickhouse.entity.datachange.SLogDataChangeDetailClickHouseEntity;
+import com.xinyirun.scm.clickhouse.entity.quartz.SJobLogClickHouseEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -147,6 +148,10 @@ public class ClickHouseConfig {
             // 注册数据变更详细日志实体类 (s_log_data_change_detail表)
             client.register(SLogDataChangeDetailClickHouseEntity.class, client.getTableSchema("s_log_data_change_detail"));
             log.info("POJO注册成功: {} -> s_log_data_change_detail", SLogDataChangeDetailClickHouseEntity.class.getSimpleName());
+            
+            // 注册定时任务日志实体类 (s_job_log表)
+            client.register(SJobLogClickHouseEntity.class, client.getTableSchema("s_job_log"));
+            log.info("POJO注册成功: {} -> s_job_log", SJobLogClickHouseEntity.class.getSimpleName());
             
         } catch (Exception e) {
             log.error("ClickHouse POJO实体类批量注册失败", e);

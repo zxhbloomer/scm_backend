@@ -57,17 +57,17 @@ public class SJobLogClickHouseRepository {
         long startTime = System.currentTimeMillis();
         try {
             InsertSettings insertSettings = new InsertSettings();
-            
+
             try (InsertResponse response = clickHouseClient
                     .insert(TABLE_NAME, List.of(jobLogEntity), insertSettings)
                     .get(30, TimeUnit.SECONDS)) {
-                
+
                 log.debug("插入定时任务日志成功，job_id: {}", jobLogEntity.getJob_id());
-                
+
             } catch (Exception e) {
                 handleInsertError(e, "插入定时任务日志失败", "insert_job_log");
             }
-            
+
         } catch (Exception e) {
             handleRepositoryError(e, "插入定时任务日志失败");
         }
@@ -91,8 +91,21 @@ public class SJobLogClickHouseRepository {
                 if (entity.getC_time() == null) {
                     entity.setC_time(now);
                 }
+                // 确保Boolean字段有默认值，防止NPE
+                if (entity.getConcurrent() == null) {
+                    entity.setConcurrent(false);
+                }
+                if (entity.getIs_cron() == null) {
+                    entity.setIs_cron(false);
+                }
+                if (entity.getIs_del() == null) {
+                    entity.setIs_del(false);
+                }
+                if (entity.getIs_effected() == null) {
+                    entity.setIs_effected(true);
+                }
             }
-            
+
             InsertSettings insertSettings = new InsertSettings();
             
             try (InsertResponse response = clickHouseClient

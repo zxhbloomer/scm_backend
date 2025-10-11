@@ -76,19 +76,6 @@ public class SLogDataChangeDetailClickHouseService {
         }
     }
 
-    /**
-     * 异步插入数据变更详细日志 - 高性能场景
-     */
-    @Async("clickhouseTaskExecutor")
-    public CompletableFuture<Void> insertAsync(SDataChangeLogVo detailLogVo) {
-        try {
-            insert(detailLogVo);
-            return CompletableFuture.completedFuture(null);
-        } catch (Exception e) {
-            log.error("异步插入数据变更详细日志失败", e);
-            return CompletableFuture.failedFuture(e);
-        }
-    }
 
     /**
      * 批量插入数据变更详细日志 - 最佳性能方案
@@ -113,20 +100,6 @@ public class SLogDataChangeDetailClickHouseService {
         } catch (Exception e) {
             log.error("批量插入数据变更详细日志失败，数量: {}", detailLogVos.size(), e);
             throw new ClickHouseException("批量插入数据变更详细日志失败", e);
-        }
-    }
-
-    /**
-     * 异步批量插入数据变更详细日志 - 高吞吐量场景
-     */
-    @Async("clickhouseTaskExecutor")
-    public CompletableFuture<Void> batchInsertAsync(List<SLogDataChangeDetailClickHouseVo> detailLogVos) {
-        try {
-            batchInsert(detailLogVos);
-            return CompletableFuture.completedFuture(null);
-        } catch (Exception e) {
-            log.error("异步批量插入数据变更详细日志失败", e);
-            return CompletableFuture.failedFuture(e);
         }
     }
 

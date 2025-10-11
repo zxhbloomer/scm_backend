@@ -297,4 +297,20 @@ public final class AiConstant {
      * 智谱AI 聊天模型名称
      */
     public static final String ZHIPUAI_CHAT_MODEL = "ZHIPUAI_CHAT_MODEL";
+
+    // ==================== Redis Key 常量 ====================
+
+    /**
+     * 用户索引进行中标识
+     * Key格式: {tenant}:ai:user:indexing:{userId}
+     * 说明：防止用户重复提交索引任务，10分钟自动过期
+     */
+    public static final String USER_INDEXING_KEY = "ai:user:indexing:%s";
+
+    /**
+     * 知识库统计重算信号（Set类型，存储kbUuid）
+     * Key格式: {tenant}:ai:kb:statistic:recalculate
+     * 说明：向量化完成后触发，定时任务扫描并更新embedding_count和item_count
+     */
+    public static final String KB_STATISTIC_RECALCULATE_SIGNAL = "ai:kb:statistic:recalculate";
 }

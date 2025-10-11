@@ -3,12 +3,17 @@ package com.xinyirun.scm.ai.core.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
+import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchIndexingService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirun.scm.common.utils.spring.SpringUtils;
+import com.xinyirun.scm.quartz.util.ScheduleUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.quartz.Scheduler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -90,6 +95,9 @@ public class DocumentIndexingService {
     @Autowired
     private Neo4jGraphIndexingService neo4jGraphIndexingService;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     /**
      * 执行文档索引处理
      * 对应aideepin的asyncIndex()方法
@@ -112,6 +120,8 @@ public class DocumentIndexingService {
         // 显式设置租户数据源（防止异步环境下丢失上下文）
         DataSourceHelper.use(tenantCode);
 
+        String ownerId = null;
+
         try {
             log.info("开始处理文档索引，tenant: {}, item_uuid: {}, kb_uuid: {}, file: {}, indexTypes: {}",
                     tenantCode, itemUuid, kbUuid, fileName, indexTypes);
@@ -124,6 +134,8 @@ public class DocumentIndexingService {
             if (kb == null) {
                 throw new RuntimeException("知识库不存在: " + kbUuid);
             }
+
+            ownerId = kb.getOwnerId();
 
             // 2. 查询文档项（对应aideepin的KnowledgeBaseItem item参数）
             AiKnowledgeBaseItemEntity item = itemMapper.selectOne(
@@ -149,12 +161,20 @@ public class DocumentIndexingService {
             // 4. 执行向量索引
             if (indexTypes.contains(INDEX_TYPE_EMBEDDING)) {
                 log.info("开始向量索引，item_uuid: {}", itemUuid);
-                int segmentCount = elasticsearchIndexingService.ingestDocument(kb, item);
 
-                // 更新向量化状态为已完成（3=已完成）
-                item.setEmbeddingStatus(3);
+                // 4.1 向量化前：更新状态为"处理中"
+                item.setEmbeddingStatus(2);
                 item.setEmbeddingStatusChangeTime(LocalDateTime.now());
                 itemMapper.updateById(item);
+
+                // 4.2 执行向量化
+                int segmentCount = elasticsearchIndexingService.ingestDocument(kb, item);
+
+                // 4.3 向量化成功：重新查询并更新状态为"已完成"
+                AiKnowledgeBaseItemEntity doneItem = itemMapper.selectById(item.getId());
+                doneItem.setEmbeddingStatus(3);
+                doneItem.setEmbeddingStatusChangeTime(LocalDateTime.now());
+                itemMapper.updateById(doneItem);
 
                 log.info("向量索引完成，item_uuid: {}, 文本段数: {}", itemUuid, segmentCount);
             }
@@ -187,6 +207,39 @@ public class DocumentIndexingService {
             }
 
             throw new RuntimeException("文档索引处理失败: " + e.getMessage(), e);
+
+        } finally {
+            // 清理资源和触发统计更新（对应 aideepin: KnowledgeBaseItemService.asyncIndex() finally块）
+
+            // 1. 触发知识库统计更新任务（使用SCM Quartz代替Redis信号队列）
+            // 对应aideepin: stringRedisTemplate.opsForSet().add(KB_STATISTIC_RECALCULATE_SIGNAL, kbUuid)
+            if (kbUuid != null && tenantCode != null) {
+                try {
+                    Scheduler scheduler = SpringUtils.getBean(Scheduler.class);
+                    boolean created = ScheduleUtils.createJobKnowledgeBaseStatistics(
+                            scheduler,
+                            tenantCode,
+                            kbUuid,
+                            "文档索引完成"
+                    );
+                    if (created) {
+                        log.info("知识库统计任务已创建，kbUuid: {}, tenant: {}", kbUuid, tenantCode);
+                    } else {
+                        log.warn("知识库统计任务创建失败（可能已存在），kbUuid: {}", kbUuid);
+                    }
+                } catch (Exception e) {
+                    // 不影响主流程，只记录错误
+                    log.error("创建统计任务失败，kbUuid: {}, tenant: {}, error: {}",
+                            kbUuid, tenantCode, e.getMessage(), e);
+                }
+            }
+
+            // 2. 清除用户索引进行中标识
+            if (ownerId != null) {
+                String userIndexKey = String.format(AiConstant.USER_INDEXING_KEY, ownerId);
+                stringRedisTemplate.delete(userIndexKey);
+                log.debug("清除用户索引标识，ownerId: {}", ownerId);
+            }
         }
     }
 

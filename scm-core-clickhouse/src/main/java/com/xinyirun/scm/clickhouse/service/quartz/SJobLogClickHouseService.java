@@ -184,71 +184,6 @@ public class SJobLogClickHouseService {
         }
     }
 
-    /**
-     * 根据任务ID查询相关日志列表
-     * 
-     * @param jobId 任务ID
-     * @param tenantCode 租户代码
-     * @return 任务日志列表
-     */
-    public IPage<SJobLogClickHouseVo> selectByJobId(Long jobId, String tenantCode, SJobLogClickHouseVo pageCondition) {
-        try {
-            if (jobId == null) {
-                log.warn("根据任务ID查询日志失败：任务ID为空");
-                return new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
-            }
-            
-            SJobLogClickHouseVo searchCondition = new SJobLogClickHouseVo();
-            searchCondition.setJob_id(jobId);
-            searchCondition.setTenant_code(tenantCode);
-            searchCondition.setPageCondition(pageCondition.getPageCondition());
-            
-            IPage<SJobLogClickHouseVo> result = sJobLogRepository.selectPageWithParams(searchCondition);
-            
-            log.info("根据任务ID查询日志成功，任务ID: {}, 租户: {}, 查询到 {} 条记录", 
-                    jobId, tenantCode, result.getTotal());
-            
-            return result;
-            
-        } catch (Exception e) {
-            log.error("根据任务ID查询日志失败，任务ID: {}, 租户: {}", jobId, tenantCode, e);
-            throw new ClickHouseException("根据任务ID查询日志失败", e);
-        }
-    }
-
-    /**
-     * 根据任务名称模糊查询
-     * 
-     * @param jobName 任务名称（支持模糊查询）
-     * @param tenantCode 租户代码
-     * @param pageCondition 分页条件
-     * @return 分页结果
-     */
-    public IPage<SJobLogClickHouseVo> selectByJobName(String jobName, String tenantCode, SJobLogClickHouseVo pageCondition) {
-        try {
-            if (StringUtils.isBlank(jobName)) {
-                log.warn("根据任务名称查询日志失败：任务名称为空");
-                return new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>();
-            }
-            
-            SJobLogClickHouseVo searchCondition = new SJobLogClickHouseVo();
-            searchCondition.setJob_name(jobName.trim());
-            searchCondition.setTenant_code(tenantCode);
-            searchCondition.setPageCondition(pageCondition.getPageCondition());
-            
-            IPage<SJobLogClickHouseVo> result = sJobLogRepository.selectPageWithParams(searchCondition);
-            
-            log.info("根据任务名称查询日志成功，任务名称: {}, 租户: {}, 查询到 {} 条记录", 
-                    jobName, tenantCode, result.getTotal());
-            
-            return result;
-            
-        } catch (Exception e) {
-            log.error("根据任务名称查询日志失败，任务名称: {}, 租户: {}", jobName, tenantCode, e);
-            throw new ClickHouseException("根据任务名称查询日志失败", e);
-        }
-    }
-
     // ==================== 私有辅助方法 ====================
 
     /**
@@ -257,10 +192,10 @@ public class SJobLogClickHouseService {
     private SJobLogClickHouseEntity convertVoToEntity(SJobLogClickHouseVo vo) {
         // 基础属性拷贝
         SJobLogClickHouseEntity entity = (SJobLogClickHouseEntity) BeanUtilsSupport.copyProperties(vo, SJobLogClickHouseEntity.class);
-        
+
         // 特殊字段处理（如果需要的话）
         // 这里可以添加特殊的转换逻辑
-        
+
         return entity;
     }
 }

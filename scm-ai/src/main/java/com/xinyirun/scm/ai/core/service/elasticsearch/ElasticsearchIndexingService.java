@@ -305,6 +305,30 @@ public class ElasticsearchIndexingService {
     }
 
     /**
+     * 统计知识库的向量数量
+     *
+     * @param kbUuid 知识库UUID
+     * @return 向量总数
+     */
+    public long countEmbeddingsByKbUuid(String kbUuid) {
+        try {
+            NativeQuery query = NativeQuery.builder()
+                    .withQuery(q -> q.term(t -> t.field("kb_uuid").value(kbUuid)))
+                    .build();
+
+            IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);
+            long count = elasticsearchTemplate.count(query, index);
+
+            log.debug("统计知识库向量数量，kb_uuid: {}, count: {}", kbUuid, count);
+            return count;
+
+        } catch (Exception e) {
+            log.error("统计知识库向量数量失败，kb_uuid: {}", kbUuid, e);
+            return 0;
+        }
+    }
+
+    /**
      * 删除文档的所有embedding
      * 对应aideepin的删除逻辑
      *

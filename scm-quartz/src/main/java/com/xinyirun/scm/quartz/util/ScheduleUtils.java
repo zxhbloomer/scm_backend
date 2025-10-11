@@ -1,7 +1,9 @@
 package com.xinyirun.scm.quartz.util;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xinyirun.scm.bean.entity.quartz.SJobEntity;
+import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import com.xinyirun.scm.bean.system.bo.tenant.manager.quartz.SJobManagerBo;
 import com.xinyirun.scm.bean.system.vo.quartz.SJobVo;
 import com.xinyirun.scm.common.constant.ScheduleConstants;
@@ -79,30 +81,94 @@ public class ScheduleUtils {
     /**
      * 创建定时任务:每日库存差量
      */
-//    @SysLogAnnotion("创建定时任务：每日库存差量，库存更新后执行")
-//    public static boolean createJobDailyInventoryDIff(Scheduler scheduler, String job_serial_type, Long job_serial_id ,String param) throws SchedulerException {
-//        SJobVo job = new SJobVo();
-//        job.setJob_name(SchedulerConstants.DAILY_INVENTORY_DIFF.JOB_NAME);
-//        job.setJob_group_type(SchedulerConstants.DAILY_INVENTORY_DIFF.JOB_GROUP_TYPE);
-//        job.setJob_desc(SchedulerConstants.DAILY_INVENTORY_DIFF.JOB_DESC);
-//        job.setMisfire_policy(SchedulerConstants.DAILY_INVENTORY_DIFF.MISFIRE_POLICY);
-//        job.setConcurrent(SchedulerConstants.DAILY_INVENTORY_DIFF.CONCURRENT);
-//        job.setIs_cron(SchedulerConstants.DAILY_INVENTORY_DIFF.IS_CRON);
-//        job.setIs_del(SchedulerConstants.DAILY_INVENTORY_DIFF.IS_DEL);
-//        job.setIs_effected(SchedulerConstants.DAILY_INVENTORY_DIFF.IS_EFFECTED);
-//        job.setNext_fire_time(LocalDateTime.now().plusSeconds(SchedulerConstants.DAILY_INVENTORY_DIFF.NEXT_FIRE_SECONDS));
-//        job.setClass_name(SchedulerConstants.DAILY_INVENTORY_DIFF.CLASS_NAME);
-//        job.setMethod_name(SchedulerConstants.DAILY_INVENTORY_DIFF.METHOD_NAME);
-//        job.setParam_class(SchedulerConstants.DAILY_INVENTORY_DIFF.PARAM_CLASS);
-//        job.setParam_data(param);
-//        job.setJob_serial_type(job_serial_type);
-//        job.setJob_serial_id(job_serial_id);
-//        // 写入数据库当中
-//        SJobEntity entity = (SJobEntity) BeanUtilsSupport.copyProperties(job,SJobEntity.class);
-//        SpringUtils.getBean(ISJobQuartzService.class).save(entity);
-//        job.setId(entity.getId());
-//        return createScheduleJobSimpleTrigger(scheduler, job);
-//    }
+    public static boolean createJobDailyInventoryDIff(Scheduler scheduler, String job_serial_type, Long job_serial_id ,String param) throws SchedulerException {
+        SJobManagerBo job = new SJobManagerBo();
+        job.setJob_name(SchedulerConstants.DAILY_INVENTORY_DIFF.JOB_NAME);
+        job.setJob_group_type(SchedulerConstants.DAILY_INVENTORY_DIFF.JOB_GROUP_TYPE);
+        job.setJob_desc(SchedulerConstants.DAILY_INVENTORY_DIFF.JOB_DESC);
+        job.setMisfire_policy(SchedulerConstants.DAILY_INVENTORY_DIFF.MISFIRE_POLICY);
+        job.setConcurrent(SchedulerConstants.DAILY_INVENTORY_DIFF.CONCURRENT);
+        job.setIs_cron(SchedulerConstants.DAILY_INVENTORY_DIFF.IS_CRON);
+        job.setIs_del(SchedulerConstants.DAILY_INVENTORY_DIFF.IS_DEL);
+        job.setIs_effected(SchedulerConstants.DAILY_INVENTORY_DIFF.IS_EFFECTED);
+        job.setNext_fire_time(LocalDateTime.now().plusSeconds(SchedulerConstants.DAILY_INVENTORY_DIFF.NEXT_FIRE_SECONDS));
+        job.setClass_name(SchedulerConstants.DAILY_INVENTORY_DIFF.CLASS_NAME);
+        job.setMethod_name(SchedulerConstants.DAILY_INVENTORY_DIFF.METHOD_NAME);
+        job.setParam_class(SchedulerConstants.DAILY_INVENTORY_DIFF.PARAM_CLASS);
+        job.setParam_data(param);
+        job.setJob_serial_type(job_serial_type);
+        job.setJob_serial_id(job_serial_id);
+        // 写入数据库当中
+        SJobEntity entity = (SJobEntity) BeanUtilsSupport.copyProperties(job,SJobEntity.class);
+        SpringUtils.getBean(ISJobQuartzService.class).save(entity);
+        job.setId(entity.getId());
+        return createScheduleJobSimpleTrigger(scheduler, job);
+    }
+
+    /**
+     * 创建定时任务：AI知识库统计
+     *
+     * @param scheduler Quartz调度器
+     * @param tenantCode 租户code（关键参数，用于AbstractQuartzJob自动切换数据源）
+     * @param kbUuid 知识库UUID（格式：{tenantCode}::{uuid}）
+     * @param triggerReason 触发原因（可选，用于日志）
+     * @return 是否创建成功
+     * @throws SchedulerException 调度异常
+     */
+    public static boolean createJobKnowledgeBaseStatistics(
+            Scheduler scheduler,
+            String tenantCode,
+            String kbUuid,
+            String triggerReason
+    ) throws SchedulerException {
+
+        SJobManagerBo job = new SJobManagerBo();
+
+        // 任务名包含kbUuid，确保唯一性
+        job.setJob_name(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.JOB_NAME + "-" + kbUuid);
+        job.setJob_group_type(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.JOB_GROUP_TYPE);
+        job.setJob_desc(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.JOB_DESC + " - " + kbUuid);
+        job.setMisfire_policy(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.MISFIRE_POLICY);
+        job.setConcurrent(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.CONCURRENT);
+        job.setIs_cron(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.IS_CRON);
+        job.setIs_del(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.IS_DEL);
+        job.setIs_effected(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.IS_EFFECTED);
+        job.setNext_fire_time(LocalDateTime.now().plusSeconds(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.NEXT_FIRE_SECONDS));
+        job.setClass_name(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.CLASS_NAME);
+        job.setMethod_name(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.METHOD_NAME);
+        job.setParam_class(SchedulerConstants.KNOWLEDGE_BASE_STATISTICS.PARAM_CLASS);
+
+        // 设置租户code（关键：AbstractQuartzJob会自动切换数据源）
+        job.setTenant_code(tenantCode);
+
+        // 构建参数对象（JSON格式）
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            KnowledgeBaseStatisticsParamVo paramVo = new KnowledgeBaseStatisticsParamVo();
+            paramVo.setKbUuid(kbUuid);
+            paramVo.setTenantCode(tenantCode);
+            paramVo.setTriggerReason(triggerReason);
+            job.setParam_data(objectMapper.writeValueAsString(paramVo));
+        } catch (Exception e) {
+            log.error("构建AI知识库统计任务参数失败，kbUuid: {}", kbUuid, e);
+            throw new SchedulerException("参数序列化失败", e);
+        }
+
+        job.setJob_serial_type("ai_kb_statistics");
+        job.setJob_serial_id(0L); // 全局任务，不关联具体业务ID
+
+        // 写入租户库
+        SJobEntity entity = (SJobEntity) BeanUtilsSupport.copyProperties(job, SJobEntity.class);
+        SpringUtils.getBean(ISJobQuartzService.class).save(entity);
+        job.setId(entity.getId());
+
+        // 写入Master库（关键：包含tenant_code）
+        job.setTenant_job_id(entity.getId());
+        SpringUtils.getBean(ISJobManagerQuartzService.class).insert(job);
+
+        // 创建调度任务（SimpleTrigger单次执行）
+        return createScheduleJobSimpleTrigger(scheduler, job);
+    }
 
 
 

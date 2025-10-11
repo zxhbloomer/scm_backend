@@ -8,6 +8,7 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
+import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
@@ -37,6 +38,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 知识库管理 Service
@@ -118,7 +120,11 @@ public class KnowledgeBaseService {
 
         if (isNew) {
             // 新增
-            entity.setKbUuid(UuidUtil.createShort());
+            // kb_uuid 格式：{tenantCode}::{uuid}，方便定时任务识别租户
+            String tenantCode = DataSourceHelper.getCurrentDataSourceName();
+            String uuid = UuidUtil.createShort();
+            entity.setKbUuid(tenantCode + "::" + uuid);
+
             Long currentUserId = SecurityUtil.getStaff_id();
             entity.setOwnerId(String.valueOf(currentUserId));
 
@@ -380,6 +386,13 @@ public class KnowledgeBaseService {
         }
 
         try {
+            // 设置用户索引进行中标识（对应 aideepin: KnowledgeBaseItemService.asyncIndex() 第137行）
+            Long currentUserId = SecurityUtil.getStaff_id();
+            String userIndexKey = String.format(AiConstant.USER_INDEXING_KEY, currentUserId);
+            stringRedisTemplate.opsForValue().set(userIndexKey, "", 10, TimeUnit.MINUTES);
+
+            log.info("设置用户索引标识，userId: {}, key: {}", currentUserId, userIndexKey);
+
             // 发送RabbitMQ消息进行异步索引（对应aideepin的asyncIndex）
             for (String itemUuid : itemUuids) {
                 // 查询文档项
@@ -628,19 +641,19 @@ public class KnowledgeBaseService {
             log.info("用户取消收藏知识库，userId: {}, kbId: {}", currentUserId, kbId);
         }
 
-        // 6. 更新知识库的star_count（对应aideepin的update）
+        // 6. 更新知识库的star_count（使用 selectById + updateById 模式）
         Integer currentStarCount = knowledgeBase.getStarCount();
         if (currentStarCount == null) {
             currentStarCount = 0;
         }
         int newStarCount = star ? currentStarCount + 1 : Math.max(0, currentStarCount - 1);
 
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> updateWrapper = new LambdaQueryWrapper<>();
-        updateWrapper.eq(AiKnowledgeBaseEntity::getId, knowledgeBase.getId());
-
-        AiKnowledgeBaseEntity updateEntity = new AiKnowledgeBaseEntity();
+        // 先查询完整实体
+        AiKnowledgeBaseEntity updateEntity = knowledgeBaseMapper.selectById(knowledgeBase.getId());
+        // 修改字段
         updateEntity.setStarCount(newStarCount);
-        knowledgeBaseMapper.update(updateEntity, updateWrapper);
+        // 更新
+        knowledgeBaseMapper.updateById(updateEntity);
 
         log.info("更新知识库收藏数，kbId: {}, oldCount: {}, newCount: {}", kbId, currentStarCount, newStarCount);
 
