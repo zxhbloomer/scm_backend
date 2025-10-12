@@ -72,6 +72,9 @@ public class Neo4jQueryService {
      * @return 顶点列表
      */
     private List<KbGraphVo.GraphVertexVo> queryVertices(Session session, String itemUuid, Long maxVertexId, Integer limit) {
+        // 处理limit=-1的情况，转换为一个合理的大值
+        int actualLimit = (limit <= 0) ? 1000 : limit;
+
         String cypher =
             "MATCH (n:Entity {kb_item_uuid: $itemUuid}) " +
             "WHERE id(n) < $maxVertexId " +
@@ -82,7 +85,7 @@ public class Neo4jQueryService {
         Map<String, Object> params = Map.of(
                 "itemUuid", itemUuid,
                 "maxVertexId", maxVertexId,
-                "limit", limit
+                "limit", actualLimit
         );
 
         Result result = session.run(cypher, params);
@@ -112,18 +115,22 @@ public class Neo4jQueryService {
      * @return 边列表
      */
     private List<KbGraphVo.GraphEdgeVo> queryEdges(Session session, String itemUuid, Long maxEdgeId, Integer limit) {
+        // 处理limit=-1的情况，转换为一个合理的大值
+        int actualLimit = (limit <= 0) ? 1000 : limit;
+
+        // 查询RELATION类型的关系，且关系的kb_item_uuid属性匹配
         String cypher =
-            "MATCH (n:Entity {kb_item_uuid: $itemUuid})-[r]-(m) " +
-            "WHERE id(r) < $maxEdgeId " +
-            "RETURN id(r) as id, id(startNode(r)) as sourceId, id(endNode(r)) as targetId, " +
-            "type(r) as type, r.description as description " +
+            "MATCH (n:Entity)-[r:RELATION]->(m:Entity) " +
+            "WHERE r.kb_item_uuid = $itemUuid AND id(r) < $maxEdgeId " +
+            "RETURN id(r) as id, id(n) as sourceId, id(m) as targetId, " +
+            "r.type as type, r.description as description " +
             "ORDER BY id(r) DESC " +
             "LIMIT $limit";
 
         Map<String, Object> params = Map.of(
                 "itemUuid", itemUuid,
                 "maxEdgeId", maxEdgeId,
-                "limit", limit
+                "limit", actualLimit
         );
 
         Result result = session.run(cypher, params);

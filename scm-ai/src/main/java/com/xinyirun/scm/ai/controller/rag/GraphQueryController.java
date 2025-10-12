@@ -37,14 +37,14 @@ public class GraphQueryController {
     @GetMapping("/list/{kbItemUuid}")
     @Operation(summary = "获取文档图谱")
     @SysLogAnnotion("获取文档图谱")
-    public ResponseEntity<JsonResultAo<Map<String, Object>>> list(
+    public Map<String, Object> list(
             @PathVariable String kbItemUuid,
             @RequestParam(defaultValue = Long.MAX_VALUE + "") Long maxVertexId,
             @RequestParam(defaultValue = Long.MAX_VALUE + "") Long maxEdgeId,
             @RequestParam(defaultValue = "-1") int limit) {
 
         Map<String, Object> result = graphRetrievalService.getGraphByKbItem(kbItemUuid, maxVertexId, maxEdgeId, limit);
-        return ResponseEntity.ok().body(ResultUtil.OK(result));
+        return result;
     }
 
     /**

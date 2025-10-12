@@ -3,8 +3,10 @@ package com.xinyirun.scm.ai.core.service;
 import com.xinyirun.scm.ai.bean.entity.rag.neo4j.EntityNode;
 import com.xinyirun.scm.ai.bean.vo.rag.GraphRelationVo;
 import com.xinyirun.scm.ai.bean.vo.rag.GraphSearchResultVo;
+import com.xinyirun.scm.ai.bean.vo.rag.KbGraphVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.repository.neo4j.EntityRepository;
+import com.xinyirun.scm.ai.core.service.neo4j.Neo4jQueryService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +36,9 @@ public class GraphRetrievalService {
 
     @Autowired
     private AiModelProvider aiModelProvider;
+
+    @Autowired
+    private Neo4jQueryService neo4jQueryService;
 
     /**
      * 实体分数缓存（用于RAG评分）
@@ -313,20 +318,28 @@ public class GraphRetrievalService {
     /**
      * 根据知识库条目UUID获取图谱数据
      *
-     * <p>原有方法保留，用于其他功能</p>
+     * <p>查询Neo4j中存储的图谱实体和关系数据</p>
+     *
+     * @param kbItemUuid 知识项UUID
+     * @param maxVertexId 最大顶点ID（用于分页）
+     * @param maxEdgeId 最大边ID（用于分页）
+     * @param limit 返回数量限制
+     * @return 图谱数据（包含顶点和边）
      */
     public Map<String, Object> getGraphByKbItem(String kbItemUuid, Long maxVertexId, Long maxEdgeId, int limit) {
-        // TODO: 实现Neo4j图谱查询逻辑
+        log.debug("查询知识项图谱: kbItemUuid={}", kbItemUuid);
+
+        KbGraphVo graphData = neo4jQueryService.getGraphData(kbItemUuid, maxVertexId, maxEdgeId, limit);
+
         Map<String, Object> result = new HashMap<>();
-        result.put("vertices", new Object[0]);
-        result.put("edges", new Object[0]);
+        result.put("vertices", graphData.getVertices());
+        result.put("edges", graphData.getEdges());
+
         return result;
     }
 
     /**
      * 根据问答UUID查询关联图谱
-     *
-     * <p>原有方法保留，用于其他功能</p>
      */
     public Map<String, Object> getByQaUuid(String qaUuid) {
         // TODO: 实现根据问答UUID查询关联图谱

@@ -77,4 +77,16 @@ public interface AiKnowledgeBaseEmbeddingRepository extends ElasticsearchReposit
      * @return 分段数量
      */
     long countByKbItemUuid(String kbItemUuid);
+
+    /**
+     * 根据文档UUID分页查询嵌入向量文档（按segmentIndex升序排序）
+     *
+     * @param kbItemUuid 文档UUID
+     * @param pageable 分页参数
+     * @return 嵌入向量文档分页列表
+     */
+    Page<AiKnowledgeBaseEmbeddingDoc> findByKbItemUuidOrderBySegmentIndexAsc(
+            String kbItemUuid,
+            Pageable pageable
+    );
 }

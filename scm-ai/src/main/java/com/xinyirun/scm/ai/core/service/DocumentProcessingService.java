@@ -1,15 +1,19 @@
 package com.xinyirun.scm.ai.core.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
+import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
+import com.xinyirun.scm.ai.core.repository.neo4j.KnowledgeBaseSegmentRepository;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
@@ -42,6 +46,8 @@ public class DocumentProcessingService {
     private final SFileMapper sFileMapper;
     private final SFileInfoMapper sFileInfoMapper;
     private final ISFileService sFileService;
+    private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
+    private final KnowledgeBaseSegmentRepository segmentRepository;
 
     /**
      * 单文档上传（给Controller调用）
@@ -156,14 +162,66 @@ public class DocumentProcessingService {
     }
 
     /**
-     * 软删除文档
+     * 物理删除知识项（包含MySQL、Elasticsearch、Neo4j三处数据）
+     * <p>SCM系统统一使用物理删除</p>
+     *
+     * @param uuid 知识项UUID
+     * @return 是否删除成功
      */
     @Transactional(rollbackFor = Exception.class)
     public boolean softDelete(String uuid) {
-        LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, uuid);
+        log.info("删除知识项, uuid: {}", uuid);
 
-        return itemMapper.delete(wrapper) > 0;
+        // 1. 查询实体（select-then-delete模式）
+        LambdaQueryWrapper<AiKnowledgeBaseItemEntity> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, uuid);
+        AiKnowledgeBaseItemEntity entity = itemMapper.selectOne(queryWrapper);
+
+        if (entity == null) {
+            log.warn("知识项不存在, uuid: {}", uuid);
+            return false;
+        }
+
+        // 2. 权限检查
+        Long currentUserId = SecurityUtil.getStaff_id();
+        if (currentUserId != null && entity.getCreateUser() != null) {
+            if (!entity.getCreateUser().equals(String.valueOf(currentUserId))) {
+                log.warn("无权删除知识项, uuid: {}, currentUser: {}, createUser: {}",
+                    uuid, currentUserId, entity.getCreateUser());
+                throw new RuntimeException("无权删除该知识项");
+            }
+        }
+
+        // 3. 删除Elasticsearch向量数据
+        try {
+            long deletedCount = embeddingRepository.deleteByKbItemUuid(uuid);
+            log.info("删除Elasticsearch向量数据, uuid: {}, 删除数量: {}", uuid, deletedCount);
+        } catch (Exception e) {
+            log.error("删除Elasticsearch向量数据失败, uuid: {}", uuid, e);
+            throw new RuntimeException("删除向量数据失败: " + e.getMessage(), e);
+        }
+
+        // 4. 删除Neo4j图谱数据
+        try {
+            String tenantId = DataSourceHelper.getCurrentDataSourceName();
+            Integer deletedCount = segmentRepository.deleteByItemUuidAndTenantId(uuid, tenantId);
+            log.info("删除Neo4j图谱数据, uuid: {}, tenantId: {}, 删除数量: {}", uuid, tenantId, deletedCount);
+        } catch (Exception e) {
+            log.error("删除Neo4j图谱数据失败, uuid: {}", uuid, e);
+            throw new RuntimeException("删除图谱数据失败: " + e.getMessage(), e);
+        }
+
+        // 5. 删除MySQL记录（物理删除）
+        int result = itemMapper.deleteById(entity.getId());
+        boolean success = result > 0;
+
+        if (success) {
+            log.info("知识项删除成功, uuid: {}", uuid);
+        } else {
+            log.warn("知识项删除失败, uuid: {}", uuid);
+        }
+
+        return success;
     }
 
     /**
