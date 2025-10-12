@@ -9,13 +9,12 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * 知识库问答记录实体类
+ * AI知识库问答记录实体类
+ * 对应数据库表：ai_knowledge_base_qa
+ * 对标：aideepin KnowledgeBaseQa
  *
- * <p>对应数据库表：ai_knowledge_base_qa</p>
- * <p>对应 aideepin 实体：KnowledgeBaseQa</p>
- *
- * @author SCM AI Team
- * @since 2025-10-04
+ * @author zxh
+ * @since 2025-10-12
  */
 @Data
 @TableName("ai_knowledge_base_qa")
@@ -26,66 +25,65 @@ public class AiKnowledgeBaseQaEntity implements Serializable {
     /**
      * 主键ID
      */
-    @TableId(type = IdType.ASSIGN_UUID)
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
     private String id;
 
     /**
-     * 唯一标识符（32字符无连字符）
+     * UUID（32位）
      */
     @TableField("uuid")
     private String uuid;
 
     /**
-     * 所属知识库ID
-     * 关联：ai_knowledge_base.id
+     * 知识库ID
      */
     @TableField("kb_id")
     private String kbId;
 
     /**
-     * 所属知识库UUID
+     * 知识库UUID
      */
     @TableField("kb_uuid")
     private String kbUuid;
 
     /**
-     * 用户的原始问题
+     * 用户问题
      */
     @TableField("question")
     private String question;
 
     /**
-     * 提供给LLM的提示词（包含RAG上下文）
+     * 实际发送给LLM的Prompt（包含上下文）
      */
     @TableField("prompt")
     private String prompt;
 
     /**
-     * 提示词消耗的token
+     * Prompt消耗的Token数
      */
     @TableField("prompt_tokens")
     private Integer promptTokens;
 
     /**
-     * 答案
+     * AI回答内容
      */
     @TableField("answer")
     private String answer;
 
     /**
-     * 答案消耗的token
+     * Answer消耗的Token数
      */
     @TableField("answer_tokens")
     private Integer answerTokens;
 
     /**
-     * 来源文档id,以逗号隔开
+     * 来源文件ID列表（逗号分隔）
      */
     @TableField("source_file_ids")
     private String sourceFileIds;
 
     /**
-     * 提问用户id
+     * 用户ID
      */
     @TableField("user_id")
     private Long userId;
@@ -97,31 +95,25 @@ public class AiKnowledgeBaseQaEntity implements Serializable {
     private String aiModelId;
 
     /**
-     * 租户ID
-     */
-    @TableField("tenant_id")
-    private Long tenantId;
-
-    /**
-     * 启用状态(0-禁用,1-启用)
+     * 启用状态（1-启用，0-禁用）
      */
     @TableField("enable_status")
     private Integer enableStatus;
 
     /**
-     * 创建时间（时间戳毫秒）
+     * 创建时间（时间戳，毫秒）
      */
     @TableField("create_time")
     private Long createTime;
 
     /**
-     * 更新时间（时间戳毫秒）
+     * 更新时间（时间戳，毫秒）
      */
     @TableField("update_time")
     private Long updateTime;
 
     /**
-     * 是否删除（0-未删除, 1-已删除）
+     * 删除标记（0-未删除，1-已删除）
      */
     @TableField("is_deleted")
     private Integer isDeleted;
@@ -131,4 +123,11 @@ public class AiKnowledgeBaseQaEntity implements Serializable {
      */
     @TableField("create_user")
     private String createUser;
+
+    /**
+     * AI模型名称（避免关联查询ai_model_source表）
+     * 对标：aideepin通过缓存查询，scm-ai直接存储
+     */
+    @TableField("ai_model_name")
+    private String aiModelName;
 }

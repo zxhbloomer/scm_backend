@@ -121,6 +121,18 @@ public class AiKnowledgeBaseEntity {
     private Integer embeddingCount;
 
     /**
+     * 知识图谱实体数量
+     */
+    @TableField("entity_count")
+    private Integer entityCount;
+
+    /**
+     * 知识图谱关系数量
+     */
+    @TableField("relation_count")
+    private Integer relationCount;
+
+    /**
      * 所有者ID
      */
     @TableField("owner_id")

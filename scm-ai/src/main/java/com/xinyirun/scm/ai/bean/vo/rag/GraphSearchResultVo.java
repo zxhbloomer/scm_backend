@@ -70,4 +70,10 @@ public class GraphSearchResultVo implements Serializable {
      * scm-ai扩展字段，用于排序
      */
     private Double score;
+
+    /**
+     * 图谱段ID（MySQL ai_knowledge_base_graph_segment表的ID）
+     * scm-ai扩展字段，用于关联segment数据
+     */
+    private Long segmentId;
 }

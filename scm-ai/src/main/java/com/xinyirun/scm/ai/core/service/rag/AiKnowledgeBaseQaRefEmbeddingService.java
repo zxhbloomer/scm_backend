@@ -29,10 +29,11 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
      * 批量保存QA问答的向量引用记录
      * 对应aideepin在RAG查询后保存embeddingToScore缓存到数据库的逻辑
      *
+     * <p>aideepin问题：Map迭代无法保证score排序</p>
+     * <p>scm-ai优化：先按score降序排序，然后保存rank字段</p>
+     *
      * <p>aideepin逻辑：</p>
      * <pre>
-     * // 在retrieve()方法执行后，embeddingToScore缓存了所有embeddingId和score
-     * // 然后保存到adi_knowledge_base_qa_record_reference表
      * embeddingToScore.forEach((embeddingId, score) -> {
      *     KnowledgeBaseQaRecordReference ref = new KnowledgeBaseQaRecordReference();
      *     ref.setQaRecordId(qaRecordId);
@@ -54,23 +55,30 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
             return 0;
         }
 
-        // 批量构建实体对象
-        List<AiKnowledgeBaseQaRefEmbeddingEntity> entities = embeddingScores.entrySet().stream()
-                .map(entry -> {
-                    AiKnowledgeBaseQaRefEmbeddingEntity entity = new AiKnowledgeBaseQaRefEmbeddingEntity();
-                    entity.setQaRecordId(qaRecordId);
-                    entity.setEmbeddingId(entry.getKey());
-                    entity.setScore(entry.getValue());
-                    entity.setUserId(userId);
-                    return entity;
-                })
+        // scm-ai优化：按score降序排序，保留rank排名
+        List<Map.Entry<String, Double>> sortedEntries = embeddingScores.entrySet().stream()
+                .sorted((e1, e2) -> Double.compare(e2.getValue(), e1.getValue())) // 降序
                 .toList();
+
+        // 批量构建实体对象（包含rank字段）
+        List<AiKnowledgeBaseQaRefEmbeddingEntity> entities = new java.util.ArrayList<>();
+        int rank = 1;
+        for (Map.Entry<String, Double> entry : sortedEntries) {
+            AiKnowledgeBaseQaRefEmbeddingEntity entity = new AiKnowledgeBaseQaRefEmbeddingEntity();
+            entity.setQaRecordId(qaRecordId);
+            entity.setEmbeddingId(entry.getKey());
+            entity.setScore(entry.getValue());
+            entity.setUserId(userId);
+            entity.setRank(rank++); // scm-ai新增：保存排名
+            entities.add(entity);
+        }
 
         // 批量保存（对应aideepin的逐条save，这里优化为批量插入）
         boolean success = this.saveBatch(entities);
 
         int savedCount = success ? entities.size() : 0;
-        log.info("保存QA引用记录完成，qaRecordId: {}, 保存数量: {}", qaRecordId, savedCount);
+        log.info("保存QA引用记录完成，qaRecordId: {}, 保存数量: {}, TOP1 score: {}",
+                qaRecordId, savedCount, entities.isEmpty() ? null : entities.get(0).getScore());
 
         return savedCount;
     }

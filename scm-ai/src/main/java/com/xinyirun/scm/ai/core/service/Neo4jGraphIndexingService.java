@@ -6,13 +6,16 @@ import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseGraphSegmentEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
+import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.event.GraphIndexCompletedEvent;
+import com.xinyirun.scm.ai.core.prompt.GraphExtractPrompt;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseGraphSegmentService;
 import com.xinyirun.scm.ai.core.service.splitter.OverlappingTokenTextSplitter;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 import org.springframework.ai.chat.model.ChatResponse;
@@ -23,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -260,13 +264,10 @@ public class Neo4jGraphIndexingService {
         segmentEntity.setKbUuid(item.getKbUuid());
         segmentEntity.setKbItemUuid(item.getItemUuid());
         segmentEntity.setRemark(segmentText);
-        // 将String转换为Long（createUser字段在item中是String类型）
-        segmentEntity.setUserId(item.getCreateUser() != null ? Long.parseLong(item.getCreateUser()) : null);
-        segmentEntity.setCreateTime(System.currentTimeMillis());
-        segmentEntity.setUpdateTime(System.currentTimeMillis());
         segmentEntity.setIsDeleted(0);
 
         // 保存到数据库（对应aideepin第69行）
+        // c_id, c_time, u_id, u_time, dbversion 由 MyBatis-Plus 自动填充
         graphSegmentService.save(segmentEntity);
 
         return segmentUuid;
@@ -299,93 +300,148 @@ public class Neo4jGraphIndexingService {
     }
 
     /**
-     * 构建图谱提取的Prompt
-     * 对应aideepin的GraphExtractor prompt模板
-     *
-     * <p>aideepin的prompt设计：</p>
-     * 要求LLM识别文档中的实体（人物、组织、概念等）和它们之间的关系
+     * 构建图谱提取的Prompt（使用 Microsoft GraphRAG 标准提示词）
+     * 参考：aideepin GraphRAG.java:107-108
      *
      * @param content 文档内容
      * @return Prompt文本
      */
     private String buildGraphExtractionPrompt(String content) {
-        return """
-                请分析以下文本，提取出其中的实体和关系，以JSON格式返回。
-
-                要求：
-                1. 实体类型包括：人物(PERSON)、组织(ORGANIZATION)、地点(LOCATION)、概念(CONCEPT)、事件(EVENT)等
-                2. 关系类型包括：属于(BELONGS_TO)、位于(LOCATED_IN)、参与(PARTICIPATES_IN)、相关(RELATED_TO)等
-                3. 每个实体包含：名称(name)、类型(type)、描述(description)
-                4. 每个关系包含：起始实体(from)、终止实体(to)、关系类型(type)、描述(description)
-
-                返回格式：
-                {
-                  "entities": [
-                    {"name": "实体名称", "type": "PERSON", "description": "实体描述"}
-                  ],
-                  "relations": [
-                    {"from": "实体1", "to": "实体2", "type": "RELATED_TO", "description": "关系描述"}
-                  ]
-                }
-
-                文本内容：
-                %s
-
-                请严格按照JSON格式返回，不要包含其他内容。
-                """.formatted(content.length() > 2000 ? content.substring(0, 2000) : content);
+        // 直接使用 Microsoft GraphRAG 标准提示词，替换 {input_text} 占位符
+        return GraphExtractPrompt.GRAPH_EXTRACTION_PROMPT_CN.replace("{input_text}", content);
     }
 
     /**
      * 解析LLM返回的图谱提取结果
-     * 对应aideepin的JSON解析逻辑
+     * 对应aideepin的GraphStoreIngestor.ingest()第148-291行解析逻辑
      *
-     * @param jsonResult LLM返回的JSON字符串
+     * <p>LLM返回格式（Microsoft GraphRAG标准）:</p>
+     * <pre>
+     * ("entity"<|>Ming Dynasty<|>organization<|>The ruling dynasty...)
+     * ##
+     * ("entity"<|>Xuande Period<|>event<|>The era in Ming Dynasty...)
+     * ##
+     * ("relationship"<|>Ming Dynasty<|>Xuande Period<|>The Xuande Period was...<|>8)
+     * ##
+     * <|COMPLETE|>
+     * </pre>
+     *
+     * @param llmResponse LLM返回的字符串（使用##分隔记录,使用<|>分隔字段）
      * @return 解析后的实体和关系
      */
-    private GraphExtractionResult parseGraphExtractionResult(String jsonResult) {
+    private GraphExtractionResult parseGraphExtractionResult(String llmResponse) {
+        GraphExtractionResult result = new GraphExtractionResult();
+
         try {
-            // 移除可能的Markdown代码块标记
-            jsonResult = jsonResult.replaceAll("```json", "").replaceAll("```", "").trim();
+            if (StringUtils.isBlank(llmResponse)) {
+                log.warn("LLM响应为空");
+                return result;
+            }
 
-            JSONObject json = JSON.parseObject(jsonResult);
-            GraphExtractionResult result = new GraphExtractionResult();
+            // 分隔符常量（对应aideepin AdiConstant.GRAPH_RECORD_DELIMITER 和 GRAPH_TUPLE_DELIMITER）
+            final String RECORD_DELIMITER = "##";
+            final String TUPLE_DELIMITER = "<\\|>";
 
-            // 解析实体
-            JSONArray entitiesArray = json.getJSONArray("entities");
-            if (entitiesArray != null) {
-                for (int i = 0; i < entitiesArray.size(); i++) {
-                    JSONObject entityJson = entitiesArray.getJSONObject(i);
+            // 第1步: 用 ## 分割每条记录（对应aideepin第148行）
+            String[] rows = llmResponse.split(RECORD_DELIMITER);
+
+            for (String row : rows) {
+                String graphRow = row.trim();
+
+                // 跳过结束标记（对应aideepin的处理逻辑）
+                if (graphRow.contains("<|COMPLETE|>") || graphRow.isEmpty()) {
+                    continue;
+                }
+
+                // 第2步: 移除首尾括号（对应aideepin第151行）
+                graphRow = graphRow.replaceAll("^\\(|\\)$", "");
+
+                // 第3步: 用 <|> 分割字段（对应aideepin第152行）
+                String[] recordAttributes = graphRow.split(TUPLE_DELIMITER);
+
+                if (recordAttributes.length < 4) {
+                    log.warn("记录字段数量不足，跳过: {}", graphRow);
+                    continue;
+                }
+
+                // 第4步: 判断是实体还是关系（对应aideepin第153和192行）
+                String recordType = recordAttributes[0].replaceAll("\"", "").trim();
+
+                if ("entity".equalsIgnoreCase(recordType) || "实体".equals(recordType)) {
+                    // 解析实体（对应aideepin第154-191行）
+                    String entityName = clearStr(recordAttributes[1]).toUpperCase();
+                    String entityType = clearStr(recordAttributes[2]).toUpperCase()
+                            .replaceAll("[^a-zA-Z0-9\\s\\u4E00-\\u9FA5]+", "")
+                            .replace(" ", "");
+                    String entityDescription = clearStr(recordAttributes[3]);
+
                     EntityNode entity = new EntityNode();
                     entity.setId(UuidUtil.createShort());
-                    entity.setName(entityJson.getString("name"));
-                    entity.setType(entityJson.getString("type"));
-                    entity.setDescription(entityJson.getString("description"));
+                    entity.setName(entityName);
+                    entity.setType(entityType);
+                    entity.setDescription(entityDescription);
                     result.getEntities().add(entity);
+
+                    log.debug("解析实体: name={}, type={}, desc={}", entityName, entityType, entityDescription);
+
+                } else if ("relationship".equalsIgnoreCase(recordType) || "关系".equals(recordType)) {
+                    // 解析关系（对应aideepin第193-291行）
+                    String sourceName = clearStr(recordAttributes[1]).toUpperCase();
+                    String targetName = clearStr(recordAttributes[2]).toUpperCase();
+                    String edgeDescription = clearStr(recordAttributes[3]);
+
+                    // 第5个字段是权重(可选,默认1.0) （对应aideepin第200-203行）
+                    double weight = 1.0;
+                    if (recordAttributes.length > 4) {
+                        String weightStr = recordAttributes[4].trim();
+                        try {
+                            weight = Double.parseDouble(weightStr);
+                        } catch (NumberFormatException e) {
+                            log.warn("权重解析失败，使用默认值1.0: {}", weightStr);
+                        }
+                    }
+
+                    RelationshipEdge relation = new RelationshipEdge();
+                    relation.setId(UuidUtil.createShort());
+                    relation.setFromEntityName(sourceName);
+                    relation.setToEntityName(targetName);
+                    relation.setType("RELATES_TO"); // 默认关系类型
+                    relation.setDescription(edgeDescription);
+                    relation.setWeight(weight);
+                    result.getRelations().add(relation);
+
+                    log.debug("解析关系: from={}, to={}, desc={}, weight={}",
+                             sourceName, targetName, edgeDescription, weight);
                 }
             }
 
-            // 解析关系
-            JSONArray relationsArray = json.getJSONArray("relations");
-            if (relationsArray != null) {
-                for (int i = 0; i < relationsArray.size(); i++) {
-                    JSONObject relationJson = relationsArray.getJSONObject(i);
-                    RelationshipEdge relation = new RelationshipEdge();
-                    relation.setId(UuidUtil.createShort());
-                    relation.setFromEntityName(relationJson.getString("from"));
-                    relation.setToEntityName(relationJson.getString("to"));
-                    relation.setType(relationJson.getString("type"));
-                    relation.setDescription(relationJson.getString("description"));
-                    result.getRelations().add(relation);
-                }
-            }
+            log.info("图谱提取解析完成，实体数: {}, 关系数: {}",
+                    result.getEntities().size(), result.getRelations().size());
 
             return result;
 
         } catch (Exception e) {
-            log.error("解析LLM返回的图谱提取结果失败，JSON: {}, 错误: {}", jsonResult, e.getMessage(), e);
+            log.error("解析LLM返回的图谱提取结果失败，response: {}, 错误: {}", llmResponse, e.getMessage(), e);
             // 返回空结果，不影响整体流程
             return new GraphExtractionResult();
         }
+    }
+
+    /**
+     * 清理字符串（移除引号、转义符等）
+     * 对应aideepin的AdiStringUtil.clearStr()
+     *
+     * @param str 原始字符串
+     * @return 清理后的字符串
+     */
+    private String clearStr(String str) {
+        if (StringUtils.isBlank(str)) {
+            return "";
+        }
+        return str.replaceAll("\"", "")
+                .replaceAll("'", "")
+                .replaceAll("\\\\", "")
+                .trim();
     }
 
     /**
@@ -422,12 +478,12 @@ public class Neo4jGraphIndexingService {
             String standardizedName = entity.getName().toUpperCase();
 
             // MERGE + ON CREATE / ON MATCH 实现增量更新
+            // 注意: 不需要tenant_id字段,因为每个租户使用独立的Neo4j数据库
             String cypher = """
                     MERGE (e:Entity {name: $name, kb_uuid: $kb_uuid, type: $type})
                     ON CREATE SET
                         e.id = $id,
                         e.kb_item_uuid = $kb_item_uuid,
-                        e.tenant_id = $tenant_id,
                         e.description = $description,
                         e.segment_ids = [$segmentUuid],
                         e.create_time = datetime()
@@ -466,7 +522,10 @@ public class Neo4jGraphIndexingService {
      * 对应aideepin的graphStore.addRelationship()，并实现增量更新逻辑
      *
      * <p>增量更新逻辑：</p>
-     * 使用MERGE创建关系，ON CREATE / ON MATCH实现segment_ids追踪
+     * <ul>
+     *   <li>使用MERGE创建关系，ON CREATE / ON MATCH实现segment_ids追踪</li>
+     *   <li>weight权重累加（对应aideepin第250行逻辑）</li>
+     * </ul>
      *
      * @param relation 关系边
      * @param item 文档项
@@ -479,6 +538,7 @@ public class Neo4jGraphIndexingService {
             String standardizedToName = relation.getToEntityName().toUpperCase();
 
             // 使用MERGE创建关系，ON CREATE / ON MATCH实现增量更新
+            // weight累加逻辑对应aideepin GraphStoreIngestor.ingest()第250行
             String cypher = """
                     MATCH (from:Entity {name: $fromName, kb_uuid: $kb_uuid})
                     MATCH (to:Entity {name: $toName, kb_uuid: $kb_uuid})
@@ -489,6 +549,7 @@ public class Neo4jGraphIndexingService {
                         r.kb_uuid = $kb_uuid,
                         r.kb_item_uuid = $kb_item_uuid,
                         r.segment_ids = [$segmentUuid],
+                        r.weight = $weight,
                         r.create_time = datetime()
                     ON MATCH SET
                         r.description = CASE
@@ -501,6 +562,7 @@ public class Neo4jGraphIndexingService {
                             THEN r.segment_ids + $segmentUuid
                             ELSE r.segment_ids
                         END,
+                        r.weight = r.weight + $weight,
                         r.update_time = datetime()
                     """;
 
@@ -513,6 +575,7 @@ public class Neo4jGraphIndexingService {
             params.put("description", relation.getDescription());
             params.put("kb_item_uuid", item.getItemUuid());
             params.put("segmentUuid", segmentUuid);
+            params.put("weight", relation.getWeight()); // 权重参数
 
             session.run(cypher, params);
 
@@ -610,6 +673,7 @@ public class Neo4jGraphIndexingService {
         private String toEntityName;
         private String type;
         private String description;
+        private double weight; // 关系权重(对应aideepin的weight字段)
     }
 
     /**
@@ -624,7 +688,7 @@ public class Neo4jGraphIndexingService {
         try (Session session = neo4jDriver.session()) {
             // 统计实体数量
             String entityQuery = """
-                MATCH (n:KnowledgeEntity)
+                MATCH (n:Entity)
                 WHERE n.kb_uuid = $kb_uuid
                 RETURN count(n) as count
                 """;
@@ -636,7 +700,7 @@ public class Neo4jGraphIndexingService {
 
             // 统计关系数量
             String relationQuery = """
-                MATCH ()-[r:KNOWLEDGE_RELATION]->()
+                MATCH ()-[r:RELATION]->()
                 WHERE r.kb_uuid = $kb_uuid
                 RETURN count(r) as count
                 """;

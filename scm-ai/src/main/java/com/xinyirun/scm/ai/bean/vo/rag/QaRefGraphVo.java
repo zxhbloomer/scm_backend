@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -58,4 +59,17 @@ public class QaRefGraphVo implements Serializable {
      * 用户ID
      */
     private Long userId;
+
+    /**
+     * 关联的图谱文本块ID
+     * 关联：ai_knowledge_base_graph_segment.id
+     * 对标：aideepin将整个图存储为JSON导致冗余，scm-ai通过FK关联避免冗余
+     */
+    private Long graphSegmentId;
+
+    /**
+     * 图谱召回的相关性得分（0-1之间，保留4位小数）
+     * 计算公式：entityMatchRatio(40%) + graphCompleteRatio(30%) + relationDensity(30%)
+     */
+    private BigDecimal relevanceScore;
 }

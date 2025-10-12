@@ -116,6 +116,16 @@ public class AiKnowledgeBaseVo {
     private Integer embeddingCount;
 
     /**
+     * 知识图谱实体数量
+     */
+    private Integer entityCount;
+
+    /**
+     * 知识图谱关系数量
+     */
+    private Integer relationCount;
+
+    /**
      * 创建时间
      */
     private LocalDateTime c_time;

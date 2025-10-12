@@ -10,6 +10,8 @@ import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchIndexingService;
 import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -126,16 +128,23 @@ public class KnowledgeBaseStatisticsService {
             // 统计向量段数量
             long segment_count = esService.countSegmentsByKbUuid(kb_uuid);
 
+            // 统计图谱元素数量
+            Map<String, Long> graphStats = neo4jService.countGraphElementsByKbUuid(kb_uuid);
+            long entity_count = graphStats.getOrDefault("entity_count", 0L);
+            long relation_count = graphStats.getOrDefault("relation_count", 0L);
+
             kb.setItemCount(item_count != null ? item_count.intValue() : 0);
             kb.setEmbeddingCount((int) segment_count);
+            kb.setEntityCount((int) entity_count);
+            kb.setRelationCount((int) relation_count);
 
             int updCount = kbMapper.updateById(kb);
             if (updCount == 0) {
                 log.error("更新知识库统计失败，数据可能已被修改: {}", kb_uuid);
             }
 
-            log.info("更新知识库统计成功: kb_uuid={}, itemCount={}, embeddingCount={}",
-                    kb_uuid, item_count, segment_count);
+            log.info("更新知识库统计成功: kb_uuid={}, itemCount={}, embeddingCount={}, entityCount={}, relationCount={}",
+                    kb_uuid, item_count, segment_count, entity_count, relation_count);
 
         } finally {
             DataSourceHelper.close();

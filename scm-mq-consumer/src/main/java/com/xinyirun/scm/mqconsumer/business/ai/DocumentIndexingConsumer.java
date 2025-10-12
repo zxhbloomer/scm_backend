@@ -88,6 +88,8 @@ public class DocumentIndexingConsumer extends BaseMqConsumer {
 
             log.info("开始处理文档索引，item_uuid: {}, kb_uuid: {}, file_name: {}, index_types: {}",
                     item_uuid, kb_uuid, file_name, index_types);
+            // 设置租户数据库
+            setTenantDataSource(mqSenderAo);
 
             // 2. 执行文档索引处理（状态更新在 DocumentIndexingService 中处理）
             String tenantCode = mqSenderAo.getTenant_code();

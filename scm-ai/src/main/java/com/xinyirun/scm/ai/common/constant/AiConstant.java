@@ -313,4 +313,35 @@ public final class AiConstant {
      * 说明：向量化完成后触发，定时任务扫描并更新embedding_count和item_count
      */
     public static final String KB_STATISTIC_RECALCULATE_SIGNAL = "ai:kb:statistic:recalculate";
+
+    // ==================== 图谱提取常量（Microsoft GraphRAG）====================
+
+    /**
+     * 图谱实体类型（参考 Microsoft GraphRAG）
+     * 对标：aideepin AdiConstant.GRAPH_ENTITY_EXTRACTION_ENTITY_TYPES
+     */
+    public static final String[] GRAPH_ENTITY_TYPES = {"organization", "person", "geo", "event"};
+
+    /**
+     * 图谱数据分隔符 - 字段分隔符
+     * 用于分隔实体/关系的各个属性字段
+     * 示例：("entity"<|>张三<|>person<|>项目经理)
+     * 对标：aideepin AdiConstant.GRAPH_TUPLE_DELIMITER
+     */
+    public static final String GRAPH_TUPLE_DELIMITER = "<|>";
+
+    /**
+     * 图谱数据分隔符 - 记录分隔符
+     * 用于分隔不同的实体/关系记录
+     * 示例：entity1##entity2##relation1
+     * 对标：aideepin AdiConstant.GRAPH_RECORD_DELIMITER
+     */
+    public static final String GRAPH_RECORD_DELIMITER = "##";
+
+    /**
+     * 图谱数据分隔符 - 完成标记
+     * LLM输出完成时的标记
+     * 对标：aideepin AdiConstant.GRAPH_COMPLETION_DELIMITER
+     */
+    public static final String GRAPH_COMPLETION_DELIMITER = "<|COMPLETE|>";
 }

@@ -107,8 +107,14 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
      * }
      * </pre>
      *
+     * <p>scm-ai新增：</p>
+     * <ul>
+     *     <li>graphSegmentId：FK关联ai_knowledge_base_graph_segment.id，避免JSON冗余</li>
+     *     <li>relevanceScore：图谱召回质量评分（entityMatchRatio*40% + graphCompleteRatio*30% + relationDensity*30%）</li>
+     * </ul>
+     *
      * @param qaUuid 问答记录UUID
-     * @param graphRef 图谱引用VO（包含entities, vertices, edges）
+     * @param graphRef 图谱引用VO（包含entities, vertices, edges, graphSegmentId, relevanceScore）
      * @param userId 用户ID
      */
     public void saveRefGraphs(String qaUuid, RefGraphVo graphRef, Long userId) {
@@ -142,10 +148,18 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
         entity.setEntitiesFromQuestion(entitiesStr);
         entity.setGraphFromStore(JSON.toJSONString(graphFromStore));
 
+        // scm-ai新增字段：graphSegmentId和relevanceScore
+        entity.setGraphSegmentId(graphRef.getGraphSegmentId()); // FK关联，避免JSON冗余
+        entity.setRelevanceScore(graphRef.getRelevanceScore()); // 图谱召回质量评分
+
         // 保存（对应aideepin的save()）
         this.save(entity);
 
-        log.info("保存图谱引用完成，qaUuid: {}, vertices数量: {}, edges数量: {}",
-                qaUuid, graphRef.getVertices().size(), graphRef.getEdges().size());
+        log.info("保存图谱引用完成，qaUuid: {}, vertices数量: {}, edges数量: {}, graphSegmentId: {}, relevanceScore: {}",
+                qaUuid,
+                graphRef.getVertices() != null ? graphRef.getVertices().size() : 0,
+                graphRef.getEdges() != null ? graphRef.getEdges().size() : 0,
+                graphRef.getGraphSegmentId(),
+                graphRef.getRelevanceScore());
     }
 }

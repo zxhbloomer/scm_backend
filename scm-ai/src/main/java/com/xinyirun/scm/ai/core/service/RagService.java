@@ -319,6 +319,12 @@ public class RagService {
      *
      * <p>对应 aideepin 的 GraphStoreContentRetriever.getGraphRef()</p>
      *
+     * <p>scm-ai新增：</p>
+     * <ul>
+     *     <li>graphSegmentId：取TOP1结果的segmentId（FK关联ai_knowledge_base_graph_segment.id）</li>
+     *     <li>relevanceScore：计算图谱召回质量得分（entityMatchRatio*40% + graphCompleteRatio*30% + relationDensity*30%）</li>
+     * </ul>
+     *
      * @param graphResults 图谱检索结果
      * @return RefGraphVo对象
      */
@@ -364,10 +370,62 @@ public class RagService {
                 .distinct()
                 .collect(Collectors.toList());
 
+        // scm-ai新增：提取graphSegmentId（取TOP1结果的segmentId）
+        Long graphSegmentId = null;
+        if (!graphResults.isEmpty() && graphResults.get(0).getSegmentId() != null) {
+            graphSegmentId = graphResults.get(0).getSegmentId();
+        }
+
+        // scm-ai新增：计算relevanceScore（图谱召回质量评分）
+        java.math.BigDecimal relevanceScore = calculateGraphRelevanceScore(
+                entitiesFromQuestion.size(),
+                vertexMap.size(),
+                edgeMap.size()
+        );
+
         return RefGraphVo.builder()
                 .vertices(vertexMap.values().stream().collect(Collectors.toList()))
                 .edges(edgeMap.values().stream().collect(Collectors.toList()))
                 .entitiesFromQuestion(entitiesFromQuestion)
+                .graphSegmentId(graphSegmentId)
+                .relevanceScore(relevanceScore)
                 .build();
+    }
+
+    /**
+     * 计算图谱召回质量评分
+     *
+     * <p>计算公式：entityMatchRatio(40%) + graphCompleteRatio(30%) + relationDensity(30%)</p>
+     *
+     * @param entitiesFromQuestionCount 从问题中提取的实体数量
+     * @param vertexCount 召回的顶点数量
+     * @param edgeCount 召回的边数量
+     * @return 相关性得分（0-1之间，保留4位小数）
+     */
+    private java.math.BigDecimal calculateGraphRelevanceScore(int entitiesFromQuestionCount,
+                                                                int vertexCount,
+                                                                int edgeCount) {
+        // 实体匹配率：从问题中提取的实体在召回图谱中的占比（40%权重）
+        double entityMatchRatio = 0.0;
+        if (vertexCount > 0 && entitiesFromQuestionCount > 0) {
+            entityMatchRatio = Math.min(1.0, (double) entitiesFromQuestionCount / vertexCount);
+        }
+
+        // 图谱完整度：召回的图谱是否包含足够的实体（30%权重）
+        // 假设理想情况下至少需要3个实体才算完整
+        double graphCompleteRatio = Math.min(1.0, (double) vertexCount / 3.0);
+
+        // 关系密度：边数与顶点数的比例（30%权重）
+        // 理想情况下每个实体至少有1条关系
+        double relationDensity = 0.0;
+        if (vertexCount > 0) {
+            relationDensity = Math.min(1.0, (double) edgeCount / vertexCount);
+        }
+
+        // 综合得分计算
+        double score = entityMatchRatio * 0.4 + graphCompleteRatio * 0.3 + relationDensity * 0.3;
+
+        // 保留4位小数
+        return new java.math.BigDecimal(score).setScale(4, java.math.RoundingMode.HALF_UP);
     }
 }
