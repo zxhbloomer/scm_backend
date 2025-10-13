@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
+import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
 import com.xinyirun.scm.ai.core.repository.neo4j.KnowledgeBaseSegmentRepository;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
@@ -42,6 +44,7 @@ import java.util.List;
 public class DocumentProcessingService {
 
     private final AiKnowledgeBaseItemMapper itemMapper;
+    private final AiKnowledgeBaseMapper kbMapper;
     private final KnowledgeBaseService knowledgeBaseService;
     private final SFileMapper sFileMapper;
     private final SFileInfoMapper sFileInfoMapper;
@@ -82,6 +85,20 @@ public class DocumentProcessingService {
     public AiKnowledgeBaseItemVo saveOrUpdate(AiKnowledgeBaseItemVo vo) {
         AiKnowledgeBaseItemEntity entity = new AiKnowledgeBaseItemEntity();
         BeanUtils.copyProperties(vo, entity);
+
+        // 根据 kbUuid 查询知识库，获取 kbId
+        if (vo.getKbUuid() != null && !vo.getKbUuid().isEmpty()) {
+            AiKnowledgeBaseEntity kbEntity = kbMapper.selectByKbUuid(vo.getKbUuid());
+            if (kbEntity == null) {
+                log.error("知识库不存在, kbUuid: {}", vo.getKbUuid());
+                throw new RuntimeException("知识库不存在: " + vo.getKbUuid());
+            }
+            // 设置 entity 的 kbId
+            entity.setKbId(kbEntity.getId().toString());
+        } else {
+            log.error("kbUuid不能为空");
+            throw new RuntimeException("kbUuid不能为空");
+        }
 
         if (entity.getItemUuid() == null || entity.getItemUuid().isEmpty()) {
             // 新增
