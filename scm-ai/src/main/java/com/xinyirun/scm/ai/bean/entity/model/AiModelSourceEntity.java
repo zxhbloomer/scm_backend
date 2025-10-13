@@ -114,6 +114,27 @@ public class AiModelSourceEntity implements Serializable {
     private String advSettings;
 
     /**
+     * 上下文窗口大小（总token容量）
+     */
+    @TableField("context_window")
+    @DataChangeLabelAnnotation("上下文窗口大小")
+    private Integer contextWindow;
+
+    /**
+     * 最大输入token数（用于判断用户问题是否过长）
+     */
+    @TableField("max_input_tokens")
+    @DataChangeLabelAnnotation("最大输入token数")
+    private Integer maxInputTokens;
+
+    /**
+     * 最大输出token数
+     */
+    @TableField("max_output_tokens")
+    @DataChangeLabelAnnotation("最大输出token数")
+    private Integer maxOutputTokens;
+
+    /**
      * 创建用户
      */
     @TableField("create_user")

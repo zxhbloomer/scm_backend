@@ -84,14 +84,29 @@ public class AiKnowledgeBaseItemVo {
     private LocalDateTime graphicalStatusChangeTime;
 
     /**
-     * 创建时间（时间戳毫秒）
+     * 创建时间
      */
-    private Long createTime;
+    private LocalDateTime c_time;
 
     /**
-     * 创建人
+     * 修改时间
      */
-    private String createUser;
+    private LocalDateTime u_time;
+
+    /**
+     * 创建人id
+     */
+    private Long c_id;
+
+    /**
+     * 修改人id
+     */
+    private Long u_id;
+
+    /**
+     * 数据版本，乐观锁使用
+     */
+    private Integer dbversion;
 
     /**
      * 附件文件ID（关联s_file表）

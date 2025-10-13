@@ -39,10 +39,13 @@ public interface AiKnowledgeBaseItemMapper extends BaseMapper<AiKnowledgeBaseIte
             embedding_model AS embeddingModel,
             embedding_status AS embeddingStatus,
             embedding_status_change_time AS embeddingStatusChangeTime,
-            create_time AS createTime,
-            create_user AS createUser,
             graphical_status AS graphicalStatus,
-            graphical_status_change_time AS graphicalStatusChangeTime
+            graphical_status_change_time AS graphicalStatusChangeTime,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
+            dbversion
         FROM ai_knowledge_base_item
         WHERE item_uuid = #{item_uuid}
     """)

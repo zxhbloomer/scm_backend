@@ -132,7 +132,7 @@ public class DocumentProcessingService {
                     .like(AiKnowledgeBaseItemEntity::getSourceFileName, keyword));
         }
 
-        wrapper.orderByDesc(AiKnowledgeBaseItemEntity::getCreateTime);
+        wrapper.orderByDesc(AiKnowledgeBaseItemEntity::getC_time);
 
         IPage<AiKnowledgeBaseItemEntity> entityPage = itemMapper.selectPage(page, wrapper);
 
@@ -201,10 +201,10 @@ public class DocumentProcessingService {
 
         // 2. 权限检查
         Long currentUserId = SecurityUtil.getStaff_id();
-        if (currentUserId != null && entity.getCreateUser() != null) {
-            if (!entity.getCreateUser().equals(String.valueOf(currentUserId))) {
+        if (currentUserId != null && entity.getC_id() != null) {
+            if (!entity.getC_id().equals(currentUserId)) {
                 log.warn("无权删除知识项, uuid: {}, currentUser: {}, createUser: {}",
-                    uuid, currentUserId, entity.getCreateUser());
+                    uuid, currentUserId, entity.getC_id());
                 throw new RuntimeException("无权删除该知识项");
             }
         }
@@ -271,12 +271,12 @@ public class DocumentProcessingService {
             String uuid = UuidUtil.createShort();
             String itemUuid = tenantCode + "::" + uuid;
             entity.setItemUuid(itemUuid);
-            entity.setKbId(kb.getId());  // ✅ 设置知识库ID
+            entity.setKbId(kb.getId());  // 设置知识库ID
             entity.setKbUuid(kbUuid);
             entity.setTitle(fileInfo.getFileName());  // 使用文件名作为标题
             entity.setSourceFileName(fileInfo.getFileName());
-            entity.setCreateTime(System.currentTimeMillis());
             entity.setEmbeddingStatus(0);  // 待处理状态
+            // c_time, c_id 由 MyBatis Plus 自动填充，不需要手动设置
 
             // 保存知识项
             itemMapper.insert(entity);

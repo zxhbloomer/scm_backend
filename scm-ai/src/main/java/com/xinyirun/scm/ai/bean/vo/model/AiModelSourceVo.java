@@ -89,6 +89,20 @@ public class AiModelSourceVo implements Serializable {
      */
     private String base_name;
 
+    /**
+     * 上下文窗口大小（总token容量）
+     */
+    private Integer context_window;
+
+    /**
+     * 最大输入token数（用于判断用户问题是否过长）
+     */
+    private Integer max_input_tokens;
+
+    /**
+     * 最大输出token数
+     */
+    private Integer max_output_tokens;
 
     /**
      * 创建时间
@@ -153,5 +167,26 @@ public class AiModelSourceVo implements Serializable {
      */
     public String getApiUrl() {
         return this.api_url;
+    }
+
+    /**
+     * 获取上下文窗口大小（兼容方法）
+     */
+    public Integer getContextWindow() {
+        return this.context_window;
+    }
+
+    /**
+     * 获取最大输入token数（兼容方法）
+     */
+    public Integer getMaxInputTokens() {
+        return this.max_input_tokens;
+    }
+
+    /**
+     * 获取最大输出token数（兼容方法）
+     */
+    public Integer getMaxOutputTokens() {
+        return this.max_output_tokens;
     }
 }

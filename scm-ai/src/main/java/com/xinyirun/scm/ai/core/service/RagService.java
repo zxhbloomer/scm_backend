@@ -1,13 +1,17 @@
 package com.xinyirun.scm.ai.core.service;
 
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaEntity;
+import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.rag.*;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
+import com.xinyirun.scm.ai.core.exception.KnowledgeBaseBreakSearchException;
 import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
+import com.xinyirun.scm.ai.core.service.model.AiModelSourceService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefEmbeddingService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
+import com.xinyirun.scm.ai.core.util.TokenCalculator;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +51,8 @@ public class RagService {
     private AiKnowledgeBaseQaRefEmbeddingService qaRefEmbeddingService;
     @Resource
     private AiKnowledgeBaseQaRefGraphService qaRefGraphService;
+    @Resource
+    private AiModelSourceService aiModelSourceService;
 
     @Autowired
     private AiModelProvider aiModelProvider;
@@ -119,18 +125,73 @@ public class RagService {
                     return;
                 }
 
+                // 2.5. 【严格模式判断点1】查询AI模型配置（获取maxInputTokens）
+                // 对应aideepin：KnowledgeBaseService.retrieveAndPushToLLM() 第382行
+                AiModelSourceVo aiModel = aiModelSourceService.getByIdOrThrow(qaRecord.getAiModelId());
+                int maxInputTokens = aiModel.getMax_input_tokens();
+                log.debug("AI模型配置：id={}, max_input_tokens={}", aiModel.getId(), maxInputTokens);
+
+                // 2.6. 【严格模式判断点1】Token验证（用户问题是否超限）
+                // 对标aideepin：InputAdaptor.isQuestionValid()
+                InputAdaptorMsg validationResult = TokenCalculator.isQuestionValid(question, maxInputTokens);
+
+                // 2.7. 计算maxResults（考虑token空间）
+                // 对标aideepin：KnowledgeBaseService.retrieveAndPushToLLM() 第386-389行
+                int computedMaxResults = knowledgeBase.getRetrieveMaxResults();
+                if (validationResult.getTokenTooMuch() == InputAdaptorMsg.TOKEN_TOO_MUCH_QUESTION) {
+                    // 用户问题Token过长，无空间检索文档
+                    computedMaxResults = 0;
+                    log.warn("用户问题Token过长：questionTokens={}, maxInputTokens={}, maxResults设为0",
+                        validationResult.getUserQuestionTokenCount(), maxInputTokens);
+                }
+
+                // 2.8. 【严格模式判断点1】严格模式下问题过长直接返回错误
+                // 对标aideepin：严格模式逻辑
+                if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict()) && computedMaxResults == 0) {
+                    String errorMsg = String.format(
+                        "严格模式：用户问题过长，超过模型输入限制（questionTokens=%d, maxInputTokens=%d）",
+                        validationResult.getUserQuestionTokenCount(), maxInputTokens
+                    );
+                    log.error(errorMsg);
+                    fluxSink.error(new KnowledgeBaseBreakSearchException(errorMsg, kbUuid));
+                    return;
+                }
+
+                // 使用计算后的maxResults（替换原有的finalMaxResults）
+                final int effectiveMaxResults = computedMaxResults;
+
                 // 3. RAG检索阶段（对应aideepin第437行的createRetriever）
-                log.info("开始RAG检索，maxResults: {}, minScore: {}", finalMaxResults, finalMinScore);
+                log.info("开始RAG检索，effectiveMaxResults: {}, minScore: {}", effectiveMaxResults, finalMinScore);
 
                 // 3.1 向量检索（对应aideepin的EmbeddingRAG）
                 List<VectorSearchResultVo> vectorResults = vectorRetrievalService.searchSimilarDocuments(
-                        question, kbUuid, finalMaxResults, finalMinScore);
+                        question, kbUuid, effectiveMaxResults, finalMinScore);
                 log.info("向量检索完成，结果数: {}", vectorResults.size());
 
                 // 3.2 图谱检索（对应aideepin的GraphRAG）
                 List<GraphSearchResultVo> graphResults = graphRetrievalService.searchRelatedEntities(
-                        question, kbUuid, tenantId, finalMaxResults);
+                        question, kbUuid, tenantId, effectiveMaxResults);
                 log.info("图谱检索完成，结果数: {}", graphResults.size());
+
+                // 3.3. 【严格模式判断点2】检索结果为空检查（对应aideepin的isEmpty检查）
+                boolean vectorEmpty = vectorResults == null || vectorResults.isEmpty();
+                boolean graphEmpty = graphResults == null || graphResults.isEmpty();
+
+                if (vectorEmpty && graphEmpty) {
+                    log.warn("RAG检索结果为空：向量检索={}, 图谱检索={}", vectorResults != null ? vectorResults.size() : 0,
+                            graphResults != null ? graphResults.size() : 0);
+
+                    // 严格模式下直接返回错误
+                    if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict())) {
+                        String errorMsg = "严格模式：知识库中未找到相关答案，请补充知识库内容或调整检索参数";
+                        log.error(errorMsg);
+                        fluxSink.error(new KnowledgeBaseBreakSearchException(errorMsg, kbUuid));
+                        return;
+                    }
+
+                    // 非严格模式下警告并继续（由LLM直接回答）
+                    log.warn("非严格模式：检索结果为空，将由LLM直接回答问题");
+                }
 
                 // 4. 构建RAG增强的Prompt（对应aideepin第438行的ragChat）
                 String ragPrompt = buildRagPrompt(question, vectorResults, graphResults, knowledgeBase);
