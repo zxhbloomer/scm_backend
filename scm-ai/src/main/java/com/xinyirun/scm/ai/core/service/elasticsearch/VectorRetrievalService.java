@@ -183,6 +183,7 @@ public class VectorRetrievalService {
     private SearchHits<AiKnowledgeBaseEmbeddingDoc> executeKnnSearch(float[] queryVector, String kbUuid,
                                                                       int maxResults, double minScore) {
         // 构建kNN查询（对应aideepin的EmbeddingSearchRequest）
+        // 注意：kbUuid本身已包含租户信息（格式：tenant_code::uuid），无需额外tenant_code过滤
         NativeQuery query = NativeQuery.builder()
                 // 配置kNN搜索（对应aideepin的embeddingStore.search）
                 .withKnnSearches(knn -> knn
@@ -194,10 +195,11 @@ public class VectorRetrievalService {
                         .k(maxResults)
                         // 候选数量（通常设置为k的10倍以提高召回率）
                         .numCandidates(maxResults * 10)
-                        // 过滤条件：知识库UUID（对应aideepin的filter）
+                        // ✅ 修复：使用kbUuid.keyword字段进行精确匹配（同ElasticsearchIndexingService修复逻辑）
+                        // 过滤条件：知识库UUID（kbUuid已包含租户信息，无需额外过滤）
                         .filter(f -> f
                                 .term(t -> t
-                                        .field("kb_uuid")
+                                        .field("kbUuid.keyword")
                                         .value(kbUuid)
                                 )
                         )
@@ -209,6 +211,21 @@ public class VectorRetrievalService {
         // 执行搜索（对应aideepin的embeddingStore.search返回EmbeddingSearchResult）
         IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);
         return elasticsearchOperations.search(query, AiKnowledgeBaseEmbeddingDoc.class, index);
+    }
+
+    /**
+     * 从kb_uuid中提取租户编码
+     * kb_uuid格式：tenant_code::uuid
+     *
+     * @param kbUuid 知识库UUID
+     * @return 租户编码
+     */
+    private String extractTenantCodeFromKbUuid(String kbUuid) {
+        if (kbUuid == null || !kbUuid.contains("::")) {
+            log.warn("kb_uuid格式不正确，无法提取tenant_code: {}", kbUuid);
+            return "";
+        }
+        return kbUuid.split("::", 2)[0];
     }
 
     /**

@@ -117,7 +117,7 @@ public class KnowledgeBaseQaResponseVo implements Serializable {
 
     /**
      * 向量检索引用列表
-     * 包含召回的向量片段及其排名、分数
+     * 包含召回的向量片段及其分数
      */
     private List<QaRefEmbeddingVo> embeddingRefs;
 

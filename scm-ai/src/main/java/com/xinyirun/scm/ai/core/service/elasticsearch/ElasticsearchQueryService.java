@@ -55,14 +55,14 @@ public class ElasticsearchQueryService {
             NativeQuery query = NativeQuery.builder()
                     .withQuery(q -> q
                             .term(t -> t
-                                    .field("kb_item_uuid.keyword")
+                                    .field("kbItemUuid.keyword")
                                     .value(itemUuid)
                             )
                     )
                     .withPageable(PageRequest.of(currentPage - 1, pageSize))
                     .withSort(s -> s
                             .field(f -> f
-                                    .field("segment_index")
+                                    .field("segmentIndex")
                                     .order(SortOrder.Asc)
                             )
                     )

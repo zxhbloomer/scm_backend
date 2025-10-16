@@ -5,13 +5,13 @@ import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.rag.*;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
-import com.xinyirun.scm.ai.core.exception.KnowledgeBaseBreakSearchException;
 import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
 import com.xinyirun.scm.ai.core.service.model.AiModelSourceService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefEmbeddingService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
 import com.xinyirun.scm.ai.core.util.TokenCalculator;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -80,12 +80,12 @@ public class RagService {
      *
      * @param qaUuid 问答记录UUID
      * @param userId 用户ID
-     * @param tenantId 租户ID
+     * @param tenantCode 租户tenantCode
      * @param maxResults 最大检索结果数（默认3）
      * @param minScore 最小相似度分数（默认0.3）
      * @return SSE流式响应
      */
-    public Flux<ChatResponseVo> sseAsk(String qaUuid, Long userId, String tenantId,
+    public Flux<ChatResponseVo> sseAsk(String qaUuid, Long userId, String tenantCode,
                                         Integer maxResults, Double minScore) {
         log.info("RAG流式问答开始，qaUuid: {}, userId: {}, maxResults: {}, minScore: {}",
                 qaUuid, userId, maxResults, minScore);
@@ -104,6 +104,13 @@ public class RagService {
         // 使用Flux.create异步处理（参考AiConversationController.chatStream）
         return Flux.<ChatResponseVo>create(fluxSink -> {
             try {
+                // 【多租户支持】在异步线程中设置数据源
+                // 由于subscribeOn使用了弹性线程池，必须在Flux.create内部显式设置租户数据源
+                if (StringUtils.isNotBlank(tenantCode)) {
+                    DataSourceHelper.use(tenantCode);
+                    log.debug("RAG流式问答 - 已设置租户数据源: {}", tenantCode);
+                }
+
                 // 1. 查询QA记录（对应aideepin第380行）
                 AiKnowledgeBaseQaEntity qaRecord = qaService.getByQaUuid(qaUuid);
                 if (qaRecord == null) {
@@ -127,7 +134,21 @@ public class RagService {
 
                 // 2.5. 【严格模式判断点1】查询AI模型配置（获取maxInputTokens）
                 // 对应aideepin：KnowledgeBaseService.retrieveAndPushToLLM() 第382行
-                AiModelSourceVo aiModel = aiModelSourceService.getByIdOrThrow(qaRecord.getAiModelId());
+                // 兼容旧数据：空值、"default"字符串都使用知识库默认模型
+                String aiModelId = qaRecord.getAiModelId();
+                if (StringUtils.isBlank(aiModelId) || "default".equals(aiModelId)) {
+                    aiModelId = knowledgeBase.getIngestModelId();
+                    log.debug("QA记录AI模型ID无效({}), 使用知识库默认模型: {}",
+                        qaRecord.getAiModelId(), aiModelId);
+
+                    if (StringUtils.isBlank(aiModelId)) {
+                        log.error("知识库未配置默认AI模型，kbUuid: {}", kbUuid);
+                        fluxSink.error(new RuntimeException("知识库未配置AI模型，请先配置知识库的AI模型"));
+                        return;
+                    }
+                }
+
+                AiModelSourceVo aiModel = aiModelSourceService.getByIdOrThrow(aiModelId);
                 int maxInputTokens = aiModel.getMax_input_tokens();
                 log.debug("AI模型配置：id={}, max_input_tokens={}", aiModel.getId(), maxInputTokens);
 
@@ -146,14 +167,19 @@ public class RagService {
                 }
 
                 // 2.8. 【严格模式判断点1】严格模式下问题过长直接返回错误
-                // 对标aideepin：严格模式逻辑
+                // 对标aideepin: KnowledgeBaseService.java第410-413行严格模式逻辑
                 if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict()) && computedMaxResults == 0) {
                     String errorMsg = String.format(
                         "严格模式：用户问题过长，超过模型输入限制（questionTokens=%d, maxInputTokens=%d）",
                         validationResult.getUserQuestionTokenCount(), maxInputTokens
                     );
                     log.error(errorMsg);
-                    fluxSink.error(new KnowledgeBaseBreakSearchException(errorMsg, kbUuid));
+
+                    // ✅ 使用工厂方法(等价于aideepin的sseEmitterHelper.sendErrorAndComplete)
+                    ChatResponseVo errorResponse = ChatResponseVo.createErrorResponse("【知识库严格模式】" + errorMsg);
+
+                    fluxSink.next(errorResponse);
+                    fluxSink.complete();
                     return;
                 }
 
@@ -170,7 +196,7 @@ public class RagService {
 
                 // 3.2 图谱检索（对应aideepin的GraphRAG）
                 List<GraphSearchResultVo> graphResults = graphRetrievalService.searchRelatedEntities(
-                        question, kbUuid, tenantId, effectiveMaxResults);
+                        question, kbUuid, tenantCode, effectiveMaxResults);
                 log.info("图谱检索完成，结果数: {}", graphResults.size());
 
                 // 3.3. 【严格模式判断点2】检索结果为空检查（对应aideepin的isEmpty检查）
@@ -181,11 +207,16 @@ public class RagService {
                     log.warn("RAG检索结果为空：向量检索={}, 图谱检索={}", vectorResults != null ? vectorResults.size() : 0,
                             graphResults != null ? graphResults.size() : 0);
 
-                    // 严格模式下直接返回错误
+                    // 严格模式下直接返回错误(对标aideepin严格模式逻辑)
                     if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict())) {
                         String errorMsg = "严格模式：知识库中未找到相关答案，请补充知识库内容或调整检索参数";
                         log.error(errorMsg);
-                        fluxSink.error(new KnowledgeBaseBreakSearchException(errorMsg, kbUuid));
+
+                        // ✅ 使用工厂方法(等价于aideepin的sseEmitterHelper.sendErrorAndComplete)
+                        ChatResponseVo errorResponse = ChatResponseVo.createErrorResponse("【知识库严格模式】" + errorMsg);
+
+                        fluxSink.next(errorResponse);
+                        fluxSink.complete();
                         return;
                     }
 
@@ -219,6 +250,15 @@ public class RagService {
                         })
                         .doOnComplete(() -> {
                             try {
+                                // ✅ 在异步回调中重新设置租户数据源（对标AiConversationService.chatStreamWithCallback第107行）
+                                // 原因：doOnComplete可能在不同线程执行，ThreadLocal的租户上下文会丢失
+                                // kbUuid格式：scm_tenant_20250519_001::8f88cf1bec2248aca0e185dac7f77101
+                                String extractedTenantCode = kbUuid.split("::", 2)[0];
+                                if (StringUtils.isNotBlank(extractedTenantCode)) {
+                                    DataSourceHelper.use(extractedTenantCode);
+                                    log.debug("RAG异步回调 - 已重新设置租户数据源: {}", extractedTenantCode);
+                                }
+
                                 // 6. 保存完整答案和统计信息（对应aideepin第455-477行updateQaRecord）
                                 String fullAnswer = completeAnswer.toString();
                                 log.info("AI生成完成，答案长度: {} 字符", fullAnswer.length());
@@ -282,7 +322,13 @@ public class RagService {
                 fluxSink.error(e);
             }
         })
-        .subscribeOn(Schedulers.boundedElastic()); // 在弹性线程池中执行
+        .subscribeOn(Schedulers.boundedElastic()) // 在弹性线程池中执行
+        .doFinally(signalType -> {
+            // 【多租户支持】清理数据源连接，防止连接泄漏
+            // 无论成功、失败还是取消，都必须清理数据源
+            DataSourceHelper.close();
+            log.debug("RAG流式问答 - 已清理租户数据源连接");
+        });
     }
 
     /**
@@ -380,12 +426,6 @@ public class RagService {
      *
      * <p>对应 aideepin 的 GraphStoreContentRetriever.getGraphRef()</p>
      *
-     * <p>scm-ai新增：</p>
-     * <ul>
-     *     <li>graphSegmentId：取TOP1结果的segmentId（FK关联ai_knowledge_base_graph_segment.id）</li>
-     *     <li>relevanceScore：计算图谱召回质量得分（entityMatchRatio*40% + graphCompleteRatio*30% + relationDensity*30%）</li>
-     * </ul>
-     *
      * @param graphResults 图谱检索结果
      * @return RefGraphVo对象
      */
@@ -431,62 +471,10 @@ public class RagService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // scm-ai新增：提取graphSegmentId（取TOP1结果的segmentId）
-        Long graphSegmentId = null;
-        if (!graphResults.isEmpty() && graphResults.get(0).getSegmentId() != null) {
-            graphSegmentId = graphResults.get(0).getSegmentId();
-        }
-
-        // scm-ai新增：计算relevanceScore（图谱召回质量评分）
-        java.math.BigDecimal relevanceScore = calculateGraphRelevanceScore(
-                entitiesFromQuestion.size(),
-                vertexMap.size(),
-                edgeMap.size()
-        );
-
         return RefGraphVo.builder()
                 .vertices(vertexMap.values().stream().collect(Collectors.toList()))
                 .edges(edgeMap.values().stream().collect(Collectors.toList()))
                 .entitiesFromQuestion(entitiesFromQuestion)
-                .graphSegmentId(graphSegmentId)
-                .relevanceScore(relevanceScore)
                 .build();
-    }
-
-    /**
-     * 计算图谱召回质量评分
-     *
-     * <p>计算公式：entityMatchRatio(40%) + graphCompleteRatio(30%) + relationDensity(30%)</p>
-     *
-     * @param entitiesFromQuestionCount 从问题中提取的实体数量
-     * @param vertexCount 召回的顶点数量
-     * @param edgeCount 召回的边数量
-     * @return 相关性得分（0-1之间，保留4位小数）
-     */
-    private java.math.BigDecimal calculateGraphRelevanceScore(int entitiesFromQuestionCount,
-                                                                int vertexCount,
-                                                                int edgeCount) {
-        // 实体匹配率：从问题中提取的实体在召回图谱中的占比（40%权重）
-        double entityMatchRatio = 0.0;
-        if (vertexCount > 0 && entitiesFromQuestionCount > 0) {
-            entityMatchRatio = Math.min(1.0, (double) entitiesFromQuestionCount / vertexCount);
-        }
-
-        // 图谱完整度：召回的图谱是否包含足够的实体（30%权重）
-        // 假设理想情况下至少需要3个实体才算完整
-        double graphCompleteRatio = Math.min(1.0, (double) vertexCount / 3.0);
-
-        // 关系密度：边数与顶点数的比例（30%权重）
-        // 理想情况下每个实体至少有1条关系
-        double relationDensity = 0.0;
-        if (vertexCount > 0) {
-            relationDensity = Math.min(1.0, (double) edgeCount / vertexCount);
-        }
-
-        // 综合得分计算
-        double score = entityMatchRatio * 0.4 + graphCompleteRatio * 0.3 + relationDensity * 0.3;
-
-        // 保留4位小数
-        return new java.math.BigDecimal(score).setScale(4, java.math.RoundingMode.HALF_UP);
     }
 }

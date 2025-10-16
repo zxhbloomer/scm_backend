@@ -28,18 +28,21 @@ public class EntityNode {
 
     /**
      * 业务UUID（32字符无连字符）
+     * 统一使用snake_case命名，与Neo4j属性名一致
      */
     @Property("entity_uuid")
     private String entityUuid;
 
     /**
      * 实体名称（如"ABC供应商"）
+     * 统一使用snake_case命名，与Neo4j属性名一致
      */
     @Property("entity_name")
     private String entityName;
 
     /**
      * 实体类型（supplier, product, contract, purchase_order等）
+     * 统一使用snake_case命名，与Neo4j属性名一致
      */
     @Property("entity_type")
     private String entityType;
@@ -57,10 +60,16 @@ public class EntityNode {
     private String kbUuid;
 
     /**
-     * 租户ID（多租户隔离）
+     * 所属知识项UUID（用于按文档查询图谱）
      */
-    @Property("tenant_id")
-    private String tenantId;
+    @Property("kb_item_uuid")
+    private String kbItemUuid;
+
+    /**
+     * 租户编码（多租户隔离）
+     */
+    @Property("tenant_code")
+    private String tenantCode;
 
     /**
      * 创建时间
@@ -101,6 +110,18 @@ public class EntityNode {
          */
         @Property("metadata")
         private String metadata;
+
+        /**
+         * 所属知识项UUID（用于按文档查询关系边）
+         */
+        @Property("kb_item_uuid")
+        private String kbItemUuid;
+
+        /**
+         * 租户编码（关系级别的租户隔离）
+         */
+        @Property("tenant_code")
+        private String tenantCode;
 
         /**
          * 创建时间

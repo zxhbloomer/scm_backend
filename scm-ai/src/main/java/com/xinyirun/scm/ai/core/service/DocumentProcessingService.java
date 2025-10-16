@@ -11,7 +11,6 @@ import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
-import com.xinyirun.scm.ai.core.repository.neo4j.KnowledgeBaseSegmentRepository;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
@@ -50,7 +49,7 @@ public class DocumentProcessingService {
     private final SFileInfoMapper sFileInfoMapper;
     private final ISFileService sFileService;
     private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
-    private final KnowledgeBaseSegmentRepository segmentRepository;
+    private final Neo4jGraphIndexingService neo4jGraphIndexingService;
 
     /**
      * 单文档上传（给Controller调用）
@@ -220,9 +219,8 @@ public class DocumentProcessingService {
 
         // 4. 删除Neo4j图谱数据
         try {
-            String tenantId = DataSourceHelper.getCurrentDataSourceName();
-            Integer deletedCount = segmentRepository.deleteByItemUuidAndTenantId(uuid, tenantId);
-            log.info("删除Neo4j图谱数据, uuid: {}, tenantId: {}, 删除数量: {}", uuid, tenantId, deletedCount);
+            String deleteResult = neo4jGraphIndexingService.deleteDocumentGraph(uuid);
+            log.info("删除Neo4j图谱数据, uuid: {}, 删除结果: {}", uuid, deleteResult);
         } catch (Exception e) {
             log.error("删除Neo4j图谱数据失败, uuid: {}", uuid, e);
             throw new RuntimeException("删除图谱数据失败: " + e.getMessage(), e);
@@ -256,6 +254,7 @@ public class DocumentProcessingService {
             Boolean indexAfterUpload) {
 
         List<AiKnowledgeBaseItemVo> results = new ArrayList<>();
+        List<String> itemUuids = new ArrayList<>();
 
         // 0. 查询知识库获取 kbId
         AiKnowledgeBaseVo kb = knowledgeBaseService.getByUuid(kbUuid);
@@ -284,16 +283,21 @@ public class DocumentProcessingService {
             // 2. 保存文件信息到s_file和s_file_info表
             saveItemFiles(entity.getId(), Arrays.asList(fileInfo));
 
-            // 3. 如果需要立即索引
-            if (Boolean.TRUE.equals(indexAfterUpload)) {
-                // TODO: 触发索引任务
-                log.info("知识项 {} 将被索引", entity.getItemUuid());
-            }
+            // 3. 收集itemUuid用于批量索引
+            itemUuids.add(itemUuid);
 
             // 转换为VO并返回
             AiKnowledgeBaseItemVo vo = new AiKnowledgeBaseItemVo();
             BeanUtils.copyProperties(entity, vo);
             results.add(vo);
+        }
+
+        // 4. 如果需要立即索引，批量调用索引方法（对应aideepin的uploadDoc逻辑）
+        if (Boolean.TRUE.equals(indexAfterUpload) && !itemUuids.isEmpty()) {
+            log.info("批量创建完成，开始触发索引任务，数量: {}", itemUuids.size());
+            // 默认索引类型：embedding（向量化）和 graphical（图谱化）
+            List<String> indexTypes = Arrays.asList("embedding", "graphical");
+            knowledgeBaseService.indexItems(itemUuids, indexTypes);
         }
 
         return results;

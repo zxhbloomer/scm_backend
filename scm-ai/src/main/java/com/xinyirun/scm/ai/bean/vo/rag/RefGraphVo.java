@@ -37,18 +37,6 @@ public class RefGraphVo {
     private List<GraphEdgeVo> edges;
 
     /**
-     * 图谱段ID（MySQL ai_knowledge_base_graph_segment表的ID）
-     * scm-ai扩展字段，用于关联segment数据
-     */
-    private Long graphSegmentId;
-
-    /**
-     * 相关性分数（图谱召回质量评分）
-     * scm-ai扩展字段，用于评估检索质量
-     */
-    private java.math.BigDecimal relevanceScore;
-
-    /**
      * 图谱顶点VO
      */
     @Data

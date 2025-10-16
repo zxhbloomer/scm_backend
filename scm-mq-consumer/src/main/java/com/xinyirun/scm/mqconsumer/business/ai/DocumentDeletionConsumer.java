@@ -2,7 +2,6 @@ package com.xinyirun.scm.mqconsumer.business.ai;
 
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
-import com.xinyirun.scm.ai.core.repository.neo4j.KnowledgeBaseSegmentRepository;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
@@ -49,7 +48,6 @@ public class DocumentDeletionConsumer extends BaseMqConsumer {
 
     private final SLogMqConsumerClickHouseService consumerService;
     private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
-    private final KnowledgeBaseSegmentRepository segmentRepository;
 
     private MqSenderAo mqSenderAo;
 
@@ -89,9 +87,6 @@ public class DocumentDeletionConsumer extends BaseMqConsumer {
             long deletedEmbeddings = embeddingRepository.deleteByKbItemUuid(item_uuid);
             log.info("删除Elasticsearch向量数据成功，item_uuid: {}, 删除数量: {}", item_uuid, deletedEmbeddings);
 
-            // 3. 删除Neo4j中的文本段数据（级联删除关联的实体和关系）
-            Integer deletedSegments = segmentRepository.deleteByItemUuidAndTenantId(item_uuid, tenant_id);
-            log.info("删除Neo4j文本段数据成功，item_uuid: {}, 删除数量: {}", item_uuid, deletedSegments);
 
             // 4. TODO: 删除文件存储中的物理文件（如果需要）
             // fileService.deleteFile(file_url);

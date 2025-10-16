@@ -73,10 +73,10 @@ public class AiKnowledgeBaseEmbeddingDoc {
     private Float similarityScore;
 
     /**
-     * 租户ID（用于多租户过滤）
+     * 租户编码（用于多租户过滤）
      */
-    @Field(type = FieldType.Long)
-    private Long tenantId;
+    @Field(type = FieldType.Keyword)
+    private String tenantCode;
 
     /**
      * 创建时间（时间戳，毫秒）

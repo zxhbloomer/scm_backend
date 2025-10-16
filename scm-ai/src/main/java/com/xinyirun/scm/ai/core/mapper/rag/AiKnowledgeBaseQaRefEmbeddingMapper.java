@@ -22,7 +22,7 @@ public interface AiKnowledgeBaseQaRefEmbeddingMapper extends BaseMapper<AiKnowle
     /**
      * 查询问答记录的向量引用详情
      * 注意：使用AS别名转驼峰（map-underscore-to-camel-case: false）
-     * 注意：text内容需要从Elasticsearch查询，这里只返回embeddingId、score、rank
+     * 注意：text内容需要从Elasticsearch查询，这里只返回embeddingId、score
      */
     @Select("""
         SELECT
@@ -31,11 +31,10 @@ public interface AiKnowledgeBaseQaRefEmbeddingMapper extends BaseMapper<AiKnowle
             ref.embedding_id AS embeddingId,
             ref.score AS score,
             ref.user_id AS userId,
-            ref.rank AS rank,
             ref.create_time AS createTime
         FROM ai_knowledge_base_qa_ref_embedding ref
         WHERE ref.qa_record_id = #{qaRecordId}
-        ORDER BY ref.rank ASC
+        ORDER BY ref.score DESC
     """)
     List<QaRefEmbeddingVo> selectByQaRecordId(@Param("qaRecordId") String qaRecordId);
 

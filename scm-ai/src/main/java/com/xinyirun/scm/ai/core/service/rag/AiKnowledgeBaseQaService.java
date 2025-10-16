@@ -78,10 +78,20 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
         entity.setQuestion(req.getQuestion());
         entity.setUserId(userId);
 
-        // 设置AI模型ID（如果提供）
-        if (StringUtils.isNotBlank(req.getAiModelId())) {
-            entity.setAiModelId(req.getAiModelId());
+        // 初始化必填字段（在SSE流式问答时会填充）
+        entity.setPrompt("");
+        entity.setAnswer("");
+        entity.setPromptTokens(0);
+        entity.setAnswerTokens(0);
+        entity.setSourceFileIds("");
+
+        // 设置AI模型ID：直接使用知识库配置的默认模型（对齐AI Chat机制）
+        if (StringUtils.isBlank(kb.getIngestModelId())) {
+            log.error("知识库未配置默认AI模型，kbUuid: {}", kbUuid);
+            throw new RuntimeException("知识库未配置AI模型，请先配置知识库的AI模型");
         }
+        entity.setAiModelId(kb.getIngestModelId());
+        log.debug("使用知识库默认模型: {}", kb.getIngestModelId());
 
         // 时间戳
         long currentTime = System.currentTimeMillis();
@@ -295,8 +305,6 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
                 graphVo.setId(graphEntity.getId());
                 graphVo.setQaRecordId(graphEntity.getQaRecordId());
                 graphVo.setUserId(graphEntity.getUserId());
-                graphVo.setGraphSegmentId(graphEntity.getGraphSegmentId());
-                graphVo.setRelevanceScore(graphEntity.getRelevanceScore());
 
                 // 解析entities_from_question（逗号分隔字符串转List）
                 if (StringUtils.isNotBlank(graphEntity.getEntitiesFromQuestion())) {

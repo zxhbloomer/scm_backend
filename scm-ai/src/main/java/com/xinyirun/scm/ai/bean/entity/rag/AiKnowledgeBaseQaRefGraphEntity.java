@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -54,21 +53,6 @@ public class AiKnowledgeBaseQaRefGraphEntity implements Serializable {
      */
     @TableField("user_id")
     private Long userId;
-
-    /**
-     * 关联的图谱文本块ID
-     * 关联：ai_knowledge_base_graph_segment.id
-     * 对标：aideepin将整个图存储为JSON导致冗余，scm-ai通过FK关联避免冗余
-     */
-    @TableField("graph_segment_id")
-    private Long graphSegmentId;
-
-    /**
-     * 图谱召回的相关性得分（0-1之间，保留4位小数）
-     * 计算公式：entityMatchRatio(40%) + graphCompleteRatio(30%) + relationDensity(30%)
-     */
-    @TableField("relevance_score")
-    private BigDecimal relevanceScore;
 
     /**
      * 创建时间

@@ -150,6 +150,10 @@ public class ElasticsearchIndexingService {
 
             log.info("向量化索引完成，item_uuid: {}, 成功索引: {} 个文本段", item.getItemUuid(), indexedCount);
 
+            // ✅ 刷新索引以确保数据立即可搜索（解决统计查询count=0问题）
+            // Elasticsearch默认1秒刷新间隔，但批量写入后立即统计需要强制刷新
+            refreshIndex();
+
             // 发布向量索引完成事件
             String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
             VectorIndexCompletedEvent event = new VectorIndexCompletedEvent(
@@ -273,6 +277,10 @@ public class ElasticsearchIndexingService {
         metadata.put("total_segments", totalSegments);
         metadata.put("file_name", item.getSourceFileName());
 
+        // 租户编码（用于多租户隔离）
+        String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+        metadata.put("tenant_code", tenantCode);
+
         return metadata;
     }
 
@@ -310,8 +318,8 @@ public class ElasticsearchIndexingService {
         // 设置向量数据（对应aideepin的Embedding）
         doc.setEmbedding(embedding);
 
-        // 设置租户信息
-        doc.setTenantId((Long) metadata.get("tenant_id"));
+        // 设置租户编码（用于多租户隔离）
+        doc.setTenantCode((String) metadata.get("tenant_code"));
 
         // 设置创建时间（时间戳）
         doc.setCreateTime(System.currentTimeMillis());
@@ -337,6 +345,37 @@ public class ElasticsearchIndexingService {
     }
 
     /**
+     * 刷新索引以确保数据立即可搜索
+     *
+     * <p>Elasticsearch索引刷新机制：</p>
+     * <ul>
+     *   <li>默认刷新间隔：1秒（index.refresh_interval = "1s"）</li>
+     *   <li>批量写入后：数据已写入但未刷新前，搜索查询无法看到新数据</li>
+     *   <li>强制刷新：调用refresh()方法立即使数据可搜索</li>
+     * </ul>
+     *
+     * <p>应用场景：</p>
+     * 向量索引完成后立即需要统计向量数量，必须先刷新索引
+     *
+     * @since 2025-10-16 修复统计查询count=0问题
+     */
+    private void refreshIndex() {
+        try {
+            IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);
+            IndexOperations indexOps = elasticsearchTemplate.indexOps(index);
+
+            // 执行刷新操作（等价于 POST /kb_embeddings/_refresh）
+            indexOps.refresh();
+
+            log.debug("Elasticsearch索引刷新成功: {}", INDEX_NAME);
+
+        } catch (Exception e) {
+            // 刷新失败不应阻断主流程，记录警告即可
+            log.warn("Elasticsearch索引刷新失败，统计数据可能有延迟: {}", e.getMessage());
+        }
+    }
+
+    /**
      * 统计知识库的向量数量
      *
      * @param kbUuid 知识库UUID
@@ -345,7 +384,7 @@ public class ElasticsearchIndexingService {
     public long countEmbeddingsByKbUuid(String kbUuid) {
         try {
             NativeQuery query = NativeQuery.builder()
-                    .withQuery(q -> q.term(t -> t.field("kb_uuid").value(kbUuid)))
+                    .withQuery(q -> q.term(t -> t.field("kbUuid").value(kbUuid)))
                     .build();
 
             IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);
@@ -374,11 +413,12 @@ public class ElasticsearchIndexingService {
             // 构建删除查询（对应aideepin的removeAll过滤器）
             // aideepin逻辑: embeddingStore.removeAll(metadata -> kb_item_uuid.equals(itemUuid))
 
+            // ✅ 修复：使用kbItemUuid.keyword字段进行精确匹配(同countSegmentsByKbUuid修复逻辑)
             // 1. 先构建 NativeQuery（查询条件）
             Query nativeQuery = NativeQuery.builder()
                     .withQuery(q -> q
                             .term(t -> t
-                                    .field("kb_item_uuid")
+                                    .field("kbItemUuid.keyword")
                                     .value(itemUuid)
                             )
                     )
@@ -409,8 +449,11 @@ public class ElasticsearchIndexingService {
      */
     public Long countSegmentsByKbUuid(String kb_uuid) {
         try {
+            // ✅ 修复：使用kbUuid.keyword字段进行精确匹配
+            // 原因：kbUuid字段是text类型(支持全文搜索)，term查询需要使用.keyword后缀
+            // text字段会被分词，"scm_tenant::uuid"会被拆分，导致term查询失败返回0
             NativeQuery query = NativeQuery.builder()
-                    .withQuery(q -> q.term(t -> t.field("kb_uuid").value(kb_uuid)))
+                    .withQuery(q -> q.term(t -> t.field("kbUuid.keyword").value(kb_uuid)))
                     .build();
 
             IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);

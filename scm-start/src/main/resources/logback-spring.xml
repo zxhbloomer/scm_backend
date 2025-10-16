@@ -160,6 +160,8 @@
     <logger name="org.springframework" level="${logLevel}"/>
     <logger name="org.springframework.data.mybatis" level="${logLevel}"/>
     <logger name="org.springframework.aop.aspectj" level="ERROR"/>
+    <!-- 降低StringDecoder日志级别，避免SSE流式响应产生过多DEBUG日志 -->
+    <logger name="org.springframework.core.codec.StringDecoder" level="INFO"/>
     <logger name="org.springframework.cache" level="${logLevel}"/>
     <logger name="javax.activation" level="WARN"/>
     <logger name="javax.mail" level="WARN"/>

@@ -78,7 +78,7 @@ public class Neo4jQueryService {
         String cypher =
             "MATCH (n:Entity {kb_item_uuid: $itemUuid}) " +
             "WHERE id(n) < $maxVertexId " +
-            "RETURN id(n) as id, n.name as name, n.type as type, n.kb_uuid as kbUuid, n.kb_item_uuid as kbItemUuid " +
+            "RETURN id(n) as id, n.entity_name as name, n.entity_type as type, n.kb_uuid as kbUuid, n.kb_item_uuid as kbItemUuid " +
             "ORDER BY id(n) DESC " +
             "LIMIT $limit";
 
@@ -118,12 +118,12 @@ public class Neo4jQueryService {
         // 处理limit=-1的情况，转换为一个合理的大值
         int actualLimit = (limit <= 0) ? 1000 : limit;
 
-        // 查询RELATION类型的关系，且关系的kb_item_uuid属性匹配
+        // 查询RELATED_TO类型的关系，且关系的kb_item_uuid属性匹配
         String cypher =
-            "MATCH (n:Entity)-[r:RELATION]->(m:Entity) " +
+            "MATCH (n:Entity)-[r:RELATED_TO]->(m:Entity) " +
             "WHERE r.kb_item_uuid = $itemUuid AND id(r) < $maxEdgeId " +
             "RETURN id(r) as id, id(n) as sourceId, id(m) as targetId, " +
-            "r.type as type, r.description as description " +
+            "r.relation_type as type, r.metadata as description " +
             "ORDER BY id(r) DESC " +
             "LIMIT $limit";
 

@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.bean.vo.rag.KbGraphVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.repository.neo4j.EntityRepository;
 import com.xinyirun.scm.ai.core.service.neo4j.Neo4jQueryService;
+import com.xinyirun.scm.ai.common.util.AdiStringUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -94,11 +95,11 @@ public class GraphRetrievalService {
      *
      * @param question 用户问题
      * @param kbUuid 知识库UUID
-     * @param tenantId 租户ID
+     * @param tenantCode 租户编码
      * @param maxResults 最大返回结果数
      * @return 图谱检索结果列表
      */
-    public List<GraphSearchResultVo> searchRelatedEntities(String question, String kbUuid, String tenantId, Integer maxResults) {
+    public List<GraphSearchResultVo> searchRelatedEntities(String question, String kbUuid, String tenantCode, Integer maxResults) {
         log.info("图谱检索开始，question: {}, kbUuid: {}, maxResults: {}", question, kbUuid, maxResults);
 
         if (maxResults == null || maxResults <= 0) {
@@ -117,7 +118,7 @@ public class GraphRetrievalService {
         // 2. 在Neo4j中搜索实体节点（对应aideepin第104-110行）
         List<EntityNode> matchedEntities = new ArrayList<>();
         for (String entityName : extractedEntities) {
-            List<EntityNode> entities = entityRepository.searchByKeyword(entityName, tenantId, maxResults);
+            List<EntityNode> entities = entityRepository.searchByKeyword(entityName, tenantCode, maxResults);
             matchedEntities.addAll(entities);
         }
 
@@ -142,7 +143,7 @@ public class GraphRetrievalService {
             // 查询实体的直接关系
             List<Object[]> relationships = entityRepository.findDirectRelationships(
                     entity.getEntityUuid(),
-                    tenantId,
+                    tenantCode,
                     null
             );
 
@@ -227,19 +228,30 @@ public class GraphRetrievalService {
 
             if (recordAttributes.length >= 4) {
                 if (recordAttributes[0].contains("\"entity\"") || recordAttributes[0].contains("\"实体\"")) {
-                    String entityName = clearStr(recordAttributes[1].toUpperCase());
+                    // 优化: 使用AdiStringUtil.tail()和removeSpecialChar()
+                    String entityName = AdiStringUtil.tail(
+                            AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[1].toUpperCase())),
+                            20
+                    );
                     entities.add(entityName);
                 } else if (recordAttributes[0].contains("\"relationship\"") || recordAttributes[0].contains("\"关系\"")) {
-                    String sourceName = clearStr(recordAttributes[1].toUpperCase());
-                    String targetName = clearStr(recordAttributes[2].toUpperCase());
+                    // 优化: 使用AdiStringUtil.tail()和removeSpecialChar()
+                    String sourceName = AdiStringUtil.tail(
+                            AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[1].toUpperCase())),
+                            20
+                    );
+                    String targetName = AdiStringUtil.tail(
+                            AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[2].toUpperCase())),
+                            20
+                    );
                     entities.add(sourceName);
                     entities.add(targetName);
                 }
             }
         }
 
+        // 已在上面应用AdiStringUtil.removeSpecialChar(),这里只需过滤空字符串
         return entities.stream()
-                .map(this::removeSpecialChar)
                 .filter(StringUtils::isNotBlank)
                 .collect(Collectors.toSet());
     }
@@ -256,17 +268,6 @@ public class GraphRetrievalService {
         return str.replace("\"", "").replace("'", "").trim();
     }
 
-    /**
-     * 去除特殊字符（保留中文、字母、数字）
-     *
-     * <p>对应 aideepin 工具方法：AdiStringUtil.removeSpecialChar()</p>
-     */
-    private String removeSpecialChar(String str) {
-        if (str == null) {
-            return "";
-        }
-        return str.replaceAll("[^\\u4e00-\\u9fa5a-zA-Z0-9]", "");
-    }
 
     /**
      * 计算实体相关性分数
@@ -278,7 +279,8 @@ public class GraphRetrievalService {
      * @return 相关性分数（0.0-1.0）
      */
     private double calculateEntityScore(String entityName, Set<String> extractedEntities) {
-        String normalizedName = removeSpecialChar(entityName.toUpperCase());
+        // 优化: 使用AdiStringUtil.removeSpecialChar()标准化名称
+        String normalizedName = AdiStringUtil.removeSpecialChar(entityName.toUpperCase());
 
         for (String extracted : extractedEntities) {
             if (normalizedName.equals(extracted)) {

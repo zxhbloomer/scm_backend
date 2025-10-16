@@ -12,6 +12,7 @@ import com.xinyirun.scm.ai.core.event.GraphIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.prompt.GraphExtractPrompt;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseGraphSegmentService;
 import com.xinyirun.scm.ai.core.service.splitter.OverlappingTokenTextSplitter;
+import com.xinyirun.scm.ai.common.util.AdiStringUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -369,7 +370,12 @@ public class Neo4jGraphIndexingService {
 
                 if ("entity".equalsIgnoreCase(recordType) || "实体".equals(recordType)) {
                     // 解析实体（对应aideepin第154-191行）
-                    String entityName = clearStr(recordAttributes[1]).toUpperCase();
+                    // 优化1: 使用AdiStringUtil.tail()截断名称为最大20字符（对应aideepin Neo4jGraphStore.java:102）
+                    // 优化2: 使用AdiStringUtil.removeSpecialChar()清理特殊字符（对应aideepin第97行）
+                    String entityName = AdiStringUtil.tail(
+                            AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[1]).toUpperCase()),
+                            20
+                    );
                     String entityType = clearStr(recordAttributes[2]).toUpperCase()
                             .replaceAll("[^a-zA-Z0-9\\s\\u4E00-\\u9FA5]+", "")
                             .replace(" ", "");
@@ -386,8 +392,16 @@ public class Neo4jGraphIndexingService {
 
                 } else if ("relationship".equalsIgnoreCase(recordType) || "关系".equals(recordType)) {
                     // 解析关系（对应aideepin第193-291行）
-                    String sourceName = clearStr(recordAttributes[1]).toUpperCase();
-                    String targetName = clearStr(recordAttributes[2]).toUpperCase();
+                    // 优化1: 使用AdiStringUtil.tail()截断名称为最大20字符
+                    // 优化2: 使用AdiStringUtil.removeSpecialChar()清理特殊字符
+                    String sourceName = AdiStringUtil.tail(
+                            AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[1]).toUpperCase()),
+                            20
+                    );
+                    String targetName = AdiStringUtil.tail(
+                            AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[2]).toUpperCase()),
+                            20
+                    );
                     String edgeDescription = clearStr(recordAttributes[3]);
 
                     // 第5个字段是权重(可选,默认1.0) （对应aideepin第200-203行）
@@ -477,21 +491,25 @@ public class Neo4jGraphIndexingService {
             // 使用name作为唯一标识（标准化为大写，对应aideepin的实体名称规范）
             String standardizedName = entity.getName().toUpperCase();
 
+            // 从kb_uuid中提取租户编码（用于多租户隔离）
+            String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+
             // MERGE + ON CREATE / ON MATCH 实现增量更新
-            // 注意: 不需要tenant_id字段,因为每个租户使用独立的Neo4j数据库
+            // 添加tenant_code字段用于多租户隔离
             String cypher = """
-                    MERGE (e:Entity {name: $name, kb_uuid: $kb_uuid, type: $type})
+                    MERGE (e:Entity {entity_name: $name, kb_uuid: $kb_uuid, entity_type: $type})
                     ON CREATE SET
-                        e.id = $id,
+                        e.entity_uuid = $id,
                         e.kb_item_uuid = $kb_item_uuid,
-                        e.description = $description,
+                        e.entity_metadata = $description,
                         e.segment_ids = [$segmentUuid],
+                        e.tenant_code = $tenant_code,
                         e.create_time = datetime()
                     ON MATCH SET
-                        e.description = CASE
-                            WHEN NOT (e.description CONTAINS $description)
-                            THEN e.description + '\\n' + $description
-                            ELSE e.description
+                        e.entity_metadata = CASE
+                            WHEN NOT (e.entity_metadata CONTAINS $description)
+                            THEN e.entity_metadata + '\\n' + $description
+                            ELSE e.entity_metadata
                         END,
                         e.segment_ids = CASE
                             WHEN NOT ($segmentUuid IN e.segment_ids)
@@ -509,12 +527,28 @@ public class Neo4jGraphIndexingService {
             params.put("type", entity.getType());
             params.put("description", entity.getDescription());
             params.put("segmentUuid", segmentUuid);
+            params.put("tenant_code", tenantCode);
 
             session.run(cypher, params);
         } catch (Exception e) {
             log.error("存储实体失败，name: {}, segment_uuid: {}, 错误: {}",
                     entity.getName(), segmentUuid, e.getMessage(), e);
         }
+    }
+
+    /**
+     * 从kb_uuid中提取租户编码
+     * kb_uuid格式：tenant_code::uuid
+     *
+     * @param kbUuid 知识库UUID
+     * @return 租户编码
+     */
+    private String extractTenantCodeFromKbUuid(String kbUuid) {
+        if (kbUuid == null || !kbUuid.contains("::")) {
+            log.warn("kb_uuid格式不正确，无法提取tenant_code: {}", kbUuid);
+            return "";
+        }
+        return kbUuid.split("::", 2)[0];
     }
 
     /**
@@ -539,30 +573,33 @@ public class Neo4jGraphIndexingService {
 
             // 使用MERGE创建关系，ON CREATE / ON MATCH实现增量更新
             // weight累加逻辑对应aideepin GraphStoreIngestor.ingest()第250行
+            // 从kb_uuid中提取租户编码
+            String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
+
             String cypher = """
-                    MATCH (from:Entity {name: $fromName, kb_uuid: $kb_uuid})
-                    MATCH (to:Entity {name: $toName, kb_uuid: $kb_uuid})
-                    MERGE (from)-[r:RELATION {type: $type}]->(to)
+                    MATCH (from:Entity {entity_name: $fromName, kb_uuid: $kb_uuid})
+                    MATCH (to:Entity {entity_name: $toName, kb_uuid: $kb_uuid})
+                    MERGE (from)-[r:RELATED_TO]->(to)
                     ON CREATE SET
-                        r.id = $id,
-                        r.description = $description,
-                        r.kb_uuid = $kb_uuid,
+                        r.relation_type = $type,
+                        r.metadata = $description,
                         r.kb_item_uuid = $kb_item_uuid,
+                        r.tenant_code = $tenant_code,
                         r.segment_ids = [$segmentUuid],
-                        r.weight = $weight,
+                        r.strength = $weight,
                         r.create_time = datetime()
                     ON MATCH SET
-                        r.description = CASE
-                            WHEN NOT (r.description CONTAINS $description)
-                            THEN r.description + '\\n' + $description
-                            ELSE r.description
+                        r.metadata = CASE
+                            WHEN NOT (r.metadata CONTAINS $description)
+                            THEN r.metadata + '\\n' + $description
+                            ELSE r.metadata
                         END,
                         r.segment_ids = CASE
                             WHEN NOT ($segmentUuid IN r.segment_ids)
                             THEN r.segment_ids + $segmentUuid
                             ELSE r.segment_ids
                         END,
-                        r.weight = r.weight + $weight,
+                        r.strength = r.strength + $weight,
                         r.update_time = datetime()
                     """;
 
@@ -571,9 +608,9 @@ public class Neo4jGraphIndexingService {
             params.put("toName", standardizedToName);
             params.put("kb_uuid", item.getKbUuid());
             params.put("type", relation.getType());
-            params.put("id", relation.getId());
             params.put("description", relation.getDescription());
             params.put("kb_item_uuid", item.getItemUuid());
+            params.put("tenant_code", tenantCode);
             params.put("segmentUuid", segmentUuid);
             params.put("weight", relation.getWeight()); // 权重参数
 
@@ -605,7 +642,7 @@ public class Neo4jGraphIndexingService {
 
             // 1. 删除Neo4j关系
             String deleteRelationsCypher = """
-                    MATCH ()-[r:RELATION {kb_item_uuid: $itemUuid}]->()
+                    MATCH ()-[r:RELATED_TO {kb_item_uuid: $itemUuid}]->()
                     DELETE r
                     RETURN count(r) as deletedRelations
                     """;
@@ -700,7 +737,7 @@ public class Neo4jGraphIndexingService {
 
             // 统计关系数量
             String relationQuery = """
-                MATCH ()-[r:RELATION]->()
+                MATCH ()-[r:RELATED_TO]->()
                 WHERE r.kb_uuid = $kb_uuid
                 RETURN count(r) as count
                 """;
@@ -722,20 +759,5 @@ public class Neo4jGraphIndexingService {
             result.put("relation_count", 0L);
         }
         return result;
-    }
-
-    /**
-     * 从kb_uuid中提取tenant_code
-     * kb_uuid格式: tenant_code::uuid
-     *
-     * @param kb_uuid 知识库UUID
-     * @return tenant_code
-     */
-    private String extractTenantCodeFromKbUuid(String kb_uuid) {
-        if (kb_uuid == null || !kb_uuid.contains("::")) {
-            log.warn("kb_uuid格式不正确，无法提取tenant_code: {}", kb_uuid);
-            return "";
-        }
-        return kb_uuid.split("::")[0];
     }
 }

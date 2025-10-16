@@ -55,14 +55,6 @@ public class AiKnowledgeBaseQaRefEmbeddingEntity implements Serializable {
     private Long userId;
 
     /**
-     * 排序序号，表示向量召回的排名
-     * 用于保留Elasticsearch召回时的排序顺序
-     * 对标：aideepin通过Map迭代无法保证顺序，scm-ai增加rank字段
-     */
-    @TableField("rank")
-    private Integer rank;
-
-    /**
      * 创建时间
      */
     @TableField("create_time")

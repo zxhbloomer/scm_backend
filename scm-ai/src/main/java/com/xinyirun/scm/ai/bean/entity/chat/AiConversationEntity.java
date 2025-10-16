@@ -1,7 +1,6 @@
 package com.xinyirun.scm.ai.bean.entity.chat;
 
 import com.baomidou.mybatisplus.annotation.*;
-import com.xinyirun.scm.common.annotations.DataChangeLabelAnnotation;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -38,35 +37,30 @@ public class AiConversationEntity implements Serializable {
      * 对话标题
      */
     @TableField("title")
-    @DataChangeLabelAnnotation("对话标题")
     private String title;
 
     /**
      * 创建时间
      */
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    @DataChangeLabelAnnotation(value = "创建时间", extension = "getCTimeExtension")
     private LocalDateTime createTime;
 
     /**
      * 修改时间
      */
     @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
-    @DataChangeLabelAnnotation(value = "修改时间", extension = "getUTimeExtension")
     private LocalDateTime updateTime;
 
     /**
      * 创建人id
      */
     @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    @DataChangeLabelAnnotation(value = "创建人", extension = "getUserNameExtension")
     private Long cId;
 
     /**
      * 修改人id
      */
     @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
-    @DataChangeLabelAnnotation(value = "修改人", extension = "getUserNameExtension")
     private Long uId;
 
     /**
@@ -80,6 +74,5 @@ public class AiConversationEntity implements Serializable {
      * 配置ID
      */
     @TableField("ai_config_id")
-    @DataChangeLabelAnnotation("AI配置ID")
     private String ai_configId;
 }

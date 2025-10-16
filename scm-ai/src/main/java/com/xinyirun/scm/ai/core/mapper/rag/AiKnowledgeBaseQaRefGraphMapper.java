@@ -28,8 +28,6 @@ public interface AiKnowledgeBaseQaRefGraphMapper extends BaseMapper<AiKnowledgeB
             rg.entities_from_question AS entitiesFromQuestion,
             rg.graph_from_store AS graphFromStore,
             rg.user_id AS userId,
-            rg.graph_segment_id AS graphSegmentId,
-            rg.relevance_score AS relevanceScore,
             rg.create_time AS createTime
         FROM ai_knowledge_base_qa_ref_graph rg
         WHERE rg.qa_record_id = #{qaRecordId}

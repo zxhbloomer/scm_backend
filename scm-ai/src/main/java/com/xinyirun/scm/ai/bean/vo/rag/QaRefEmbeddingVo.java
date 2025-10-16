@@ -45,12 +45,6 @@ public class QaRefEmbeddingVo implements Serializable {
     private Double score;
 
     /**
-     * 排序序号，表示向量召回的排名
-     * 用于保留Elasticsearch召回时的排序顺序
-     */
-    private Integer rank;
-
-    /**
      * 文本内容（从Elasticsearch查询）
      */
     private String content;

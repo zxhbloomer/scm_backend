@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.controller.rag;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseQaVo;
 import com.xinyirun.scm.ai.bean.vo.rag.QaRefEmbeddingVo;
@@ -16,6 +17,7 @@ import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -80,15 +82,26 @@ public class KnowledgeBaseQAController {
     @PostMapping(value = "/process/{qaUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "知识库RAG问答（SSE流式）")
     @SysLogAnnotion("知识库RAG问答")
+    @DS("#header.X-Tenant-ID")
     public Flux<ChatResponseVo> sseAsk(
             @PathVariable String qaUuid,
             @RequestParam(required = false) Integer maxResults,
-            @RequestParam(required = false) Double minScore) {
+            @RequestParam(required = false) Double minScore,
+            HttpServletRequest request) {
 
         Long userId = SecurityUtil.getStaff_id();
-        // 数据库级别多租户，不需要从JWT获取tenantId
 
-        return ragService.sseAsk(qaUuid, userId, null, maxResults, minScore);
+        // 【多租户支持】从请求头中获取租户编码
+        // 由于使用了异步响应式流，必须在主线程获取租户编码后传递给Service层
+        String tenantCode = request.getHeader("X-Tenant-ID");
+
+        // 验证问答记录是否存在
+        var qaRecord = aiKnowledgeBaseQaService.getByQaUuid(qaUuid);
+        if (qaRecord == null) {
+            return Flux.error(new RuntimeException("问答记录不存在: " + qaUuid));
+        }
+
+        return ragService.sseAsk(qaUuid, userId, tenantCode, maxResults, minScore);
     }
 
     /**
