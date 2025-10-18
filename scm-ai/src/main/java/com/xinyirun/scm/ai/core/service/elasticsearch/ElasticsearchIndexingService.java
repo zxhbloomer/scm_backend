@@ -5,7 +5,7 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.elasticsearch.AiKnowledgeBaseEmbeddingDoc;
 import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.event.VectorIndexCompletedEvent;
-import com.xinyirun.scm.ai.core.service.splitter.OverlappingTokenTextSplitter;
+import com.xinyirun.scm.ai.core.service.splitter.JTokkitTokenTextSplitter;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
@@ -67,24 +67,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class ElasticsearchIndexingService {
-
-    /**
-     * 最大文本段大小（tokens）
-     * 对应aideepin的RAG_MAX_SEGMENT_SIZE_IN_TOKENS = 300
-     */
-    private static final int MAX_SEGMENT_SIZE_IN_TOKENS = 300;
-
-    /**
-     * 最小文本段字符数
-     * Spring AI的TokenTextSplitter参数
-     */
-    private static final int MIN_CHUNK_SIZE_CHARS = 5;
-
-    /**
-     * 最小文本段长度用于embedding
-     * Spring AI的TokenTextSplitter参数
-     */
-    private static final int MIN_CHUNK_LENGTH_TO_EMBED = 100;
 
     /**
      * Elasticsearch索引名称
@@ -203,7 +185,7 @@ public class ElasticsearchIndexingService {
      * </pre>
      *
      * <p>scm-ai实现：</p>
-     * 使用OverlappingTokenTextSplitter（方案B），正确实现overlap功能
+     * 使用JTokkitTokenTextSplitter（基于JTokkit精确Token编码），正确实现overlap功能
      *
      * @param content 文档内容
      * @param kb 知识库配置
@@ -213,11 +195,11 @@ public class ElasticsearchIndexingService {
         // 获取overlap参数
         int overlap = kb.getIngestMaxOverlap() != null ? kb.getIngestMaxOverlap() : 50;
 
-        // 使用OverlappingTokenTextSplitter（对应aideepin的DocumentSplitters.recursive）
-        OverlappingTokenTextSplitter splitter = new OverlappingTokenTextSplitter(
-            MAX_SEGMENT_SIZE_IN_TOKENS,      // maxSegmentSizeInTokens（对应aideepin的RAG_MAX_SEGMENT_SIZE_IN_TOKENS = 300）
-            overlap                          // maxOverlapSizeInTokens（对应aideepin的overlap参数）
-        );
+        // 使用JTokkitTokenTextSplitter（对应aideepin的DocumentSplitters.recursive）
+        // 使用默认参数: chunkSize=2000 tokens, minChunkSizeChars=400, minChunkLengthToEmbed=10
+        JTokkitTokenTextSplitter splitter = JTokkitTokenTextSplitter.builder()
+            .withOverlapSize(overlap)  // 仅设置overlap，其他参数使用默认值
+            .build();
 
         // 创建Document对象
         Document document = new Document(content);

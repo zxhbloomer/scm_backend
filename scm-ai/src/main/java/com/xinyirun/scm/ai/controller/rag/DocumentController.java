@@ -40,8 +40,9 @@ public class DocumentController {
     @Operation(summary = "创建或更新文档")
     @SysLogAnnotion("创建或更新文档")
     public ResponseEntity<JsonResultAo<AiKnowledgeBaseItemVo>> saveOrUpdate(
-            @Valid @RequestBody AiKnowledgeBaseItemVo vo) {
-        AiKnowledgeBaseItemVo result = documentProcessingService.saveOrUpdate(vo);
+            @Valid @RequestBody AiKnowledgeBaseItemVo vo,
+            @RequestParam(defaultValue = "false") Boolean indexAfterCreate) {
+        AiKnowledgeBaseItemVo result = documentProcessingService.saveOrUpdate(vo, indexAfterCreate);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 
@@ -79,7 +80,7 @@ public class DocumentController {
     @Operation(summary = "删除文档")
     @SysLogAnnotion("删除文档")
     public ResponseEntity<JsonResultAo<Boolean>> softDelete(@PathVariable String uuid) {
-        boolean result = documentProcessingService.softDelete(uuid);
+        boolean result = documentProcessingService.delete(uuid);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 }

@@ -12,6 +12,9 @@ import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
+import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper;
+import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
+import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseGraphSegmentEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
@@ -64,6 +67,9 @@ public class KnowledgeBaseService {
     private final ObjectMapper objectMapper;
     private final IMStaffService staffService;
     private final com.xinyirun.scm.core.system.service.sys.file.ISFileService sFileService;
+    private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
+    private final Neo4jGraphIndexingService neo4jGraphIndexingService;
+    private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper graphSegmentMapper;
 
     /**
      * Redis key: 用户索引进行中标识
@@ -559,15 +565,81 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 软删除知识库
-     * 参考aideepin的softDelete方法
+     * 物理删除知识库（级联删除MySQL、Elasticsearch、Neo4j三处数据）
+     * <p>SCM系统统一使用物理删除</p>
+     *
+     * <p>删除顺序（按依赖关系反向删除）：</p>
+     * <ol>
+     *   <li>查询知识库是否存在</li>
+     *   <li>删除Neo4j图谱数据（WHERE kb_uuid = ?）</li>
+     *   <li>删除Elasticsearch向量数据（WHERE kb_uuid = ?）</li>
+     *   <li>删除MySQL数据（按依赖关系）：
+     *     <ul>
+     *       <li>graph_segment表</li>
+     *       <li>item表</li>
+     *       <li>knowledge_base主表</li>
+     *     </ul>
+     *   </li>
+     * </ol>
+     *
+     * @param uuid 知识库UUID
+     * @return 是否删除成功
      */
     @Transactional(rollbackFor = Exception.class)
-    public boolean softDelete(String uuid) {
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getKbUuid, uuid);
+    public boolean delete(String uuid) {
+        log.info("删除知识库（物理删除），kb_uuid: {}", uuid);
 
-        return knowledgeBaseMapper.delete(wrapper) > 0;
+        // 1. 查询知识库是否存在
+        AiKnowledgeBaseEntity kbEntity = knowledgeBaseMapper.selectByKbUuid(uuid);
+        if (kbEntity == null) {
+            log.warn("知识库不存在, kb_uuid: {}", uuid);
+            return false;
+        }
+
+        // 2. 删除Neo4j图谱数据
+        try {
+            String deleteResult = neo4jGraphIndexingService.deleteKnowledgeBaseGraph(uuid);
+            log.info("删除Neo4j图谱数据, kb_uuid: {}, 删除结果: {}", uuid, deleteResult);
+        } catch (Exception e) {
+            log.error("删除Neo4j图谱数据失败, kb_uuid: {}", uuid, e);
+            throw new RuntimeException("删除图谱数据失败: " + e.getMessage(), e);
+        }
+
+        // 3. 删除Elasticsearch向量数据
+        try {
+            long deletedVectors = embeddingRepository.deleteByKbUuid(uuid);
+            log.info("删除Elasticsearch向量数据, kb_uuid: {}, 删除数量: {}", uuid, deletedVectors);
+        } catch (Exception e) {
+            log.error("删除Elasticsearch向量数据失败, kb_uuid: {}", uuid, e);
+            throw new RuntimeException("删除向量数据失败: " + e.getMessage(), e);
+        }
+
+        // 4. 删除MySQL数据（按依赖关系：graph_segment → item → knowledge_base）
+        try {
+            // 4.1 删除graph segment数据
+            int deletedSegments = graphSegmentMapper.deleteByKbUuid(uuid);
+            log.info("删除graph segment数据, kb_uuid: {}, 删除数量: {}", uuid, deletedSegments);
+
+            // 4.2 删除item数据
+            int deletedItems = itemMapper.deleteByKbUuid(uuid);
+            log.info("删除item数据, kb_uuid: {}, 删除数量: {}", uuid, deletedItems);
+
+            // 4.3 删除主表
+            int result = knowledgeBaseMapper.deleteByKbUuid(uuid);
+            boolean success = result > 0;
+
+            if (success) {
+                log.info("知识库删除成功（物理删除），kb_uuid: {}", uuid);
+            } else {
+                log.warn("知识库主表删除失败, kb_uuid: {}", uuid);
+            }
+
+            return success;
+
+        } catch (Exception e) {
+            log.error("删除MySQL数据失败, kb_uuid: {}", uuid, e);
+            throw new RuntimeException("删除MySQL数据失败: " + e.getMessage(), e);
+        }
     }
 
     /**

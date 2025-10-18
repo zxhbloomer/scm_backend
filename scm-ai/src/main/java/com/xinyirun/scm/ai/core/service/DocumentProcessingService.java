@@ -79,9 +79,13 @@ public class DocumentProcessingService {
 
     /**
      * 保存或更新文档
+     *
+     * @param vo 知识项VO
+     * @param indexAfterCreate 新增后是否立即索引
+     * @return 保存后的知识项VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public AiKnowledgeBaseItemVo saveOrUpdate(AiKnowledgeBaseItemVo vo) {
+    public AiKnowledgeBaseItemVo saveOrUpdate(AiKnowledgeBaseItemVo vo, Boolean indexAfterCreate) {
         AiKnowledgeBaseItemEntity entity = new AiKnowledgeBaseItemEntity();
         BeanUtils.copyProperties(vo, entity);
 
@@ -99,20 +103,33 @@ public class DocumentProcessingService {
             throw new RuntimeException("kbUuid不能为空");
         }
 
+        boolean isNewItem = false;
+        String itemUuid = null;
+
         if (entity.getItemUuid() == null || entity.getItemUuid().isEmpty()) {
             // 新增
             String tenantCode = DataSourceHelper.getCurrentDataSourceName();
             String uuid = UuidUtil.createShort();
-            String itemUuid = tenantCode + "::" + uuid;
+            itemUuid = tenantCode + "::" + uuid;
             entity.setItemUuid(itemUuid);
             entity.setEmbeddingStatus(0);
             itemMapper.insert(entity);
+            isNewItem = true;
         } else {
             // 更新
             itemMapper.updateById(entity);
+            itemUuid = entity.getItemUuid();
         }
 
         BeanUtils.copyProperties(entity, vo);
+
+        // 如果是新增且需要立即索引，触发索引任务
+        if (isNewItem && Boolean.TRUE.equals(indexAfterCreate)) {
+            log.info("新增知识点完成，开始触发索引任务，itemUuid: {}", itemUuid);
+            List<String> indexTypes = Arrays.asList("embedding", "graphical");
+            knowledgeBaseService.indexItems(Arrays.asList(itemUuid), indexTypes);
+        }
+
         return vo;
     }
 
@@ -185,7 +202,7 @@ public class DocumentProcessingService {
      * @return 是否删除成功
      */
     @Transactional(rollbackFor = Exception.class)
-    public boolean softDelete(String uuid) {
+    public boolean delete(String uuid) {
         log.info("删除知识项, uuid: {}", uuid);
 
         // 1. 查询实体（select-then-delete模式）

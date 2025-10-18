@@ -11,7 +11,7 @@ import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.event.GraphIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.prompt.GraphExtractPrompt;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseGraphSegmentService;
-import com.xinyirun.scm.ai.core.service.splitter.OverlappingTokenTextSplitter;
+import com.xinyirun.scm.ai.core.service.splitter.JTokkitTokenTextSplitter;
 import com.xinyirun.scm.ai.common.util.AdiStringUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.Data;
@@ -216,11 +216,11 @@ public class Neo4jGraphIndexingService {
         // 获取overlap参数（对应aideepin的kb.getIngestMaxOverlap()）
         int overlap = kb.getIngestMaxOverlap() != null ? kb.getIngestMaxOverlap() : 50;
 
-        // 使用OverlappingTokenTextSplitter（对应aideepin的DocumentSplitters.recursive）
-        OverlappingTokenTextSplitter splitter = new OverlappingTokenTextSplitter(
-                300,     // maxSegmentSizeInTokens（对应aideepin的RAG_MAX_SEGMENT_SIZE_IN_TOKENS）
-                overlap  // maxOverlapSizeInTokens（对应aideepin的overlap参数）
-        );
+        // 使用JTokkitTokenTextSplitter（对应aideepin的DocumentSplitters.recursive）
+        // 使用默认chunkSize（2000 tokens）
+        JTokkitTokenTextSplitter splitter = JTokkitTokenTextSplitter.builder()
+                .withOverlapSize(overlap)     // maxOverlapSizeInTokens（对应aideepin的overlap参数）
+                .build();
 
         // 创建Document对象
         Document document = new Document(content);
@@ -619,6 +619,59 @@ public class Neo4jGraphIndexingService {
         } catch (Exception e) {
             log.error("存储关系失败，from: {}, to: {}, segment_uuid: {}, 错误: {}",
                     relation.getFromEntityName(), relation.getToEntityName(), segmentUuid, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 删除知识库的所有图谱数据（批量删除）
+     * <p>SCM系统统一使用物理删除</p>
+     *
+     * <p>删除步骤：</p>
+     * <ol>
+     *   <li>删除Neo4j中的所有关系（WHERE kb_uuid = ?）</li>
+     *   <li>删除Neo4j中的所有实体（WHERE kb_uuid = ?）</li>
+     * </ol>
+     *
+     * @param kbUuid 知识库UUID
+     * @return 删除的实体和关系数量（格式：实体数,关系数）
+     */
+    public String deleteKnowledgeBaseGraph(String kbUuid) {
+        try (Session session = neo4jDriver.session()) {
+            log.info("开始删除知识库图谱（物理删除），kb_uuid: {}", kbUuid);
+
+            // 1. 删除Neo4j关系（批量删除整个知识库的关系）
+            String deleteRelationsCypher = """
+                    MATCH ()-[r:RELATED_TO]->()
+                    WHERE r.kb_uuid = $kbUuid OR
+                          (startNode(r)).kb_uuid IS NOT NULL AND (startNode(r)).kb_uuid = $kbUuid
+                    DELETE r
+                    RETURN count(r) as deletedRelations
+                    """;
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("kbUuid", kbUuid);
+
+            var relResult = session.run(deleteRelationsCypher, params);
+            int deletedRelations = relResult.hasNext() ? relResult.next().get("deletedRelations").asInt() : 0;
+
+            // 2. 删除Neo4j实体（批量删除整个知识库的实体）
+            String deleteNodesCypher = """
+                    MATCH (e:Entity {kb_uuid: $kbUuid})
+                    DELETE e
+                    RETURN count(e) as deletedNodes
+                    """;
+
+            var nodeResult = session.run(deleteNodesCypher, params);
+            int deletedNodes = nodeResult.hasNext() ? nodeResult.next().get("deletedNodes").asInt() : 0;
+
+            log.info("知识库图谱删除完成（物理删除），kb_uuid: {}, 删除实体: {}, 删除关系: {}",
+                    kbUuid, deletedNodes, deletedRelations);
+
+            return deletedNodes + "," + deletedRelations;
+
+        } catch (Exception e) {
+            log.error("知识库图谱删除失败，kb_uuid: {}, 错误: {}", kbUuid, e.getMessage(), e);
+            throw new RuntimeException("知识库图谱删除失败: " + e.getMessage(), e);
         }
     }
 

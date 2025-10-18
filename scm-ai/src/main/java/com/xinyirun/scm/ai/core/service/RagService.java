@@ -15,13 +15,20 @@ import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,25 +88,13 @@ public class RagService {
      * @param qaUuid 问答记录UUID
      * @param userId 用户ID
      * @param tenantCode 租户tenantCode
-     * @param maxResults 最大检索结果数（默认3）
-     * @param minScore 最小相似度分数（默认0.3）
+     * @param maxResults 最大检索结果数（已废弃，实际使用知识库配置的retrieveMaxResults）
+     * @param minScore 最小相似度分数（已废弃，实际使用知识库配置的retrieveMinScore）
      * @return SSE流式响应
      */
     public Flux<ChatResponseVo> sseAsk(String qaUuid, Long userId, String tenantCode,
                                         Integer maxResults, Double minScore) {
-        log.info("RAG流式问答开始，qaUuid: {}, userId: {}, maxResults: {}, minScore: {}",
-                qaUuid, userId, maxResults, minScore);
-
-        // 参数默认值
-        if (maxResults == null || maxResults <= 0) {
-            maxResults = 3;
-        }
-        if (minScore == null || minScore < 0) {
-            minScore = 0.3;
-        }
-
-        final int finalMaxResults = maxResults;
-        final double finalMinScore = minScore;
+        log.info("RAG流式问答开始，qaUuid: {}, userId: {}", qaUuid, userId);
 
         // 使用Flux.create异步处理（参考AiConversationController.chatStream）
         return Flux.<ChatResponseVo>create(fluxSink -> {
@@ -156,9 +151,11 @@ public class RagService {
                 // 对标aideepin：InputAdaptor.isQuestionValid()
                 InputAdaptorMsg validationResult = TokenCalculator.isQuestionValid(question, maxInputTokens);
 
-                // 2.7. 计算maxResults（考虑token空间）
-                // 对标aideepin：KnowledgeBaseService.retrieveAndPushToLLM() 第386-389行
+                // 2.7. 从知识库配置读取检索参数（对标aideepin第387、437行）
                 int computedMaxResults = knowledgeBase.getRetrieveMaxResults();
+                double computedMinScore = knowledgeBase.getRetrieveMinScore().doubleValue();
+
+                // 2.7.5. 根据token空间动态调整maxResults
                 if (validationResult.getTokenTooMuch() == InputAdaptorMsg.TOKEN_TOO_MUCH_QUESTION) {
                     // 用户问题Token过长，无空间检索文档
                     computedMaxResults = 0;
@@ -183,15 +180,17 @@ public class RagService {
                     return;
                 }
 
-                // 使用计算后的maxResults（替换原有的finalMaxResults）
+                // 使用从知识库配置读取的参数
                 final int effectiveMaxResults = computedMaxResults;
+                final double effectiveMinScore = computedMinScore;
 
                 // 3. RAG检索阶段（对应aideepin第437行的createRetriever）
-                log.info("开始RAG检索，effectiveMaxResults: {}, minScore: {}", effectiveMaxResults, finalMinScore);
+                log.info("开始RAG检索，kbUuid: {}, effectiveMaxResults: {}, effectiveMinScore: {}",
+                        kbUuid, effectiveMaxResults, effectiveMinScore);
 
                 // 3.1 向量检索（对应aideepin的EmbeddingRAG）
                 List<VectorSearchResultVo> vectorResults = vectorRetrievalService.searchSimilarDocuments(
-                        question, kbUuid, effectiveMaxResults, finalMinScore);
+                        question, kbUuid, effectiveMaxResults, effectiveMinScore);
                 log.info("向量检索完成，结果数: {}", vectorResults.size());
 
                 // 3.2 图谱检索（对应aideepin的GraphRAG）
@@ -224,16 +223,34 @@ public class RagService {
                     log.warn("非严格模式：检索结果为空，将由LLM直接回答问题");
                 }
 
-                // 4. 构建RAG增强的Prompt（对应aideepin第438行的ragChat）
-                String ragPrompt = buildRagPrompt(question, vectorResults, graphResults, knowledgeBase);
-                log.info("RAG Prompt构建完成，长度: {} 字符", ragPrompt.length());
+                // 4. 构建RAG增强的Messages（对应aideepin第438行的ragChat）
+                List<Message> ragMessages = buildRagMessages(question, vectorResults, graphResults, knowledgeBase);
+                log.info("RAG Messages构建完成，消息数: {}", ragMessages.size());
+
+                // 4.5. ✅ 修复3：添加温度参数支持（对标aideepin第404、435行）
+                // aideepin实现：ChatModelBuilderProperties.builder().temperature(knowledgeBase.getQueryLlmTemperature())
+                Double temperature = 0.0; // 默认值：完全确定性（对标aideepin默认配置）
+                if (knowledgeBase.getQueryLlmTemperature() != null) {
+                    temperature = knowledgeBase.getQueryLlmTemperature().doubleValue();
+                }
+
+                ChatOptions chatOptions = OpenAiChatOptions.builder()
+                        .temperature(temperature)
+                        .build();
+
+                log.info("ChatOptions配置完成，temperature: {}", temperature);
 
                 // 5. 流式生成（对应aideepin第153-160行的tokenStream处理）
                 StringBuilder completeAnswer = new StringBuilder();
                 final Usage[] finalUsage = new Usage[1];
 
-                // 调用ChatModel流式生成（参考chatWithMemoryStream的模式）
-                aiModelProvider.getChatModel().stream(new Prompt(ragPrompt))
+                // 保存完整prompt用于记录（将messages转换为字符串）
+                final String ragPromptForRecord = ragMessages.stream()
+                        .map(msg -> msg.getMessageType() + ": " + msg.getText())
+                        .collect(Collectors.joining("\n\n"));
+
+                // 调用ChatModel流式生成（使用结构化Messages + ChatOptions）
+                aiModelProvider.getChatModel().stream(new Prompt(ragMessages, chatOptions))
                         .doOnNext(chatResponse -> {
                             // 获取内容片段（对应aideepin第154行onPartialResponse）
                             String content = chatResponse.getResult().getOutput().getText();
@@ -272,7 +289,7 @@ public class RagService {
                                 }
 
                                 // 6.2 更新QA记录（对应aideepin第462-468行）
-                                qaRecord.setPrompt(ragPrompt);
+                                qaRecord.setPrompt(ragPromptForRecord);
                                 qaRecord.setPromptTokens(promptTokens);
                                 qaRecord.setAnswer(fullAnswer);
                                 qaRecord.setAnswerTokens(answerTokens);
@@ -332,15 +349,16 @@ public class RagService {
     }
 
     /**
-     * 构建RAG增强的Prompt
+     * 构建RAG增强的Messages（对标aideepin的systemMessage + userMessage模式）
      *
      * <p>对应 aideepin 的 RetrievalAugmentor 逻辑</p>
+     * <p>aideepin实现参考：KnowledgeBaseService.java第398行(systemMessage) + CompositeRAG.java第137-141行(chatWithSystem)</p>
      *
-     * <p>Prompt结构：</p>
+     * <p>消息结构：</p>
      * <pre>
-     * 系统指令：你是一个基于知识库的AI助手...
+     * SystemMessage: 知识库配置的系统提示词（querySystemMessage字段）
+     * UserMessage: 知识库上下文 + 用户问题
      *
-     * 【知识库上下文】
      * === 向量检索结果 ===
      * [1] 文本段内容1...
      * [2] 文本段内容2...
@@ -357,30 +375,35 @@ public class RagService {
      * @param vectorResults 向量检索结果
      * @param graphResults 图谱检索结果
      * @param knowledgeBase 知识库配置
-     * @return RAG增强后的完整Prompt
+     * @return 结构化的消息列表（SystemMessage + UserMessage）
      */
-    private String buildRagPrompt(String question, List<VectorSearchResultVo> vectorResults,
-                                   List<GraphSearchResultVo> graphResults,
-                                   AiKnowledgeBaseVo knowledgeBase) {
-        StringBuilder promptBuilder = new StringBuilder();
+    private List<Message> buildRagMessages(String question, List<VectorSearchResultVo> vectorResults,
+                                            List<GraphSearchResultVo> graphResults,
+                                            AiKnowledgeBaseVo knowledgeBase) {
+        List<Message> messages = new ArrayList<>();
 
-        // 系统指令（如果知识库配置了自定义系统消息，则使用）
-        String systemMessage = knowledgeBase.getRemark();
+        // ✅ 修复1：使用正确的字段 querySystemMessage（对标aideepin第398行）
+        String systemMessage = knowledgeBase.getQuerySystemMessage();
         if (StringUtils.isBlank(systemMessage)) {
             systemMessage = "你是一个基于知识库的AI助手，请根据提供的知识库上下文回答用户问题。" +
                     "如果上下文中没有相关信息，请诚实地告诉用户你不知道答案。";
         }
-        promptBuilder.append(systemMessage).append("\n\n");
+
+        // ✅ 修复2：使用SystemMessage而不是拼接到prompt（对标aideepin CompositeRAG.java第137-141行）
+        messages.add(new SystemMessage(systemMessage));
+
+        // 构建用户消息：知识库上下文 + 用户问题
+        StringBuilder userMessageBuilder = new StringBuilder();
 
         // 知识库上下文
-        promptBuilder.append("【知识库上下文】\n\n");
+        userMessageBuilder.append("【知识库上下文】\n\n");
 
         // 向量检索结果
         if (!vectorResults.isEmpty()) {
-            promptBuilder.append("=== 向量检索结果 ===\n");
+            userMessageBuilder.append("=== 向量检索结果 ===\n");
             for (int i = 0; i < vectorResults.size(); i++) {
                 VectorSearchResultVo result = vectorResults.get(i);
-                promptBuilder.append("[").append(i + 1).append("] ")
+                userMessageBuilder.append("[").append(i + 1).append("] ")
                         .append(result.getContent())
                         .append(" (相似度: ").append(String.format("%.2f", result.getScore()))
                         .append(")\n\n");
@@ -389,22 +412,22 @@ public class RagService {
 
         // 图谱检索结果
         if (!graphResults.isEmpty()) {
-            promptBuilder.append("=== 图谱检索结果 ===\n");
+            userMessageBuilder.append("=== 图谱检索结果 ===\n");
 
             // 提取实体
-            promptBuilder.append("实体：");
+            userMessageBuilder.append("实体：");
             String entities = graphResults.stream()
                     .map(GraphSearchResultVo::getEntityName)
                     .distinct()
                     .collect(Collectors.joining("、"));
-            promptBuilder.append(entities).append("\n");
+            userMessageBuilder.append(entities).append("\n");
 
             // 提取关系
-            promptBuilder.append("关系：\n");
+            userMessageBuilder.append("关系：\n");
             for (GraphSearchResultVo result : graphResults) {
                 if (result.getRelations() != null && !result.getRelations().isEmpty()) {
                     for (GraphRelationVo relation : result.getRelations()) {
-                        promptBuilder.append("  - ")
+                        userMessageBuilder.append("  - ")
                                 .append(relation.getSourceEntityName())
                                 .append(" [").append(relation.getRelationType()).append("] ")
                                 .append(relation.getTargetEntityName())
@@ -412,13 +435,15 @@ public class RagService {
                     }
                 }
             }
-            promptBuilder.append("\n");
+            userMessageBuilder.append("\n");
         }
 
         // 用户问题
-        promptBuilder.append("【用户问题】\n").append(question).append("\n");
+        userMessageBuilder.append("【用户问题】\n").append(question).append("\n");
 
-        return promptBuilder.toString();
+        messages.add(new UserMessage(userMessageBuilder.toString()));
+
+        return messages;
     }
 
     /**

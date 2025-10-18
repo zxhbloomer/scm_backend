@@ -2,6 +2,7 @@ package com.xinyirun.scm.ai.core.mapper.rag;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -96,4 +97,16 @@ public interface AiKnowledgeBaseMapper extends BaseMapper<AiKnowledgeBaseEntity>
         LIMIT 1
     """)
     AiKnowledgeBaseEntity getByItemUuid(@Param("itemUuid") String itemUuid);
+
+    /**
+     * 根据UUID物理删除知识库
+     *
+     * @param kb_uuid 知识库UUID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_knowledge_base
+        WHERE kb_uuid = #{kb_uuid}
+    """)
+    int deleteByKbUuid(@Param("kb_uuid") String kb_uuid);
 }

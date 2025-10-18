@@ -285,7 +285,7 @@ spring:
 
   # Neo4j配置 - 用于知识图谱存储
   neo4j:
-    uri: bolt://127.0.0.1:7687
+    uri: neo4j://127.0.0.1:7687
     authentication:
       username: neo4j
       password: Password123
