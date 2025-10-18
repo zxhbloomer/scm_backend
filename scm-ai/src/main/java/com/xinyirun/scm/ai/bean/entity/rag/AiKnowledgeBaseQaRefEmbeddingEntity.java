@@ -11,8 +11,9 @@ import java.time.LocalDateTime;
 
 /**
  * AI知识库问答记录-向量引用实体类
- * 对应数据库表：ai_knowledge_base_qa_ref_embedding
- * 对标：aideepin KnowledgeBaseQaRefEmbedding
+ *
+ * <p>对应数据库表：ai_knowledge_base_qa_ref_embedding</p>
+ * <p>用于记录RAG问答时，从Elasticsearch向量数据库中召回的文档片段引用关系</p>
  *
  * @author zxh
  * @since 2025-10-12

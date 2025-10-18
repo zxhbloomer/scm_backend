@@ -12,7 +12,7 @@ import java.util.List;
  * 图谱检索结果VO
  *
  * <p>用于GraphRetrievalService的检索结果</p>
- * <p>对应aideepin的GraphVertex和GraphEdge组合结果</p>
+ * <p>
  *
  * @author SCM AI Team
  * @since 2025-10-06
@@ -27,25 +27,25 @@ public class GraphSearchResultVo implements Serializable {
 
     /**
      * 实体ID（Neo4j节点ID）
-     * 对应aideepin的GraphVertex.id
+     * 
      */
     private String entityId;
 
     /**
      * 实体名称
-     * 对应aideepin的GraphVertex.name
+     * 
      */
     private String entityName;
 
     /**
      * 实体类型
-     * 对应aideepin的GraphVertex.type
+     * 
      */
     private String entityType;
 
     /**
      * 实体描述
-     * 对应aideepin的GraphVertex.description
+     * 
      */
     private String description;
 
@@ -61,7 +61,7 @@ public class GraphSearchResultVo implements Serializable {
 
     /**
      * 关联的边（关系）列表
-     * 对应aideepin的GraphEdge列表
+     * 
      */
     private List<GraphRelationVo> relations;
 

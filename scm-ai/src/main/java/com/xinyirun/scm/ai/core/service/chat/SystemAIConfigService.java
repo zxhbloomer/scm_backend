@@ -1,27 +1,20 @@
 package com.xinyirun.scm.ai.core.service.chat;
 
-import com.xinyirun.scm.ai.bean.constant.ModelConstants;
+import com.xinyirun.scm.ai.common.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AdvSettingVo;
-import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
-import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceCreateNameVo;
 import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
-import com.xinyirun.scm.ai.core.mapper.model.ExtAiModelSourceMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.BeanUtils;
 import com.alibaba.fastjson2.JSON;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Transactional(rollbackFor = Exception.class)

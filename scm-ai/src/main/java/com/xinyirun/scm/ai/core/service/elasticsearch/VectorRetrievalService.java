@@ -24,51 +24,15 @@ import com.google.common.primitives.Floats;
  * 向量检索服务
  *
  * <p>功能说明：</p>
- * 严格对应aideepin的AdiEmbeddingStoreContentRetriever.retrieve()逻辑
  * 从Elasticsearch检索与用户问题最相似的文本段，用于RAG上下文构建
  *
  * <p>核心流程：</p>
  * <ol>
- *   <li>问题向量化 - 使用EmbeddingModel将问题转为向量（对应aideepin的embeddingModel.embed）</li>
- *   <li>kNN搜索 - 在Elasticsearch中搜索相似向量（对应aideepin的embeddingStore.search）</li>
- *   <li>缓存分数 - 缓存embeddingId到score的映射（对应aideepin的embeddingToScore）</li>
+ *   <li>问题向量化 - 使用EmbeddingModel将问题转为向量</li>
+ *   <li>kNN搜索 - 在Elasticsearch中搜索相似向量</li>
+ *   <li>缓存分数 - 缓存embeddingId到score的映射</li>
  *   <li>返回结果 - 返回文本段列表用于RAG上下文</li>
  * </ol>
- *
- * <p>参考代码：</p>
- * aideepin: AdiEmbeddingStoreContentRetriever.java
- * 路径: D:\2025_project\20_project_in_github\99_tools\aideepin\langchain4j-aideepin\adi-common\src\main\java\com\moyz\adi\common\rag\AdiEmbeddingStoreContentRetriever.java
- *
- * <p>aideepin核心代码：</p>
- * <pre>
- * public List<Content> retrieve(Query query) {
- *     // 1. 将问题转为向量
- *     Embedding embeddedQuery = embeddingModel.embed(query.text()).content();
- *
- *     // 2. 构建搜索请求
- *     EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
- *         .queryEmbedding(embeddedQuery)
- *         .maxResults(maxResultsProvider.apply(query))
- *         .minScore(minScoreProvider.apply(query))
- *         .filter(filterProvider.apply(query))
- *         .build();
- *
- *     // 3. 执行搜索
- *     EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
- *
- *     // 4. 缓存分数并返回结果
- *     List<Content> result = searchResult.matches().stream()
- *         .peek(item -> {
- *             embeddingToScore.put(item.embeddingId(), item.score());
- *             log.info("embeddingToScore,embeddingId:{},score:{}", item.embeddingId(), item.score());
- *         })
- *         .map(EmbeddingMatch::embedded)
- *         .map(Content::from)
- *         .collect(toList());
- *
- *     return result;
- * }
- * </pre>
  *
  * @author SCM AI Team
  * @since 2025-10-06
@@ -79,7 +43,7 @@ public class VectorRetrievalService {
 
     /**
      * Elasticsearch索引名称
-     * 对应aideepin的pgvector表：adi_knowledge_base_embedding
+     * 
      */
     private static final String INDEX_NAME = "kb_embeddings";
 
@@ -94,14 +58,14 @@ public class VectorRetrievalService {
 
     /**
      * embeddingId到score的映射缓存
-     * 对应aideepin的embeddingToScore
+     * 
      * 用于后续保存ai_knowledge_base_qa_ref_embedding记录时使用
      */
     private final Map<String, Double> embeddingToScore = new ConcurrentHashMap<>();
 
     /**
      * 搜索与问题相似的文档片段
-     * 对应aideepin的AdiEmbeddingStoreContentRetriever.retrieve()
+     * 
      *
      * <p>调用示例：</p>
      * <pre>
@@ -115,8 +79,8 @@ public class VectorRetrievalService {
      *
      * @param question 用户问题文本
      * @param kbUuid 知识库UUID（用于过滤）
-     * @param maxResults 最大返回结果数（对应aideepin的maxResults）
-     * @param minScore 最小相似度分数（对应aideepin的minScore，范围0-1）
+     * @param maxResults 最大返回结果数
+     * @param minScore 最小相似度分数
      * @return 相似文档片段列表
      */
     public List<VectorSearchResultVo> searchSimilarDocuments(String question, String kbUuid,
@@ -125,15 +89,15 @@ public class VectorRetrievalService {
             log.info("开始向量检索，question: {}, kbUuid: {}, maxResults: {}, minScore: {}",
                     question, kbUuid, maxResults, minScore);
 
-            // 1. 将问题转为embedding向量（对应aideepin的embeddingModel.embed）
+            // 1. 将问题转为embedding向量
             float[] questionEmbedding = generateQuestionEmbedding(question);
             log.info("问题向量化完成，向量维度: {}", questionEmbedding.length);
 
-            // 2. 构建并执行Elasticsearch kNN搜索（对应aideepin的embeddingStore.search）
+            // 2. 构建并执行Elasticsearch kNN搜索
             SearchHits<AiKnowledgeBaseEmbeddingDoc> searchHits = executeKnnSearch(questionEmbedding, kbUuid, maxResults, minScore);
             log.info("Elasticsearch kNN搜索完成，命中数: {}", searchHits.getTotalHits());
 
-            // 3. 处理搜索结果，缓存分数（对应aideepin的embeddingToScore缓存）
+            // 3. 处理搜索结果，缓存分数
             List<VectorSearchResultVo> results = processSearchResults(searchHits);
 
             log.info("向量检索完成，返回结果数: {}", results.size());
@@ -147,13 +111,13 @@ public class VectorRetrievalService {
 
     /**
      * 生成问题的embedding向量
-     * 对应aideepin的embeddingModel.embed(query.text())
+     * 
      *
      * @param question 问题文本
      * @return embedding向量（384维float数组）
      */
     private float[] generateQuestionEmbedding(String question) {
-        // 调用EmbeddingModel生成向量（对应aideepin的embeddingModel.embed）
+        // 调用EmbeddingModel生成向量
         EmbeddingResponse response = aiModelProvider.getEmbeddingModel().embedForResponse(Collections.singletonList(question));
 
         // 直接返回float[]（Elasticsearch的dense_vector字段和kNN查询都使用float[]类型）
@@ -162,36 +126,27 @@ public class VectorRetrievalService {
 
     /**
      * 执行Elasticsearch kNN向量搜索
-     * 对应aideepin的embeddingStore.search(searchRequest)
      *
-     * <p>aideepin的EmbeddingSearchRequest包含：</p>
-     * <ul>
-     *   <li>queryEmbedding: 问题向量</li>
-     *   <li>maxResults: 最大返回数（k）</li>
-     *   <li>minScore: 最小相似度分数</li>
-     *   <li>filter: 过滤条件（kb_uuid等）</li>
-     * </ul>
-     *
-     * <p>scm-ai使用Spring Data Elasticsearch的NativeQuery.withKnnSearches()实现</p>
+     * <p>使用Spring Data Elasticsearch的NativeQuery.withKnnSearches()实现向量检索</p>
      *
      * @param queryVector 问题向量（float[]格式）
      * @param kbUuid 知识库UUID（过滤条件）
-     * @param maxResults 最大返回数（k参数，对应aideepin的maxResults）
-     * @param minScore 最小分数（对应aideepin的minScore）
+     * @param maxResults 最大返回数（k参数）
+     * @param minScore 最小分数
      * @return Elasticsearch搜索结果
      */
     private SearchHits<AiKnowledgeBaseEmbeddingDoc> executeKnnSearch(float[] queryVector, String kbUuid,
                                                                       int maxResults, double minScore) {
-        // 构建kNN查询（对应aideepin的EmbeddingSearchRequest）
+        // 构建kNN查询
         // 注意：kbUuid本身已包含租户信息（格式：tenant_code::uuid），无需额外tenant_code过滤
         NativeQuery query = NativeQuery.builder()
-                // 配置kNN搜索（对应aideepin的embeddingStore.search）
+                // 配置kNN搜索
                 .withKnnSearches(knn -> knn
                         // 向量字段名
                         .field("embedding")
-                        // 问题向量（对应aideepin的queryEmbedding），需要转换为List<Float>
+                        // 问题向量，需要转换为List<Float>
                         .queryVector(Floats.asList(queryVector))
-                        // 返回结果数（对应aideepin的maxResults）
+                        // 返回结果数
                         .k(maxResults)
                         // 候选数量（通常设置为k的10倍以提高召回率）
                         .numCandidates(maxResults * 10)
@@ -208,41 +163,15 @@ public class VectorRetrievalService {
                 )
                 .build();
 
-        // 执行搜索（对应aideepin的embeddingStore.search返回EmbeddingSearchResult）
+        // 执行搜索
         IndexCoordinates index = IndexCoordinates.of(INDEX_NAME);
         return elasticsearchOperations.search(query, AiKnowledgeBaseEmbeddingDoc.class, index);
     }
 
     /**
-     * 从kb_uuid中提取租户编码
-     * kb_uuid格式：tenant_code::uuid
-     *
-     * @param kbUuid 知识库UUID
-     * @return 租户编码
-     */
-    private String extractTenantCodeFromKbUuid(String kbUuid) {
-        if (kbUuid == null || !kbUuid.contains("::")) {
-            log.warn("kb_uuid格式不正确，无法提取tenant_code: {}", kbUuid);
-            return "";
-        }
-        return kbUuid.split("::", 2)[0];
-    }
-
-    /**
      * 处理Elasticsearch搜索结果
-     * 对应aideepin的结果流处理和embeddingToScore缓存
      *
-     * <p>aideepin代码：</p>
-     * <pre>
-     * List<Content> result = searchResult.matches().stream()
-     *     .peek(item -> {
-     *         embeddingToScore.put(item.embeddingId(), item.score());
-     *         log.info("embeddingToScore,embeddingId:{},score:{}", item.embeddingId(), item.score());
-     *     })
-     *     .map(EmbeddingMatch::embedded)
-     *     .map(Content::from)
-     *     .collect(toList());
-     * </pre>
+     * <p>提取搜索结果并缓存分数用于后续引用记录保存</p>
      *
      * @param searchHits Elasticsearch搜索结果
      * @return 向量检索结果列表
@@ -253,18 +182,18 @@ public class VectorRetrievalService {
         for (SearchHit<AiKnowledgeBaseEmbeddingDoc> hit : searchHits.getSearchHits()) {
             AiKnowledgeBaseEmbeddingDoc doc = hit.getContent();
 
-            // 提取Elasticsearch文档ID（对应aideepin的embeddingId）
+            // 提取Elasticsearch文档ID
             String embeddingId = doc.getId();
 
-            // 提取相似度分数（对应aideepin的score）
+            // 提取相似度分数
             // hit.getScore() 返回 float（原始类型），不需要 null 检查
             Double score = (double) hit.getScore();
 
-            // 缓存embeddingId到score的映射（对应aideepin的embeddingToScore.put）
+            // 缓存embeddingId到score的映射
             embeddingToScore.put(embeddingId, score);
             log.info("embeddingToScore缓存，embeddingId: {}, score: {}", embeddingId, score);
 
-            // 构建返回结果（对应aideepin的Content）
+            // 构建返回结果
             VectorSearchResultVo result = VectorSearchResultVo.builder()
                     .embeddingId(embeddingId)
                     .score(score)
@@ -282,23 +211,8 @@ public class VectorRetrievalService {
     }
 
     /**
-     * 获取指定embeddingId的缓存分数
-     * 对应aideepin的embeddingToScore.get(embeddingId)
-     *
-     * <p>用途：</p>
-     * 在保存ai_knowledge_base_qa_ref_embedding记录时，
-     * 从缓存中获取每个embeddingId对应的相似度分数
-     *
-     * @param embeddingId Elasticsearch文档ID
-     * @return 相似度分数，如果不存在则返回null
-     */
-    public Double getCachedScore(String embeddingId) {
-        return embeddingToScore.get(embeddingId);
-    }
-
-    /**
      * 获取所有embeddingId到score的缓存数据
-     * 对应aideepin在RAG查询后保存引用记录时使用的embeddingToScore
+     * 
      *
      * <p>调用场景：</p>
      * <pre>
@@ -332,7 +246,7 @@ public class VectorRetrievalService {
 
     /**
      * 获取QA记录的向量引用列表（用于前端展示）
-     * 对应aideepin的KnowledgeBaseQaService.listRefEmbeddings()
+     * 
      *
      * <p>实现逻辑：</p>
      * <ol>
@@ -348,7 +262,7 @@ public class VectorRetrievalService {
         try {
             log.info("查询QA引用向量列表，qaRecordId: {}", qaRecordId);
 
-            // 1. 从MySQL查询引用记录（对应aideepin的查询adi_knowledge_base_qa_record_reference）
+            // 1. 从MySQL查询引用记录
             List<com.xinyirun.scm.ai.bean.vo.rag.RefEmbeddingVo> refList =
                     qaRefEmbeddingService.listRefEmbeddings(qaRecordId);
 

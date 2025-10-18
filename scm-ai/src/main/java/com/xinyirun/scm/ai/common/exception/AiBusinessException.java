@@ -1,5 +1,7 @@
 package com.xinyirun.scm.ai.common.exception;
 
+import java.io.Serial;
+
 /**
  * AI业务异常类
  *
@@ -10,12 +12,9 @@ package com.xinyirun.scm.ai.common.exception;
  */
 public class AiBusinessException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
 
-    /**
-     * 错误代码
-     */
-    private String errorCode;
+    @Serial
+    private static final long serialVersionUID = -3860248016291827847L;
 
     /**
      * 构造方法
@@ -26,54 +25,4 @@ public class AiBusinessException extends RuntimeException {
         super(message);
     }
 
-    /**
-     * 构造方法
-     *
-     * @param message 错误消息
-     * @param cause   原因异常
-     */
-    public AiBusinessException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    /**
-     * 构造方法
-     *
-     * @param errorCode 错误代码
-     * @param message   错误消息
-     */
-    public AiBusinessException(String errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
-    }
-
-    /**
-     * 构造方法
-     *
-     * @param errorCode 错误代码
-     * @param message   错误消息
-     * @param cause     原因异常
-     */
-    public AiBusinessException(String errorCode, String message, Throwable cause) {
-        super(message, cause);
-        this.errorCode = errorCode;
-    }
-
-    /**
-     * 获取错误代码
-     *
-     * @return 错误代码
-     */
-    public String getErrorCode() {
-        return errorCode;
-    }
-
-    /**
-     * 设置错误代码
-     *
-     * @param errorCode 错误代码
-     */
-    public void setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
-    }
 }

@@ -9,9 +9,7 @@ import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.*;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -80,24 +78,15 @@ public class DocumentDeletionConsumer extends BaseMqConsumer {
 
             log.info("开始清理文档数据，item_uuid: {}, kb_uuid: {}", item_uuid, kb_uuid);
 
-            // TODO: 从SecurityContext或消息中获取tenant_id
-            String tenant_id = "tenant_1"; // 临时硬编码
-
             // 2. 删除Elasticsearch中的向量数据
             long deletedEmbeddings = embeddingRepository.deleteByKbItemUuid(item_uuid);
             log.info("删除Elasticsearch向量数据成功，item_uuid: {}, 删除数量: {}", item_uuid, deletedEmbeddings);
-
-
-            // 4. TODO: 删除文件存储中的物理文件（如果需要）
-            // fileService.deleteFile(file_url);
 
             log.info("文档数据清理完成，item_uuid: {}", item_uuid);
 
         } catch (Exception e) {
             log.error("文档删除清理失败，message_id: {}, error: {}", message_id, e.getMessage(), e);
 
-            // 记录失败日志到ClickHouse
-            // consumerService.insert(vo, headers, mqSenderAo);
 
             throw new RuntimeException("文档删除清理失败", e);
 

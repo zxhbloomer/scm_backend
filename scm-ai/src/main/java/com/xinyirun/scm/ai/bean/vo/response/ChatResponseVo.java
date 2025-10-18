@@ -34,9 +34,7 @@ public class ChatResponseVo {
      * 错误标识(顶层字段,方便前端快速判断)
      * 用于严格模式下的知识库错误拦截
      *
-     * <p>对标aideepin: SSEEmitterHelper.sendErrorAndComplete()的等价实现</p>
-     * <p>aideepin使用命名SSE事件 event:[ERROR], scm-ai使用JSON数据字段标识</p>
-     *
+     * <p>
      * true: 错误响应(问题过长、检索结果为空等)
      * false/null: 正常响应
      *
@@ -180,17 +178,14 @@ public class ChatResponseVo {
     /**
      * 创建错误响应(用于严格模式拦截)
      *
-     * <p>对标aideepin: KnowledgeBaseService.java第410-413行</p>
+     * <p>使用方式：</p>
      * <pre>
      * if (maxResults == 0) {
      *     if (Boolean.TRUE.equals(knowledgeBase.getIsStrict())) {
-     *         sseEmitterHelper.sendErrorAndComplete(user.getId(), sseEmitter, "提问内容过长...");
+     *         fluxSink.next(createErrorResponse("提问内容过长..."));
      *     }
      * }
      * </pre>
-     *
-     * <p>aideepin使用: sseEmitter.send(event().name("[ERROR]").data(errorMsg))</p>
-     * <p>scm-ai使用: fluxSink.next(createErrorResponse(errorMsg))</p>
      *
      * @param errorMessage 错误消息内容
      * @return 错误响应对象
@@ -198,7 +193,7 @@ public class ChatResponseVo {
      */
     public static ChatResponseVo createErrorResponse(String errorMessage) {
         return ChatResponseVo.builder()
-            .isError(true)  // ✅ 顶层错误标识(等价于aideepin的event:[ERROR])
+            .isError(true)  // ✅ 顶层错误标识
             .results(List.of(
                 Generation.builder()
                     .output(AssistantMessage.builder()

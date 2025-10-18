@@ -11,9 +11,6 @@ import java.util.Map;
 /**
  * 向量检索结果VO
  *
- * <p>对应aideepin的EmbeddingMatch<TextSegment>结果</p>
- * <p>参考：dev.langchain4j.data.embedding.EmbeddingMatch</p>
- *
  * @author SCM AI Team
  * @since 2025-10-06
  */
@@ -27,19 +24,19 @@ public class VectorSearchResultVo implements Serializable {
 
     /**
      * Elasticsearch文档ID
-     * 对应aideepin的embeddingId
+     * 
      */
     private String embeddingId;
 
     /**
      * 相似度分数（0-1之间，越高越相似）
-     * 对应aideepin的score
+     * 
      */
     private Double score;
 
     /**
      * 文本内容
-     * 对应aideepin的TextSegment.text()
+     * 
      */
     private String content;
 

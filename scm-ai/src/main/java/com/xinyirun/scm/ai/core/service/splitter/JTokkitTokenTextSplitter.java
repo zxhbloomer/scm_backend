@@ -16,8 +16,8 @@ import org.springframework.util.Assert;
  * 基于JTokkit的Token级别文本分割器
  *
  * <p>功能说明：</p>
- * 使用JTokkit库实现精确的Token级别文本分割，支持Overlap功能
- * 相比基于字符估算的方式，提供更精确的Token计数和内存高效的实现
+ * <p>使用JTokkit库实现精确的Token级别文本分割，支持Overlap功能</p>
+ * <p>相比基于字符估算的方式，提供更精确的Token计数和内存高效的实现</p>
  *
  * <p>核心优势：</p>
  * <ol>
@@ -27,16 +27,13 @@ import org.springframework.util.Assert;
  *   <li>智能边界检测：在自然分隔符处切分，保持语义完整性</li>
  * </ol>
  *
- * <p>对标实现：</p>
- * 参考项目: D:/2025_project/99_quantify/99_github/ai/src/main/java/com/econage/ai/support/utils/TokenTextSplitter.java
- *
  * <p>使用示例：</p>
  * <pre>
  * JTokkitTokenTextSplitter splitter = JTokkitTokenTextSplitter.builder()
- *     .withChunkSize(1000)           // 对应aideepin的RAG_MAX_SEGMENT_SIZE_IN_TOKENS
- *     .withOverlapSize(50)           // 对应aideepin的overlap参数
- *     .withMinChunkSizeChars(400)
- *     .withMinChunkLengthToEmbed(10)
+ *     .withChunkSize(1000)           // 每个chunk的最大token数
+ *     .withOverlapSize(50)           // 相邻chunk的重叠token数
+ *     .withMinChunkSizeChars(400)    // 分隔符优化的最小字符数
+ *     .withMinChunkLengthToEmbed(10) // 最小embedding长度
  *     .build();
  *
  * List&lt;String&gt; segments = splitter.splitText("长文本内容...");
@@ -144,19 +141,13 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
      * </ol>
      *
      * <p>🔧 关键修复（2025-10-18）：</p>
-     * 修复了导致无限循环的根本bug：
+     * <p>修复了导致无限循环的根本bug：</p>
      * <ul>
      *   <li>错误做法: 使用分隔符优化后的actualTokensUsed计算nextStart</li>
      *   <li>问题: 优化后actualTokensUsed可能很小（如20），导致nextStart=0，形成无限循环</li>
      *   <li>现象: 文本段数达到MAX_NUM_CHUNKS=10001，相同文本重复处理</li>
-     *   <li>正确做法: 参考aideepin，使用原始endIndex推进，分隔符优化仅影响输出文本</li>
+     *   <li>正确做法: 使用原始endIndex推进，分隔符优化仅影响输出文本</li>
      *   <li>原理: 分隔符优化保证语义完整性，endIndex推进保证算法收敛</li>
-     * </ul>
-     *
-     * <p>参考实现：</p>
-     * <ul>
-     *   <li>aideepin: TokenTextSplitter.java:78-93 (分隔符优化 + endIndex推进)</li>
-     *   <li>LangChain: RecursiveCharacterTextSplitter (标准overlap算法)</li>
      * </ul>
      *
      * @param text 待分割的文本
@@ -185,7 +176,7 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
             }
 
             // 3. 在自然分隔符处优化切分（保持语义完整性）
-            // 🔧 重要：只优化输出文本，不影响位置推进（参考aideepin TokenTextSplitter.java:78-81）
+            // 🔧 重要：只优化输出文本，不影响位置推进
             int lastSeparator = chunkText.lastIndexOf(this.customSeparator);
             if (lastSeparator != -1 && lastSeparator > this.minChunkSizeChars) {
                 // 在分隔符处截断文本（仅用于输出，不影响tokens推进）
@@ -199,7 +190,7 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
             }
 
             // 5. 实现overlap: 使用原始endIndex推进，避免无限循环
-            // 🔧 关键修复（2025-10-18）：参考aideepin TokenTextSplitter.java:88
+            // 🔧 关键修复（2025-10-18）：
             // 使用原始endIndex而不是优化后的actualTokensUsed
             // 原因：分隔符优化只影响输出文本，不应影响token位置推进
             // 例如：endIndex=300, 优化后actualTokensUsed=20
@@ -208,7 +199,6 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
             int nextStart = Math.max(0, endIndex - this.overlapSize);
 
             // 防止无限循环：如果无法推进（剩余tokens <= overlapSize），跳出循环
-            // 参考aideepin TokenTextSplitter.java:90-93
             if (nextStart == 0 && tokens.size() <= this.overlapSize) {
                 break;
             }

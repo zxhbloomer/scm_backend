@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 图谱引用VO
  *
- * <p>对应 aideepin DTO：RefGraphDto</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04

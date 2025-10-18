@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * 知识库图谱分段服务类
  *
- * <p>对应 aideepin 服务：KnowledgeBaseGraphSegmentService</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 /**
  * 知识库收藏记录服务类
  *
- * <p>对应 aideepin 服务：KnowledgeBaseStarService</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-06
@@ -24,7 +24,7 @@ public class AiKnowledgeBaseStarService extends ServiceImpl<AiKnowledgeBaseStarM
     /**
      * 获取用户对某个知识库的收藏记录
      *
-     * <p>对应 aideepin 方法：getRecord</p>
+     * 
      *
      * @param userId 用户ID
      * @param kbId 知识库ID

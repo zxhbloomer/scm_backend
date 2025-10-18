@@ -34,39 +34,23 @@ import java.util.stream.Collectors;
  * Neo4j图谱索引服务
  *
  * <p>功能说明：</p>
- * 严格对应aideepin的GraphStoreIngestor.ingest()逻辑
- * 使用LLM从文档中提取实体和关系，构建知识图谱并存储到Neo4j
+ * <p>使用LLM从文档中提取实体和关系，构建知识图谱并存储到Neo4j</p>
  *
  * <p>核心流程：</p>
  * <ol>
- *   <li>使用LLM提取实体 - ChatModel分析文档（对应aideepin的GraphStoreIngestor.extractGraph）</li>
- *   <li>使用LLM提取关系 - ChatModel识别实体间关系</li>
- *   <li>存储图谱 - 保存到Neo4j（对应aideepin保存到Apache AGE）</li>
+ *   <li>文档分割 - 使用JTokkitTokenTextSplitter按Token数分割</li>
+ *   <li>实体提取 - ChatModel分析每个segment，提取实体</li>
+ *   <li>关系提取 - ChatModel识别实体间的关系</li>
+ *   <li>存储图谱 - 使用Neo4j的MERGE语句实现增量更新</li>
  * </ol>
  *
- * <p>参考代码：</p>
- * aideepin: GraphStoreIngestor.ingest()
- * 路径: D:\2025_project\20_project_in_github\99_tools\aideepin\langchain4j-aideepin\adi-common\src\main\java\com\moyz\adi\common\rag\GraphStoreIngestor.java
- *
- * <p>aideepin核心代码：</p>
- * <pre>
- * public void ingest(Map<String, Object> params) {
- *     String content = (String) params.get("content");
- *     String kbUuid = (String) params.get("kbUuid");
- *     String kbItemUuid = (String) params.get("kbItemUuid");
- *
- *     // 使用LLM提取图谱
- *     Graph graph = extractGraph(content, chatModel);
- *
- *     // 存储实体和关系到Apache AGE
- *     for (Node node : graph.nodes()) {
- *         graphStore.addNode(node, kbUuid, kbItemUuid);
- *     }
- *     for (Relationship rel : graph.relationships()) {
- *         graphStore.addRelationship(rel, kbUuid, kbItemUuid);
- *     }
- * }
- * </pre>
+ * <p>技术实现：</p>
+ * <ul>
+ *   <li>提示词：基于Microsoft GraphRAG标准提示词（GraphExtractPrompt）</li>
+ *   <li>增量更新：MERGE + ON CREATE/ON MATCH实现实体和关系的增量追加</li>
+ *   <li>segment关联：所有实体和关系都关联segment_ids数组，支持溯源</li>
+ *   <li>多租户：tenant_code字段隔离不同租户的图谱数据</li>
+ * </ul>
  *
  * @author SCM AI Team
  * @since 2025-10-04
@@ -89,29 +73,15 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 执行文档图谱化索引
-     * 对应aideepin的GraphRAG.ingest()
      *
-     * <p>aideepin核心逻辑（GraphRAG.java第51-95行）：</p>
-     * <pre>
-     * DocumentSplitter documentSplitter = DocumentSplitters.recursive(300, overlap, tokenEstimator);
-     * GraphStoreIngestor ingestor = GraphStoreIngestor.builder()
-     *     .documentSplitter(documentSplitter)
-     *     .segmentsFunction(segments -> {
-     *         for (TextSegment segment : segments) {
-     *             String segmentId = UuidUtil.createShort();
-     *             // 保存segment到数据库
-     *             KnowledgeBaseGraphSegment graphSegment = new KnowledgeBaseGraphSegment();
-     *             graphSegment.setUuid(segmentId);
-     *             graphSegment.setRemark(segment.text());
-     *             getKnowledgeBaseGraphSegmentService().save(graphSegment);
-     *
-     *             // 调用LLM提取实体和关系
-     *             String response = chatModel.chat(GraphExtractPrompt.replace("{input_text}", segment.text()));
-     *             segmentIdToExtractContent.add(Triple.of(segment, segmentId, response));
-     *         }
-     *     })
-     *     .build();
-     * </pre>
+     * <p>处理流程：</p>
+     * <ol>
+     *   <li>文档分割 - splitDocumentForGraph()，使用JTokkitTokenTextSplitter</li>
+     *   <li>遍历segment - 保存segment到MySQL，调用LLM提取实体和关系</li>
+     *   <li>存储实体 - storeEntityWithSegment()，使用Neo4j MERGE实现增量更新</li>
+     *   <li>存储关系 - storeRelationshipWithSegment()，使用Neo4j MERGE实现增量更新</li>
+     *   <li>发布事件 - GraphIndexCompletedEvent，触发统计更新</li>
+     * </ol>
      *
      * @param kb 知识库配置
      * @param item 文档项
@@ -121,23 +91,23 @@ public class Neo4jGraphIndexingService {
         try {
             log.info("开始图谱化索引，item_uuid: {}, kb_uuid: {}", item.getItemUuid(), item.getKbUuid());
 
-            // 1. 文档分割（对应aideepin的DocumentSplitters.recursive）
+            // 1. 文档分割
             List<String> segments = splitDocumentForGraph(item.getRemark(), kb);
             log.info("文档分割完成，item_uuid: {}, 文本段数量: {}", item.getItemUuid(), segments.size());
 
             int totalEntities = 0;
             int totalRelations = 0;
 
-            // 2. 处理每个segment（对应aideepin的segmentsFunction）
+            // 2. 处理每个segment
             for (int i = 0; i < segments.size(); i++) {
                 String segmentText = segments.get(i);
 
-                // 2.1 保存segment到数据库（对应aideepin第63-69行）
+                // 2.1 保存segment到数据库
                 String segmentUuid = saveGraphSegment(kb, item, segmentText, i);
                 log.info("Segment保存完成，item_uuid: {}, segment_uuid: {}, index: {}/{}",
                         item.getItemUuid(), segmentUuid, i + 1, segments.size());
 
-                // 2.2 使用LLM提取实体和关系（对应aideepin第81行）
+                // 2.2 使用LLM提取实体和关系
                 GraphExtractionResult graph = extractGraphFromSegment(segmentText);
                 log.info("LLM提取完成，segment_uuid: {}, 实体数: {}, 关系数: {}",
                         segmentUuid, graph.getEntities().size(), graph.getRelations().size());
@@ -196,30 +166,28 @@ public class Neo4jGraphIndexingService {
     }
 
     /**
-     * 文档分割（图谱索引）
-     * 对应aideepin的DocumentSplitters.recursive(300, overlap, tokenEstimator)
+     * 文档分割（图谱索引专用）
      *
-     * <p>aideepin逻辑（GraphRAG.java第54行）：</p>
-     * <pre>
-     * DocumentSplitter documentSplitter = DocumentSplitters.recursive(
-     *     RAG_MAX_SEGMENT_SIZE_IN_TOKENS,          // 300 tokens
-     *     graphIngestParams.getOverlap(),          // 默认50 tokens
-     *     TokenEstimatorFactory.create(graphIngestParams.getTokenEstimator())
-     * );
-     * </pre>
+     * <p>分割策略：</p>
+     * <ul>
+     *   <li>使用JTokkitTokenTextSplitter进行Token级精确分割</li>
+     *   <li>默认chunkSize：2000 tokens（较大chunk适合图谱提取）</li>
+     *   <li>overlap：从知识库配置读取（默认50 tokens）</li>
+     *   <li>编码方式：CL100K_BASE（与GPT-4/GPT-3.5一致）</li>
+     * </ul>
      *
      * @param content 文档内容
      * @param kb 知识库配置
      * @return 分割后的文本段列表
      */
     private List<String> splitDocumentForGraph(String content, AiKnowledgeBaseEntity kb) {
-        // 获取overlap参数（对应aideepin的kb.getIngestMaxOverlap()）
+        // 获取overlap参数
         int overlap = kb.getIngestMaxOverlap() != null ? kb.getIngestMaxOverlap() : 50;
 
-        // 使用JTokkitTokenTextSplitter（对应aideepin的DocumentSplitters.recursive）
+        // 使用JTokkitTokenTextSplitter
         // 使用默认chunkSize（2000 tokens）
         JTokkitTokenTextSplitter splitter = JTokkitTokenTextSplitter.builder()
-                .withOverlapSize(overlap)     // maxOverlapSizeInTokens（对应aideepin的overlap参数）
+                .withOverlapSize(overlap)     // maxOverlapSizeInTokens
                 .build();
 
         // 创建Document对象
@@ -233,20 +201,14 @@ public class Neo4jGraphIndexingService {
     }
 
     /**
-     * 保存图谱segment到数据库
-     * 对应aideepin的KnowledgeBaseGraphSegmentService.save()
+     * 保存图谱segment到MySQL数据库
      *
-     * <p>aideepin逻辑（GraphRAG.java第63-69行）：</p>
-     * <pre>
-     * String segmentId = UuidUtil.createShort();
-     * KnowledgeBaseGraphSegment graphSegment = new KnowledgeBaseGraphSegment();
-     * graphSegment.setUuid(segmentId);
-     * graphSegment.setRemark(segment.text());
-     * graphSegment.setKbUuid(segment.metadata().getString(KB_UUID));
-     * graphSegment.setKbItemUuid(segment.metadata().getString(KB_ITEM_UUID));
-     * graphSegment.setUserId(user.getId());
-     * getKnowledgeBaseGraphSegmentService().save(graphSegment);
-     * </pre>
+     * <p>segment用途：</p>
+     * <ul>
+     *   <li>记录LLM提取的原始文本段</li>
+     *   <li>与Neo4j中的实体和关系关联（通过segment_uuid）</li>
+     *   <li>支持图谱数据的溯源查询</li>
+     * </ul>
      *
      * @param kb 知识库配置
      * @param item 文档项
@@ -256,10 +218,10 @@ public class Neo4jGraphIndexingService {
      */
     private String saveGraphSegment(AiKnowledgeBaseEntity kb, AiKnowledgeBaseItemEntity item,
                                      String segmentText, int segmentIndex) {
-        // 生成segment UUID（对应aideepin的UuidUtil.createShort()）
+        // 生成segment UUID
         String segmentUuid = UuidUtil.createShort();
 
-        // 构建实体（对应aideepin的KnowledgeBaseGraphSegment）
+        // 构建实体
         AiKnowledgeBaseGraphSegmentEntity segmentEntity = new AiKnowledgeBaseGraphSegmentEntity();
         segmentEntity.setUuid(segmentUuid);
         segmentEntity.setKbUuid(item.getKbUuid());
@@ -267,7 +229,7 @@ public class Neo4jGraphIndexingService {
         segmentEntity.setRemark(segmentText);
         segmentEntity.setIsDeleted(0);
 
-        // 保存到数据库（对应aideepin第69行）
+        // 保存到数据库
         // c_id, c_time, u_id, u_time, dbversion 由 MyBatis-Plus 自动填充
         graphSegmentService.save(segmentEntity);
 
@@ -276,22 +238,22 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 使用LLM提取segment中的实体和关系
-     * 对应aideepin的GraphStoreIngestor.extractGraph()
      *
-     * <p>aideepin实现：</p>
-     * 使用LangChain4j的ChatModel和专门的GraphExtractor
-     *
-     * <p>scm-ai实现：</p>
-     * 使用Spring AI的ChatModel和自定义Prompt
+     * <p>技术实现：</p>
+     * <ul>
+     *   <li>ChatModel：使用Spring AI的ChatModel接口</li>
+     *   <li>Prompt：基于Microsoft GraphRAG标准提示词（GraphExtractPrompt.GRAPH_EXTRACTION_PROMPT_CN）</li>
+     *   <li>解析：使用##分隔记录，使用&lt;|&gt;分隔字段</li>
+     * </ul>
      *
      * @param segmentText segment文本内容
      * @return 提取结果（实体和关系）
      */
     private GraphExtractionResult extractGraphFromSegment(String segmentText) {
-        // 构建提示词（对应aideepin的GraphExtractor prompt）
+        // 构建提示词
         String promptText = buildGraphExtractionPrompt(segmentText);
 
-        // 调用LLM提取（对应aideepin的chatModel.chat）
+        // 调用LLM提取
         Prompt prompt = new Prompt(promptText);
         ChatResponse response = aiModelProvider.getChatModel().call(prompt);
         String jsonResult = response.getResult().getOutput().getText();
@@ -301,8 +263,9 @@ public class Neo4jGraphIndexingService {
     }
 
     /**
-     * 构建图谱提取的Prompt（使用 Microsoft GraphRAG 标准提示词）
-     * 参考：aideepin GraphRAG.java:107-108
+     * 构建图谱提取的Prompt
+     *
+     * <p>使用Microsoft GraphRAG标准中文提示词，替换{input_text}占位符</p>
      *
      * @param content 文档内容
      * @return Prompt文本
@@ -314,7 +277,6 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 解析LLM返回的图谱提取结果
-     * 对应aideepin的GraphStoreIngestor.ingest()第148-291行解析逻辑
      *
      * <p>LLM返回格式（Microsoft GraphRAG标准）:</p>
      * <pre>
@@ -327,7 +289,16 @@ public class Neo4jGraphIndexingService {
      * <|COMPLETE|>
      * </pre>
      *
-     * @param llmResponse LLM返回的字符串（使用##分隔记录,使用<|>分隔字段）
+     * <p>解析流程：</p>
+     * <ol>
+     *   <li>使用##分隔每条记录</li>
+     *   <li>移除首尾括号</li>
+     *   <li>使用&lt;|&gt;分隔字段</li>
+     *   <li>判断类型（entity/relationship）并解析字段</li>
+     *   <li>使用AdiStringUtil.removeSpecialChar()清理实体名称特殊字符</li>
+     * </ol>
+     *
+     * @param llmResponse LLM返回的字符串（使用##分隔记录,使用&lt;|&gt;分隔字段）
      * @return 解析后的实体和关系
      */
     private GraphExtractionResult parseGraphExtractionResult(String llmResponse) {
@@ -339,25 +310,25 @@ public class Neo4jGraphIndexingService {
                 return result;
             }
 
-            // 分隔符常量（对应aideepin AdiConstant.GRAPH_RECORD_DELIMITER 和 GRAPH_TUPLE_DELIMITER）
+            // 分隔符常量
             final String RECORD_DELIMITER = "##";
             final String TUPLE_DELIMITER = "<\\|>";
 
-            // 第1步: 用 ## 分割每条记录（对应aideepin第148行）
+            // 第1步: 用 ## 分割每条记录
             String[] rows = llmResponse.split(RECORD_DELIMITER);
 
             for (String row : rows) {
                 String graphRow = row.trim();
 
-                // 跳过结束标记（对应aideepin的处理逻辑）
+                // 跳过结束标记
                 if (graphRow.contains("<|COMPLETE|>") || graphRow.isEmpty()) {
                     continue;
                 }
 
-                // 第2步: 移除首尾括号（对应aideepin第151行）
+                // 第2步: 移除首尾括号
                 graphRow = graphRow.replaceAll("^\\(|\\)$", "");
 
-                // 第3步: 用 <|> 分割字段（对应aideepin第152行）
+                // 第3步: 用 <|> 分割字段
                 String[] recordAttributes = graphRow.split(TUPLE_DELIMITER);
 
                 if (recordAttributes.length < 4) {
@@ -365,13 +336,13 @@ public class Neo4jGraphIndexingService {
                     continue;
                 }
 
-                // 第4步: 判断是实体还是关系（对应aideepin第153和192行）
+                // 第4步: 判断是实体还是关系
                 String recordType = recordAttributes[0].replaceAll("\"", "").trim();
 
                 if ("entity".equalsIgnoreCase(recordType) || "实体".equals(recordType)) {
-                    // 解析实体（对应aideepin第154-191行）
-                    // 优化1: 使用AdiStringUtil.tail()截断名称为最大20字符（对应aideepin Neo4jGraphStore.java:102）
-                    // 优化2: 使用AdiStringUtil.removeSpecialChar()清理特殊字符（对应aideepin第97行）
+                    // 解析实体
+                    // 优化1: 使用AdiStringUtil.tail()截断名称为最大20字符
+                    // 优化2: 使用AdiStringUtil.removeSpecialChar()清理特殊字符
                     String entityName = AdiStringUtil.tail(
                             AdiStringUtil.removeSpecialChar(clearStr(recordAttributes[1]).toUpperCase()),
                             20
@@ -391,7 +362,7 @@ public class Neo4jGraphIndexingService {
                     log.debug("解析实体: name={}, type={}, desc={}", entityName, entityType, entityDescription);
 
                 } else if ("relationship".equalsIgnoreCase(recordType) || "关系".equals(recordType)) {
-                    // 解析关系（对应aideepin第193-291行）
+                    // 解析关系
                     // 优化1: 使用AdiStringUtil.tail()截断名称为最大20字符
                     // 优化2: 使用AdiStringUtil.removeSpecialChar()清理特殊字符
                     String sourceName = AdiStringUtil.tail(
@@ -404,7 +375,7 @@ public class Neo4jGraphIndexingService {
                     );
                     String edgeDescription = clearStr(recordAttributes[3]);
 
-                    // 第5个字段是权重(可选,默认1.0) （对应aideepin第200-203行）
+                    // 第5个字段是权重(可选,默认1.0) 
                     double weight = 1.0;
                     if (recordAttributes.length > 4) {
                         String weightStr = recordAttributes[4].trim();
@@ -443,7 +414,6 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 清理字符串（移除引号、转义符等）
-     * 对应aideepin的AdiStringUtil.clearStr()
      *
      * @param str 原始字符串
      * @return 清理后的字符串
@@ -460,7 +430,6 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 存储实体到Neo4j（关联segment_uuid）
-     * 对应aideepin的graphStore.addNode()，并实现增量更新逻辑
      *
      * <p>增量更新逻辑：</p>
      * <ul>
@@ -473,14 +442,13 @@ public class Neo4jGraphIndexingService {
      *   </li>
      * </ul>
      *
-     * <p>对应aideepin的实现：</p>
-     * <pre>
-     * MERGE (e:Entity {name: $name, kb_uuid: $kb_uuid, type: $type})
-     * ON CREATE SET e.id = $id, e.description = $description, e.segment_ids = [$segmentUuid]
-     * ON MATCH SET e.description = CASE WHEN NOT (e.description CONTAINS $description)
-     *                                    THEN e.description + '\n' + $description
-     *                                    ELSE e.description END
-     * </pre>
+     * <p>Neo4j Cypher说明：</p>
+     * <ul>
+     *   <li>使用MERGE + ON CREATE/ON MATCH实现增量更新</li>
+     *   <li>实体唯一性：通过entity_name、kb_uuid、entity_type三元组确定</li>
+     *   <li>segment_ids：数组类型，记录该实体出现在哪些segment中</li>
+     *   <li>tenant_code：多租户隔离字段</li>
+     * </ul>
      *
      * @param entity 实体节点
      * @param item 文档项
@@ -488,7 +456,7 @@ public class Neo4jGraphIndexingService {
      */
     private void storeEntityWithSegment(EntityNode entity, AiKnowledgeBaseItemEntity item, String segmentUuid) {
         try (Session session = neo4jDriver.session()) {
-            // 使用name作为唯一标识（标准化为大写，对应aideepin的实体名称规范）
+            // 使用name作为唯一标识（标准化为大写，
             String standardizedName = entity.getName().toUpperCase();
 
             // 从kb_uuid中提取租户编码（用于多租户隔离）
@@ -553,12 +521,19 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 存储关系到Neo4j（关联segment_uuid）
-     * 对应aideepin的graphStore.addRelationship()，并实现增量更新逻辑
      *
      * <p>增量更新逻辑：</p>
      * <ul>
      *   <li>使用MERGE创建关系，ON CREATE / ON MATCH实现segment_ids追踪</li>
-     *   <li>weight权重累加（对应aideepin第250行逻辑）</li>
+     *   <li>weight权重累加：同一关系在多个segment中出现时，权重会累加</li>
+     *   <li>metadata追加：不同segment的description会追加（用换行符分隔）</li>
+     * </ul>
+     *
+     * <p>Neo4j Cypher说明：</p>
+     * <ul>
+     *   <li>MATCH查找源实体和目标实体</li>
+     *   <li>MERGE创建或更新关系</li>
+     *   <li>strength：关系强度，每次出现累加</li>
      * </ul>
      *
      * @param relation 关系边
@@ -572,7 +547,7 @@ public class Neo4jGraphIndexingService {
             String standardizedToName = relation.getToEntityName().toUpperCase();
 
             // 使用MERGE创建关系，ON CREATE / ON MATCH实现增量更新
-            // weight累加逻辑对应aideepin GraphStoreIngestor.ingest()第250行
+            // weight累加逻辑
             // 从kb_uuid中提取租户编码
             String tenantCode = extractTenantCodeFromKbUuid(item.getKbUuid());
 
@@ -677,7 +652,7 @@ public class Neo4jGraphIndexingService {
 
     /**
      * 删除文档的所有图谱数据
-     * 对应aideepin的删除逻辑
+     * 
      *
      * <p>删除步骤：</p>
      * <ol>
@@ -716,7 +691,7 @@ public class Neo4jGraphIndexingService {
             var nodeResult = session.run(deleteNodesCypher, params);
             int deletedNodes = nodeResult.hasNext() ? nodeResult.next().get("deletedNodes").asInt() : 0;
 
-            // 3. 删除MySQL中的segment数据（对应aideepin的KnowledgeBaseGraphSegmentService删除逻辑）
+            // 3. 删除MySQL中的segment数据
             com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiKnowledgeBaseGraphSegmentEntity> wrapper =
                     new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
             wrapper.eq(AiKnowledgeBaseGraphSegmentEntity::getKbItemUuid, itemUuid);
@@ -763,7 +738,7 @@ public class Neo4jGraphIndexingService {
         private String toEntityName;
         private String type;
         private String description;
-        private double weight; // 关系权重(对应aideepin的weight字段)
+        private double weight; // 关系权重（LLM提取，表示关系强度）
     }
 
     /**

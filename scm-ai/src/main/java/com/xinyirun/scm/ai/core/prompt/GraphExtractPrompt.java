@@ -8,9 +8,14 @@ import java.util.stream.Collectors;
 /**
  * 图谱提取提示词
  *
- * <p>完整复制自 Microsoft GraphRAG 官方提示词</p>
- * <p>参考: https://github.com/microsoft/graphrag/blob/main/graphrag/index/graph/extractors/graph/prompts.py</p>
- * <p>对标: aideepin GraphExtractPrompt.java</p>
+ * <p>基于Microsoft GraphRAG官方提示词实现</p>
+ *
+ * <p>提示词功能：</p>
+ * <ul>
+ *   <li>从文本中识别实体（entity_name、entity_type、entity_description）</li>
+ *   <li>识别实体间关系（source_entity、target_entity、relationship_description、relationship_strength）</li>
+ *   <li>返回结构化的实体和关系数据，用于构建知识图谱</li>
+ * </ul>
  *
  * @author SCM AI Team
  * @since 2025-10-12

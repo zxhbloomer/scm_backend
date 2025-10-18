@@ -11,7 +11,7 @@ import java.io.Serializable;
  * 图谱关系VO
  *
  * <p>描述图谱中两个实体之间的关系</p>
- * <p>对应aideepin的GraphEdge</p>
+ * <p>
  *
  * @author SCM AI Team
  * @since 2025-10-06
@@ -26,25 +26,25 @@ public class GraphRelationVo implements Serializable {
 
     /**
      * 关系ID（Neo4j关系ID）
-     * 对应aideepin的GraphEdge.id
+     * 
      */
     private String relationId;
 
     /**
      * 关系类型
-     * 对应aideepin的GraphEdge.name（如：WORKS_FOR, LOCATED_IN等）
+     * 
      */
     private String relationType;
 
     /**
      * 关系描述
-     * 对应aideepin的GraphEdge.description
+     * 
      */
     private String description;
 
     /**
      * 源实体ID
-     * 对应aideepin的Triple.left（源节点）
+     * 
      */
     private String sourceEntityId;
 
@@ -55,7 +55,7 @@ public class GraphRelationVo implements Serializable {
 
     /**
      * 目标实体ID
-     * 对应aideepin的Triple.right（目标节点）
+     * 
      */
     private String targetEntityId;
 

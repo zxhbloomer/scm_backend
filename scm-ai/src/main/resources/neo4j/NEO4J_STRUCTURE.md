@@ -290,19 +290,6 @@ LIMIT 20;
 
 ---
 
-## 📝 与aideepin的差异
-
-| 维度 | aideepin | scm-ai |
-|------|----------|--------|
-| 图谱存储 | PostgreSQL + Apache AGE | Neo4j（原生图数据库） |
-| 向量存储 | PostgreSQL + pgvector | Elasticsearch |
-| 租户隔离 | 应用层user_id | 数据库级（tenant_code） |
-| 索引方式 | 同步Service层 | RabbitMQ异步MQ |
-| 关系类型 | RELATED_TO | RELATED_TO（已统一） |
-| kb_item_uuid | 无 | 有（新增字段） |
-
----
-
 ## 🚀 后续待办事项
 
 ### Java代码同步更新（必须）

@@ -3,6 +3,8 @@ package com.xinyirun.scm.ai.core.event;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
+import java.io.Serial;
+
 /**
  * 图谱索引完成事件
  * 当文档的图谱化索引完成（成功或失败）时触发此事件
@@ -11,6 +13,9 @@ import org.springframework.context.ApplicationEvent;
  */
 @Getter
 public class GraphIndexCompletedEvent extends ApplicationEvent {
+
+    @Serial
+    private static final long serialVersionUID = 75950521641085295L;
 
     /**
      * 知识库UUID

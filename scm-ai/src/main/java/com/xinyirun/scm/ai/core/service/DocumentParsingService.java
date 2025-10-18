@@ -14,23 +14,17 @@ import java.util.stream.Collectors;
  * 文档解析服务
  *
  * <p>功能说明：</p>
- * 严格对应aideepin的FileOperatorContext.loadDocument()逻辑
  * 从URL加载文档并解析为文本内容
  *
  * <p>支持的文件类型：</p>
  * <ul>
- *   <li>PDF - 使用PagePdfDocumentReader（对应aideepin的ApachePdfBoxDocumentParser）</li>
- *   <li>TXT - 使用TikaDocumentReader（对应aideepin的TextDocumentParser）</li>
- *   <li>DOC/DOCX/XLS/XLSX/PPT/PPTX - 使用TikaDocumentReader（对应aideepin的ApachePoiDocumentParser）</li>
+ *   <li>PDF - 使用TikaDocumentReader</li>
+ *   <li>TXT - 使用TikaDocumentReader</li>
+ *   <li>DOC/DOCX/XLS/XLSX/PPT/PPTX - 使用TikaDocumentReader</li>
  * </ul>
  *
- * <p>实现原理：</p>
- * aideepin使用LangChain4j的UrlDocumentLoader.load(url, parser)
- * scm-ai使用Spring AI的UrlResource + DocumentReader
- *
- * <p>参考代码：</p>
- * aideepin: AliyunOssFileOperator.loadDocument()
- * 路径: D:\2025_project\20_project_in_github\99_tools\aideepin\langchain4j-aideepin\adi-common\src\main\java\com\moyz\adi\common\file\AliyunOssFileOperator.java
+ * <p>实现方式：</p>
+ * 使用Spring AI的UrlResource + TikaDocumentReader（基于Apache Tika）
  *
  * @author SCM AI Team
  * @since 2025-10-04
@@ -42,7 +36,7 @@ public class DocumentParsingService {
     /**
      * 从URL加载文档并解析为文本内容
      *
-     * <p>对应aideepin代码：</p>
+     * <p>
      * <pre>
      * public Document loadDocument(AdiFile adiFile) {
      *     String url = adiFile.getPath();
@@ -74,19 +68,19 @@ public class DocumentParsingService {
             // 3. 根据文件类型选择解析器
             String content;
             if ("pdf".equals(ext)) {
-                // PDF文件 - 对应aideepin的ApachePdfBoxDocumentParser
+                // PDF文件 - 
                 content = parsePdf(resource);
             } else if ("txt".equals(ext)) {
-                // 文本文件 - 对应aideepin的TextDocumentParser
+                // 文本文件 - 
                 content = parseTxt(resource);
             } else if (isOfficeDocument(ext)) {
-                // Office文档 - 对应aideepin的ApachePoiDocumentParser
+                // Office文档 - 
                 content = parseOfficeDocument(resource);
             } else {
                 throw new IllegalArgumentException("不支持的文件格式: " + ext);
             }
 
-            // 4. 清理文本内容（对应aideepin的.replace("\u0000", "")）
+            // 4. 清理文本内容
             content = cleanContent(content);
 
             log.info("文档解析完成，文件名: {}, 内容长度: {} 字符", fileName, content.length());
@@ -100,7 +94,7 @@ public class DocumentParsingService {
 
     /**
      * 解析PDF文件
-     * 对应aideepin的ApachePdfBoxDocumentParser
+     * 
      *
      * <p>Spring AI实现：</p>
      * TikaDocumentReader - 使用Apache Tika解析PDF（内部使用PDFBox）
@@ -119,7 +113,7 @@ public class DocumentParsingService {
         // 读取所有页面/片段
         List<Document> documents = reader.get();
 
-        // 合并所有内容（对应aideepin返回的单个Document）
+        // 合并所有内容
         return documents.stream()
                 .map(Document::getText)
                 .collect(Collectors.joining("\n"));
@@ -127,7 +121,7 @@ public class DocumentParsingService {
 
     /**
      * 解析文本文件
-     * 对应aideepin的TextDocumentParser
+     * 
      *
      * @param resource 文本文件资源
      * @return 解析后的文本内容
@@ -142,7 +136,7 @@ public class DocumentParsingService {
 
     /**
      * 解析Office文档（DOC/DOCX/XLS/XLSX/PPT/PPTX）
-     * 对应aideepin的ApachePoiDocumentParser
+     * 
      *
      * <p>Spring AI实现：</p>
      * TikaDocumentReader - 内部使用Apache Tika，支持所有Office格式
@@ -162,10 +156,8 @@ public class DocumentParsingService {
 
     /**
      * 判断是否为Office文档
-     * 对应aideepin的ArrayUtils.contains(POI_DOC_TYPES, ext)
      *
-     * <p>aideepin支持的格式：</p>
-     * private static final String[] POI_DOC_TYPES = new String[]{"doc", "docx", "xls", "xlsx", "ppt", "pptx"};
+     * <p>支持的格式：doc, docx, xls, xlsx, ppt, pptx</p>
      *
      * @param ext 文件扩展名
      * @return 是否为Office文档
@@ -178,12 +170,8 @@ public class DocumentParsingService {
 
     /**
      * 清理文档内容
-     * 对应aideepin的content.replace("\u0000", "")
      *
-     * <p>aideepin代码：</p>
-     * <pre>
-     * String content = document.text().replace("\u0000", "");
-     * </pre>
+     * <p>移除空字符（\u0000）</p>
      *
      * @param content 原始内容
      * @return 清理后的内容
@@ -193,13 +181,13 @@ public class DocumentParsingService {
             return "";
         }
 
-        // 移除空字符（对应aideepin的replace("\u0000", "")）
+        // 移除空字符
         return content.replace("\u0000", "");
     }
 
     /**
      * 获取文件扩展名
-     * 对应aideepin的FilenameUtils.getExtension()
+     * 
      *
      * @param fileName 文件名
      * @return 扩展名（不包含点号）

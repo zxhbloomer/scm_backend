@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 /**
  * 向量引用VO
  *
- * <p>对应 aideepin DTO：RefEmbeddingDto</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04

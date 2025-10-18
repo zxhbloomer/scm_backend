@@ -1,30 +1,28 @@
 package com.xinyirun.scm.ai.core.service.chat;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
+import com.xinyirun.scm.ai.bean.entity.chat.AiConversationEntity;
+import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
+import com.xinyirun.scm.ai.bean.vo.chat.AiConversationVo;
+import com.xinyirun.scm.ai.bean.vo.chat.AiPromptVo;
+import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
+import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
+import com.xinyirun.scm.ai.bean.vo.request.AIConversationUpdateRequestVo;
+import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.config.adapter.AiEngineAdapter;
 import com.xinyirun.scm.ai.config.adapter.AiStreamHandler;
-import com.xinyirun.scm.ai.bean.entity.chat.AiConversationEntity;
-import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
-import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
-import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
-import com.xinyirun.scm.ai.bean.vo.request.AIConversationUpdateRequestVo;
-import com.xinyirun.scm.ai.bean.vo.chat.AiConversationVo;
-import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
-import com.xinyirun.scm.ai.bean.vo.chat.AiPromptVo;
-import com.xinyirun.scm.ai.common.exception.MSException;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationMapper;
-import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import com.xinyirun.scm.ai.core.mapper.chat.ExtAiConversationContentMapper;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -196,7 +194,7 @@ public class AiConversationService {
 
         } catch (Exception e) {
             log.error("清空对话内容失败", e);
-            throw new MSException("清空对话内容失败：" + e.getMessage());
+            throw new AiBusinessException("清空对话内容失败：" + e.getMessage());
         }
     }
 

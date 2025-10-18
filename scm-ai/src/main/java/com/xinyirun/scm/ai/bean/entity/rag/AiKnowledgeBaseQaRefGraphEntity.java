@@ -11,8 +11,9 @@ import java.time.LocalDateTime;
 
 /**
  * AI知识库问答记录-图谱引用实体类
- * 对应数据库表：ai_knowledge_base_qa_ref_graph
- * 对标：aideepin KnowledgeBaseQaRefGraph
+ *
+ * <p>对应数据库表：ai_knowledge_base_qa_ref_graph</p>
+ * <p>用于记录RAG问答时，从Neo4j图数据库中召回的实体和关系引用</p>
  *
  * @author zxh
  * @since 2025-10-12

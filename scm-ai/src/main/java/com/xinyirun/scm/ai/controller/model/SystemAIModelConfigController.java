@@ -1,9 +1,8 @@
 package com.xinyirun.scm.ai.controller.model;
 
-import com.xinyirun.scm.ai.bean.constant.ModelConstants;
+import com.xinyirun.scm.ai.common.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
-import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
 import com.xinyirun.scm.ai.bean.vo.response.ModelOptionVo;
 import com.xinyirun.scm.ai.core.service.chat.SystemAIModelConfigService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;

@@ -77,23 +77,6 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 批量文件上传
-     */
-    @PostMapping(value = "/uploadDocs/{uuid}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "批量上传文档")
-    @SysLogAnnotion("批量上传文档")
-    public ResponseEntity<JsonResultAo<Boolean>> uploadDocs(
-            @PathVariable String uuid,
-            @RequestParam(value = "indexAfterUpload", defaultValue = "true") Boolean indexAfterUpload,
-            @RequestParam(defaultValue = "") String indexTypes,
-            @RequestParam("files") MultipartFile[] files) {
-
-        List<String> indexTypeList = Arrays.asList(indexTypes.split(","));
-        knowledgeBaseService.uploadDocs(uuid, indexAfterUpload, files, indexTypeList);
-        return ResponseEntity.ok().body(ResultUtil.OK(true));
-    }
-
-    /**
      * 从URL创建文档
      */
     @PostMapping("/uploadFromUrl/{uuid}")

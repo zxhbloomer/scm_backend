@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.bean.constant;
+package com.xinyirun.scm.ai.common.constant;
 
 /**
  * AI模型相关常量定义
@@ -43,38 +43,6 @@ public class ModelConstants {
 
         public boolean isPrivate() {
             return this == PRIVATE;
-        }
-    }
-
-    /**
-     * 拥有者类型枚举
-     */
-    public enum OwnerType {
-        SYSTEM("system", "系统"),
-        USER("user", "用户");
-
-        private final String code;
-        private final String description;
-
-        OwnerType(String code, String description) {
-            this.code = code;
-            this.description = description;
-        }
-
-        public String getCode() {
-            return code;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public boolean isSystem() {
-            return this == SYSTEM;
-        }
-
-        public boolean isUser() {
-            return this == USER;
         }
     }
 }

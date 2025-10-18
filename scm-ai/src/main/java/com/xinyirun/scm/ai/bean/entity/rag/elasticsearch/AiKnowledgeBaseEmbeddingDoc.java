@@ -14,7 +14,6 @@ import org.springframework.data.elasticsearch.annotations.*;
  * @since 2025-10-02
  */
 @Data
-@Document(indexName = "#{@tenantIndexNameService.getKbEmbeddingsIndexName()}")
 @Setting(settingPath = "elasticsearch/kb-embeddings-settings.json")
 public class AiKnowledgeBaseEmbeddingDoc {
 

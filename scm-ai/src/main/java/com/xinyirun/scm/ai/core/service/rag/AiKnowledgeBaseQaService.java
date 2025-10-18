@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * 知识库问答记录服务类
  *
- * <p>对应 aideepin 服务：KnowledgeBaseQaService</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04
@@ -281,7 +281,7 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
     /**
      * 查询问答记录详情（包含引用数据）
      *
-     * <p>对应 aideepin 方法：KnowledgeBaseQaService.getDetailByUuid()</p>
+     * 
      *
      * @param uuid 问答记录UUID
      * @return 问答记录详情（包含向量引用和图谱引用）

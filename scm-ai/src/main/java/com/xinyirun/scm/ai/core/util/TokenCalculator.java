@@ -11,12 +11,6 @@ import org.springframework.ai.tokenizer.JTokkitTokenCountEstimator;
  * <p>使用O200K_BASE编码（2025标准，200K词汇量）</p>
  * <p>适配现代OpenAI兼容模型（DeepSeek、GPT-4o等）</p>
  *
- * <p>对标aideepin：</p>
- * <ul>
- *   <li>aideepin使用：langchain4j的TokenCountEstimator（OpenAiTokenCountEstimator、HuggingFaceTokenCountEstimator）</li>
- *   <li>scm-ai使用：Spring AI的JTokkitTokenCountEstimator（O200K_BASE编码）</li>
- * </ul>
- *
  * <p>O200K_BASE vs CL100K_BASE：</p>
  * <ul>
  *   <li>O200K_BASE：200K词汇量，GPT-4o/o1系列，2025主流标准，更高效</li>
@@ -45,8 +39,6 @@ public class TokenCalculator {
     /**
      * 估算文本的token数量
      *
-     * <p>对标aideepin方法：TokenCountEstimator.estimateTokenCountInText()</p>
-     *
      * @param text 要计算的文本
      * @return token数量（0表示空文本）
      */
@@ -66,9 +58,6 @@ public class TokenCalculator {
 
     /**
      * 验证用户问题是否有效（未超过最大输入token限制）
-     *
-     * <p>对标aideepin方法：InputAdaptor.isQuestionValid()</p>
-     * <p>对应aideepin判断点1：用户问题Token过长检查</p>
      *
      * <p>使用场景：</p>
      * <ul>

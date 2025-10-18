@@ -10,7 +10,6 @@ import java.util.concurrent.Executor;
  * 异步任务执行器配置
  *
  * <p>用于RagService的SSE流式问答异步执行</p>
- * <p>参考Spring Boot异步任务最佳实践</p>
  *
  * @author SCM AI Team
  * @since 2025-10-06

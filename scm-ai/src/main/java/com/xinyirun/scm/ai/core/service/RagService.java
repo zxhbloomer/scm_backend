@@ -37,8 +37,6 @@ import java.util.stream.Collectors;
 /**
  * RAG服务
  *
- * <p>对应 aideepin 服务：KnowledgeBaseService（RAG相关方法）</p>
- *
  * @author SCM AI Team
  * @since 2025-10-03
  */
@@ -68,9 +66,7 @@ public class RagService {
     /**
      * SSE流式问答（核心RAG问答方法）
      *
-     * <p>对应 aideepin 方法：KnowledgeBaseService.retrieveAndPushToLLM() + CompositeRAG.ragChat()</p>
-     *
-     * <p>核心流程（严格对应aideepin）：</p>
+     * <p>核心流程：</p>
      * <ol>
      *   <li>查询QA记录和知识库配置</li>
      *   <li>向量检索 - VectorRetrievalService.searchSimilarDocuments()</li>
@@ -80,10 +76,6 @@ public class RagService {
      *   <li>保存完整答案、引用记录、Token统计</li>
      *   <li>清除检索缓存</li>
      * </ol>
-     *
-     * <p>参考代码：</p>
-     * aideepin: KnowledgeBaseService.retrieveAndPushToLLM() 第378-453行
-     * aideepin: CompositeRAG.ragChat() 第77-99行
      *
      * @param qaUuid 问答记录UUID
      * @param userId 用户ID
@@ -96,7 +88,7 @@ public class RagService {
                                         Integer maxResults, Double minScore) {
         log.info("RAG流式问答开始，qaUuid: {}, userId: {}", qaUuid, userId);
 
-        // 使用Flux.create异步处理（参考AiConversationController.chatStream）
+        // 使用Flux.create异步处理
         return Flux.<ChatResponseVo>create(fluxSink -> {
             try {
                 // 【多租户支持】在异步线程中设置数据源
@@ -106,7 +98,7 @@ public class RagService {
                     log.debug("RAG流式问答 - 已设置租户数据源: {}", tenantCode);
                 }
 
-                // 1. 查询QA记录（对应aideepin第380行）
+                // 1. 查询QA记录
                 AiKnowledgeBaseQaEntity qaRecord = qaService.getByQaUuid(qaUuid);
                 if (qaRecord == null) {
                     log.error("问答记录不存在，qaUuid: {}", qaUuid);
@@ -119,7 +111,7 @@ public class RagService {
 
                 log.info("QA记录查询成功，question: {}, kbUuid: {}", question, kbUuid);
 
-                // 2. 查询知识库配置（对应aideepin第381行）
+                // 2. 查询知识库配置
                 AiKnowledgeBaseVo knowledgeBase = knowledgeBaseService.getByUuid(kbUuid);
                 if (knowledgeBase == null) {
                     log.error("知识库不存在，kbUuid: {}", kbUuid);
@@ -128,7 +120,7 @@ public class RagService {
                 }
 
                 // 2.5. 【严格模式判断点1】查询AI模型配置（获取maxInputTokens）
-                // 对应aideepin：KnowledgeBaseService.retrieveAndPushToLLM() 第382行
+                // 
                 // 兼容旧数据：空值、"default"字符串都使用知识库默认模型
                 String aiModelId = qaRecord.getAiModelId();
                 if (StringUtils.isBlank(aiModelId) || "default".equals(aiModelId)) {
@@ -148,10 +140,9 @@ public class RagService {
                 log.debug("AI模型配置：id={}, max_input_tokens={}", aiModel.getId(), maxInputTokens);
 
                 // 2.6. 【严格模式判断点1】Token验证（用户问题是否超限）
-                // 对标aideepin：InputAdaptor.isQuestionValid()
                 InputAdaptorMsg validationResult = TokenCalculator.isQuestionValid(question, maxInputTokens);
 
-                // 2.7. 从知识库配置读取检索参数（对标aideepin第387、437行）
+                // 2.7. 从知识库配置读取检索参数
                 int computedMaxResults = knowledgeBase.getRetrieveMaxResults();
                 double computedMinScore = knowledgeBase.getRetrieveMinScore().doubleValue();
 
@@ -164,7 +155,6 @@ public class RagService {
                 }
 
                 // 2.8. 【严格模式判断点1】严格模式下问题过长直接返回错误
-                // 对标aideepin: KnowledgeBaseService.java第410-413行严格模式逻辑
                 if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict()) && computedMaxResults == 0) {
                     String errorMsg = String.format(
                         "严格模式：用户问题过长，超过模型输入限制（questionTokens=%d, maxInputTokens=%d）",
@@ -172,7 +162,7 @@ public class RagService {
                     );
                     log.error(errorMsg);
 
-                    // ✅ 使用工厂方法(等价于aideepin的sseEmitterHelper.sendErrorAndComplete)
+                    // 使用工厂方法创建错误响应
                     ChatResponseVo errorResponse = ChatResponseVo.createErrorResponse("【知识库严格模式】" + errorMsg);
 
                     fluxSink.next(errorResponse);
@@ -184,21 +174,21 @@ public class RagService {
                 final int effectiveMaxResults = computedMaxResults;
                 final double effectiveMinScore = computedMinScore;
 
-                // 3. RAG检索阶段（对应aideepin第437行的createRetriever）
+                // 3. RAG检索阶段
                 log.info("开始RAG检索，kbUuid: {}, effectiveMaxResults: {}, effectiveMinScore: {}",
                         kbUuid, effectiveMaxResults, effectiveMinScore);
 
-                // 3.1 向量检索（对应aideepin的EmbeddingRAG）
+                // 3.1 向量检索
                 List<VectorSearchResultVo> vectorResults = vectorRetrievalService.searchSimilarDocuments(
                         question, kbUuid, effectiveMaxResults, effectiveMinScore);
                 log.info("向量检索完成，结果数: {}", vectorResults.size());
 
-                // 3.2 图谱检索（对应aideepin的GraphRAG）
+                // 3.2 图谱检索
                 List<GraphSearchResultVo> graphResults = graphRetrievalService.searchRelatedEntities(
                         question, kbUuid, tenantCode, effectiveMaxResults);
                 log.info("图谱检索完成，结果数: {}", graphResults.size());
 
-                // 3.3. 【严格模式判断点2】检索结果为空检查（对应aideepin的isEmpty检查）
+                // 3.3. 【严格模式判断点2】检索结果为空检查
                 boolean vectorEmpty = vectorResults == null || vectorResults.isEmpty();
                 boolean graphEmpty = graphResults == null || graphResults.isEmpty();
 
@@ -206,12 +196,12 @@ public class RagService {
                     log.warn("RAG检索结果为空：向量检索={}, 图谱检索={}", vectorResults != null ? vectorResults.size() : 0,
                             graphResults != null ? graphResults.size() : 0);
 
-                    // 严格模式下直接返回错误(对标aideepin严格模式逻辑)
+                    // 严格模式下直接返回错误
                     if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict())) {
                         String errorMsg = "严格模式：知识库中未找到相关答案，请补充知识库内容或调整检索参数";
                         log.error(errorMsg);
 
-                        // ✅ 使用工厂方法(等价于aideepin的sseEmitterHelper.sendErrorAndComplete)
+                        // 使用工厂方法创建错误响应
                         ChatResponseVo errorResponse = ChatResponseVo.createErrorResponse("【知识库严格模式】" + errorMsg);
 
                         fluxSink.next(errorResponse);
@@ -223,13 +213,12 @@ public class RagService {
                     log.warn("非严格模式：检索结果为空，将由LLM直接回答问题");
                 }
 
-                // 4. 构建RAG增强的Messages（对应aideepin第438行的ragChat）
+                // 4. 构建RAG增强的Messages
                 List<Message> ragMessages = buildRagMessages(question, vectorResults, graphResults, knowledgeBase);
                 log.info("RAG Messages构建完成，消息数: {}", ragMessages.size());
 
-                // 4.5. ✅ 修复3：添加温度参数支持（对标aideepin第404、435行）
-                // aideepin实现：ChatModelBuilderProperties.builder().temperature(knowledgeBase.getQueryLlmTemperature())
-                Double temperature = 0.0; // 默认值：完全确定性（对标aideepin默认配置）
+                // 4.5. ✅ 添加温度参数支持
+                Double temperature = 0.0; // 默认值：完全确定性
                 if (knowledgeBase.getQueryLlmTemperature() != null) {
                     temperature = knowledgeBase.getQueryLlmTemperature().doubleValue();
                 }
@@ -240,7 +229,7 @@ public class RagService {
 
                 log.info("ChatOptions配置完成，temperature: {}", temperature);
 
-                // 5. 流式生成（对应aideepin第153-160行的tokenStream处理）
+                // 5. 流式生成
                 StringBuilder completeAnswer = new StringBuilder();
                 final Usage[] finalUsage = new Usage[1];
 
@@ -252,7 +241,7 @@ public class RagService {
                 // 调用ChatModel流式生成（使用结构化Messages + ChatOptions）
                 aiModelProvider.getChatModel().stream(new Prompt(ragMessages, chatOptions))
                         .doOnNext(chatResponse -> {
-                            // 获取内容片段（对应aideepin第154行onPartialResponse）
+                            // 获取内容片段
                             String content = chatResponse.getResult().getOutput().getText();
                             completeAnswer.append(content);
 
@@ -267,7 +256,7 @@ public class RagService {
                         })
                         .doOnComplete(() -> {
                             try {
-                                // ✅ 在异步回调中重新设置租户数据源（对标AiConversationService.chatStreamWithCallback第107行）
+                                // ✅ 在异步回调中重新设置租户数据源
                                 // 原因：doOnComplete可能在不同线程执行，ThreadLocal的租户上下文会丢失
                                 // kbUuid格式：scm_tenant_20250519_001::8f88cf1bec2248aca0e185dac7f77101
                                 String extractedTenantCode = kbUuid.split("::", 2)[0];
@@ -276,11 +265,11 @@ public class RagService {
                                     log.debug("RAG异步回调 - 已重新设置租户数据源: {}", extractedTenantCode);
                                 }
 
-                                // 6. 保存完整答案和统计信息（对应aideepin第455-477行updateQaRecord）
+                                // 6. 保存完整答案和统计信息
                                 String fullAnswer = completeAnswer.toString();
                                 log.info("AI生成完成，答案长度: {} 字符", fullAnswer.length());
 
-                                // 6.1 计算token（对应aideepin第457行）
+                                // 6.1 计算token
                                 Integer promptTokens = 0;
                                 Integer answerTokens = 0;
                                 if (finalUsage[0] != null) {
@@ -288,7 +277,7 @@ public class RagService {
                                     answerTokens = finalUsage[0].getTotalTokens();
                                 }
 
-                                // 6.2 更新QA记录（对应aideepin第462-468行）
+                                // 6.2 更新QA记录
                                 qaRecord.setPrompt(ragPromptForRecord);
                                 qaRecord.setPromptTokens(promptTokens);
                                 qaRecord.setAnswer(fullAnswer);
@@ -298,14 +287,14 @@ public class RagService {
                                 log.info("QA记录已更新，promptTokens: {}, answerTokens: {}",
                                         promptTokens, answerTokens);
 
-                                // 6.3 保存embedding引用记录（对应aideepin第470行createRef中的createEmbeddingRefs）
+                                // 6.3 保存embedding引用记录
                                 Map<String, Double> embeddingScores = vectorRetrievalService.getAllCachedScores();
                                 if (!embeddingScores.isEmpty()) {
                                     qaRefEmbeddingService.saveRefEmbeddings(qaUuid, embeddingScores, userId);
                                     log.info("保存embedding引用记录，数量: {}", embeddingScores.size());
                                 }
 
-                                // 6.4 保存graph引用记录（对应aideepin第470行createRef中的createGraphRefs）
+                                // 6.4 保存graph引用记录
                                 if (!graphResults.isEmpty()) {
                                     RefGraphVo graphRef = buildRefGraphVo(graphResults);
                                     qaRefGraphService.saveRefGraphs(qaUuid, graphRef, userId);
@@ -349,10 +338,7 @@ public class RagService {
     }
 
     /**
-     * 构建RAG增强的Messages（对标aideepin的systemMessage + userMessage模式）
-     *
-     * <p>对应 aideepin 的 RetrievalAugmentor 逻辑</p>
-     * <p>aideepin实现参考：KnowledgeBaseService.java第398行(systemMessage) + CompositeRAG.java第137-141行(chatWithSystem)</p>
+     * 构建RAG增强的Messages
      *
      * <p>消息结构：</p>
      * <pre>
@@ -382,14 +368,14 @@ public class RagService {
                                             AiKnowledgeBaseVo knowledgeBase) {
         List<Message> messages = new ArrayList<>();
 
-        // ✅ 修复1：使用正确的字段 querySystemMessage（对标aideepin第398行）
+        // 使用知识库配置的系统提示词
         String systemMessage = knowledgeBase.getQuerySystemMessage();
         if (StringUtils.isBlank(systemMessage)) {
             systemMessage = "你是一个基于知识库的AI助手，请根据提供的知识库上下文回答用户问题。" +
                     "如果上下文中没有相关信息，请诚实地告诉用户你不知道答案。";
         }
 
-        // ✅ 修复2：使用SystemMessage而不是拼接到prompt（对标aideepin CompositeRAG.java第137-141行）
+        // 使用SystemMessage而不是拼接到prompt
         messages.add(new SystemMessage(systemMessage));
 
         // 构建用户消息：知识库上下文 + 用户问题
@@ -448,8 +434,6 @@ public class RagService {
 
     /**
      * 从图谱检索结果构建RefGraphVo（用于保存引用记录）
-     *
-     * <p>对应 aideepin 的 GraphStoreContentRetriever.getGraphRef()</p>
      *
      * @param graphResults 图谱检索结果
      * @return RefGraphVo对象

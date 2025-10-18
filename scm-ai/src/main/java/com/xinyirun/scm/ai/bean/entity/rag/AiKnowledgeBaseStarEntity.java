@@ -12,7 +12,7 @@ import java.io.Serializable;
  * 知识库收藏记录实体类
  *
  * <p>对应数据库表：ai_knowledge_base_star</p>
- * <p>对应 aideepin 实体：KnowledgeBaseStar</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-06

@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * 知识库问答-图谱引用服务类
  *
- * <p>对应 aideepin 服务：KnowledgeBaseQaRefGraphService</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04
@@ -32,7 +32,7 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
     /**
      * 根据问答记录UUID查询图谱引用
      *
-     * <p>对应 aideepin 方法：getByQaUuid</p>
+     * 
      *
      * @param qaRecordId 问答记录ID
      * @return 图谱引用VO
@@ -89,23 +89,11 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
     /**
      * 保存图谱引用记录
      *
-     * <p>对应 aideepin 方法：KnowledgeBaseQaService.createGraphRefs()</p>
-     *
-     * <p>aideepin实现：</p>
-     * <pre>
-     * public void createGraphRefs(User user, Long qaRecordId, RefGraphDto graphDto) {
-     *     String entities = String.join(",", graphDto.getEntitiesFromQuestion());
-     *     Map<String, Object> graphFromStore = new HashMap<>();
-     *     graphFromStore.put("vertices", graphDto.getVertices());
-     *     graphFromStore.put("edges", graphDto.getEdges());
-     *     KnowledgeBaseQaRefGraph refGraph = new KnowledgeBaseQaRefGraph();
-     *     refGraph.setQaRecordId(qaRecordId);
-     *     refGraph.setUserId(user.getId());
-     *     refGraph.setEntitiesFromQuestion(entities);
-     *     refGraph.setGraphFromStore(JsonUtil.toJson(graphFromStore));
-     *     knowledgeBaseQaRecordRefGraphService.save(refGraph);
-     * }
-     * </pre>
+     * <p>将图谱检索结果保存到MySQL，包括：</p>
+     * <ul>
+     *   <li>从问题中提取的实体列表（逗号分隔字符串）</li>
+     *   <li>图谱数据（vertices和edges，JSON格式）</li>
+     * </ul>
      *
      * @param qaUuid 问答记录UUID
      * @param graphRef 图谱引用VO（包含entities, vertices, edges）
@@ -124,13 +112,13 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
             return;
         }
 
-        // 将entitiesFromQuestion列表转为逗号分隔字符串（对应aideepin的String.join(",", ...)）
+        // 将entitiesFromQuestion列表转为逗号分隔字符串
         String entitiesStr = "";
         if (graphRef.getEntitiesFromQuestion() != null && !graphRef.getEntitiesFromQuestion().isEmpty()) {
             entitiesStr = String.join(",", graphRef.getEntitiesFromQuestion());
         }
 
-        // 构建graphFromStore JSON（对应aideepin的Map<String, Object>）
+        // 构建graphFromStore JSON
         Map<String, Object> graphFromStore = new HashMap<>();
         graphFromStore.put("vertices", graphRef.getVertices() != null ? graphRef.getVertices() : Collections.emptyList());
         graphFromStore.put("edges", graphRef.getEdges() != null ? graphRef.getEdges() : Collections.emptyList());
@@ -142,7 +130,7 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
         entity.setEntitiesFromQuestion(entitiesStr);
         entity.setGraphFromStore(JSON.toJSONString(graphFromStore));
 
-        // 保存（对应aideepin的save()）
+        // 保存
         this.save(entity);
 
         log.info("保存图谱引用完成，qaUuid: {}, vertices数量: {}, edges数量: {}",

@@ -2,10 +2,11 @@ package com.xinyirun.scm.ai.core.mapper.model;
 
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
-import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceCreateNameVo;
-import com.xinyirun.scm.ai.bean.vo.response.ModelSourceOptionVo;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
+
 import java.util.List;
 
 /**
@@ -25,23 +26,25 @@ public interface ExtAiModelSourceMapper {
     <script>
         SELECT
             ai.id,
-            ai.name,
+            ai.name AS model_name,
             ai.type,
             ai.owner,
             ai.status,
-            ai.owner_type as ownerType,
-            ai.base_name as baseName,
-            ai.app_key as appKey,
-            ai.api_url as apiUrl,
-            ai.provider_name as providerName,
-            ai.c_time as createTime,
-            ai.permission_type as permissionType,
-            ai.c_id as createUser,
+            ai.owner_type AS owner_type,
+            ai.base_name AS base_name,
+            ai.app_key AS api_key,
+            ai.api_url AS api_url,
+            ai.provider_name AS provider,
+            ai.c_time,
+            ai.permission_type AS permission_type,
+            ai.c_id,
+            ai.create_user AS createUserName,
             ai.u_time,
             ai.u_id,
             ai.dbversion,
-            ai.is_default,
-            ai.ai_config_id
+            ai.context_window AS context_window,
+            ai.max_input_tokens AS max_input_tokens,
+            ai.max_output_tokens AS max_output_tokens
         FROM ai_model_source ai
         WHERE 1=1
         <if test='request.keyword != null and request.keyword != &quot;&quot;'>
@@ -56,6 +59,6 @@ public interface ExtAiModelSourceMapper {
         ORDER BY ai.c_time DESC
     </script>
     """)
-    List<AiModelSourceCreateNameVo> list(@Param("request") AiModelSourceRequestVo aiModelSourceRequest);
+    List<AiModelSourceVo> list(@Param("request") AiModelSourceRequestVo aiModelSourceRequest);
 
 }

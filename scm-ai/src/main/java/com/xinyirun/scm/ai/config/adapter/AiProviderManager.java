@@ -38,34 +38,6 @@ public class AiProviderManager {
         log.info("注册AI提供商成功: {}", providerName);
     }
 
-    /**
-     * 获取AI提供商
-     *
-     * @param providerName 提供商名称
-     * @return AI提供商实现
-     */
-    public AiEngineAdapter.AiProvider getProvider(String providerName) {
-        if (providerName == null) {
-            return null;
-        }
-
-        AiEngineAdapter.AiProvider provider = providers.get(providerName.toLowerCase());
-        if (provider == null) {
-            log.warn("未找到AI提供商: {}", providerName);
-        }
-
-        return provider;
-    }
-
-    /**
-     * 检查提供商是否存在
-     *
-     * @param providerName 提供商名称
-     * @return 是否存在
-     */
-    public boolean hasProvider(String providerName) {
-        return providerName != null && providers.containsKey(providerName.toLowerCase());
-    }
 
     /**
      * 获取所有已注册的提供商名称
@@ -76,17 +48,6 @@ public class AiProviderManager {
         return providers.keySet().toArray(new String[0]);
     }
 
-    /**
-     * 移除AI提供商
-     *
-     * @param providerName 提供商名称
-     */
-    public void removeProvider(String providerName) {
-        if (providerName != null) {
-            providers.remove(providerName.toLowerCase());
-            log.info("移除AI提供商: {}", providerName);
-        }
-    }
 
     /**
      * 默认AI提供商实现（模拟）
@@ -185,16 +146,4 @@ public class AiProviderManager {
         }
     }
 
-    /**
-     * 初始化默认提供商
-     */
-    public void initializeDefaultProviders() {
-        // 注册默认提供商
-        registerProvider("default", new DefaultAiProvider());
-        registerProvider("openai", new DefaultAiProvider()); // 实际应用中应该是OpenAI的具体实现
-        registerProvider("claude", new DefaultAiProvider()); // 实际应用中应该是Claude的具体实现
-        registerProvider("qianfan", new DefaultAiProvider()); // 实际应用中应该是百度千帆的具体实现
-
-        log.info("默认AI提供商初始化完成，可用提供商: {}", String.join(", ", getAvailableProviders()));
-    }
 }

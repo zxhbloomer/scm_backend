@@ -9,7 +9,9 @@ import org.apache.ibatis.annotations.Select;
 
 /**
  * 知识库问答-图谱引用 Mapper接口
- * 对应 aideepin：KnowledgeBaseQaRecordRefGraphService
+ *
+ * <p>用于管理问答记录与Neo4j图谱引用的关联关系</p>
+ * <p>记录RAG检索时从图谱中召回的实体和关系</p>
  *
  * @author zxh
  * @since 2025-10-12
@@ -17,20 +19,4 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface AiKnowledgeBaseQaRefGraphMapper extends BaseMapper<AiKnowledgeBaseQaRefGraphEntity> {
 
-    /**
-     * 根据问答记录ID查询图谱引用
-     * 注意：使用AS别名转驼峰（map-underscore-to-camel-case: false）
-     */
-    @Select("""
-        SELECT
-            rg.id AS id,
-            rg.qa_record_id AS qaRecordId,
-            rg.entities_from_question AS entitiesFromQuestion,
-            rg.graph_from_store AS graphFromStore,
-            rg.user_id AS userId,
-            rg.create_time AS createTime
-        FROM ai_knowledge_base_qa_ref_graph rg
-        WHERE rg.qa_record_id = #{qaRecordId}
-    """)
-    QaRefGraphVo selectByQaRecordId(@Param("qaRecordId") String qaRecordId);
 }

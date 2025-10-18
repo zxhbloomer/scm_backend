@@ -11,7 +11,9 @@ import java.util.List;
 
 /**
  * 知识库问答-向量引用 Mapper接口
- * 对应 aideepin：KnowledgeBaseQaRecordReferenceService
+ *
+ * <p>用于管理问答记录与Elasticsearch向量引用的关联关系</p>
+ * <p>记录RAG检索时召回的向量片段及其相似度分数</p>
  *
  * @author zxh
  * @since 2025-10-12
@@ -19,27 +21,4 @@ import java.util.List;
 @Mapper
 public interface AiKnowledgeBaseQaRefEmbeddingMapper extends BaseMapper<AiKnowledgeBaseQaRefEmbeddingEntity> {
 
-    /**
-     * 查询问答记录的向量引用详情
-     * 注意：使用AS别名转驼峰（map-underscore-to-camel-case: false）
-     * 注意：text内容需要从Elasticsearch查询，这里只返回embeddingId、score
-     */
-    @Select("""
-        SELECT
-            ref.id AS id,
-            ref.qa_record_id AS qaRecordId,
-            ref.embedding_id AS embeddingId,
-            ref.score AS score,
-            ref.user_id AS userId,
-            ref.create_time AS createTime
-        FROM ai_knowledge_base_qa_ref_embedding ref
-        WHERE ref.qa_record_id = #{qaRecordId}
-        ORDER BY ref.score DESC
-    """)
-    List<QaRefEmbeddingVo> selectByQaRecordId(@Param("qaRecordId") String qaRecordId);
-
-    /**
-     * 批量插入向量引用记录
-     * 注意：MyBatis Plus的saveBatch已经支持，这里不需要额外SQL
-     */
 }

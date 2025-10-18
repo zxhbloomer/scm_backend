@@ -23,8 +23,7 @@ import java.util.List;
  * 文档索引主服务
  *
  * <p>功能说明：</p>
- * 严格对应aideepin的KnowledgeBaseItemService.asyncIndex()逻辑
- * 协调文档解析、向量索引、图谱索引的完整流程
+ * <p>协调文档解析、向量索引、图谱索引的完整流程</p>
  *
  * <p>核心流程：</p>
  * <ol>
@@ -32,34 +31,16 @@ import java.util.List;
  *   <li>保存文档内容到MySQL - 更新remark字段</li>
  *   <li>向量化索引 - ElasticsearchIndexingService（embedding索引）</li>
  *   <li>图谱化索引 - Neo4jGraphIndexingService（graphical索引）</li>
- *   <li>更新索引状态 - 更新is_embedded、is_qa_parsed等字段</li>
+ *   <li>更新索引状态 - 更新embedding_status字段</li>
  * </ol>
  *
- * <p>参考代码：</p>
- * aideepin: KnowledgeBaseItemService.asyncIndex()
- * 路径: D:\2025_project\20_project_in_github\99_tools\aideepin\langchain4j-aideepin\adi-common\src\main\java\com\moyz\adi\common\service\KnowledgeBaseItemService.java
- *
- * <p>aideepin核心代码：</p>
- * <pre>
- * {@literal @Async}
- * public void asyncIndex(User user, KnowledgeBase kb, KnowledgeBaseItem item, List<String> indexTypes) {
- *     if (indexTypes.contains(DOC_INDEX_TYPE_EMBEDDING)) {
- *         Metadata metadata = new Metadata();
- *         metadata.put(AdiConstant.MetadataKey.KB_UUID, item.getKbUuid());
- *         metadata.put(AdiConstant.MetadataKey.KB_ITEM_UUID, item.getUuid());
- *         Document document = new DefaultDocument(item.getRemark(), metadata);
- *         compositeRAG.getEmbeddingRAGService().ingest(document, kb.getIngestMaxOverlap(), ...);
- *     }
- *
- *     if (indexTypes.contains(DOC_INDEX_TYPE_GRAPHICAL)) {
- *         Map<String, Object> params = new HashMap<>();
- *         params.put("content", item.getRemark());
- *         params.put("kbUuid", item.getKbUuid());
- *         params.put("kbItemUuid", item.getUuid());
- *         compositeRAG.getGraphRAGService().ingest(params);
- *     }
- * }
- * </pre>
+ * <p>技术实现：</p>
+ * <ul>
+ *   <li>异步处理：通过RabbitMQ消息队列实现异步索引</li>
+ *   <li>状态管理：通过MySQL记录索引状态（待处理→处理中→已完成/失败）</li>
+ *   <li>多租户：显式设置DataSourceHelper租户上下文</li>
+ *   <li>统计任务：完成后触发Quartz统计任务更新知识库元数据</li>
+ * </ul>
  *
  * @author SCM AI Team
  * @since 2025-10-04
@@ -69,14 +50,12 @@ import java.util.List;
 public class DocumentIndexingService {
 
     /**
-     * 索引类型：向量索引
-     * 对应aideepin的DOC_INDEX_TYPE_EMBEDDING
+     * 索引类型：向量索引（Elasticsearch）
      */
     public static final String INDEX_TYPE_EMBEDDING = "embedding";
 
     /**
-     * 索引类型：图谱索引
-     * 对应aideepin的DOC_INDEX_TYPE_GRAPHICAL
+     * 索引类型：图谱索引（Neo4j）
      */
     public static final String INDEX_TYPE_GRAPHICAL = "graphical";
 
@@ -100,14 +79,16 @@ public class DocumentIndexingService {
 
     /**
      * 执行文档索引处理
-     * 对应aideepin的asyncIndex()方法
      *
      * <p>调用链：</p>
-     * MQ消费者 → DocumentIndexingService.processDocument → 各个索引服务
+     * <ul>
+     *   <li>MQ消费者接收消息</li>
+     *   <li>调用DocumentIndexingService.processDocument</li>
+     *   <li>根据indexTypes分别调用ElasticsearchIndexingService和Neo4jGraphIndexingService</li>
+     * </ul>
      *
-     * <p>与aideepin的区别：</p>
-     * - aideepin使用@Async注解实现异步
-     * - scm-ai使用RabbitMQ消息队列实现异步
+     * <p>技术说明：</p>
+     * <p>使用RabbitMQ消息队列实现异步处理，避免阻塞API响应</p>
      *
      * @param tenantCode 租户标识（确保异步环境下租户上下文正确）
      * @param itemUuid 文档UUID
@@ -126,7 +107,7 @@ public class DocumentIndexingService {
             log.info("开始处理文档索引，tenant: {}, item_uuid: {}, kb_uuid: {}, file: {}, indexTypes: {}",
                     tenantCode, itemUuid, kbUuid, fileName, indexTypes);
 
-            // 1. 查询知识库配置（对应aideepin的KnowledgeBase kb参数）
+            // 1. 查询知识库配置
             AiKnowledgeBaseEntity kb = kbMapper.selectOne(
                     new LambdaQueryWrapper<AiKnowledgeBaseEntity>()
                             .eq(AiKnowledgeBaseEntity::getKbUuid, kbUuid)
@@ -137,7 +118,7 @@ public class DocumentIndexingService {
 
             ownerId = kb.getOwnerId();
 
-            // 2. 查询文档项（对应aideepin的KnowledgeBaseItem item参数）
+            // 2. 查询文档项
             AiKnowledgeBaseItemEntity item = itemMapper.selectOne(
                     new LambdaQueryWrapper<AiKnowledgeBaseItemEntity>()
                             .eq(AiKnowledgeBaseItemEntity::getItemUuid, itemUuid)
@@ -146,7 +127,7 @@ public class DocumentIndexingService {
                 throw new RuntimeException("文档项不存在: " + itemUuid);
             }
 
-            // 3. 解析文档内容（对应aideepin在uploadDoc时已完成）
+            // 3. 解析文档内容
             if (item.getRemark() == null || item.getRemark().isEmpty()) {
                 String content = documentParsingService.parseDocumentFromUrl(fileUrl, fileName);
 
@@ -209,10 +190,10 @@ public class DocumentIndexingService {
             throw new RuntimeException("文档索引处理失败: " + e.getMessage(), e);
 
         } finally {
-            // 清理资源和触发统计更新（对应 aideepin: KnowledgeBaseItemService.asyncIndex() finally块）
+            // 清理资源和触发统计更新
 
-            // 1. 触发知识库统计更新任务（使用SCM Quartz代替Redis信号队列）
-            // 对应aideepin: stringRedisTemplate.opsForSet().add(KB_STATISTIC_RECALCULATE_SIGNAL, kbUuid)
+            // 1. 触发知识库统计更新任务
+            // 使用SCM Quartz调度系统创建统计任务
             if (kbUuid != null && tenantCode != null) {
                 try {
                     Scheduler scheduler = SpringUtils.getBean(Scheduler.class);
@@ -245,9 +226,16 @@ public class DocumentIndexingService {
 
     /**
      * 删除文档的所有索引数据
-     * 对应aideepin的删除逻辑
+     *
+     * <p>删除步骤：</p>
+     * <ol>
+     *   <li>删除Elasticsearch中的向量索引</li>
+     *   <li>删除Neo4j中的图谱数据</li>
+     *   <li>更新MySQL中的索引状态</li>
+     * </ol>
      *
      * @param itemUuid 文档UUID
+     * @param indexTypes 索引类型列表
      */
     public void deleteDocumentIndex(String itemUuid, List<String> indexTypes) {
         try {

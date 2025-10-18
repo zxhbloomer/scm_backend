@@ -22,7 +22,6 @@ import java.util.stream.Collectors;
 /**
  * 图谱检索服务
  *
- * <p>对应 aideepin 服务：GraphStoreContentRetriever</p>
  * <p>核心功能：从Neo4j检索与问题相关的实体和关系</p>
  *
  * @author SCM AI Team
@@ -43,13 +42,11 @@ public class GraphRetrievalService {
 
     /**
      * 实体分数缓存（用于RAG评分）
-     * <p>对应aideepin的entityToScore缓存</p>
      */
     private final Map<String, Double> entityToScore = new ConcurrentHashMap<>();
 
     /**
      * 图谱实体提取提示词模板
-     * <p>对应aideepin的GraphExtractPrompt.GRAPH_EXTRACTION_PROMPT_CN</p>
      */
     private static final String GRAPH_EXTRACTION_PROMPT_CN = """
             -Goal-
@@ -82,8 +79,6 @@ public class GraphRetrievalService {
     /**
      * 搜索与问题相关的实体和关系
      *
-     * <p>对应 aideepin 方法：GraphStoreContentRetriever.retrieve()</p>
-     *
      * <p>核心流程：</p>
      * <ol>
      *   <li>使用ChatModel从问题中提取实体名称</li>
@@ -106,7 +101,7 @@ public class GraphRetrievalService {
             maxResults = 3;
         }
 
-        // 1. 使用ChatModel提取实体（对应aideepin第72行）
+        // 1. 使用ChatModel提取实体
         Set<String> extractedEntities = extractEntitiesFromQuestion(question);
         if (extractedEntities.isEmpty()) {
             log.info("从用户问题中未提取到实体");
@@ -115,7 +110,7 @@ public class GraphRetrievalService {
 
         log.info("提取到的实体：{}", extractedEntities);
 
-        // 2. 在Neo4j中搜索实体节点（对应aideepin第104-110行）
+        // 2. 在Neo4j中搜索实体节点
         List<EntityNode> matchedEntities = new ArrayList<>();
         for (String entityName : extractedEntities) {
             List<EntityNode> entities = entityRepository.searchByKeyword(entityName, tenantCode, maxResults);
@@ -137,7 +132,7 @@ public class GraphRetrievalService {
 
         log.info("Neo4j匹配到 {} 个实体", uniqueEntities.size());
 
-        // 3. 查询每个实体的直接关系（对应aideepin第111-116行）
+        // 3. 查询每个实体的直接关系
         List<GraphSearchResultVo> results = new ArrayList<>();
         for (EntityNode entity : uniqueEntities.values()) {
             // 查询实体的直接关系
@@ -169,7 +164,7 @@ public class GraphRetrievalService {
             // 4. 计算实体相关性分数
             double score = calculateEntityScore(entity.getEntityName(), extractedEntities);
 
-            // 缓存分数（对应aideepin的entityToScore）
+            // 缓存分数
             entityToScore.put(entity.getEntityUuid(), score);
 
             // 5. 构建GraphSearchResultVo
@@ -199,8 +194,6 @@ public class GraphRetrievalService {
 
     /**
      * 从问题中提取实体名称
-     *
-     * <p>对应 aideepin 方法：GraphStoreContentRetriever.retrieve() 第72-101行</p>
      *
      * @param question 用户问题
      * @return 提取的实体名称集合（已转大写并去除特殊字符）
@@ -258,8 +251,6 @@ public class GraphRetrievalService {
 
     /**
      * 清理字符串（去除引号和空格）
-     *
-     * <p>对应 aideepin 工具方法：AdiStringUtil.clearStr()</p>
      */
     private String clearStr(String str) {
         if (str == null) {
@@ -294,22 +285,10 @@ public class GraphRetrievalService {
         return 0.5;
     }
 
-    /**
-     * 获取所有缓存的实体分数
-     *
-     * <p>对应 aideepin 方法：getAllCachedScores()</p>
-     * <p>用于RagService将图谱检索分数与向量检索分数合并</p>
-     *
-     * @return 实体UUID到分数的映射
-     */
-    public Map<String, Double> getAllCachedScores() {
-        return new HashMap<>(entityToScore);
-    }
 
     /**
      * 清除分数缓存
      *
-     * <p>对应 aideepin 方法：clearScoreCache()</p>
      * <p>每次问答结束后调用，避免缓存污染下一次查询</p>
      */
     public void clearScoreCache() {
@@ -337,16 +316,6 @@ public class GraphRetrievalService {
         result.put("vertices", graphData.getVertices());
         result.put("edges", graphData.getEdges());
 
-        return result;
-    }
-
-    /**
-     * 根据问答UUID查询关联图谱
-     */
-    public Map<String, Object> getByQaUuid(String qaUuid) {
-        // TODO: 实现根据问答UUID查询关联图谱
-        Map<String, Object> result = new HashMap<>();
-        result.put("graph_data", new Object[0]);
         return result;
     }
 }

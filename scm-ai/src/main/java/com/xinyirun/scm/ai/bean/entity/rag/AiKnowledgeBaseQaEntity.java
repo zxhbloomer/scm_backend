@@ -11,7 +11,6 @@ import java.io.Serializable;
 /**
  * AI知识库问答记录实体类
  * 对应数据库表：ai_knowledge_base_qa
- * 对标：aideepin KnowledgeBaseQa
  *
  * @author zxh
  * @since 2025-10-12
@@ -126,7 +125,6 @@ public class AiKnowledgeBaseQaEntity implements Serializable {
 
     /**
      * AI模型名称（避免关联查询ai_model_source表）
-     * 对标：aideepin通过缓存查询，scm-ai直接存储
      */
     @TableField("ai_model_name")
     private String aiModelName;

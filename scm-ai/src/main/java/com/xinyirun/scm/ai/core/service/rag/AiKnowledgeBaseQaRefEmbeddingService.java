@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * 知识库问答-向量引用服务类
  *
- * <p>对应 aideepin 服务：KnowledgeBaseQaRecordReferenceService</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04
@@ -27,19 +27,8 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
 
     /**
      * 批量保存QA问答的向量引用记录
-     * 对应aideepin在RAG查询后保存embeddingToScore缓存到数据库的逻辑
      *
-     * <p>aideepin逻辑：</p>
-     * <pre>
-     * embeddingToScore.forEach((embeddingId, score) -> {
-     *     KnowledgeBaseQaRecordReference ref = new KnowledgeBaseQaRecordReference();
-     *     ref.setQaRecordId(qaRecordId);
-     *     ref.setEmbeddingId(embeddingId);
-     *     ref.setScore(score);
-     *     ref.setUserId(userId);
-     *     save(ref);
-     * });
-     * </pre>
+     * <p>将向量检索结果保存到MySQL引用表，记录问答使用了哪些embedding</p>
      *
      * @param qaRecordId 问答记录ID（ai_knowledge_base_qa.id）
      * @param embeddingScores embeddingId到score的映射（从VectorRetrievalService.embeddingToScore缓存获取）
@@ -63,7 +52,7 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
             entities.add(entity);
         }
 
-        // 批量保存（对应aideepin的逐条save，这里优化为批量插入）
+        // 批量保存
         boolean success = this.saveBatch(entities);
 
         int savedCount = success ? entities.size() : 0;
@@ -76,7 +65,7 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
     /**
      * 根据问答记录UUID查询向量引用列表
      *
-     * <p>对应 aideepin 方法：listRefEmbeddings</p>
+     * 
      *
      * @param qaRecordId 问答记录ID
      * @return 向量引用列表

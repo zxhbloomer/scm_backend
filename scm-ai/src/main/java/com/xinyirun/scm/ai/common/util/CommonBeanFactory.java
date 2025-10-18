@@ -1,17 +1,11 @@
 package com.xinyirun.scm.ai.common.util;
 
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.function.Function;
 
 @Component
 @Slf4j
@@ -22,13 +16,6 @@ public class CommonBeanFactory implements ApplicationContextAware {
         context = ctx;
     }
 
-    public static Object getBean(String beanName) {
-        try {
-            return context != null && !StringUtils.isBlank(beanName) ? context.getBean(beanName) : null;
-        } catch (BeansException e) {
-            return null;
-        }
-    }
 
     public static <T> T getBean(Class<T> className) {
         try {
@@ -36,23 +23,6 @@ public class CommonBeanFactory implements ApplicationContextAware {
         } catch (BeansException e) {
             return null;
         }
-    }
-
-    public static <T> Map<String, T> getBeansOfType(Class<T> className) {
-        return context.getBeansOfType(className);
-    }
-
-    public static Object invoke(String beanName, Function<Class<?>, Method> methodFunction, Object... args) {
-        try {
-            Object bean = getBean(beanName);
-            if (ObjectUtils.isNotEmpty(bean)) {
-                Class<?> clazz = bean.getClass();
-                return methodFunction.apply(clazz).invoke(bean, args);
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        return null;
     }
 }
 

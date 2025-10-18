@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 知识库问答记录VO
  *
- * <p>对应 aideepin DTO：KbQaDto</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04

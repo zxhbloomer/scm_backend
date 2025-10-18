@@ -9,8 +9,6 @@ import org.apache.ibatis.annotations.Param;
 /**
  * 知识库图谱分段 Mapper接口
  *
- * <p>对应 aideepin：KnowledgeBaseGraphSegmentService</p>
- *
  * @author SCM AI Team
  * @since 2025-10-04
  */

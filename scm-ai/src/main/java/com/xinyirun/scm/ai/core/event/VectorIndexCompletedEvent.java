@@ -3,6 +3,8 @@ package com.xinyirun.scm.ai.core.event;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
+import java.io.Serial;
+
 /**
  * 向量索引完成事件
  * 当文档的向量化索引完成（成功或失败）时触发此事件
@@ -11,6 +13,9 @@ import org.springframework.context.ApplicationEvent;
  */
 @Getter
 public class VectorIndexCompletedEvent extends ApplicationEvent {
+
+    @Serial
+    private static final long serialVersionUID = -9058724695206475777L;
 
     /**
      * 知识库UUID

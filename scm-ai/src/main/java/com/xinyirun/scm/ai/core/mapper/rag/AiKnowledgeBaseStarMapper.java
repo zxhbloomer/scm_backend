@@ -7,7 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 /**
  * 知识库收藏记录 Mapper
  *
- * <p>对应 aideepin 的 KnowledgeBaseStarMapper</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-06

@@ -46,7 +46,8 @@ import java.util.concurrent.TimeUnit;
 /**
  * 知识库管理 Service
  *
- * 参考aideepin实现，适配SCM的MySQL+Elasticsearch+Neo4j架构
+ * <p>负责知识库的全生命周期管理，包括创建、更新、删除、文档管理和索引</p>
+ * <p>技术架构：MySQL(元数据) + Elasticsearch(向量索引) + Neo4j(知识图谱)</p>
  *
  * @author SCM AI Team
  * @since 2025-10-03
@@ -73,7 +74,8 @@ public class KnowledgeBaseService {
 
     /**
      * Redis key: 用户索引进行中标识
-     * 对应 aideepin 的 RedisKeyConstant.USER_INDEXING
+     * <p>格式：ai:kb:user:{userId}:indexing</p>
+     * <p>用途：防止用户重复提交索引任务</p>
      */
     private static final String USER_INDEXING_KEY_PATTERN = "ai:kb:user:%s:indexing";
 
@@ -212,35 +214,16 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 批量上传文档
-     * 参考aideepin的uploadDocs方法
-     */
-    public void uploadDocs(String uuid, Boolean indexAfterUpload, MultipartFile[] files, List<String> indexTypeList) {
-        if (files == null || files.length == 0) {
-            return;
-        }
-
-        // 查询知识库
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getKbUuid, uuid);
-        AiKnowledgeBaseEntity kb = knowledgeBaseMapper.selectOne(wrapper);
-
-        if (kb == null) {
-            throw new RuntimeException("知识库不存在：" + uuid);
-        }
-
-        for (MultipartFile file : files) {
-            try {
-                uploadDoc(uuid, indexAfterUpload, file, indexTypeList);
-            } catch (Exception e) {
-                log.warn("上传文档失败，fileName: {}", file.getOriginalFilename(), e);
-            }
-        }
-    }
-
-    /**
      * 单文档上传
-     * 参考aideepin的uploadDoc方法，适配SCM架构
+     *
+     * <p>创建知识库文档项并可选择立即索引</p>
+     *
+     * @param kbUuid 知识库UUID
+     * @param indexAfterUpload 是否立即索引
+     * @param file 上传的文件
+     * @param indexTypeList 索引类型列表（embedding、graphical）
+     * @return 创建的文档VO
+     * @throws IOException 文件处理异常
      */
     @Transactional(rollbackFor = Exception.class)
     public AiKnowledgeBaseItemVo uploadDoc(String kbUuid, Boolean indexAfterUpload, MultipartFile file, List<String> indexTypeList) throws IOException {
@@ -253,12 +236,10 @@ public class KnowledgeBaseService {
             throw new RuntimeException("知识库不存在：" + kbUuid);
         }
 
-        // 2. TODO: 保存文件到外部文件服务（暂时模拟）
         String fileName = file.getOriginalFilename();
         String tenantCode = DataSourceHelper.getCurrentDataSourceName();
         String uuid = UuidUtil.createShort();
         String itemUuid = tenantCode + "::" + uuid;
-        String fileUrl = "http://file.xinyirunscm.com/kb/" + kbUuid + "/" + itemUuid + "/" + fileName;
 
         // 3. 创建知识库文档项（MySQL）
         AiKnowledgeBaseItemEntity item = new AiKnowledgeBaseItemEntity();
@@ -346,8 +327,11 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 索引知识库所有文档
-     * 参考aideepin的indexing方法
+     * 索引知识库所有未索引文档
+     *
+     * @param kbUuid 知识库UUID
+     * @param indexTypes 索引类型列表（embedding、graphical）
+     * @return 是否成功发送索引消息
      */
     public boolean indexing(String kbUuid, List<String> indexTypes) {
         // 查询该知识库下所有未索引的文档
@@ -370,19 +354,16 @@ public class KnowledgeBaseService {
 
     /**
      * 索引指定文档列表
-     * 对应aideepin的indexItems方法，通过RabbitMQ异步处理
      *
-     * <p>aideepin代码：</p>
-     * <pre>
-     * public boolean indexItems(String kbUuid, List<String> itemUuids, List<String> indexTypes) {
-     *     for (String itemUuid : itemUuids) {
-     *         knowledgeBaseItemService.asyncIndex(currentUser, kb, item, indexTypes);
-     *     }
-     * }
-     * </pre>
+     * <p>通过RabbitMQ异步处理索引任务，支持向量索引和图谱索引</p>
      *
-     * <p>scm-ai实现：</p>
-     * 使用RabbitMQ消息队列代替@Async注解
+     * <p>实现方式：</p>
+     * <ul>
+     *   <li>设置Redis索引标识，防止重复提交</li>
+     *   <li>查询文档项和文件URL</li>
+     *   <li>发送MQ消息到索引队列</li>
+     *   <li>异步消费者执行实际索引任务</li>
+     * </ul>
      *
      * @param itemUuids 文档UUID列表
      * @param indexTypes 索引类型列表（embedding、graphical）
@@ -394,14 +375,14 @@ public class KnowledgeBaseService {
         }
 
         try {
-            // 设置用户索引进行中标识（对应 aideepin: KnowledgeBaseItemService.asyncIndex() 第137行）
+            // 设置用户索引进行中标识
             Long currentUserId = SecurityUtil.getStaff_id();
             String userIndexKey = String.format(AiConstant.USER_INDEXING_KEY, currentUserId);
             stringRedisTemplate.opsForValue().set(userIndexKey, "", 10, TimeUnit.MINUTES);
 
             log.info("设置用户索引标识，userId: {}, key: {}", currentUserId, userIndexKey);
 
-            // 发送RabbitMQ消息进行异步索引（对应aideepin的asyncIndex）
+            // 发送RabbitMQ消息进行异步索引
             for (String itemUuid : itemUuids) {
                 // 查询文档项
                 LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
@@ -425,7 +406,7 @@ public class KnowledgeBaseService {
                     log.warn("未查询到文件URL，itemUuid: {}, itemId: {}", itemUuid, item.getId());
                 }
 
-                // 构建消息上下文（对应aideepin的asyncIndex参数）
+                // 构建消息上下文
                 Map<String, Object> messageContext = new HashMap<>();
                 messageContext.put("item_uuid", itemUuid);
                 messageContext.put("kb_uuid", item.getKbUuid());
@@ -447,7 +428,7 @@ public class KnowledgeBaseService {
                 mqSenderAo.setTenant_code(DataSourceHelper.getCurrentDataSourceName());
                 mqSenderAo.setMqMessageAo(mqMessageAo);
 
-                // 发送消息（对应aideepin的knowledgeBaseItemService.asyncIndex）
+                // 发送消息
                 scmMqProducer.send(mqSenderAo, MQEnum.MQ_AI_DOCUMENT_INDEXING_QUEUE);
 
                 log.info("发送文档索引消息成功，item_uuid: {}, kb_uuid: {}, index_types: {}",
@@ -465,15 +446,7 @@ public class KnowledgeBaseService {
     /**
      * 检查索引是否完成
      *
-     * <p>对应 aideepin 方法：KnowledgeBaseService.checkIndexIsFinish()</p>
-     *
-     * <p>aideepin实现：</p>
-     * <pre>
-     * public boolean checkIndexIsFinish() {
-     *     String userIndexKey = MessageFormat.format(USER_INDEXING, ThreadContext.getCurrentUserId());
-     *     return Boolean.FALSE.equals(stringRedisTemplate.hasKey(userIndexKey));
-     * }
-     * </pre>
+     * <p>通过Redis标识判断当前用户是否有索引任务正在执行</p>
      *
      * @return true表示索引已完成，false表示索引进行中
      */
@@ -486,7 +459,12 @@ public class KnowledgeBaseService {
 
     /**
      * 搜索我的知识库
-     * 参考aideepin的searchMine方法
+     *
+     * @param keyword 搜索关键词
+     * @param includeOthersPublic 是否包含其他人公开的知识库
+     * @param currentPage 当前页码
+     * @param pageSize 每页大小
+     * @return 分页查询结果
      */
     public IPage<AiKnowledgeBaseVo> searchMine(String keyword, Boolean includeOthersPublic, Integer currentPage, Integer pageSize) {
         Page<AiKnowledgeBaseEntity> page = new Page<>(currentPage, pageSize);
@@ -645,42 +623,20 @@ public class KnowledgeBaseService {
     /**
      * 收藏/取消收藏
      *
-     * <p>对应 aideepin 方法：KnowledgeBaseService.toggleStar()</p>
-     *
-     * <p>aideepin实现：</p>
-     * <pre>
-     * public boolean toggleStar(User user, String kbUuid) {
-     *     KnowledgeBase knowledgeBase = self.getOrThrow(kbUuid);
-     *     boolean star;
-     *     KnowledgeBaseStar oldRecord = knowledgeBaseStarRecordService.getRecord(user.getId(), kbUuid);
-     *     if (null == oldRecord) {
-     *         KnowledgeBaseStar starRecord = new KnowledgeBaseStar();
-     *         starRecord.setUserId(user.getId());
-     *         starRecord.setKbId(knowledgeBase.getId());
-     *         knowledgeBaseStarRecordService.save(starRecord);
-     *         star = true;
-     *     } else {
-     *         knowledgeBaseStarRecordService.lambdaUpdate()
-     *             .eq(KnowledgeBaseStar::getId, oldRecord.getId())
-     *             .set(KnowledgeBaseStar::getIsDeleted, !oldRecord.getIsDeleted())
-     *             .update();
-     *         star = oldRecord.getIsDeleted();
-     *     }
-     *     int starCount = star ? knowledgeBase.getStarCount() + 1 : knowledgeBase.getStarCount() - 1;
-     *     ChainWrappers.lambdaUpdateChain(baseMapper)
-     *         .eq(KnowledgeBase::getId, knowledgeBase.getId())
-     *         .set(KnowledgeBase::getStarCount, starCount)
-     *         .update();
-     *     return star;
-     * }
-     * </pre>
+     * <p>功能流程：</p>
+     * <ol>
+     *   <li>查询知识库是否存在</li>
+     *   <li>检查当前用户是否已收藏</li>
+     *   <li>未收藏：创建收藏记录，star_count+1</li>
+     *   <li>已收藏：删除收藏记录，star_count-1</li>
+     * </ol>
      *
      * @param kbId 知识库ID
      * @return true表示已收藏，false表示已取消收藏
      */
     @Transactional(rollbackFor = Exception.class)
     public boolean toggleStar(String kbId) {
-        // 1. 查询知识库（对应aideepin的getOrThrow）
+        // 1. 查询知识库
         LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AiKnowledgeBaseEntity::getId, kbId);
         AiKnowledgeBaseEntity knowledgeBase = knowledgeBaseMapper.selectOne(wrapper);
@@ -693,11 +649,11 @@ public class KnowledgeBaseService {
         String currentUserId = SecurityUtil.getStaff_id().toString();
 
         boolean star;
-        // 3. 查询是否已收藏（对应aideepin的getRecord）
+        // 3. 查询是否已收藏
         AiKnowledgeBaseStarEntity oldRecord = starService.getRecord(currentUserId, kbId);
 
         if (oldRecord == null) {
-            // 4. 未收藏，创建收藏记录（对应aideepin的save）
+            // 4. 未收藏，创建收藏记录
             AiKnowledgeBaseStarEntity starRecord = new AiKnowledgeBaseStarEntity();
             starRecord.setId(UuidUtil.createShort());
             starRecord.setKbId(kbId);
@@ -709,7 +665,7 @@ public class KnowledgeBaseService {
             star = true;
             log.info("用户收藏知识库，userId: {}, kbId: {}", currentUserId, kbId);
         } else {
-            // 5. 已收藏，删除收藏记录（对应aideepin的delete by id）
+            // 5. 已收藏，删除收藏记录
             starService.removeById(oldRecord.getId());
             star = false;
             log.info("用户取消收藏知识库，userId: {}, kbId: {}", currentUserId, kbId);
@@ -734,16 +690,4 @@ public class KnowledgeBaseService {
         return star;
     }
 
-    // ==================== 辅助方法 ====================
-
-    private String getFileExtension(String filename) {
-        if (filename == null) {
-            return "";
-        }
-        int lastDotIndex = filename.lastIndexOf('.');
-        if (lastDotIndex > 0 && lastDotIndex < filename.length() - 1) {
-            return filename.substring(lastDotIndex + 1).toLowerCase();
-        }
-        return "";
-    }
 }

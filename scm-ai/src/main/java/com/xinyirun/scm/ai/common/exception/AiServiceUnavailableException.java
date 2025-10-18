@@ -1,12 +1,10 @@
 package com.xinyirun.scm.ai.common.exception;
 
+import java.io.Serial;
+
 public class AiServiceUnavailableException extends RuntimeException {
 
-    public AiServiceUnavailableException(String message) {
-        super(message);
-    }
+    @Serial
+    private static final long serialVersionUID = 3271547657047982545L;
 
-    public AiServiceUnavailableException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

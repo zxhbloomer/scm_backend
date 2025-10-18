@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * 知识库-图谱-文本块实体类
  *
  * <p>对应数据库表：ai_knowledge_base_graph_segment</p>
- * <p>对应 aideepin 实体：KnowledgeBaseGraphSegment</p>
+ * 
  *
  * @author SCM AI Team
  * @since 2025-10-04

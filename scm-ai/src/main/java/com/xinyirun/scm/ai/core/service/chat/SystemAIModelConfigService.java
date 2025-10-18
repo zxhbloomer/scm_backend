@@ -2,12 +2,11 @@ package com.xinyirun.scm.ai.core.service.chat;
 
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.xinyirun.scm.ai.bean.constant.ModelConstants;
+import com.xinyirun.scm.ai.common.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
 import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AdvSettingVo;
-import com.xinyirun.scm.ai.bean.vo.request.OptionVo;
 import com.xinyirun.scm.ai.bean.vo.response.ModelOptionVo;
 import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import jakarta.annotation.Resource;

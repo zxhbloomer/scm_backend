@@ -10,7 +10,7 @@ import java.io.Serializable;
 /**
  * Token验证结果消息VO
  *
- * <p>对标aideepin：com.moyz.adi.common.vo.InputAdaptorMsg</p>
+ * 
  *
  * <p>用途：</p>
  * <ul>

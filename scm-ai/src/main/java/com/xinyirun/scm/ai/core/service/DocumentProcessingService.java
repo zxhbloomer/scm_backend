@@ -309,7 +309,7 @@ public class DocumentProcessingService {
             results.add(vo);
         }
 
-        // 4. 如果需要立即索引，批量调用索引方法（对应aideepin的uploadDoc逻辑）
+        // 4. 如果需要立即索引，批量调用索引方法
         if (Boolean.TRUE.equals(indexAfterUpload) && !itemUuids.isEmpty()) {
             log.info("批量创建完成，开始触发索引任务，数量: {}", itemUuids.size());
             // 默认索引类型：embedding（向量化）和 graphical（图谱化）
@@ -322,7 +322,6 @@ public class DocumentProcessingService {
 
     /**
      * 保存知识项的附件信息
-     * 参考采购合同的 BPoContractServiceImpl.insertFile 方法
      *
      * @param itemId 知识项ID
      * @param docAttFiles 文件信息列表

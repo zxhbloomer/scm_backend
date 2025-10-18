@@ -9,8 +9,9 @@ import java.util.List;
 
 /**
  * 知识库问答响应VO
- * 包含完整的RAG查询结果
- * 对标：aideepin的QA响应结构
+ *
+ * <p>包含完整的RAG问答结果数据，用于返回给前端展示</p>
+ * <p>数据包括：问题、答案、Token统计、向量引用、图谱引用等完整信息</p>
  *
  * @author zxh
  * @since 2025-10-12
