@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.core.service;
 
 import com.xinyirun.scm.ai.bean.entity.rag.neo4j.EntityNode;
+import com.xinyirun.scm.ai.bean.vo.rag.DirectRelationshipVo;
 import com.xinyirun.scm.ai.bean.vo.rag.GraphRelationVo;
 import com.xinyirun.scm.ai.bean.vo.rag.GraphSearchResultVo;
 import com.xinyirun.scm.ai.bean.vo.rag.KbGraphVo;
@@ -11,10 +12,14 @@ import com.xinyirun.scm.ai.common.util.AdiStringUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.types.Node;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -39,6 +44,9 @@ public class GraphRetrievalService {
 
     @Autowired
     private Neo4jQueryService neo4jQueryService;
+
+    @Autowired
+    private Neo4jClient neo4jClient;
 
     /**
      * 实体分数缓存（用于RAG评分）
@@ -135,19 +143,38 @@ public class GraphRetrievalService {
         // 3. 查询每个实体的直接关系
         List<GraphSearchResultVo> results = new ArrayList<>();
         for (EntityNode entity : uniqueEntities.values()) {
-            // 查询实体的直接关系
-            List<Object[]> relationships = entityRepository.findDirectRelationships(
-                    entity.getEntityUuid(),
-                    tenantCode,
-                    null
-            );
+            // 使用Neo4jClient查询实体的直接关系
+            Collection<DirectRelationshipVo> relationshipVos = neo4jClient
+                    .query("MATCH (e:Entity {entity_uuid: $entity_uuid, tenant_code: $tenant_code}) " +
+                           "-[r:RELATED_TO]->(target:Entity) " +
+                           "WHERE target.tenant_code = $tenant_code " +
+                           "RETURN target, r.relation_type AS relationType, r.strength AS strength " +
+                           "ORDER BY r.strength DESC")
+                    .bind(entity.getEntityUuid()).to("entity_uuid")
+                    .bind(tenantCode).to("tenant_code")
+                    .fetchAs(DirectRelationshipVo.class).mappedBy((typeSystem, record) -> {
+                        // 自定义映射逻辑：将Neo4j Record转换为DirectRelationshipVo
+                        Node targetNode = record.get("target").asNode();
+                        String relationType = record.get("relationType").asString();
+                        Float strength = record.get("strength").asFloat();
+
+                        // 将Neo4j Node转换为EntityNode
+                        EntityNode target = mapNodeToEntity(targetNode);
+
+                        return DirectRelationshipVo.builder()
+                                .target(target)
+                                .relationType(relationType)
+                                .strength(strength)
+                                .build();
+                    })
+                    .all();
 
             // 构建GraphRelationVo列表
-            List<GraphRelationVo> relations = relationships.stream()
-                    .map(row -> {
-                        EntityNode targetEntity = (EntityNode) row[0];
-                        String relationType = (String) row[1];
-                        Float strength = (Float) row[2];
+            List<GraphRelationVo> relations = relationshipVos.stream()
+                    .map(vo -> {
+                        EntityNode targetEntity = vo.getTarget();
+                        String relationType = vo.getRelationType();
+                        Float strength = vo.getStrength();
 
                         return GraphRelationVo.builder()
                                 .relationId(entity.getEntityUuid() + "-" + targetEntity.getEntityUuid())
@@ -285,6 +312,31 @@ public class GraphRetrievalService {
         return 0.5;
     }
 
+
+    /**
+     * 将Neo4j Node转换为EntityNode
+     *
+     * @param node Neo4j节点
+     * @return EntityNode实体对象
+     */
+    private EntityNode mapNodeToEntity(Node node) {
+        EntityNode entity = new EntityNode();
+        entity.setId(node.id());
+        entity.setEntityUuid(node.get("entity_uuid").asString());
+        entity.setEntityName(node.get("entity_name").asString());
+        entity.setEntityType(node.get("entity_type").asString());
+        entity.setEntityMetadata(node.get("entity_metadata").asString(""));
+        entity.setKbUuid(node.get("kb_uuid").asString());
+        entity.setKbItemUuid(node.get("kb_item_uuid").asString(""));
+        entity.setTenantCode(node.get("tenant_code").asString());
+
+        // 处理create_time字段（ZonedDateTime转Instant）
+        if (!node.get("create_time").isNull()) {
+            entity.setCreateTime(node.get("create_time").asZonedDateTime().toInstant());
+        }
+
+        return entity;
+    }
 
     /**
      * 清除分数缓存

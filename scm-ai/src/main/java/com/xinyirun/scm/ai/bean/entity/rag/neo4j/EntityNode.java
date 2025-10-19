@@ -3,7 +3,7 @@ package com.xinyirun.scm.ai.bean.entity.rag.neo4j;
 import lombok.Data;
 import org.springframework.data.neo4j.core.schema.*;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -72,10 +72,10 @@ public class EntityNode {
     private String tenantCode;
 
     /**
-     * 创建时间
+     * 创建时间（使用Instant以支持Neo4j的ZonedDateTime类型）
      */
     @Property("create_time")
-    private LocalDateTime createTime;
+    private Instant createTime;
 
     /**
      * 关系：实体之间的关联关系列表
@@ -124,10 +124,10 @@ public class EntityNode {
         private String tenantCode;
 
         /**
-         * 创建时间
+         * 创建时间（使用Instant以支持Neo4j的ZonedDateTime类型）
          */
         @Property("create_time")
-        private LocalDateTime createTime;
+        private Instant createTime;
 
         /**
          * 目标实体节点

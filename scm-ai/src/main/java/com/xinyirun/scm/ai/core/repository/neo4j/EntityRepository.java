@@ -172,14 +172,14 @@ public interface EntityRepository extends Neo4jRepository<EntityNode, Long> {
      * @param entity_uuid 实体UUID
      * @param tenant_code 租户ID
      * @param relation_type 关系类型（可选）
-     * @return 关系和目标实体列表
+     * @return 关系和目标实体列表（Object[]包含：[0]=target EntityNode, [1]=relationType String, [2]=strength Float）
      */
     @Query("""
             MATCH (e:Entity {entity_uuid: $entity_uuid, tenant_code: $tenant_code})
                   -[r:RELATED_TO]->(target:Entity)
             WHERE target.tenant_code = $tenant_code
               AND ($relation_type IS NULL OR r.relation_type = $relation_type)
-            RETURN target, r.relation_type AS relation_type, r.strength AS strength
+            RETURN target, r.relation_type, r.strength
             ORDER BY r.strength DESC
             """)
     List<Object[]> findDirectRelationships(
