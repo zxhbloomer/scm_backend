@@ -1,17 +1,16 @@
 package com.xinyirun.scm.ai.config;
 
-import com.xinyirun.scm.ai.common.constant.AiConstant;
-import com.xinyirun.scm.ai.core.service.config.AiConfigService;
-import com.xinyirun.scm.ai.engine.common.AIChatClient;
-import com.xinyirun.scm.ai.engine.common.AIChatOptions;
-import com.xinyirun.scm.ai.engine.holder.ChatClientHolder;
+import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
+import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.openai.OpenAiChatModel;
+import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
@@ -62,7 +61,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AiModelProvider {
 
     @Autowired
-    private AiConfigService aiConfigService;
+    private AiModelConfigService aiModelConfigService;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -136,40 +135,28 @@ public class AiModelProvider {
     private ChatModel createChatModel(String cacheKey) {
         log.info("为租户 {} 创建ChatModel", cacheKey);
 
-        // 从当前租户库读取配置
-        String provider = aiConfigService.getConfigValue("RAG_PROVIDER", "DeepSeek");
-        String configKeyPrefix = "RAG_" + provider.toUpperCase().replace(" ", "");
+        // 获取默认LLM模型配置
+        AiModelConfigVo config = aiModelConfigService.getDefaultModelConfigWithKey("LLM");
 
-        String apiKey = aiConfigService.getConfigValue(configKeyPrefix + "_API_KEY");
-        String baseUrl = aiConfigService.getConfigValue(configKeyPrefix + "_API_BASE");
-        String model = aiConfigService.getConfigValue(configKeyPrefix + "_MODEL");
-        String temperature = aiConfigService.getConfigValue(configKeyPrefix + "_TEMPERATURE", "0.7");
-        String maxTokens = aiConfigService.getConfigValue(configKeyPrefix + "_MAX_TOKENS", "2048");
+        log.info("ChatModel配置: provider={}, model={}, baseUrl={}",
+            config.getProvider(), config.getModelName(), config.getBaseUrl());
 
-        // 验证必要配置
-        if (!StringUtils.hasText(apiKey)) {
-            throw new IllegalStateException(String.format(
-                "租户未配置 %s_API_KEY，请在 ai_config 表中添加配置", configKeyPrefix));
-        }
+        // 使用 OpenAI 兼容 API 创建 ChatModel
+        // 大部分 AI provider（SiliconFlow、DeepSeek、Moonshot、智谱AI等）都兼容 OpenAI API
+        OpenAiApi openAiApi = OpenAiApi.builder()
+            .apiKey(config.getApiKey())
+            .baseUrl(config.getBaseUrl())
+            .build();
 
-        log.info("RAG ChatModel配置: provider={}, model={}, baseUrl={}", provider, model, baseUrl);
-
-        // 构建AIChatOptions
-        AIChatOptions options = new AIChatOptions();
-        options.setApiKey(apiKey);
-        options.setBaseUrl(baseUrl);
-        options.setModelType(model);
-        options.setTemperature(Double.parseDouble(temperature));
-        options.setMaxTokens(Integer.parseInt(maxTokens));
-
-        // 通过ChatClientHolder动态创建ChatModel
-        AIChatClient chatClient = ChatClientHolder.getChatClientByType(provider);
-        if (chatClient == null) {
-            throw new IllegalStateException("不支持的RAG provider: " + provider +
-                "，支持的类型：DeepSeek, Open AI, ZhiPu AI");
-        }
-
-        return chatClient.chatModel(options);
+        return OpenAiChatModel.builder()
+            .openAiApi(openAiApi)
+            .defaultOptions(OpenAiChatOptions.builder()
+                .model(config.getModelName())
+                .temperature(config.getTemperature().doubleValue())
+                .maxTokens(config.getMaxTokens())
+                .topP(config.getTopP().doubleValue())
+                .build())
+            .build();
     }
 
     /**
@@ -181,44 +168,22 @@ public class AiModelProvider {
     private EmbeddingModel createEmbeddingModel(String cacheKey) {
         log.info("为租户 {} 创建EmbeddingModel", cacheKey);
 
-        // 从当前租户库读取配置
-        String provider = aiConfigService.getConfigValue("EMBEDDING_PROVIDER", "siliconflow");
-        log.info("读取EMBEDDING_PROVIDER: {}", provider);
+        // 获取默认EMBEDDING模型配置
+        AiModelConfigVo config = aiModelConfigService.getDefaultModelConfigWithKey("EMBEDDING");
 
-        if ("siliconflow".equalsIgnoreCase(provider)) {
-            log.info("开始读取 EMBEDDING_SILICONFLOW_API_KEY，常量值: {}", AiConstant.EMBEDDING_SILICONFLOW_API_KEY);
-            String apiKey = aiConfigService.getConfigValue(AiConstant.EMBEDDING_SILICONFLOW_API_KEY);
-            log.info("读取EMBEDDING_SILICONFLOW_API_KEY结果: {}", apiKey != null ? ("已配置，长度=" + apiKey.length()) : "未配置(null)");
+        log.info("EmbeddingModel配置: provider={}, model={}, baseUrl={}",
+            config.getProvider(), config.getModelName(), config.getBaseUrl());
 
-            String baseUrl = aiConfigService.getConfigValue(
-                AiConstant.EMBEDDING_SILICONFLOW_API_BASE,
-                "https://api.siliconflow.cn/v1"
-            );
-            log.info("读取EMBEDDING_SILICONFLOW_API_BASE: {}", baseUrl);
-
-            String embeddingModel = aiConfigService.getConfigValue(
-                AiConstant.EMBEDDING_SILICONFLOW_MODEL,
-                "BAAI/bge-m3"
-            );
-            log.info("读取EMBEDDING_SILICONFLOW_MODEL: {}", embeddingModel);
-
-            // 验证API Key是否配置
-            if (!StringUtils.hasText(apiKey)) {
-                log.error("租户 {} 未配置 EMBEDDING_SILICONFLOW_API_KEY", cacheKey);
-                throw new IllegalStateException("租户未配置 Embedding API Key");
-            }
-
-            log.info("Embedding配置: provider={}, model={}, baseUrl={}", provider, embeddingModel, baseUrl);
-
+        if ("siliconflow".equalsIgnoreCase(config.getProvider())) {
             return new SiliconFlowEmbeddingModel(
-                baseUrl,
-                apiKey,
-                embeddingModel,
+                config.getBaseUrl(),
+                config.getApiKey(),
+                config.getModelName(),
                 restTemplate
             );
         }
 
-        throw new IllegalStateException("不支持的Embedding provider: " + provider);
+        throw new IllegalStateException("不支持的Embedding provider: " + config.getProvider());
     }
 
     /**

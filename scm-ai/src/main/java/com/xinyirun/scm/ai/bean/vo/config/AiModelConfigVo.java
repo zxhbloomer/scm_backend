@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @Data
 public class AiModelConfigVo {
     private Long id;
+    private String name;
     private String modelName;
     private String modelType;
     private String provider;

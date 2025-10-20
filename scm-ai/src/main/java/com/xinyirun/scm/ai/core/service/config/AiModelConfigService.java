@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -25,6 +26,9 @@ public class AiModelConfigService {
 
     @Resource
     private AiModelConfigMapper aiModelConfigMapper;
+
+    @Resource
+    private AiConfigService aiConfigService;
 
     /**
      * 编辑模型配置
@@ -91,6 +95,9 @@ public class AiModelConfigService {
      */
     private void buildModelConfig(AiModelConfigVo aiModelConfigVo, AiModelConfigEntity aiModelConfig) {
         // 更新时只设置非null字段，避免覆盖原有数据
+        if (aiModelConfigVo.getName() != null) {
+            aiModelConfig.setName(aiModelConfigVo.getName());
+        }
         if (aiModelConfigVo.getModelName() != null) {
             aiModelConfig.setModelName(aiModelConfigVo.getModelName());
         }
@@ -263,5 +270,108 @@ public class AiModelConfigService {
         String prefix = input.substring(0, 4); // sk-AB
         String suffix = input.substring(input.length() - 2); // 最后两个字符
         return prefix + "**** " + suffix;
+    }
+
+    /**
+     * 根据模型类型获取默认模型配置
+     *
+     * @param modelType 模型类型：LLM/VISION/EMBEDDING
+     * @return 模型配置VO（API密钥已脱敏）
+     * @throws RuntimeException 当配置不存在或模型未启用时
+     */
+    public AiModelConfigVo getDefaultModelConfig(String modelType) {
+        // 步骤1: 验证模型类型
+        if (!Arrays.asList("LLM", "VISION", "EMBEDDING").contains(modelType.toUpperCase())) {
+            throw new IllegalArgumentException("不支持的模型类型: " + modelType);
+        }
+
+        // 步骤2: 从 ai_config 表获取默认模型ID
+        String configKey = "DEFAULT_" + modelType.toUpperCase() + "_MODEL_ID";
+        String modelIdStr = aiConfigService.getConfigValue(configKey);
+
+        if (StringUtils.isBlank(modelIdStr)) {
+            throw new RuntimeException("未配置默认" + modelType + "模型，请在ai_config表中配置" + configKey);
+        }
+
+        Long modelId;
+        try {
+            modelId = Long.parseLong(modelIdStr);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("默认模型ID格式错误: " + modelIdStr);
+        }
+
+        // 步骤3: 从 ai_model_config 表获取模型配置
+        AiModelConfigEntity config = aiModelConfigMapper.selectById(modelId);
+
+        if (config == null) {
+            throw new RuntimeException("模型配置不存在: ID=" + modelId);
+        }
+
+        // 步骤4: 验证模型状态
+        if (!config.getEnabled()) {
+            throw new RuntimeException("模型未启用: " + config.getModelName());
+        }
+
+        // 步骤5: 验证模型类型匹配
+        if (!config.getModelType().equalsIgnoreCase(modelType)) {
+            throw new RuntimeException(String.format(
+                "模型类型不匹配: 期望%s，实际%s", modelType, config.getModelType()));
+        }
+
+        // 步骤6: 转换为VO返回（API密钥脱敏）
+        return getModelConfigVo(config);
+    }
+
+    /**
+     * 根据模型类型获取默认模型配置（包含完整API Key，用于内部调用）
+     *
+     * @param modelType 模型类型：LLM/VISION/EMBEDDING
+     * @return 模型配置VO（包含完整API Key）
+     * @throws RuntimeException 当配置不存在或模型未启用时
+     */
+    public AiModelConfigVo getDefaultModelConfigWithKey(String modelType) {
+        // 步骤1: 验证模型类型
+        if (!Arrays.asList("LLM", "VISION", "EMBEDDING").contains(modelType.toUpperCase())) {
+            throw new IllegalArgumentException("不支持的模型类型: " + modelType);
+        }
+
+        // 步骤2: 从 ai_config 表获取默认模型ID
+        String configKey = "DEFAULT_" + modelType.toUpperCase() + "_MODEL_ID";
+        String modelIdStr = aiConfigService.getConfigValue(configKey);
+
+        if (StringUtils.isBlank(modelIdStr)) {
+            throw new RuntimeException("未配置默认" + modelType + "模型，请在ai_config表中配置" + configKey);
+        }
+
+        Long modelId;
+        try {
+            modelId = Long.parseLong(modelIdStr);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("默认模型ID格式错误: " + modelIdStr);
+        }
+
+        // 步骤3: 从 ai_model_config 表获取模型配置
+        AiModelConfigEntity config = aiModelConfigMapper.selectById(modelId);
+
+        if (config == null) {
+            throw new RuntimeException("模型配置不存在: ID=" + modelId);
+        }
+
+        // 步骤4: 验证模型状态
+        if (!config.getEnabled()) {
+            throw new RuntimeException("模型未启用: " + config.getModelName());
+        }
+
+        // 步骤5: 验证模型类型匹配
+        if (!config.getModelType().equalsIgnoreCase(modelType)) {
+            throw new RuntimeException(String.format(
+                "模型类型不匹配: 期望%s，实际%s", modelType, config.getModelType()));
+        }
+
+        // 步骤6: 转换为VO返回，不脱敏API Key
+        AiModelConfigVo vo = new AiModelConfigVo();
+        BeanUtils.copyProperties(config, vo);
+        // 不调用 maskSkString，保留完整API Key
+        return vo;
     }
 }

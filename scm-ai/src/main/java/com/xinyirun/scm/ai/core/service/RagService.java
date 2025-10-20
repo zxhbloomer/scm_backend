@@ -1,12 +1,12 @@
 package com.xinyirun.scm.ai.core.service;
 
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaEntity;
-import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
+import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.rag.*;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
-import com.xinyirun.scm.ai.core.service.model.AiModelSourceService;
+import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefEmbeddingService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
@@ -57,7 +57,7 @@ public class RagService {
     @Resource
     private AiKnowledgeBaseQaRefGraphService qaRefGraphService;
     @Resource
-    private AiModelSourceService aiModelSourceService;
+    private AiModelConfigService aiModelConfigService;
 
     @Autowired
     private AiModelProvider aiModelProvider;
@@ -120,24 +120,16 @@ public class RagService {
                 }
 
                 // 2.5. 【严格模式判断点1】查询AI模型配置（获取maxInputTokens）
-                // 
-                // 兼容旧数据：空值、"default"字符串都使用知识库默认模型
-                String aiModelId = qaRecord.getAiModelId();
-                if (StringUtils.isBlank(aiModelId) || "default".equals(aiModelId)) {
-                    aiModelId = knowledgeBase.getIngestModelId();
-                    log.debug("QA记录AI模型ID无效({}), 使用知识库默认模型: {}",
-                        qaRecord.getAiModelId(), aiModelId);
+                // 获取默认LLM模型配置（RAG场景使用LLM）
+                AiModelConfigVo aiModel = aiModelConfigService.getDefaultModelConfigWithKey("LLM");
 
-                    if (StringUtils.isBlank(aiModelId)) {
-                        log.error("知识库未配置默认AI模型，kbUuid: {}", kbUuid);
-                        fluxSink.error(new RuntimeException("知识库未配置AI模型，请先配置知识库的AI模型"));
-                        return;
-                    }
-                }
+                // 从maxTokens推算maxInputTokens（通常maxInputTokens是maxTokens的70-80%）
+                // 如果没有配置maxTokens,使用默认值4096
+                int maxInputTokens = aiModel.getMaxTokens() != null ?
+                    (int)(aiModel.getMaxTokens() * 0.75) : 4096;
 
-                AiModelSourceVo aiModel = aiModelSourceService.getByIdOrThrow(aiModelId);
-                int maxInputTokens = aiModel.getMax_input_tokens();
-                log.debug("AI模型配置：id={}, max_input_tokens={}", aiModel.getId(), maxInputTokens);
+                log.debug("AI模型配置：id={}, maxTokens={}, 推算maxInputTokens={}",
+                    aiModel.getId(), aiModel.getMaxTokens(), maxInputTokens);
 
                 // 2.6. 【严格模式判断点1】Token验证（用户问题是否超限）
                 InputAdaptorMsg validationResult = TokenCalculator.isQuestionValid(question, maxInputTokens);

@@ -7,10 +7,10 @@ import com.xinyirun.scm.ai.bean.vo.chat.AiConversationVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIConversationUpdateRequestVo;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
-import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
+import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
-import com.xinyirun.scm.ai.core.service.chat.AiModelSelectionService;
+import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.ai.common.constant.AICommonConstants;
@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -55,7 +56,7 @@ public class AiConversationController {
     private AiTokenUsageService aiTokenUsageService;
 
     @Resource
-    private AiModelSelectionService aiModelSelectionService;
+    private AiModelConfigService aiModelConfigService;
 
     @Resource
     private MUserMapper mUserMapper;
@@ -177,19 +178,20 @@ public class AiConversationController {
                 // 设置多租户数据源
                 DataSourceHelper.use(tenant_id);
 
-                // 动态选择AI模型
-                AiModelSourceEntity selectedModel = aiModelSelectionService.selectAvailableModel(request.getAiType());
+                // 将aiType映射为modelType并获取模型配置
+                String modelType = mapAiTypeToModelType(request.getAiType());
+                AiModelConfigVo selectedModel = aiModelConfigService.getDefaultModelConfigWithKey(modelType);
                 log.info("已选择AI模型: [提供商: {}, 模型: {}, ID: {}]",
-                        selectedModel.getProviderName(), selectedModel.getBaseName(), selectedModel.getId());
+                        selectedModel.getProvider(), selectedModel.getModelName(), selectedModel.getId());
 
                 // 持久化原始提示词（使用选中的模型信息）
                 aiConversationContentService.saveConversationContent(
                         request.getConversationId(),
                         AICommonConstants.MESSAGE_TYPE_USER,
                         request.getPrompt(),
-                        selectedModel.getId(),
-                        selectedModel.getProviderName(),
-                        selectedModel.getBaseName(),
+                        selectedModel.getId().toString(),
+                        selectedModel.getProvider(),
+                        selectedModel.getModelName(),
                         operatorId
                 );
 
@@ -219,9 +221,9 @@ public class AiConversationController {
                                                     request.getConversationId(),
                                                     AICommonConstants.MESSAGE_TYPE_ASSISTANT,
                                                     response.getContent(),
-                                                    selectedModel.getId(),
-                                                    selectedModel.getProviderName(),
-                                                    selectedModel.getBaseName(),
+                                                    selectedModel.getId().toString(),
+                                                    selectedModel.getProvider(),
+                                                    selectedModel.getModelName(),
                                                     operatorId
                                             );
 
@@ -234,9 +236,9 @@ public class AiConversationController {
                                                         request.getConversationId(),
                                                         null,                              // conversationContentId (ASSISTANT消息ID，在此处为null)
                                                         String.valueOf(userId),            // 将userId转换为String
-                                                        selectedModel.getProviderName(),   // AI提供商
-                                                        selectedModel.getId(),             // 模型源ID
-                                                        selectedModel.getBaseName(),       // 模型类型（base_name）
+                                                        selectedModel.getProvider(),       // AI提供商
+                                                        selectedModel.getId().toString(),  // 模型源ID
+                                                        selectedModel.getModelName(),      // 模型类型（model_name）
                                                         response.getUsage().getPromptTokens() != null ? response.getUsage().getPromptTokens().longValue() : 0L,
                                                         response.getUsage().getCompletionTokens() != null ? response.getUsage().getCompletionTokens().longValue() : 0L
                                                 );
@@ -244,7 +246,7 @@ public class AiConversationController {
 
                                             // 发送完成响应
                                             ChatResponseVo completeResponse = ChatResponseVo.createCompleteResponse(
-                                                    response.getContent(), selectedModel.getId());
+                                                    response.getContent(), selectedModel.getId().toString());
                                             fluxSink.next(completeResponse);
                                             fluxSink.complete();
                                         } catch (Exception e) {
@@ -272,6 +274,32 @@ public class AiConversationController {
         });
 
         return responseFlux;
+    }
+
+    /**
+     * 将aiType映射为modelType
+     *
+     * @param aiType AI类型（前端传入）
+     * @return modelType 模型类型（LLM/VISION/EMBEDDING）
+     */
+    private String mapAiTypeToModelType(String aiType) {
+        if (StringUtils.isBlank(aiType)) {
+            return "LLM";
+        }
+
+        switch (aiType.toUpperCase()) {
+            case "VISION":
+            case "IMAGE":
+                return "VISION";
+            case "EMBEDDING":
+            case "EMB":
+                return "EMBEDDING";
+            case "LLM":
+            case "TEXT":
+            case "CHAT":
+            default:
+                return "LLM";
+        }
     }
 
 }

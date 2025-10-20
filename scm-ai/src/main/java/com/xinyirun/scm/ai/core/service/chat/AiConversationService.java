@@ -72,7 +72,7 @@ public class AiConversationService {
      */
     public void chatStreamWithCallback(AIChatRequestVo request, String userId, AiStreamHandler.CallbackStreamHandler streamHandler) {
         // 获取模型ID
-        final String modelId = aiChatBaseService.getModule(request, userId).getId();
+        final Long modelId = aiChatBaseService.getModule(request, userId).getId();
 
         AIChatOptionVo aiChatOption = AIChatOptionVo.builder()
                 .conversationId(request.getConversationId())

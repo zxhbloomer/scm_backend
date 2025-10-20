@@ -232,7 +232,7 @@ public class GraphRetrievalService {
         try {
             response = aiModelProvider.getChatModel().call(new Prompt(prompt)).getResult().getOutput().getText();
         } catch (Exception e) {
-            log.error("图谱实体提取失败", e);
+            log.error("图谱实体提取失败: {}", e.getMessage(), e);
             return Collections.emptySet();
         }
 

@@ -21,6 +21,9 @@ public class AiModelConfigEntity implements Serializable {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
+    @TableField("name")
+    private String name;
+
     @TableField("model_name")
     private String modelName;
 

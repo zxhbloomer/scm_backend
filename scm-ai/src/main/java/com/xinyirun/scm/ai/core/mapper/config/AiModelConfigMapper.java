@@ -26,6 +26,7 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
         <script>
         SELECT
             t1.id,
+            t1.name,
             t1.model_name AS modelName,
             t1.model_type AS modelType,
             t1.provider,
@@ -74,6 +75,7 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
     @Select("""
         SELECT
             t1.id,
+            t1.name,
             t1.model_name AS modelName,
             t1.model_type AS modelType,
             t1.provider,
@@ -108,7 +110,7 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
      * @return 模型配置列表
      */
     @Select("""
-        SELECT id, model_name AS modelName, provider, deployment_name AS deploymentName
+        SELECT id, name, model_name AS modelName, provider, deployment_name AS deploymentName
         FROM ai_model_config
         WHERE enabled = 1 AND support_chat = 1
         ORDER BY c_time DESC
@@ -121,7 +123,7 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
      * @return 模型配置列表
      */
     @Select("""
-        SELECT id, model_name AS modelName, provider, deployment_name AS deploymentName
+        SELECT id, name, model_name AS modelName, provider, deployment_name AS deploymentName
         FROM ai_model_config
         WHERE enabled = 1 AND support_vision = 1
         ORDER BY c_time DESC
@@ -134,7 +136,7 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
      * @return 模型配置列表
      */
     @Select("""
-        SELECT id, model_name AS modelName, provider, deployment_name AS deploymentName
+        SELECT id, name, model_name AS modelName, provider, deployment_name AS deploymentName
         FROM ai_model_config
         WHERE enabled = 1 AND support_embedding = 1
         ORDER BY c_time DESC

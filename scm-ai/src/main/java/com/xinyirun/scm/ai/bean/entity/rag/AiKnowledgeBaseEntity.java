@@ -62,13 +62,17 @@ public class AiKnowledgeBaseEntity {
 
     /**
      * 索引时使用的LLM模型名称
+     * @deprecated 已废弃，关联的 ai_model_source 表已废弃，请使用 ai_config 和 ai_model_config 表的新配置逻辑
      */
+    @Deprecated
     @TableField("ingest_model_name")
     private String ingestModelName;
 
     /**
      * 索引时使用的LLM模型ID
+     * @deprecated 已废弃，关联的 ai_model_source 表已废弃，请使用 ai_config 和 ai_model_config 表的新配置逻辑
      */
+    @Deprecated
     @TableField("ingest_model_id")
     private String ingestModelId;
 

@@ -19,7 +19,6 @@ import java.util.List;
  * 硅基流动（SiliconFlow）嵌入模型实现
  * 使用 BAAI/bge-m3 模型生成 1024 维向量
  *
- * API文档：https://docs.siliconflow.cn/api-reference/embeddings
  *
  * 特性：
  * - 向量维度：1024
@@ -64,7 +63,7 @@ public class SiliconFlowEmbeddingModel implements EmbeddingModel {
             HttpEntity<String> entity = new HttpEntity<>(requestBody.toJSONString(), headers);
 
             // 调用硅基流动 API
-            String url = baseUrl + "/embeddings";
+            String url = baseUrl ;
             log.debug("调用硅基流动嵌入API: {}", url);
 
             ResponseEntity<String> response = restTemplate.exchange(

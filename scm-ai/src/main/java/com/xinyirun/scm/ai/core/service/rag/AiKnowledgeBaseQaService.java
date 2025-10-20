@@ -5,26 +5,18 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaEntity;
-import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaRefGraphEntity;
-import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseQaVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
-import com.xinyirun.scm.ai.bean.vo.rag.QaRefGraphVo;
-import com.xinyirun.scm.ai.bean.vo.response.KnowledgeBaseQaResponseVo;
+import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefGraphMapper;
 import com.xinyirun.scm.ai.core.service.KnowledgeBaseService;
-import com.xinyirun.scm.ai.engine.utils.JSON;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 /**
  * 知识库问答记录服务类
@@ -39,9 +31,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMapper, AiKnowledgeBaseQaEntity> {
 
-    private final AiKnowledgeBaseMapper knowledgeBaseMapper;
     private final KnowledgeBaseService knowledgeBaseService;
-    private final AiKnowledgeBaseQaRefGraphMapper refGraphMapper;
 
     /**
      * 创建知识库问答记录（基础方法）
@@ -261,78 +251,5 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
         wrapper.eq(AiKnowledgeBaseQaEntity::getUuid, qaUuid);
         wrapper.eq(AiKnowledgeBaseQaEntity::getIsDeleted, 0);
         return this.getOne(wrapper);
-    }
-
-    /**
-     * 根据UUID查询问答记录（不存在则抛异常）
-     *
-     * @param qaUuid 问答记录UUID
-     * @return 问答记录实体
-     */
-    public AiKnowledgeBaseQaEntity getOrThrow(String qaUuid) {
-        AiKnowledgeBaseQaEntity exist = getByQaUuid(qaUuid);
-        if (exist == null) {
-            log.error("问答记录不存在，qaUuid: {}", qaUuid);
-            throw new RuntimeException("问答记录不存在");
-        }
-        return exist;
-    }
-
-    /**
-     * 查询问答记录详情（包含引用数据）
-     *
-     * 
-     *
-     * @param uuid 问答记录UUID
-     * @return 问答记录详情（包含向量引用和图谱引用）
-     */
-    public KnowledgeBaseQaResponseVo getDetailByUuid(String uuid) {
-        // 1. 查询基础信息（使用Mapper的SQL查询）
-        KnowledgeBaseQaResponseVo responseVo = this.baseMapper.selectDetailByUuid(uuid);
-        if (responseVo == null) {
-            throw new RuntimeException("问答记录不存在: " + uuid);
-        }
-
-        // 2. 查询图谱引用（直接使用Mapper，避免循环依赖）
-        // 注意：不能注入AiKnowledgeBaseQaRefGraphService，因为它也注入了本Service，会导致循环依赖
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefGraphEntity> graphWrapper = new LambdaQueryWrapper<>();
-        graphWrapper.eq(AiKnowledgeBaseQaRefGraphEntity::getQaRecordId, responseVo.getId());
-        AiKnowledgeBaseQaRefGraphEntity graphEntity = refGraphMapper.selectOne(graphWrapper);
-
-        if (graphEntity != null) {
-            try {
-                QaRefGraphVo graphVo = new QaRefGraphVo();
-                graphVo.setId(graphEntity.getId());
-                graphVo.setQaRecordId(graphEntity.getQaRecordId());
-                graphVo.setUserId(graphEntity.getUserId());
-
-                // 解析entities_from_question（逗号分隔字符串转List）
-                if (StringUtils.isNotBlank(graphEntity.getEntitiesFromQuestion())) {
-                    List<String> entities = Arrays.asList(graphEntity.getEntitiesFromQuestion().split(","));
-                    graphVo.setEntitiesFromQuestion(entities);
-                }
-
-                // 解析graph_from_store JSON（包含vertices和edges）
-                if (StringUtils.isNotBlank(graphEntity.getGraphFromStore())) {
-                    try {
-                        Map<String, Object> graphData = JSON.parseObject(graphEntity.getGraphFromStore(), Map.class);
-                        // 这里可以解析vertices和edges，暂时留空由前端处理
-                    } catch (Exception e) {
-                        log.warn("解析graphFromStore失败: {}", e.getMessage());
-                    }
-                }
-
-                // 添加到graphRefs列表（不是setRefGraph，而是添加到列表）
-                if (responseVo.getGraphRefs() == null) {
-                    responseVo.setGraphRefs(new java.util.ArrayList<>());
-                }
-                responseVo.getGraphRefs().add(graphVo);
-
-            } catch (Exception e) {
-                log.error("解析图谱引用数据失败，uuid: {}", uuid, e);
-            }
-        }
-
-        return responseVo;
     }
 }

@@ -3,39 +3,36 @@ package com.xinyirun.scm.ai.core.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.xinyirun.scm.ai.bean.entity.model.AiModelSourceEntity;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
+import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseStarEntity;
+import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.common.constant.AiConstant;
-import com.xinyirun.scm.ai.core.mapper.model.AiModelSourceMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
-import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper;
 import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
-import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseGraphSegmentEntity;
+import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
+import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseStarService;
+import com.xinyirun.scm.bean.system.ao.mqsender.MqMessageAo;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
-import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
-import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseStarEntity;
-import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseStarService;
 import com.xinyirun.scm.mq.rabbitmq.producer.ScmMqProducer;
-import com.xinyirun.scm.bean.system.ao.mqsender.MqMessageAo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -59,8 +56,6 @@ public class KnowledgeBaseService {
 
     private final AiKnowledgeBaseMapper knowledgeBaseMapper;
     private final AiKnowledgeBaseItemMapper itemMapper;
-    private final AiModelSourceMapper aiModelSourceMapper;
-    private final RabbitTemplate rabbitTemplate;
     private final ScmMqProducer scmMqProducer;
     private final DocumentParsingService documentParsingService;
     private final AiKnowledgeBaseStarService starService;
@@ -71,6 +66,7 @@ public class KnowledgeBaseService {
     private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
     private final Neo4jGraphIndexingService neo4jGraphIndexingService;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper graphSegmentMapper;
+    private final AiModelConfigService aiModelConfigService;
 
     /**
      * Redis key: 用户索引进行中标识
@@ -81,6 +77,13 @@ public class KnowledgeBaseService {
 
     /**
      * 保存或更新知识库
+     *
+     * <p>模型配置逻辑：</p>
+     * <ul>
+     *   <li>如果前端传入了模型ID，使用指定的嵌入模型</li>
+     *   <li>如果未传入模型ID，使用系统默认嵌入模型</li>
+     *   <li>模型类型必须是 EMBEDDING 类型</li>
+     * </ul>
      *
      * @param vo 知识库VO对象
      * @return 保存后的知识库VO
@@ -101,24 +104,50 @@ public class KnowledgeBaseService {
             BeanUtils.copyProperties(vo, entity, "ingestModelId", "ingestModelName");
         }
 
-        // 如果前端传入了模型ID，查询模型信息并自动填充模型名称
+        // 处理嵌入模型配置（新逻辑：使用 AiModelConfigService）
+        AiModelConfigVo modelConfig;
+
         if (StringUtils.isNotBlank(vo.getIngestModelId())) {
-            LambdaQueryWrapper<AiModelSourceEntity> modelWrapper = new LambdaQueryWrapper<>();
-            modelWrapper.eq(AiModelSourceEntity::getId, vo.getIngestModelId());
-            AiModelSourceEntity modelEntity = aiModelSourceMapper.selectOne(modelWrapper);
+            // 前端指定了模型ID，验证并使用该模型
+            try {
+                Long modelId = Long.parseLong(vo.getIngestModelId());
+                modelConfig = aiModelConfigService.getModelConfigVo(modelId, null);
 
-            if (modelEntity != null) {
+                // 验证模型类型必须是 EMBEDDING
+                if (!"EMBEDDING".equalsIgnoreCase(modelConfig.getModelType())) {
+                    throw new RuntimeException(String.format(
+                        "知识库只能使用嵌入模型，当前模型类型为: %s", modelConfig.getModelType()));
+                }
+
+                // 验证模型是否启用
+                if (!modelConfig.getEnabled()) {
+                    throw new RuntimeException("模型未启用: " + modelConfig.getModelName());
+                }
+
                 entity.setIngestModelId(vo.getIngestModelId());
-                String normalizedModelName = normalizeModelNameForKb(modelEntity);
-                entity.setIngestModelName(normalizedModelName);
+                entity.setIngestModelName(modelConfig.getModelName());
 
-                log.info("知识库保存：自动填充模型名称，modelId: {}, modelName: {}",
-                         vo.getIngestModelId(), normalizedModelName);
-            } else {
-                throw new RuntimeException("模型不存在，ID: " + vo.getIngestModelId());
+                log.info("知识库保存：使用指定嵌入模型，modelId: {}, modelName: {}",
+                         vo.getIngestModelId(), modelConfig.getModelName());
+
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("模型ID格式错误: " + vo.getIngestModelId());
             }
         } else {
-            log.warn("知识库保存：未指定索引模型，将使用系统默认模型");
+            // 未指定模型，使用系统默认嵌入模型
+            try {
+                modelConfig = aiModelConfigService.getDefaultModelConfig("EMBEDDING");
+
+                entity.setIngestModelId(String.valueOf(modelConfig.getId()));
+                entity.setIngestModelName(modelConfig.getModelName());
+
+                log.info("知识库保存：使用系统默认嵌入模型，modelId: {}, modelName: {}",
+                         modelConfig.getId(), modelConfig.getModelName());
+
+            } catch (Exception e) {
+                log.error("获取默认嵌入模型失败: {}", e.getMessage());
+                throw new RuntimeException("获取默认嵌入模型失败，请在AI配置中设置默认嵌入模型: " + e.getMessage());
+            }
         }
 
         // 处理Token估计器
@@ -159,58 +188,6 @@ public class KnowledgeBaseService {
 
         BeanUtils.copyProperties(entity, vo);
         return vo;
-    }
-
-    /**
-     * 规范化模型名称
-     *
-     * <p>确保返回技术标识格式的模型名称</p>
-     *
-     * @param modelEntity 模型实体
-     * @return 规范化的模型名称
-     */
-    private String normalizeModelNameForKb(AiModelSourceEntity modelEntity) {
-        String name = modelEntity.getName();
-
-        if (StringUtils.isBlank(name) ||
-            (!name.contains("-") && !isKnownModelNameForKb(name))) {
-
-            String providerName = modelEntity.getProviderName();
-            String provider = StringUtils.isNotBlank(providerName)
-                ? providerName.toLowerCase()
-                : "unknown";
-
-            if (StringUtils.isNotBlank(modelEntity.getBaseName())) {
-                return provider + "-" +
-                       modelEntity.getBaseName().toLowerCase().replace(" ", "-");
-            } else {
-                return provider + "-model-" + modelEntity.getId();
-            }
-        }
-
-        return name;
-    }
-
-    /**
-     * 判断是否为知名模型名称
-     *
-     * @param name 模型名称
-     * @return 是否为知名模型
-     */
-    private boolean isKnownModelNameForKb(String name) {
-        if (StringUtils.isBlank(name)) {
-            return false;
-        }
-
-        List<String> knownModels = List.of(
-            "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo",
-            "claude-3-opus", "claude-3-sonnet", "claude-3-haiku",
-            "gemini-pro", "gemini-1.5-pro",
-            "llama-3-70b", "llama-3-8b",
-            "qwen-turbo", "qwen-plus", "qwen-max"
-        );
-
-        return knownModels.contains(name.toLowerCase());
     }
 
     /**

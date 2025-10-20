@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.bean.vo.request;
 
-import com.xinyirun.scm.ai.bean.vo.model.AiModelSourceVo;
+import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -37,10 +37,10 @@ public class AIChatOptionVo implements Serializable {
     private String conversationId;
 
     /**
-     * AI模型源信息
+     * AI模型配置信息
      */
-    @Schema(description = "AI模型源信息")
-    private AiModelSourceVo module;
+    @Schema(description = "AI模型配置信息")
+    private AiModelConfigVo module;
 
     /**
      * 用户输入的提示词
