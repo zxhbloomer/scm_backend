@@ -23,6 +23,7 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
      * @return 模型配置VO列表
      */
     @Select("""
+        <script>
         SELECT
             t1.id,
             t1.model_name AS modelName,
@@ -49,7 +50,17 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
         FROM ai_model_config t1
         LEFT JOIN m_staff t2 ON t1.c_id = t2.id
         LEFT JOIN m_staff t3 ON t1.u_id = t3.id
+        <where>
+            <if test="providerName != null and providerName != ''">
+                AND t1.provider = #{providerName}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (t1.model_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR t1.deployment_name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
         ORDER BY t1.c_time DESC
+        </script>
     """)
     List<AiModelConfigVo> selectListWithUserName(@Param("keyword") String keyword,
                                                    @Param("providerName") String providerName);
