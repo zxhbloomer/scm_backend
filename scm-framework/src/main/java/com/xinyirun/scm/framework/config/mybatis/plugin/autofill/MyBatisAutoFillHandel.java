@@ -26,12 +26,16 @@ public class MyBatisAutoFillHandel implements MetaObjectHandler {
 
         log.info(" ....新增的时候自动填充 ....");
         this.setFieldValByNameMy("c_time", LocalDateTime.now(), metaObject);
+        this.setFieldValByNameMy("cTime", LocalDateTime.now(), metaObject);
         this.setFieldValByNameMy("u_time", LocalDateTime.now(), metaObject);
+        this.setFieldValByNameMy("uTime", LocalDateTime.now(), metaObject);
         this.setFieldValByNameMy("dbversion", 0, metaObject);
 
         try {
             this.setFieldValByNameMy("c_id", SecurityUtil.getUpdateUser_id(), metaObject);
+            this.setFieldValByNameMy("cId", SecurityUtil.getUpdateUser_id(), metaObject);
             this.setFieldValByNameMy("u_id", SecurityUtil.getUpdateUser_id(), metaObject);
+            this.setFieldValByNameMy("uId", SecurityUtil.getUpdateUser_id(), metaObject);
         } catch (Exception e) {
             log.error("自动填充更新c_id，u_id出错，需要在代码中set相应的值");
         }

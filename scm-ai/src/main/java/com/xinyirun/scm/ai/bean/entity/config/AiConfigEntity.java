@@ -36,8 +36,8 @@ public class AiConfigEntity implements Serializable {
     /**
      * 主键ID
      */
-    @TableId(value = "id", type = IdType.INPUT)
-    private String id;
+    @TableId(value = "id", type = IdType.AUTO)
+    private Long id;
 
     /**
      * 配置键（如：RAG_PROVIDER, EMBEDDING_SILICONFLOW_API_KEY）
@@ -56,18 +56,6 @@ public class AiConfigEntity implements Serializable {
      */
     @TableField("description")
     private String description;
-
-    /**
-     * 创建时间戳
-     */
-    @TableField("create_time")
-    private Long createTime;
-
-    /**
-     * 更新时间戳
-     */
-    @TableField("update_time")
-    private Long updateTime;
 
     /**
      * 创建时间

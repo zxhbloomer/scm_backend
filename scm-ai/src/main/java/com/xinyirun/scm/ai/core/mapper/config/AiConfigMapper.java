@@ -17,4 +17,45 @@ import java.util.List;
 @Mapper
 public interface AiConfigMapper extends BaseMapper<AiConfigEntity> {
 
+    /**
+     * 查询默认模型配置
+     * 一次性查询LLM、VISION、EMBEDDING三种类型的默认模型ID
+     *
+     * @return 配置列表
+     */
+    @Select("""
+        SELECT config_key, config_value
+        FROM ai_config
+        WHERE config_key IN ('DEFAULT_LLM_MODEL_ID', 'DEFAULT_VISION_MODEL_ID', 'DEFAULT_EMBEDDING_MODEL_ID')
+    """)
+    @Results({
+        @Result(column = "config_key", property = "configKey"),
+        @Result(column = "config_value", property = "configValue")
+    })
+    List<AiConfigEntity> selectDefaultModels();
+
+    /**
+     * 根据配置键查询配置
+     *
+     * @param configKey 配置键
+     * @return 配置实体
+     */
+    @Select("""
+        SELECT id, config_key, config_value, description, c_time, u_time, c_id, u_id, dbversion
+        FROM ai_config
+        WHERE config_key = #{configKey}
+    """)
+    @Results({
+        @Result(column = "id", property = "id"),
+        @Result(column = "config_key", property = "configKey"),
+        @Result(column = "config_value", property = "configValue"),
+        @Result(column = "description", property = "description"),
+        @Result(column = "c_time", property = "cTime"),
+        @Result(column = "u_time", property = "uTime"),
+        @Result(column = "c_id", property = "cId"),
+        @Result(column = "u_id", property = "uId"),
+        @Result(column = "dbversion", property = "dbversion")
+    })
+    AiConfigEntity selectByConfigKey(@Param("configKey") String configKey);
+
 }

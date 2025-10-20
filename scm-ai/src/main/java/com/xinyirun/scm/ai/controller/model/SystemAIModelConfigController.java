@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ai/model/config")
+//@RequestMapping("/api/v1/ai/model/config")
 @Tag(name = "系统设置-AI-模型配置")
 public class SystemAIModelConfigController {
 

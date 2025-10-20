@@ -1,23 +1,24 @@
 package com.xinyirun.scm.ai.core.service.config;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.config.AiConfigEntity;
+import com.xinyirun.scm.ai.bean.vo.config.DefaultModelsVo;
 import com.xinyirun.scm.ai.core.mapper.config.AiConfigMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 /**
  * AI 配置服务
  * 从数据库 ai_config 表读取配置
  *
- * <p>简单设计：</p>
+ * <p>简单设计:</p>
  * <ul>
  *   <li>根据 config_key 获取 config_value</li>
  *   <li>支持缓存提升性能</li>
- *   <li>敏感信息掩码日志输出</li>
  * </ul>
  *
  * @author SCM AI Team
@@ -36,26 +37,14 @@ public class AiConfigService {
      * @param configKey 配置键（使用 AiConstant 中的常量）
      * @return 配置值（如果不存在返回 null）
      */
-    @Cacheable(value = "ai_config", key = "T(com.xinyirun.scm.common.utils.datasource.DataSourceHelper).getCurrentDataSourceName() + ':' + #configKey")
     public String getConfigValue(String configKey) {
         try {
-            LambdaQueryWrapper<AiConfigEntity> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(AiConfigEntity::getConfigKey, configKey);
-
-            AiConfigEntity config = aiConfigMapper.selectOne(queryWrapper);
+            AiConfigEntity config = aiConfigMapper.selectByConfigKey(configKey);
 
             if (config != null && StringUtils.hasText(config.getConfigValue())) {
-                // 日志掩码处理（API Key等敏感信息）
-                if (configKey.contains("API_KEY") || configKey.contains("SECRET")) {
-                    log.debug("读取AI配置: key={}, value={}***",
-                        configKey, maskSensitiveValue(config.getConfigValue()));
-                } else {
-                    log.debug("读取AI配置: key={}, value={}", configKey, config.getConfigValue());
-                }
                 return config.getConfigValue();
             }
 
-            log.warn("AI配置不存在: key={}", configKey);
             return null;
 
         } catch (Exception e) {
@@ -111,15 +100,108 @@ public class AiConfigService {
     }
 
     /**
-     * 掩码敏感值（用于日志输出）
+     * 设置配置值
      *
-     * @param value 原始值
-     * @return 掩码后的值
+     * @param configKey 配置键
+     * @param configValue 配置值
+     * @param description 配置描述
      */
-    private String maskSensitiveValue(String value) {
-        if (!StringUtils.hasText(value) || value.length() < 12) {
-            return "***";
+    @Transactional(rollbackFor = Exception.class)
+    public void setConfigValue(String configKey, String configValue, String description) {
+        try {
+            AiConfigEntity config = aiConfigMapper.selectByConfigKey(configKey);
+
+            if (config != null) {
+                // 更新现有配置
+                config.setConfigValue(configValue);
+                if (StringUtils.hasText(description)) {
+                    config.setDescription(description);
+                }
+                aiConfigMapper.updateById(config);
+            } else {
+                // 插入新配置
+                config = new AiConfigEntity();
+                config.setConfigKey(configKey);
+                config.setConfigValue(configValue);
+                config.setDescription(description);
+                aiConfigMapper.insert(config);
+            }
+        } catch (Exception e) {
+            log.error("设置AI配置失败: key={}, error={}", configKey, e.getMessage(), e);
+            throw new RuntimeException("设置AI配置失败: " + e.getMessage(), e);
         }
-        return value.substring(0, 8) + "***" + value.substring(value.length() - 4);
+    }
+
+    /**
+     * 获取默认模型配置（只返回默认选中的模型ID）
+     *
+     * @return 默认模型ID的VO对象
+     */
+    public DefaultModelsVo getDefaultModels() {
+        DefaultModelsVo result = new DefaultModelsVo();
+
+        // 查询已设置的默认模型ID
+        List<AiConfigEntity> configs = aiConfigMapper.selectDefaultModels();
+        for (AiConfigEntity config : configs) {
+            String key = config.getConfigKey();
+            String value = config.getConfigValue();
+
+            if (!StringUtils.hasText(value)) {
+                continue;
+            }
+
+            try {
+                Long modelId = Long.parseLong(value);
+                switch (key) {
+                    case "DEFAULT_LLM_MODEL_ID":
+                        result.setDefaultLlm(modelId);
+                        break;
+                    case "DEFAULT_VISION_MODEL_ID":
+                        result.setDefaultVision(modelId);
+                        break;
+                    case "DEFAULT_EMBEDDING_MODEL_ID":
+                        result.setDefaultEmbedding(modelId);
+                        break;
+                    default:
+                        log.warn("未知的默认模型配置键: {}", key);
+                }
+            } catch (NumberFormatException e) {
+                log.warn("默认模型ID格式错误: key={}, value={}", key, value);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 设置默认模型
+     *
+     * @param modelType 模型类型：LLM/VISION/EMBEDDING
+     * @param modelId 模型ID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void setDefaultModel(String modelType, Long modelId) {
+        String configKey;
+        String description;
+
+        switch (modelType.toUpperCase()) {
+            case "LLM":
+                configKey = "DEFAULT_LLM_MODEL_ID";
+                description = "默认语言模型ID";
+                break;
+            case "VISION":
+                configKey = "DEFAULT_VISION_MODEL_ID";
+                description = "默认视觉模型ID";
+                break;
+            case "EMBEDDING":
+                configKey = "DEFAULT_EMBEDDING_MODEL_ID";
+                description = "默认嵌入模型ID";
+                break;
+            default:
+                throw new IllegalArgumentException("不支持的模型类型: " + modelType);
+        }
+
+        String configValue = modelId != null ? modelId.toString() : null;
+        setConfigValue(configKey, configValue, description);
     }
 }

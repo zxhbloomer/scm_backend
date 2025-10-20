@@ -30,7 +30,7 @@ public class AiConfigVo implements Serializable {
     /**
      * 主键ID
      */
-    private String id;
+    private Long id;
 
     /**
      * 配置名称
