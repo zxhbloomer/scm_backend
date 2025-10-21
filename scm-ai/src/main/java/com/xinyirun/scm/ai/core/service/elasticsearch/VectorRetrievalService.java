@@ -97,8 +97,8 @@ public class VectorRetrievalService {
             SearchHits<AiKnowledgeBaseEmbeddingDoc> searchHits = executeKnnSearch(questionEmbedding, kbUuid, maxResults, minScore);
             log.info("Elasticsearch kNN搜索完成，命中数: {}", searchHits.getTotalHits());
 
-            // 3. 处理搜索结果，缓存分数
-            List<VectorSearchResultVo> results = processSearchResults(searchHits);
+            // 3. 处理搜索结果，缓存分数，并按minScore过滤
+            List<VectorSearchResultVo> results = processSearchResults(searchHits, minScore);
 
             log.info("向量检索完成，返回结果数: {}", results.size());
             return results;
@@ -158,8 +158,9 @@ public class VectorRetrievalService {
                                         .value(kbUuid)
                                 )
                         )
-                        // 相似度算法：余弦相似度（与kb-embeddings-settings.json中的similarity="cosine"对应）
-                        .similarity((float) minScore)
+                        // ✅ 修复：移除.similarity()调用
+                        // 原因：Spring Data Elasticsearch kNN API不支持此参数
+                        // minScore过滤在processSearchResults()方法中由Java代码实现
                 )
                 .build();
 
@@ -172,11 +173,13 @@ public class VectorRetrievalService {
      * 处理Elasticsearch搜索结果
      *
      * <p>提取搜索结果并缓存分数用于后续引用记录保存</p>
+     * <p>在Java层面按minScore过滤（Elasticsearch kNN搜索返回所有topK结果）</p>
      *
      * @param searchHits Elasticsearch搜索结果
-     * @return 向量检索结果列表
+     * @param minScore 最小相似度分数阈值
+     * @return 向量检索结果列表（已过滤低于minScore的结果）
      */
-    private List<VectorSearchResultVo> processSearchResults(SearchHits<AiKnowledgeBaseEmbeddingDoc> searchHits) {
+    private List<VectorSearchResultVo> processSearchResults(SearchHits<AiKnowledgeBaseEmbeddingDoc> searchHits, double minScore) {
         List<VectorSearchResultVo> results = new ArrayList<>();
 
         for (SearchHit<AiKnowledgeBaseEmbeddingDoc> hit : searchHits.getSearchHits()) {
@@ -188,6 +191,12 @@ public class VectorRetrievalService {
             // 提取相似度分数
             // hit.getScore() 返回 float（原始类型），不需要 null 检查
             Double score = (double) hit.getScore();
+
+            // ✅ 修复：在Java层面过滤低于minScore的结果
+            if (score < minScore) {
+                log.debug("过滤低分文档，embeddingId: {}, score: {} < minScore: {}", embeddingId, score, minScore);
+                continue;  // 跳过低于阈值的结果
+            }
 
             // 缓存embeddingId到score的映射
             embeddingToScore.put(embeddingId, score);

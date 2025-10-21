@@ -67,6 +67,9 @@ public class KnowledgeBaseService {
     private final Neo4jGraphIndexingService neo4jGraphIndexingService;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper graphSegmentMapper;
     private final AiModelConfigService aiModelConfigService;
+    private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaMapper qaMapper;
+    private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefEmbeddingMapper qaRefEmbeddingMapper;
+    private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefGraphMapper qaRefGraphMapper;
 
     /**
      * Redis key: 用户索引进行中标识
@@ -78,12 +81,7 @@ public class KnowledgeBaseService {
     /**
      * 保存或更新知识库
      *
-     * <p>模型配置逻辑：</p>
-     * <ul>
-     *   <li>如果前端传入了模型ID，使用指定的嵌入模型</li>
-     *   <li>如果未传入模型ID，使用系统默认嵌入模型</li>
-     *   <li>模型类型必须是 EMBEDDING 类型</li>
-     * </ul>
+     * <p>简单的CRUD操作,直接保存前端传入的数据</p>
      *
      * @param vo 知识库VO对象
      * @return 保存后的知识库VO
@@ -96,67 +94,9 @@ public class KnowledgeBaseService {
         boolean isNew = (vo.getKbUuid() == null || vo.getKbUuid().isEmpty());
 
         if (isNew) {
-            // 新增：排除id、模型ID和名称字段
-            // id由MyBatis Plus自动生成，模型信息后续根据ID自动填充
-            BeanUtils.copyProperties(vo, entity, "id", "ingestModelId", "ingestModelName");
-        } else {
-            // 更新：排除模型ID和名称字段，但保留id
-            BeanUtils.copyProperties(vo, entity, "ingestModelId", "ingestModelName");
-        }
+            // 新增：排除id字段(由数据库自动生成)
+            BeanUtils.copyProperties(vo, entity, "id");
 
-        // 处理嵌入模型配置（新逻辑：使用 AiModelConfigService）
-        AiModelConfigVo modelConfig;
-
-        if (StringUtils.isNotBlank(vo.getIngestModelId())) {
-            // 前端指定了模型ID，验证并使用该模型
-            try {
-                Long modelId = Long.parseLong(vo.getIngestModelId());
-                modelConfig = aiModelConfigService.getModelConfigVo(modelId, null);
-
-                // 验证模型类型必须是 EMBEDDING
-                if (!"EMBEDDING".equalsIgnoreCase(modelConfig.getModelType())) {
-                    throw new RuntimeException(String.format(
-                        "知识库只能使用嵌入模型，当前模型类型为: %s", modelConfig.getModelType()));
-                }
-
-                // 验证模型是否启用
-                if (!modelConfig.getEnabled()) {
-                    throw new RuntimeException("模型未启用: " + modelConfig.getModelName());
-                }
-
-                entity.setIngestModelId(vo.getIngestModelId());
-                entity.setIngestModelName(modelConfig.getModelName());
-
-                log.info("知识库保存：使用指定嵌入模型，modelId: {}, modelName: {}",
-                         vo.getIngestModelId(), modelConfig.getModelName());
-
-            } catch (NumberFormatException e) {
-                throw new RuntimeException("模型ID格式错误: " + vo.getIngestModelId());
-            }
-        } else {
-            // 未指定模型，使用系统默认嵌入模型
-            try {
-                modelConfig = aiModelConfigService.getDefaultModelConfig("EMBEDDING");
-
-                entity.setIngestModelId(String.valueOf(modelConfig.getId()));
-                entity.setIngestModelName(modelConfig.getModelName());
-
-                log.info("知识库保存：使用系统默认嵌入模型，modelId: {}, modelName: {}",
-                         modelConfig.getId(), modelConfig.getModelName());
-
-            } catch (Exception e) {
-                log.error("获取默认嵌入模型失败: {}", e.getMessage());
-                throw new RuntimeException("获取默认嵌入模型失败，请在AI配置中设置默认嵌入模型: " + e.getMessage());
-            }
-        }
-
-        // 处理Token估计器
-        if (StringUtils.isNotBlank(vo.getIngestTokenEstimator())) {
-            entity.setIngestTokenEstimator(vo.getIngestTokenEstimator());
-        }
-
-        if (isNew) {
-            // 新增
             // kb_uuid 格式：{tenantCode}::{uuid}，方便定时任务识别租户
             String tenantCode = DataSourceHelper.getCurrentDataSourceName();
             String uuid = UuidUtil.createShort();
@@ -176,14 +116,15 @@ public class KnowledgeBaseService {
 
             knowledgeBaseMapper.insert(entity);
 
-            log.info("新增知识库成功，kbUuid: {}, title: {}, ingestModelId: {}, ingestModelName: {}",
-                     entity.getKbUuid(), entity.getTitle(), entity.getIngestModelId(), entity.getIngestModelName());
+            log.info("新增知识库成功，kbUuid: {}, title: {}",
+                     entity.getKbUuid(), entity.getTitle());
         } else {
-            // 更新
+            // 更新：直接复制所有字段
+            BeanUtils.copyProperties(vo, entity);
             knowledgeBaseMapper.updateById(entity);
 
-            log.info("更新知识库成功，kbUuid: {}, title: {}, ingestModelId: {}, ingestModelName: {}",
-                     entity.getKbUuid(), entity.getTitle(), entity.getIngestModelId(), entity.getIngestModelName());
+            log.info("更新知识库成功，kbUuid: {}, title: {}",
+                     entity.getKbUuid(), entity.getTitle());
         }
 
         BeanUtils.copyProperties(entity, vo);
@@ -530,6 +471,9 @@ public class KnowledgeBaseService {
      *   <li>删除Elasticsearch向量数据（WHERE kb_uuid = ?）</li>
      *   <li>删除MySQL数据（按依赖关系）：
      *     <ul>
+     *       <li>qa_ref_embedding表（问答向量引用）</li>
+     *       <li>qa_ref_graph表（问答图谱引用）</li>
+     *       <li>qa表（问答记录）</li>
      *       <li>graph_segment表</li>
      *       <li>item表</li>
      *       <li>knowledge_base主表</li>
@@ -569,17 +513,32 @@ public class KnowledgeBaseService {
             throw new RuntimeException("删除向量数据失败: " + e.getMessage(), e);
         }
 
-        // 4. 删除MySQL数据（按依赖关系：graph_segment → item → knowledge_base）
+        // 4. 删除MySQL数据（按依赖关系：qa_ref_* → qa → graph_segment → item → knowledge_base）
         try {
-            // 4.1 删除graph segment数据
+            // 4.1 删除问答向量引用数据（依赖qa表）
+            Integer deletedQaRefEmbedding = qaRefEmbeddingMapper.deleteByKbUuid(uuid);
+            int deletedQaRefEmbeddingCount = (deletedQaRefEmbedding != null) ? deletedQaRefEmbedding : 0;
+            log.info("删除问答向量引用数据, kb_uuid: {}, 删除数量: {}", uuid, deletedQaRefEmbeddingCount);
+
+            // 4.2 删除问答图谱引用数据（依赖qa表）
+            Integer deletedQaRefGraph = qaRefGraphMapper.deleteByKbUuid(uuid);
+            int deletedQaRefGraphCount = (deletedQaRefGraph != null) ? deletedQaRefGraph : 0;
+            log.info("删除问答图谱引用数据, kb_uuid: {}, 删除数量: {}", uuid, deletedQaRefGraphCount);
+
+            // 4.3 删除问答记录
+            Integer deletedQa = qaMapper.deleteByKbUuid(uuid);
+            int deletedQaCount = (deletedQa != null) ? deletedQa : 0;
+            log.info("删除问答记录, kb_uuid: {}, 删除数量: {}", uuid, deletedQaCount);
+
+            // 4.4 删除graph segment数据
             int deletedSegments = graphSegmentMapper.deleteByKbUuid(uuid);
             log.info("删除graph segment数据, kb_uuid: {}, 删除数量: {}", uuid, deletedSegments);
 
-            // 4.2 删除item数据
+            // 4.5 删除item数据
             int deletedItems = itemMapper.deleteByKbUuid(uuid);
             log.info("删除item数据, kb_uuid: {}, 删除数量: {}", uuid, deletedItems);
 
-            // 4.3 删除主表
+            // 4.6 删除主表
             int result = knowledgeBaseMapper.deleteByKbUuid(uuid);
             boolean success = result > 0;
 

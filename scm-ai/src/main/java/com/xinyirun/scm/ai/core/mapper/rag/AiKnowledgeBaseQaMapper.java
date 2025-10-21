@@ -48,4 +48,13 @@ public interface AiKnowledgeBaseQaMapper extends BaseMapper<AiKnowledgeBaseQaEnt
     """)
     KnowledgeBaseQaResponseVo selectDetailByUuid(@Param("uuid") String uuid);
 
+    /**
+     * 根据知识库UUID删除问答记录（物理删除）
+     *
+     * @param kbUuid 知识库UUID
+     * @return 删除的记录数
+     */
+    @Select("DELETE FROM ai_knowledge_base_qa WHERE kb_uuid = #{kbUuid}")
+    Integer deleteByKbUuid(@Param("kbUuid") String kbUuid);
+
 }

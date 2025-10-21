@@ -19,4 +19,19 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface AiKnowledgeBaseQaRefGraphMapper extends BaseMapper<AiKnowledgeBaseQaRefGraphEntity> {
 
+    /**
+     * 根据知识库UUID删除图谱引用记录（物理删除）
+     * 通过qa_record_id关联ai_knowledge_base_qa表
+     *
+     * @param kbUuid 知识库UUID
+     * @return 删除的记录数
+     */
+    @Select("""
+        DELETE FROM ai_knowledge_base_qa_ref_graph
+        WHERE qa_record_id IN (
+            SELECT id FROM ai_knowledge_base_qa WHERE kb_uuid = #{kbUuid}
+        )
+    """)
+    Integer deleteByKbUuid(@Param("kbUuid") String kbUuid);
+
 }
