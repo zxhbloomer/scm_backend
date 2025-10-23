@@ -76,7 +76,20 @@ public class ElasticsearchQueryService {
             // 转换为VO
             List<KbEmbeddingVo> result = searchHits.getSearchHits()
                     .stream()
-                    .map(this::convertToVo)
+                    .map(searchHit -> {
+                        AiKnowledgeBaseEmbeddingDoc doc = searchHit.getContent();
+
+                        KbEmbeddingVo vo = new KbEmbeddingVo();
+                        vo.setId(doc.getId());
+                        vo.setKbUuid(doc.getKbUuid());
+                        vo.setKbItemUuid(doc.getKbItemUuid());
+                        vo.setContent(doc.getSegmentText());
+                        vo.setChunkIndex(doc.getSegmentIndex());
+                        vo.setTokenCount(doc.getTokenCount() != null ? doc.getTokenCount() : 0);
+                        vo.setTimestamp(doc.getCreateTime());
+
+                        return vo;
+                    })
                     .collect(Collectors.toList());
 
             log.info("查询文档向量嵌入完成，item_uuid: {}, 返回数量: {}", itemUuid, result.size());
@@ -86,26 +99,5 @@ public class ElasticsearchQueryService {
             log.error("查询文档向量嵌入失败，item_uuid: {}, 错误: {}", itemUuid, e.getMessage(), e);
             throw new RuntimeException("查询文档向量嵌入失败: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * 转换Elasticsearch文档为VO
-     *
-     * @param searchHit 搜索结果
-     * @return KbEmbeddingVo
-     */
-    private KbEmbeddingVo convertToVo(SearchHit<AiKnowledgeBaseEmbeddingDoc> searchHit) {
-        AiKnowledgeBaseEmbeddingDoc doc = searchHit.getContent();
-
-        KbEmbeddingVo vo = new KbEmbeddingVo();
-        vo.setId(doc.getId());
-        vo.setKbUuid(doc.getKbUuid());
-        vo.setKbItemUuid(doc.getKbItemUuid());
-        vo.setContent(doc.getSegmentText());
-        vo.setChunkIndex(doc.getSegmentIndex());
-        vo.setTokenCount(doc.getTokenCount() != null ? doc.getTokenCount() : 0);
-        vo.setTimestamp(doc.getCreateTime()); // createTime已经是时间戳，直接使用
-
-        return vo;
     }
 }
