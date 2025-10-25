@@ -1,100 +1,50 @@
-<!--
-Sync Impact Report:
-Version change: N/A → 1.0.0 (Initial constitution)
-Modified principles: N/A (New constitution)
-Added sections: All sections (Initial constitution)
-Removed sections: N/A
-Templates requiring updates:
-  ✅ Updated: plan-template.md (references constitution checks)
-  ✅ Updated: spec-template.md (aligns with requirements standards)
-  ✅ Updated: tasks-template.md (aligns with task categorization)
-  ✅ Updated: agent-file-template.md (references project guidelines)
-Follow-up TODOs: None
--->
-
-# SCM Backend Constitution
+# [PROJECT_NAME] Constitution
+<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### I. Modular Architecture
-Every component MUST follow the Maven multi-module structure with clear separation of concerns:
-- Core data layer (scm-bean, scm-common)
-- Business logic layer (scm-core with sub-modules)
-- Presentation layer (scm-controller by concern)
-- Infrastructure layer (security, redis, excel, etc.)
+### [PRINCIPLE_1_NAME]
+<!-- Example: I. Library-First -->
+[PRINCIPLE_1_DESCRIPTION]
+<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
 
-Rationale: Enables independent development, testing, and deployment of business modules while maintaining enterprise-scale organization and maintainability.
+### [PRINCIPLE_2_NAME]
+<!-- Example: II. CLI Interface -->
+[PRINCIPLE_2_DESCRIPTION]
+<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
 
-### II. Multi-Tenant Data Isolation (NON-NEGOTIABLE)
-All data access MUST implement tenant isolation through application-level routing:
-- Use @DataSourceAnnotation for tenant context switching
-- Dynamic data source routing via DynamicDataSourceContextHolder
-- Each tenant has isolated data while sharing application instance
+### [PRINCIPLE_3_NAME]
+<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
+[PRINCIPLE_3_DESCRIPTION]
+<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
 
-Rationale: Critical for enterprise SCM serving multiple clients with strict data privacy requirements.
+### [PRINCIPLE_4_NAME]
+<!-- Example: IV. Integration Testing -->
+[PRINCIPLE_4_DESCRIPTION]
+<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
 
-### III. Enterprise Security
-Security MUST be implemented as cross-cutting concerns:
-- JWT-based stateless authentication for all API endpoints
-- Redis session management with 4-hour timeout
-- Comprehensive audit logging to MongoDB for all business operations
-- External file service integration with authenticated uploads
+### [PRINCIPLE_5_NAME]
+<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
+[PRINCIPLE_5_DESCRIPTION]
+<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
 
-Rationale: Enterprise SCM systems handle sensitive business data requiring robust security and audit trails.
+## [SECTION_2_NAME]
+<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
 
-### IV. Business Process Integration
-Business workflows MUST be externalized through Flowable BPM:
-- Process templates and definitions for approval workflows
-- Task management with form handling
-- Process instance tracking and monitoring
+[SECTION_2_CONTENT]
+<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
 
-Rationale: Supply chain operations require complex approval processes that must be configurable and auditable.
+## [SECTION_3_NAME]
+<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
 
-### V. Code Generation First
-Code consistency MUST be achieved through automated generation:
-- Use CodeGenerator for entity, mapper, and XML file creation
-- Follow established patterns for business module structure
-- Maintain naming conventions and package organization
-
-Rationale: Ensures consistency across modules and reduces human error in repetitive code patterns.
-
-## Development Standards
-
-### Technology Stack Requirements
-- Java 17 with Spring Boot 3.1.4 as application framework
-- MyBatis Plus 3.5.12 for database operations with XML mappers
-- MySQL as primary database with Redis caching and MongoDB logging
-- Maven multi-module architecture with clear dependency management
-- Flowable 7.1.0 for business process management
-
-### Database Design Standards
-- Entity classes in scm-bean module with @TableName annotations
-- MyBatis mappers in scm-core module with corresponding XML files
-- Tenant SQL configuration for multi-tenant data isolation
-- Druid connection pooling with performance monitoring
-- MongoDB for audit logs and operational data storage
-
-## Quality Assurance
-
-### Testing Requirements
-- Tests skipped by default but MUST be enabled for critical modules
-- H2 in-memory database for unit tests when enabled
-- Integration tests for multi-tenant data isolation
-- Contract tests for external API integrations
-
-### Code Quality Standards
-- Follow established package structure: com.xinyirun.scm.*
-- Use @SysLogAnnotation for audit logging of business operations
-- Implement proper error handling with request/response logging
-- Maintain backwards compatibility in API changes
+[SECTION_3_CONTENT]
+<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
 
 ## Governance
+<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-Constitution supersedes all other development practices. All feature development and code changes must verify compliance with these principles. Complex architectural decisions that deviate from these principles require explicit justification and approval process.
+[GOVERNANCE_RULES]
+<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
-Version control and amendments follow semantic versioning:
-- MAJOR: Backward incompatible governance or principle changes
-- MINOR: New principles or materially expanded guidance
-- PATCH: Clarifications, wording fixes, and non-semantic refinements
-
-**Version**: 1.0.0 | **Ratified**: 2025-09-28 | **Last Amended**: 2025-09-28
+**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
+<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->

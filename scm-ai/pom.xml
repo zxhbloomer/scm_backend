@@ -81,6 +81,18 @@
             <groupId>io.github.ollama4j</groupId>
             <artifactId>ollama4j</artifactId>
         </dependency>
+        <!-- LangGraph4j - 工作流编排引擎(基于DAG) -->
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+            <version>1.5.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-langchain4j</artifactId>
+            <version>1.5.3</version>
+        </dependency>
 
         <!-- ModelMapper -->
         <dependency>
