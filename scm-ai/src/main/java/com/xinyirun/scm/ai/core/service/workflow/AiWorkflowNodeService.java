@@ -1,10 +1,14 @@
 package com.xinyirun.scm.ai.core.service.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeInputConfigVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowNodeMapper;
+import com.xinyirun.scm.ai.utils.JsonUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * AI工作流节点Service
@@ -45,31 +47,19 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
      * @return 开始节点
      */
     public AiWorkflowNodeEntity getStartNode(Long workflowId) {
-        return baseMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowNodeEntity>()
-                        .eq(AiWorkflowNodeEntity::getWorkflowId, workflowId)
-                        .eq(AiWorkflowNodeEntity::getWorkflowComponentId,
-                            workflowComponentService.getStartComponent().getId())
-                        .eq(AiWorkflowNodeEntity::getIsDeleted, 0)
-                        .last("LIMIT 1")
-        );
+        Long startComponentId = workflowComponentService.getStartComponent().getId();
+        return baseMapper.selectStartNode(workflowId, startComponentId);
     }
 
     /**
      * 按UUID查询节点
      *
      * @param workflowId 工作流ID
-     * @param nodeUuid 节点UUID
+     * @param uuid 节点UUID
      * @return 节点实体
      */
-    public AiWorkflowNodeEntity getByUuid(Long workflowId, String nodeUuid) {
-        return baseMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowNodeEntity>()
-                        .eq(AiWorkflowNodeEntity::getWorkflowId, workflowId)
-                        .eq(AiWorkflowNodeEntity::getNodeUuid, nodeUuid)
-                        .eq(AiWorkflowNodeEntity::getIsDeleted, 0)
-                        .last("LIMIT 1")
-        );
+    public AiWorkflowNodeEntity getByUuid(Long workflowId, String uuid) {
+        return baseMapper.selectByWorkflowIdAndUuid(workflowId, uuid);
     }
 
     /**
@@ -79,12 +69,7 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
      * @return 节点列表
      */
     public List<AiWorkflowNodeEntity> listByWorkflowId(Long workflowId) {
-        return baseMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowNodeEntity>()
-                        .eq(AiWorkflowNodeEntity::getWorkflowId, workflowId)
-                        .eq(AiWorkflowNodeEntity::getIsDeleted, 0)
-                        .orderByAsc(AiWorkflowNodeEntity::getCTime)
-        );
+        return baseMapper.selectByWorkflowId(workflowId);
     }
 
     /**
@@ -97,7 +82,9 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         List<AiWorkflowNodeEntity> nodeList = listByWorkflowId(workflowId);
         List<AiWorkflowNodeVo> result = new ArrayList<>();
         for (AiWorkflowNodeEntity entity : nodeList) {
-            result.add(changeNodeToDTO(entity));
+            AiWorkflowNodeVo vo = new AiWorkflowNodeVo();
+            BeanUtils.copyProperties(entity, vo);
+            result.add(vo);
         }
         return result;
     }
@@ -136,13 +123,7 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         baseMapper.insert(newNode);
 
-        return baseMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowNodeEntity>()
-                        .eq(AiWorkflowNodeEntity::getWorkflowId, targetWorkflowId)
-                        .eq(AiWorkflowNodeEntity::getNodeUuid, newNode.getNodeUuid())
-                        .eq(AiWorkflowNodeEntity::getIsDeleted, 0)
-                        .last("LIMIT 1")
-        );
+        return baseMapper.selectByWorkflowIdAndUuidIncludeDeleted(targetWorkflowId, newNode.getUuid());
     }
 
     /**
@@ -154,24 +135,46 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
     @Transactional(rollbackFor = Exception.class)
     public void createOrUpdateNodes(Long workflowId, List<AiWorkflowNodeVo> nodes) {
         for (AiWorkflowNodeVo nodeVo : nodes) {
-            AiWorkflowNodeEntity entity = new AiWorkflowNodeEntity();
-            BeanUtils.copyProperties(nodeVo, entity);
-            entity.setWorkflowId(workflowId);
-
-            AiWorkflowNodeEntity old = self.getByUuid(workflowId, nodeVo.getNodeUuid());
+            AiWorkflowNodeEntity old = self.getByUuid(workflowId, nodeVo.getUuid());
             if (old != null) {
+                // 更新：在查询出的实体上直接修改
                 if (!old.getWorkflowId().equals(workflowId)) {
                     log.error("节点不属于指定的工作流,保存失败,workflowId:{},old workflowId:{},node uuid:{}",
-                            workflowId, old.getWorkflowId(), nodeVo.getNodeUuid());
+                            workflowId, old.getWorkflowId(), nodeVo.getUuid());
                     throw new RuntimeException("节点不属于指定的工作流");
                 }
-                entity.setId(old.getId());
-                baseMapper.updateById(entity);
-                log.info("更新节点,uuid:{}", nodeVo.getNodeUuid());
+
+                // null 字段设置数据库 default 值
+                if (nodeVo.getPositionX() == null) {
+                    nodeVo.setPositionX(new BigDecimal("0"));
+                }
+                if (nodeVo.getPositionY() == null) {
+                    nodeVo.setPositionY(new BigDecimal("0"));
+                }
+
+                // 在查询出的实体上复制 VO 字段
+                BeanUtils.copyProperties(nodeVo, old, "id", "cTime", "cId", "uTime", "uId", "dbversion");
+                old.setWorkflowId(workflowId);
+                baseMapper.updateById(old);
+                log.info("更新节点,uuid:{}", nodeVo.getUuid());
             } else {
+                // 新增
+                AiWorkflowNodeEntity entity = new AiWorkflowNodeEntity();
+                BeanUtils.copyProperties(nodeVo, entity);
+                entity.setWorkflowId(workflowId);
                 entity.setId(null);
+                entity.setIsDeleted(false); // 显式设置is_deleted为false（MySQL需要）
+
+                // 处理 position 字段：如果为 null 则使用数据库 default 值 0
+                if (entity.getPositionX() == null) {
+                    entity.setPositionX(new BigDecimal("0"));
+                }
+                if (entity.getPositionY() == null) {
+                    entity.setPositionY(new BigDecimal("0"));
+                }
+
                 baseMapper.insert(entity);
-                log.info("新增节点,uuid:{}", nodeVo.getNodeUuid());
+                log.info("新增节点,uuid:{}", nodeVo.getUuid());
             }
         }
     }
@@ -180,18 +183,18 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
      * 删除节点列表
      *
      * @param workflowId 工作流ID
-     * @param nodeUuids 节点UUID列表
+     * @param uuids 节点UUID列表
      */
     @Transactional(rollbackFor = Exception.class)
-    public void deleteNodes(Long workflowId, List<String> nodeUuids) {
-        if (nodeUuids == null || nodeUuids.isEmpty()) {
+    public void deleteNodes(Long workflowId, List<String> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
             return;
         }
 
         Long startComponentId = workflowComponentService.getStartComponent().getId();
 
-        for (String nodeUuid : nodeUuids) {
-            AiWorkflowNodeEntity node = self.getByUuid(workflowId, nodeUuid);
+        for (String uuid : uuids) {
+            AiWorkflowNodeEntity node = self.getByUuid(workflowId, uuid);
             if (node == null) {
                 continue;
             }
@@ -203,19 +206,19 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
             }
 
             if (startComponentId.equals(node.getWorkflowComponentId())) {
-                log.warn("开始节点不能删除,uuid:{}", nodeUuid);
+                log.warn("开始节点不能删除,uuid:{}", uuid);
                 continue;
             }
 
-            AiWorkflowNodeEntity updateObj = new AiWorkflowNodeEntity();
-            updateObj.setId(node.getId());
-            updateObj.setIsDeleted(1);
-            baseMapper.updateById(updateObj);
+            // 软删除节点（在查询出的实体上直接修改）
+            node.setIsDeleted(true);
+            baseMapper.updateById(node);
         }
     }
 
     /**
      * 创建开始节点
+     * 严格参考 aideepin 的 WorkflowNodeService.createStartNode 方法
      *
      * @param workflow 工作流实体
      * @return 开始节点
@@ -223,35 +226,42 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
     public AiWorkflowNodeEntity createStartNode(AiWorkflowEntity workflow) {
         Long startComponentId = workflowComponentService.getStartComponent().getId();
 
+        // 创建用户输入参数定义（参考 aideepin 的 WfNodeIOText）
+        AiWfNodeIOVo userInputDef = new AiWfNodeIOVo();
+        userInputDef.setUuid(UuidUtil.createShort());
+        userInputDef.setType(1); // TEXT 类型
+        userInputDef.setName("var_user_input");
+        userInputDef.setTitle("用户输入");
+        userInputDef.setRequired(false);
+        userInputDef.setMaxLength(1000);
+
+        // 创建输入配置（参考 aideepin 的 WfNodeInputConfig）
+        AiWfNodeInputConfigVo inputConfig = new AiWfNodeInputConfigVo();
+        List<AiWfNodeIOVo> userInputs = new ArrayList<>();
+        userInputs.add(userInputDef);
+        inputConfig.setUserInputs(userInputs);
+        inputConfig.setRefInputs(new ArrayList<>());
+
+        // 创建开始节点
         AiWorkflowNodeEntity node = new AiWorkflowNodeEntity();
-        node.setNodeUuid(UuidUtil.createShort());
+        node.setUuid(UuidUtil.createShort());
         node.setWorkflowId(workflow.getId());
         node.setWorkflowComponentId(startComponentId);
-        node.setName("start");
+        node.setTitle("开始");
         node.setRemark("用户输入");
-
-        // 初始化输入配置
-        Map<String, Object> inputConfig = new HashMap<>();
-        List<Map<String, Object>> userInputs = new ArrayList<>();
-        Map<String, Object> userInput = new HashMap<>();
-        userInput.put("uuid", UuidUtil.createShort());
-        userInput.put("name", "var_user_input");
-        userInput.put("title", "用户输入");
-        userInput.put("type", 1); // TEXT类型
-        userInput.put("required", false);
-        userInput.put("maxLength", 1000);
-        userInputs.add(userInput);
-
-        inputConfig.put("userInputs", userInputs);
-        inputConfig.put("refInputs", new ArrayList<>());
-        node.setInputConfig(inputConfig);
+        node.setIsDeleted(false); // 显式设置is_deleted为false（MySQL需要）
+        node.setInputConfig(inputConfig); // 使用强类型 bean
 
         // 初始化节点配置为空对象
-        node.setNodeConfig(new HashMap<>());
+        node.setNodeConfig(new JSONObject());
 
-        // 设置默认位置
-        node.setPositionX(new BigDecimal("100"));
-        node.setPositionY(new BigDecimal("100"));
+        // 设置位置为 0，前端会把 0 当作未设置，使用默认值 (10, 50)
+        // 参考 aideepin 的 WorkflowNodeService.createStartNode 方法
+        // aideepin 使用 PostgreSQL，数据库默认值 0 会自动填充
+        // scm-ai 使用 MySQL + MyBatis Plus，需要显式设置为 0
+        // 前端逻辑：0 || 10 → 10 (JavaScript 中 0 是 falsy 值)
+        node.setPositionX(new BigDecimal("0"));
+        node.setPositionY(new BigDecimal("0"));
 
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         baseMapper.insert(node);
@@ -259,15 +269,4 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         return node;
     }
 
-    /**
-     * 将节点实体转换为VO
-     *
-     * @param entity 节点实体
-     * @return 节点VO
-     */
-    private AiWorkflowNodeVo changeNodeToDTO(AiWorkflowNodeEntity entity) {
-        AiWorkflowNodeVo vo = new AiWorkflowNodeVo();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
-    }
 }

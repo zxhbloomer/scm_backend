@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.bean.vo.workflow;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.alibaba.fastjson2.JSONObject;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -23,7 +23,7 @@ public class AiWorkflowNodeVo {
     /**
      * 节点UUID(业务主键)
      */
-    private String nodeUuid;
+    private String uuid;
 
     /**
      * 工作流ID
@@ -36,7 +36,7 @@ public class AiWorkflowNodeVo {
     private Long workflowComponentId;
 
     /**
-     * 节点标题
+     * 节点标题（对应 aideepin 的 title 字段）
      */
     private String title;
 
@@ -47,13 +47,16 @@ public class AiWorkflowNodeVo {
 
     /**
      * 输入配置(JSON格式)
+     * 与 Entity 保持一致，使用强类型 AiWfNodeInputConfigVo
+     * 可以直接通过 BeanUtils.copyProperties 复制
      */
-    private ObjectNode inputConfig;
+    private AiWfNodeInputConfigVo inputConfig;
 
     /**
      * 节点配置(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      */
-    private ObjectNode nodeConfig;
+    private JSONObject nodeConfig;
 
     /**
      * X轴位置
