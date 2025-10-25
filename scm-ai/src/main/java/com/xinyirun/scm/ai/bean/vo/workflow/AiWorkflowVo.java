@@ -36,14 +36,14 @@ public class AiWorkflowVo {
     private String remark;
 
     /**
-     * 是否公开(0-否,1-是)
+     * 是否公开(false-否,true-是)
      */
-    private Integer isPublic;
+    private Boolean isPublic;
 
     /**
-     * 是否启用(0-禁用,1-启用)
+     * 是否启用(false-禁用,true-启用)
      */
-    private Integer isEnable;
+    private Boolean isEnable;
 
     /**
      * 用户ID
@@ -79,4 +79,14 @@ public class AiWorkflowVo {
      * 修改时间
      */
     private LocalDateTime uTime;
+
+    /**
+     * 要删除的节点UUID列表
+     */
+    private List<String> deleteNodes;
+
+    /**
+     * 要删除的边UUID列表
+     */
+    private List<String> deleteEdges;
 }

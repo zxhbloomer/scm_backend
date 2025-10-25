@@ -36,8 +36,8 @@ public class AiWorkflowEdgeEntity implements Serializable {
     /**
      * 连线UUID(业务主键)
      */
-    @TableField("edge_uuid")
-    private String edgeUuid;
+    @TableField("uuid")
+    private String uuid;
 
     /**
      * 所属工作流ID
@@ -73,7 +73,7 @@ public class AiWorkflowEdgeEntity implements Serializable {
      * 是否删除(0-未删除,1-已删除)
      */
     @TableField("is_deleted")
-    private Integer isDeleted;
+    private Boolean isDeleted;
 
     /**
      * 创建时间

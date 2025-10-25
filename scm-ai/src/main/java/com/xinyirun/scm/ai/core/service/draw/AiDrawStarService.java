@@ -29,7 +29,7 @@ public class AiDrawStarService extends ServiceImpl<AiDrawStarMapper, AiDrawStarE
                 lambdaQuery()
                         .eq(AiDrawStarEntity::getDrawId, drawId)
                         .eq(AiDrawStarEntity::getUserId, userId)
-                        .eq(AiDrawStarEntity::getIsDeleted, 0)
+                        .eq(AiDrawStarEntity::getIsDeleted, false)
                         .getWrapper()
         ) > 0;
     }
@@ -55,17 +55,17 @@ public class AiDrawStarService extends ServiceImpl<AiDrawStarMapper, AiDrawStarE
             star = new AiDrawStarEntity();
             star.setDrawId(drawId);
             star.setUserId(userId);
-            star.setIsDeleted(0);
+            star.setIsDeleted(false);
             baseMapper.insert(star);
             return true;
         } else {
             // 切换状态
-            Integer newStatus = star.getIsDeleted() == 0 ? 1 : 0;
+            Boolean newStatus = !Boolean.TRUE.equals(star.getIsDeleted());
             lambdaUpdate()
                     .eq(AiDrawStarEntity::getId, star.getId())
                     .set(AiDrawStarEntity::getIsDeleted, newStatus)
                     .update();
-            return newStatus == 0;
+            return !newStatus;
         }
     }
 }

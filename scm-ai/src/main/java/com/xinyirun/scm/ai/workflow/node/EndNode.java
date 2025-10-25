@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.workflow.node;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.utils.JsonUtil;
@@ -33,14 +33,15 @@ public class EndNode extends AbstractWfNode {
     protected NodeProcessResult onProcess() {
         List<NodeIOData> result = new ArrayList<>();
 
-        Object nodeConfigObj = node.getNodeConfig();
+        // 使用 Fastjson2 的 JSONObject
+        JSONObject nodeConfigObj = node.getNodeConfig();
         String output = "";
 
-        if (null == nodeConfigObj) {
-            log.warn("EndNode result config is empty, nodeUuid: {}, title: {}", node.getNodeUuid(), node.getName());
+        if (null == nodeConfigObj || nodeConfigObj.isEmpty()) {
+            log.warn("EndNode result config is empty, nodeUuid: {}, title: {}", node.getUuid(), node.getTitle());
         } else {
             // 从节点配置中获取结果模板
-            String resultTemplate = extractResultTemplate(nodeConfigObj);
+            String resultTemplate = nodeConfigObj.getString("result");
             if (null != resultTemplate) {
                 // 将输入参数渲染到模板中
                 output = renderTemplate(resultTemplate, state.getInputs());
@@ -49,33 +50,6 @@ public class EndNode extends AbstractWfNode {
 
         result.add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", output));
         return NodeProcessResult.builder().content(result).build();
-    }
-
-    /**
-     * 从节点配置中提取结果模板
-     *
-     * @param configObj 节点配置对象
-     * @return 结果模板字符串
-     */
-    private String extractResultTemplate(Object configObj) {
-        try {
-            if (configObj instanceof String) {
-                JsonNode jsonNode = JsonUtil.fromJson((String) configObj, JsonNode.class);
-                JsonNode resultNode = jsonNode.get("result");
-                if (resultNode != null) {
-                    return resultNode.asText();
-                }
-            } else if (configObj instanceof JsonNode) {
-                JsonNode jsonNode = (JsonNode) configObj;
-                JsonNode resultNode = jsonNode.get("result");
-                if (resultNode != null) {
-                    return resultNode.asText();
-                }
-            }
-        } catch (Exception e) {
-            log.error("Failed to extract result template from node config, nodeUuid: {}", node.getNodeUuid(), e);
-        }
-        return null;
     }
 
     /**

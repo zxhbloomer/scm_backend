@@ -26,14 +26,11 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
             id,
             workflow_uuid AS workflowUuid,
             title,
-            icon,
-            tags,
-            description,
+            remark,
+            user_id AS userId,
             is_public AS isPublic,
             is_enable AS isEnable,
-            owner_uuid AS ownerUuid,
-            owner_id AS ownerId,
-            owner_name AS ownerName,
+            is_deleted AS isDeleted,
             c_time AS cTime,
             c_id AS cId,
             u_time AS uTime,
@@ -60,7 +57,7 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
      * 查询用户的工作流列表（所有者或公开的）
      * 状态值：is_enable 0-禁用,1-启用
      *
-     * @param owner_id 拥有者ID
+     * @param user_id 用户ID
      * @return 工作流列表
      */
     @Select("""
@@ -68,29 +65,27 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
             id,
             workflow_uuid AS workflowUuid,
             title,
-            icon,
-            tags,
-            description,
+            remark,
+            user_id AS userId,
             is_public AS isPublic,
             is_enable AS isEnable,
-            owner_uuid AS ownerUuid,
-            owner_id AS ownerId,
-            owner_name AS ownerName,
+            is_deleted AS isDeleted,
             c_time AS cTime,
             c_id AS cId,
             u_time AS uTime,
             u_id AS uId,
             dbversion
         FROM ai_workflow
-        WHERE (owner_id = #{owner_id} OR is_public = 1)
+        WHERE (user_id = #{user_id} OR is_public = 1)
+            AND is_deleted = 0
         ORDER BY u_time DESC
     """)
-    List<AiWorkflowEntity> selectByOwnerIdOrPublic(@Param("owner_id") Long owner_id);
+    List<AiWorkflowEntity> selectByOwnerIdOrPublic(@Param("user_id") Long user_id);
 
     /**
      * 按标题模糊搜索工作流
      *
-     * @param owner_id 拥有者ID
+     * @param user_id 用户ID
      * @param keyword 搜索关键词
      * @return 工作流列表
      */
@@ -99,33 +94,31 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
             id,
             workflow_uuid AS workflowUuid,
             title,
-            icon,
-            tags,
-            description,
+            remark,
+            user_id AS userId,
             is_public AS isPublic,
             is_enable AS isEnable,
-            owner_uuid AS ownerUuid,
-            owner_id AS ownerId,
-            owner_name AS ownerName,
+            is_deleted AS isDeleted,
             c_time AS cTime,
             c_id AS cId,
             u_time AS uTime,
             u_id AS uId,
             dbversion
         FROM ai_workflow
-        WHERE (owner_id = #{owner_id} OR is_public = 1)
+        WHERE (user_id = #{user_id} OR is_public = 1)
+            AND is_deleted = 0
             AND title LIKE CONCAT('%', #{keyword}, '%')
         ORDER BY u_time DESC
     """)
-    List<AiWorkflowEntity> searchByKeyword(@Param("owner_id") Long owner_id,
+    List<AiWorkflowEntity> searchByKeyword(@Param("user_id") Long user_id,
                                            @Param("keyword") String keyword);
 
     /**
      * 更新工作流启用状态
-     * 状态值：0-禁用,1-启用
+     * 状态值：false-禁用,true-启用
      *
      * @param workflow_uuid 工作流UUID
-     * @param is_enable 启用状态（0或1）
+     * @param is_enable 启用状态（true或false）
      * @return 更新的行数
      */
     @Update("""
@@ -134,5 +127,5 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
         WHERE workflow_uuid = #{workflow_uuid}
     """)
     int updateEnableStatus(@Param("workflow_uuid") String workflow_uuid,
-                          @Param("is_enable") Integer is_enable);
+                          @Param("is_enable") Boolean is_enable);
 }

@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
@@ -160,12 +159,20 @@ public class JsonUtil {
         }
     }
 
-    public static JsonNode classToJsonNode(Object obj) {
-        return objectMapper.valueToTree(obj);
+    /**
+     * 从Map转换为指定类型对象
+     */
+    public static <T> T fromMap(Map<String, Object> map, Class<T> clazz) {
+        try {
+            return objectMapper.convertValue(map, clazz);
+        } catch (Exception e) {
+            log.error("从Map转换失败", e);
+            throw new RuntimeException(e);
+        }
     }
 
-    public static ObjectNode createObjectNode() {
-        return objectMapper.createObjectNode();
+    public static JsonNode classToJsonNode(Object obj) {
+        return objectMapper.valueToTree(obj);
     }
 
     public static ArrayNode createArrayNode() {

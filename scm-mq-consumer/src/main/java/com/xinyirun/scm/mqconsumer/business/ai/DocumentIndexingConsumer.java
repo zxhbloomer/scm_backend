@@ -1,8 +1,6 @@
 package com.xinyirun.scm.mqconsumer.business.ai;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.service.DocumentIndexingService;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
@@ -12,9 +10,7 @@ import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mqconsumer.base.BaseMqConsumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.core.*;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.messaging.handler.annotation.Headers;
@@ -22,7 +18,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 

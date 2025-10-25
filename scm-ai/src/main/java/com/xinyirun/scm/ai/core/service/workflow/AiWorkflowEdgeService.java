@@ -34,16 +34,11 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
     /**
      * 按UUID查询边
      *
-     * @param edgeUuid 边UUID
+     * @param uuid 边UUID
      * @return 边实体
      */
-    public AiWorkflowEdgeEntity getByUuid(String edgeUuid) {
-        return baseMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowEdgeEntity>()
-                        .eq(AiWorkflowEdgeEntity::getEdgeUuid, edgeUuid)
-                        .eq(AiWorkflowEdgeEntity::getIsDeleted, 0)
-                        .last("LIMIT 1")
-        );
+    public AiWorkflowEdgeEntity getByUuid(String uuid) {
+        return baseMapper.selectByUuid(uuid);
     }
 
     /**
@@ -53,12 +48,7 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      * @return 连接边列表
      */
     public List<AiWorkflowEdgeEntity> listByWorkflowId(Long workflowId) {
-        return baseMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowEdgeEntity>()
-                        .eq(AiWorkflowEdgeEntity::getWorkflowId, workflowId)
-                        .eq(AiWorkflowEdgeEntity::getIsDeleted, 0)
-                        .orderByAsc(AiWorkflowEdgeEntity::getCTime)
-        );
+        return baseMapper.selectByWorkflowId(workflowId);
     }
 
     /**
@@ -105,9 +95,9 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      */
     public AiWorkflowEdgeEntity copyEdge(Long targetWorkflowId, AiWorkflowEdgeEntity sourceEdge) {
         AiWorkflowEdgeEntity newEdge = new AiWorkflowEdgeEntity();
-        BeanUtils.copyProperties(sourceEdge, newEdge, "id", "edgeUuid", "cTime", "uTime", "cId", "uId", "dbversion");
+        BeanUtils.copyProperties(sourceEdge, newEdge, "id", "uuid", "cTime", "uTime", "cId", "uId", "dbversion");
 
-        newEdge.setEdgeUuid(UuidUtil.createShort());
+        newEdge.setUuid(UuidUtil.createShort());
         newEdge.setWorkflowId(targetWorkflowId);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         baseMapper.insert(newEdge);
@@ -124,26 +114,28 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
     @Transactional(rollbackFor = Exception.class)
     public void createOrUpdateEdges(Long workflowId, List<AiWorkflowEdgeVo> edges) {
         for (AiWorkflowEdgeVo edgeVo : edges) {
-            AiWorkflowEdgeEntity entity = new AiWorkflowEdgeEntity();
-            BeanUtils.copyProperties(edgeVo, entity);
-            entity.setWorkflowId(workflowId);
-
-            AiWorkflowEdgeEntity old = self.getByUuid(edgeVo.getEdgeUuid());
+            AiWorkflowEdgeEntity old = self.getByUuid(edgeVo.getUuid());
             if (old != null) {
+                // 更新：在查询出的实体上直接修改
                 if (!old.getWorkflowId().equals(workflowId)) {
                     log.error("该边不属于指定的工作流,保存失败,workflowId:{},old workflowId:{},edge uuid:{}",
-                            workflowId, old.getWorkflowId(), edgeVo.getEdgeUuid());
+                            workflowId, old.getWorkflowId(), edgeVo.getUuid());
                     throw new RuntimeException("该边不属于指定的工作流");
                 }
-                entity.setId(old.getId());
-                baseMapper.updateById(entity);
+                BeanUtils.copyProperties(edgeVo, old, "id", "cTime", "cId", "uTime", "uId", "dbversion");
+                old.setWorkflowId(workflowId);
+                baseMapper.updateById(old);
                 log.info("更新边,uuid:{},source:{},target:{}",
-                        edgeVo.getEdgeUuid(), edgeVo.getSourceNodeUuid(), edgeVo.getTargetNodeUuid());
+                        edgeVo.getUuid(), edgeVo.getSourceNodeUuid(), edgeVo.getTargetNodeUuid());
             } else {
+                // 新增
+                AiWorkflowEdgeEntity entity = new AiWorkflowEdgeEntity();
+                BeanUtils.copyProperties(edgeVo, entity);
+                entity.setWorkflowId(workflowId);
                 entity.setId(null);
                 baseMapper.insert(entity);
                 log.info("新增边,uuid:{},source:{},target:{}",
-                        edgeVo.getEdgeUuid(), edgeVo.getSourceNodeUuid(), edgeVo.getTargetNodeUuid());
+                        edgeVo.getUuid(), edgeVo.getSourceNodeUuid(), edgeVo.getTargetNodeUuid());
             }
         }
     }
@@ -152,16 +144,16 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      * 删除连接边列表
      *
      * @param workflowId 工作流ID
-     * @param edgeUuids 连接边UUID列表
+     * @param uuids 连接边UUID列表
      */
     @Transactional(rollbackFor = Exception.class)
-    public void deleteEdges(Long workflowId, List<String> edgeUuids) {
-        if (edgeUuids == null || edgeUuids.isEmpty()) {
+    public void deleteEdges(Long workflowId, List<String> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
             return;
         }
 
-        for (String edgeUuid : edgeUuids) {
-            AiWorkflowEdgeEntity edge = self.getByUuid(edgeUuid);
+        for (String uuid : uuids) {
+            AiWorkflowEdgeEntity edge = self.getByUuid(uuid);
             if (edge == null) {
                 continue;
             }
@@ -172,10 +164,9 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
                 throw new RuntimeException("该边不属于指定的工作流");
             }
 
-            AiWorkflowEdgeEntity updateObj = new AiWorkflowEdgeEntity();
-            updateObj.setId(edge.getId());
-            updateObj.setIsDeleted(1);
-            baseMapper.updateById(updateObj);
+            // 软删除边（在查询出的实体上直接修改）
+            edge.setIsDeleted(true);
+            baseMapper.updateById(edge);
         }
     }
 

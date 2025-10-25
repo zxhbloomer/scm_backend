@@ -79,7 +79,7 @@ public class WfState {
 
     public Optional<WfNodeState> getNodeStateByNodeUuid(String nodeUuid) {
         return this.completedNodes.stream()
-                .filter(item -> item.getNode().getNodeUuid().equals(nodeUuid))
+                .filter(item -> item.getNode().getUuid().equals(nodeUuid))
                 .map(AbstractWfNode::getState)
                 .findFirst();
     }
@@ -111,7 +111,7 @@ public class WfState {
     public List<NodeIOData> getIOByNodeUuid(String nodeUuid) {
         List<NodeIOData> result = new ArrayList<>();
         Optional<AbstractWfNode> optional = completedNodes.stream()
-                .filter(node -> nodeUuid.equals(node.getNode().getNodeUuid()))
+                .filter(node -> nodeUuid.equals(node.getNode().getUuid()))
                 .findFirst();
         if (optional.isEmpty()) {
             return result;
@@ -124,7 +124,7 @@ public class WfState {
     public AiWorkflowRuntimeNodeVo getRuntimeNodeByNodeUuid(String wfNodeUuid) {
         AiWorkflowNodeEntity wfNode = getCompletedNodes().stream()
                 .map(AbstractWfNode::getNode)
-                .filter(node -> node.getNodeUuid().equals(wfNodeUuid))
+                .filter(node -> node.getUuid().equals(wfNodeUuid))
                 .findFirst()
                 .orElse(null);
         if (null == wfNode) {

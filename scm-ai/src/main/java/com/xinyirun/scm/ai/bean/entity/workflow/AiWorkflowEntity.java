@@ -61,19 +61,19 @@ public class AiWorkflowEntity implements Serializable {
      * 是否公开(0-私有,1-公开)
      */
     @TableField("is_public")
-    private Integer isPublic;
+    private Boolean isPublic;
 
     /**
      * 是否启用(0-禁用,1-启用)
      */
     @TableField("is_enable")
-    private Integer isEnable;
+    private Boolean isEnable;
 
     /**
      * 是否删除(0-未删除,1-已删除)
      */
     @TableField("is_deleted")
-    private Integer isDeleted;
+    private Boolean isDeleted;
 
     /**
      * 创建时间

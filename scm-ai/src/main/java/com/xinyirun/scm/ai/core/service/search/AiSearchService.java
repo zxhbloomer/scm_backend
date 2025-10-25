@@ -1,14 +1,20 @@
 package com.xinyirun.scm.ai.core.service.search;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.toolkit.ChainWrappers;
 import com.xinyirun.scm.ai.bean.entity.search.AiSearchRecordEntity;
+import com.xinyirun.scm.ai.bean.vo.search.AiSearchRecordVo;
+import com.xinyirun.scm.ai.bean.vo.search.AiSearchRespVo;
 import com.xinyirun.scm.ai.core.mapper.search.AiSearchRecordMapper;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.ai.document.Document;
+import org.springframework.beans.BeanUtils;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -18,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * AI搜索服务
@@ -343,6 +350,107 @@ public class AiSearchService extends ServiceImpl<AiSearchRecordMapper, AiSearchR
             log.error("发送SSE错误失败", e);
             sseEmitter.completeWithError(e);
         }
+    }
+
+    /**
+     * 基于maxId的增量查询搜索历史记录
+     * 对齐AIDeepin: com.moyz.adi.common.service.AiSearchRecordService.listByMaxId(Long maxId, String keyword)
+     *
+     * <p>使用maxId作为锚点的增量查询方式，按ID降序返回记录</p>
+     * <p>DEFAULT_PAGE_SIZE = 20</p>
+     *
+     * @param userId 用户ID (scm-ai特有,aideepin从ThreadContext获取)
+     * @param maxId 最大ID锚点,0表示查询全部
+     * @param keyword 关键词搜索(可选)
+     * @return 搜索历史响应
+     */
+    public AiSearchRespVo listByMaxId(Long userId, Long maxId, String keyword) {
+        log.info("增量查询搜索历史,userId:{},maxId:{},keyword:{}", userId, maxId, keyword);
+
+        // 构建查询条件
+        LambdaQueryWrapper<AiSearchRecordEntity> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(AiSearchRecordEntity::getUserId, userId);
+        wrapper.eq(AiSearchRecordEntity::getIsDeleted, false);
+
+        // 关键词搜索
+        if (StringUtils.isNotBlank(keyword)) {
+            wrapper.like(AiSearchRecordEntity::getQuestion, keyword);
+        }
+
+        // maxId锚点查询(对应aideepin的BizPager.listByMaxId逻辑)
+        if (maxId > 0) {
+            wrapper.lt(AiSearchRecordEntity::getId, maxId);
+        }
+        wrapper.orderByDesc(AiSearchRecordEntity::getId);
+        wrapper.last("LIMIT 20"); // DEFAULT_PAGE_SIZE = 20
+
+        // 执行查询
+        List<AiSearchRecordEntity> records = baseMapper.selectList(wrapper);
+
+        // 转换为VO
+        List<AiSearchRecordVo> recordVos = records.stream().map(entity -> {
+            AiSearchRecordVo vo = new AiSearchRecordVo();
+            BeanUtils.copyProperties(entity, vo);
+
+            // 确保searchEngineResponse不为null
+            if (vo.getSearchEngineResponse() == null) {
+                Map<String, Object> emptyResp = new HashMap<>();
+                emptyResp.put("items", new ArrayList<>());
+                vo.setSearchEngineResponse(emptyResp);
+            }
+
+            // TODO: 设置aiModelPlatform(需要从模型配置获取)
+            // AiModel aiModel = MODEL_ID_TO_OBJ.get(entity.getAiModelId());
+            // vo.setAiModelPlatform(aiModel != null ? aiModel.getPlatform() : "");
+
+            return vo;
+        }).collect(Collectors.toList());
+
+        // 计算minId
+        long minId = 0;
+        if (!records.isEmpty()) {
+            minId = records.stream()
+                    .map(AiSearchRecordEntity::getId)
+                    .min(Long::compareTo)
+                    .orElse(0L);
+        }
+
+        // 构建响应
+        AiSearchRespVo result = new AiSearchRespVo();
+        result.setMinId(minId);
+        result.setRecords(recordVos);
+
+        return result;
+    }
+
+    /**
+     * 软删除搜索记录
+     * 对齐AIDeepin: com.moyz.adi.common.service.AiSearchRecordService.softDelete(String uuid)
+     *
+     * <p>通过uuid软删除搜索记录,设置is_deleted=true</p>
+     *
+     * @param uuid 搜索记录UUID
+     * @return 是否删除成功
+     */
+    public boolean softDelete(String uuid) {
+        log.info("软删除搜索记录,uuid:{}", uuid);
+
+        // 通过uuid查询记录是否存在
+        AiSearchRecordEntity exist = ChainWrappers.lambdaQueryChain(baseMapper)
+                .eq(AiSearchRecordEntity::getSearchUuid, uuid)
+                .eq(AiSearchRecordEntity::getIsDeleted, false)
+                .one();
+
+        if (exist == null) {
+            log.warn("搜索记录不存在或已删除,uuid:{}", uuid);
+            return false;
+        }
+
+        // 执行软删除
+        return ChainWrappers.lambdaUpdateChain(baseMapper)
+                .eq(AiSearchRecordEntity::getId, exist.getId())
+                .set(AiSearchRecordEntity::getIsDeleted, true)
+                .update();
     }
 
     /**

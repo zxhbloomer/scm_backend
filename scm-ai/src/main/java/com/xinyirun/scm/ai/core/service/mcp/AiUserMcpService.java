@@ -3,6 +3,7 @@ package com.xinyirun.scm.ai.core.service.mcp;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.mcp.AiMcpEntity;
 import com.xinyirun.scm.ai.bean.entity.mcp.AiUserMcpEntity;
+import com.xinyirun.scm.ai.bean.vo.mcp.AiMcpVo;
 import com.xinyirun.scm.ai.bean.vo.mcp.AiUserMcpVo;
 import com.xinyirun.scm.ai.core.mapper.mcp.AiMcpMapper;
 import com.xinyirun.scm.ai.core.mapper.mcp.AiUserMcpMapper;
@@ -43,15 +44,8 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
     @Transactional(rollbackFor = Exception.class)
     public AiUserMcpVo add(Long userId, Long mcpId, Map<String, Object> customizedParams) {
         // 检查MCP模板是否存在
-        AiMcpEntity mcp = mcpMapper.selectOne(
-                mcpMapper.selectList(null).stream()
-                        .filter(m -> m.getId().equals(mcpId) && m.getIsDeleted() == 0)
-                        .findFirst()
-                        .map(m -> m)
-                        .orElse(null)
-        );
-
-        if (mcp == null) {
+        AiMcpEntity mcp = mcpMapper.selectById(mcpId);
+        if (mcp == null || Boolean.TRUE.equals(mcp.getIsDeleted())) {
             throw new RuntimeException("MCP模板不存在");
         }
 
@@ -60,7 +54,7 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
                 lambdaQuery()
                         .eq(AiUserMcpEntity::getUserId, userId)
                         .eq(AiUserMcpEntity::getMcpId, mcpId)
-                        .eq(AiUserMcpEntity::getIsDeleted, 0)
+                        .eq(AiUserMcpEntity::getIsDeleted, false)
                         .getWrapper()
         );
 
@@ -73,8 +67,8 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
         userMcp.setUserId(userId);
         userMcp.setMcpId(mcpId);
         userMcp.setMcpCustomizedParams(customizedParams);
-        userMcp.setIsEnable(1);
-        userMcp.setIsDeleted(0);
+        userMcp.setIsEnable(true);
+        userMcp.setIsDeleted(false);
 
         baseMapper.insert(userMcp);
 
@@ -84,15 +78,9 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
 
         // 填充MCP模板信息
         if (mcp != null) {
-            vo.setMcpName(mcp.getName());
-            vo.setMcpIcon(mcp.getIcon());
-            vo.setMcpRemark(mcp.getRemark());
-            vo.setTransportType(mcp.getTransportType());
-            vo.setSseUrl(mcp.getSseUrl());
-            vo.setStdioCommand(mcp.getStdioCommand());
-            vo.setPresetParams(mcp.getPresetParams());
-            vo.setCustomizedParamDefinitions(mcp.getCustomizedParamDefinitions());
-            vo.setInstallType(mcp.getInstallType());
+            AiMcpVo mcpVo = new AiMcpVo();
+            BeanUtils.copyProperties(mcp, mcpVo);
+            vo.setMcpInfo(mcpVo);
         }
 
         return vo;
@@ -130,15 +118,9 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
 
         // 填充MCP模板信息
         if (mcp != null) {
-            vo.setMcpName(mcp.getName());
-            vo.setMcpIcon(mcp.getIcon());
-            vo.setMcpRemark(mcp.getRemark());
-            vo.setTransportType(mcp.getTransportType());
-            vo.setSseUrl(mcp.getSseUrl());
-            vo.setStdioCommand(mcp.getStdioCommand());
-            vo.setPresetParams(mcp.getPresetParams());
-            vo.setCustomizedParamDefinitions(mcp.getCustomizedParamDefinitions());
-            vo.setInstallType(mcp.getInstallType());
+            AiMcpVo mcpVo = new AiMcpVo();
+            BeanUtils.copyProperties(mcp, mcpVo);
+            vo.setMcpInfo(mcpVo);
         }
 
         return vo;
@@ -221,20 +203,14 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
         List<AiUserMcpVo> voList = new ArrayList<>();
         for (AiUserMcpEntity userMcp : userMcpList) {
             AiMcpEntity mcp = mcpMapper.selectById(userMcp.getMcpId());
-            if (mcp != null && mcp.getIsDeleted() == 0) {
+            if (mcp != null && !Boolean.TRUE.equals(mcp.getIsDeleted())) {
                 AiUserMcpVo vo = new AiUserMcpVo();
                 BeanUtils.copyProperties(userMcp, vo);
 
                 // 填充MCP模板信息
-                vo.setMcpName(mcp.getName());
-                vo.setMcpIcon(mcp.getIcon());
-                vo.setMcpRemark(mcp.getRemark());
-                vo.setTransportType(mcp.getTransportType());
-                vo.setSseUrl(mcp.getSseUrl());
-                vo.setStdioCommand(mcp.getStdioCommand());
-                vo.setPresetParams(mcp.getPresetParams());
-                vo.setCustomizedParamDefinitions(mcp.getCustomizedParamDefinitions());
-                vo.setInstallType(mcp.getInstallType());
+                AiMcpVo mcpVo = new AiMcpVo();
+                BeanUtils.copyProperties(mcp, mcpVo);
+                vo.setMcpInfo(mcpVo);
 
                 voList.add(vo);
             }
@@ -252,8 +228,8 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
         List<AiUserMcpEntity> userMcpList = baseMapper.selectList(
                 lambdaQuery()
                         .eq(AiUserMcpEntity::getUserId, userId)
-                        .eq(AiUserMcpEntity::getIsEnable, 1)
-                        .eq(AiUserMcpEntity::getIsDeleted, 0)
+                        .eq(AiUserMcpEntity::getIsEnable, true)
+                        .eq(AiUserMcpEntity::getIsDeleted, false)
                         .orderByDesc(AiUserMcpEntity::getId)
                         .getWrapper()
         );
@@ -261,20 +237,14 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
         List<AiUserMcpVo> voList = new ArrayList<>();
         for (AiUserMcpEntity userMcp : userMcpList) {
             AiMcpEntity mcp = mcpMapper.selectById(userMcp.getMcpId());
-            if (mcp != null && mcp.getIsDeleted() == 0 && mcp.getIsEnable() == 1) {
+            if (mcp != null && !Boolean.TRUE.equals(mcp.getIsDeleted()) && Boolean.TRUE.equals(mcp.getIsEnable())) {
                 AiUserMcpVo vo = new AiUserMcpVo();
                 BeanUtils.copyProperties(userMcp, vo);
 
                 // 填充MCP模板信息
-                vo.setMcpName(mcp.getName());
-                vo.setMcpIcon(mcp.getIcon());
-                vo.setMcpRemark(mcp.getRemark());
-                vo.setTransportType(mcp.getTransportType());
-                vo.setSseUrl(mcp.getSseUrl());
-                vo.setStdioCommand(mcp.getStdioCommand());
-                vo.setPresetParams(mcp.getPresetParams());
-                vo.setCustomizedParamDefinitions(mcp.getCustomizedParamDefinitions());
-                vo.setInstallType(mcp.getInstallType());
+                AiMcpVo mcpVo = new AiMcpVo();
+                BeanUtils.copyProperties(mcp, mcpVo);
+                vo.setMcpInfo(mcpVo);
 
                 voList.add(vo);
             }
@@ -311,15 +281,9 @@ public class AiUserMcpService extends ServiceImpl<AiUserMcpMapper, AiUserMcpEnti
         BeanUtils.copyProperties(userMcp, vo);
 
         // 填充MCP模板信息
-        vo.setMcpName(mcp.getName());
-        vo.setMcpIcon(mcp.getIcon());
-        vo.setMcpRemark(mcp.getRemark());
-        vo.setTransportType(mcp.getTransportType());
-        vo.setSseUrl(mcp.getSseUrl());
-        vo.setStdioCommand(mcp.getStdioCommand());
-        vo.setPresetParams(mcp.getPresetParams());
-        vo.setCustomizedParamDefinitions(mcp.getCustomizedParamDefinitions());
-        vo.setInstallType(mcp.getInstallType());
+        AiMcpVo mcpVo = new AiMcpVo();
+        BeanUtils.copyProperties(mcp, mcpVo);
+        vo.setMcpInfo(mcpVo);
 
         return vo;
     }

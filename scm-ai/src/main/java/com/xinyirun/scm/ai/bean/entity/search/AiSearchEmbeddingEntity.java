@@ -70,7 +70,7 @@ public class AiSearchEmbeddingEntity implements Serializable {
      * 是否删除(0-未删除,1-已删除)
      */
     @TableField("is_deleted")
-    private Integer isDeleted;
+    private Boolean isDeleted;
 
     /**
      * 创建时间

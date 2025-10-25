@@ -1,7 +1,10 @@
 package com.xinyirun.scm.ai.bean.entity.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.annotation.*;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeInputConfigVo;
+import com.xinyirun.scm.ai.config.handler.FastjsonInputConfigTypeHandler;
+import com.xinyirun.scm.ai.config.handler.FastjsonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -10,7 +13,6 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 /**
  * AI工作流节点实体类
@@ -39,8 +41,8 @@ public class AiWorkflowNodeEntity implements Serializable {
     /**
      * 节点UUID(业务主键)
      */
-    @TableField("node_uuid")
-    private String nodeUuid;
+    @TableField("uuid")
+    private String uuid;
 
     /**
      * 所属工作流ID
@@ -55,10 +57,10 @@ public class AiWorkflowNodeEntity implements Serializable {
     private Long workflowComponentId;
 
     /**
-     * 节点名称
+     * 节点标题
      */
-    @TableField("name")
-    private String name;
+    @TableField("title")
+    private String title;
 
     /**
      * 节点描述
@@ -68,15 +70,18 @@ public class AiWorkflowNodeEntity implements Serializable {
 
     /**
      * 输入配置(JSON格式)
+     * 参考 aideepin: 使用强类型 AiWfNodeInputConfigVo 替代 Map
+     * 使用 FastjsonInputConfigTypeHandler 替代 JacksonTypeHandler
      */
-    @TableField(value = "input_config", typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> inputConfig;
+    @TableField(value = "input_config", typeHandler = FastjsonInputConfigTypeHandler.class)
+    private AiWfNodeInputConfigVo inputConfig;
 
     /**
      * 节点配置(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      */
-    @TableField(value = "node_config", typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> nodeConfig;
+    @TableField(value = "node_config", typeHandler = FastjsonTypeHandler.class)
+    private JSONObject nodeConfig;
 
     /**
      * 节点X坐标
@@ -94,7 +99,7 @@ public class AiWorkflowNodeEntity implements Serializable {
      * 是否删除(0-未删除,1-已删除)
      */
     @TableField("is_deleted")
-    private Integer isDeleted;
+    private Boolean isDeleted;
 
     /**
      * 创建时间

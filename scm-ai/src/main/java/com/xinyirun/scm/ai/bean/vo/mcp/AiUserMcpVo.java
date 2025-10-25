@@ -41,9 +41,9 @@ public class AiUserMcpVo {
     private Map<String, Object> mcpCustomizedParams;
 
     /**
-     * 是否启用(0-禁用,1-启用)
+     * 是否启用(false-禁用,true-启用)
      */
-    private Integer isEnable;
+    private Boolean isEnable;
 
     /**
      * MCP模板信息(关联查询)

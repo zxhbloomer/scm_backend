@@ -10,20 +10,21 @@ import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.entity.mime.FileBody;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.Consts;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ClassicHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.util.Timeout;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -57,34 +58,38 @@ public class HttpRequestNode extends AbstractWfNode {
 
         HttpRequestNodeConfig nodeConfig = checkAndGetConfig(HttpRequestNodeConfig.class);
         RequestConfig requestConfig = RequestConfig.custom()
-                .setConnectionRequestTimeout(nodeConfig.getTimeout() * 1000)
-                .setConnectTimeout(nodeConfig.getTimeout() * 1000)
+                .setConnectTimeout(Timeout.ofSeconds(nodeConfig.getTimeout()))
                 .build();
 
-        try (CloseableHttpClient httpClient = HttpClients.custom()
+        CloseableHttpClient httpClient = HttpClients.custom()
                 .setDefaultRequestConfig(requestConfig)
-                .setRetryHandler(new DefaultHttpRequestRetryHandler(nodeConfig.getRetryTimes(), true))
-                .build()) {
+                .build();
 
+        try {
             String url = appendParams(nodeConfig.getUrl(), nodeConfig.getParams());
             String contentType = nodeConfig.getContentType();
-            HttpUriRequest httpRequest;
 
             if (HttpGet.METHOD_NAME.equalsIgnoreCase(nodeConfig.getMethod())) {
-                httpRequest = new HttpGet(url);
-                httpRequest.setHeader(CONTENT_TYPE, contentType);
-                setHeaders(httpRequest, nodeConfig.getHeaders());
+                HttpGet httpGet = new HttpGet(url);
+                httpGet.setHeader(CONTENT_TYPE, contentType);
+                setHeaders(httpGet, nodeConfig.getHeaders());
+
+                ClassicHttpResponse response = (ClassicHttpResponse) httpClient.execute(httpGet);
+                try {
+                    handleResponse(response, nodeConfig, outputData);
+                } finally {
+                    response.close();
+                }
             } else if (HttpPost.METHOD_NAME.equalsIgnoreCase(nodeConfig.getMethod())) {
                 HttpPost httpPost = new HttpPost(url);
-                httpRequest = httpPost;
-                httpRequest.setHeader(CONTENT_TYPE, contentType);
-                setHeaders(httpRequest, nodeConfig.getHeaders());
+                httpPost.setHeader(CONTENT_TYPE, contentType);
+                setHeaders(httpPost, nodeConfig.getHeaders());
 
                 if (contentType.equalsIgnoreCase("text/plain")) {
-                    StringEntity textEntity = new StringEntity(nodeConfig.getTextBody(), ContentType.TEXT_PLAIN.withCharset(Consts.UTF_8));
+                    StringEntity textEntity = new StringEntity(nodeConfig.getTextBody(), ContentType.TEXT_PLAIN);
                     httpPost.setEntity(textEntity);
                 } else if (contentType.equalsIgnoreCase("application/json")) {
-                    StringEntity jsonEntity = new StringEntity(JsonUtil.toJson(nodeConfig.getJsonBody()), ContentType.APPLICATION_JSON.withCharset(Consts.UTF_8));
+                    StringEntity jsonEntity = new StringEntity(JsonUtil.toJson(nodeConfig.getJsonBody()), ContentType.APPLICATION_JSON);
                     httpPost.setEntity(jsonEntity);
                 } else if (contentType.equalsIgnoreCase("multipart/form-data")) {
                     MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
@@ -100,41 +105,68 @@ public class HttpRequestNode extends AbstractWfNode {
                     String boundary = FORM_DATA_BOUNDARY_PRE + System.currentTimeMillis();
                     entityBuilder.setBoundary(boundary);
                     httpPost.setEntity(entityBuilder.build());
-                    httpRequest.setHeader(CONTENT_TYPE, "multipart/form-data; boundary=" + boundary);
+                    httpPost.setHeader(CONTENT_TYPE, "multipart/form-data; boundary=" + boundary);
                 } else if (contentType.equalsIgnoreCase("application/x-www-form-urlencoded")) {
-                    StringEntity formEntity = new StringEntity(JsonUtil.toJson(nodeConfig.getFormUrlencodedBody()), ContentType.APPLICATION_FORM_URLENCODED.withCharset(Consts.UTF_8));
+                    StringEntity formEntity = new StringEntity(JsonUtil.toJson(nodeConfig.getFormUrlencodedBody()), ContentType.APPLICATION_FORM_URLENCODED);
                     httpPost.setEntity(formEntity);
+                }
+
+                ClassicHttpResponse response = (ClassicHttpResponse) httpClient.execute(httpPost);
+                try {
+                    handleResponse(response, nodeConfig, outputData);
+                } finally {
+                    response.close();
                 }
             } else {
                 log.error("不支持的请求方式: {}", nodeConfig.getMethod());
                 throw new RuntimeException("不支持的HTTP请求方式");
             }
-
-            try (CloseableHttpResponse response = httpClient.execute(httpRequest)) {
-                int statusCode = response.getStatusLine().getStatusCode();
-                String responseBody = EntityUtils.toString(response.getEntity(), Consts.UTF_8);
-
-                if (Boolean.TRUE.equals(nodeConfig.getClearHtml())) {
-                    Document doc = Jsoup.parse(responseBody);
-                    responseBody = doc.body().text();
-                }
-
-                if (statusCode == 200) {
-                    NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "响应内容", responseBody);
-                    outputData.add(output);
-                } else {
-                    log.error("HTTP请求失败，状态码: {}", statusCode);
-                    NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "错误内容", responseBody);
-                    outputData.add(output);
-                }
-
-                outputData.add(NodeIOData.createByText("status_code", "HTTP状态码", String.valueOf(statusCode)));
-            }
         } catch (IOException e) {
             log.error("HTTP请求发生异常: {}", e.getMessage(), e);
+        } finally {
+            try {
+                httpClient.close();
+            } catch (IOException e) {
+                log.error("关闭HTTP客户端异常: {}", e.getMessage(), e);
+            }
         }
 
         return NodeProcessResult.builder().content(outputData).build();
+    }
+
+    /**
+     * 处理HTTP响应
+     *
+     * @param response 响应对象
+     * @param nodeConfig 节点配置
+     * @param outputData 输出数据列表
+     */
+    private void handleResponse(ClassicHttpResponse response, HttpRequestNodeConfig nodeConfig, List<NodeIOData> outputData) {
+        try {
+            int statusCode = response.getCode();
+            HttpEntity entity = response.getEntity();
+            String responseBody = entity != null ? EntityUtils.toString(entity) : "";
+
+            if (Boolean.TRUE.equals(nodeConfig.getClearHtml())) {
+                Document doc = Jsoup.parse(responseBody);
+                responseBody = doc.body().text();
+            }
+
+            if (statusCode == 200) {
+                NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "响应内容", responseBody);
+                outputData.add(output);
+            } else {
+                log.error("HTTP请求失败，状态码: {}", statusCode);
+                NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "错误内容", responseBody);
+                outputData.add(output);
+            }
+
+            outputData.add(NodeIOData.createByText("status_code", "HTTP状态码", String.valueOf(statusCode)));
+        } catch (IOException | ParseException e) {
+            log.error("处理HTTP响应异常: {}", e.getMessage(), e);
+            NodeIOData errorOutput = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "错误", "处理响应失败: " + e.getMessage());
+            outputData.add(errorOutput);
+        }
     }
 
     /**
@@ -175,12 +207,21 @@ public class HttpRequestNode extends AbstractWfNode {
      * @param httpRequest HTTP请求对象
      * @param headers 请求头参数列表
      */
-    private void setHeaders(HttpUriRequest httpRequest, List<HttpRequestNodeConfig.Param> headers) {
-        if (headers == null) {
+    private void setHeaders(Object httpRequest, List<HttpRequestNodeConfig.Param> headers) {
+        if (headers == null || headers.isEmpty()) {
             return;
         }
-        for (HttpRequestNodeConfig.Param header : headers) {
-            httpRequest.addHeader(header.getName(), header.getValue().toString());
+
+        if (httpRequest instanceof HttpGet) {
+            HttpGet httpGet = (HttpGet) httpRequest;
+            for (HttpRequestNodeConfig.Param header : headers) {
+                httpGet.addHeader(header.getName(), header.getValue().toString());
+            }
+        } else if (httpRequest instanceof HttpPost) {
+            HttpPost httpPost = (HttpPost) httpRequest;
+            for (HttpRequestNodeConfig.Param header : headers) {
+                httpPost.addHeader(header.getName(), header.getValue().toString());
+            }
         }
     }
 }

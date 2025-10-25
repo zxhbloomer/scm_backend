@@ -37,7 +37,7 @@ public class ClassifierNode extends AbstractWfNode {
 
         // 验证分类列表不为空
         if (nodeConfig.getCategories().size() < 2) {
-            log.warn("分类器设置的分类过少, nodeUuid: {}, title: {}", node.getNodeUuid(), node.getName());
+            log.warn("分类器设置的分类过少, nodeUuid: {}, title: {}", node.getUuid(), node.getTitle());
             throw new BusinessException("分类器至少需要2个分类");
         }
 

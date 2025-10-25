@@ -36,7 +36,7 @@ public class AiDrawCommentService extends ServiceImpl<AiDrawCommentMapper, AiDra
         comment.setDrawId(drawId);
         comment.setUserId(userId);
         comment.setRemark(remark);
-        comment.setIsDeleted(0);
+        comment.setIsDeleted(false);
 
         baseMapper.insert(comment);
 

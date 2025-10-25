@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.bean.vo.workflow;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.alibaba.fastjson2.JSONObject;
 import lombok.Data;
 
 /**
@@ -35,13 +35,15 @@ public class AiWorkflowRuntimeNodeVo {
 
     /**
      * 节点输入(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      */
-    private ObjectNode input;
+    private JSONObject input;
 
     /**
      * 节点输出(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      */
-    private ObjectNode output;
+    private JSONObject output;
 
     /**
      * 执行状态(1-等待中,2-运行中,3-成功,4-失败)

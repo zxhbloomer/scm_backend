@@ -8,6 +8,7 @@ import com.xinyirun.scm.ai.core.event.VectorIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchIndexingService;
+import com.xinyirun.scm.ai.core.service.Neo4jGraphIndexingService;
 import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import lombok.extern.slf4j.Slf4j;
 

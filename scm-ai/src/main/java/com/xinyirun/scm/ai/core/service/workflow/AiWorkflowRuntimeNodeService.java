@@ -1,16 +1,18 @@
 package com.xinyirun.scm.ai.core.service.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeNodeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowRuntimeNodeMapper;
+import com.xinyirun.scm.ai.workflow.WfNodeState;
+import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,28 +54,31 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
     }
 
     /**
-     * 创建运行时节点记录
+     * 根据节点状态创建运行时节点记录
+     * 参考 aideepin: WorkflowRuntimeNodeService.createByState() 第45-59行
      *
      * @param userId 用户ID
-     * @param nodeId 节点ID
+     * @param wfNodeId 节点ID
      * @param wfRuntimeId 运行实例ID
-     * @param nodeUuid 节点UUID
-     * @param status 初始状态
+     * @param state 节点状态
      * @return 节点执行记录VO
      */
-    public AiWorkflowRuntimeNodeVo create(Long userId, Long nodeId, Long wfRuntimeId,
-                                           String nodeUuid, Integer status) {
+    public AiWorkflowRuntimeNodeVo createByState(Long userId, Long wfNodeId,
+                                                  Long wfRuntimeId, WfNodeState state) {
+        // 参考 aideepin:46-52
         AiWorkflowRuntimeNodeEntity runtimeNode = new AiWorkflowRuntimeNodeEntity();
-        runtimeNode.setRuntimeNodeUuid(UuidUtil.createShort());
+        runtimeNode.setRuntimeNodeUuid(state.getUuid());
         runtimeNode.setWorkflowRuntimeId(wfRuntimeId);
-        runtimeNode.setNodeId(nodeId);
-        runtimeNode.setStatus(status != null ? status : 1); // 默认1-等待中
-        runtimeNode.setUserId(userId);
-        // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
+        runtimeNode.setNodeId(wfNodeId);
+        runtimeNode.setStatus(state.getProcessStatus());
+        runtimeNode.setIsDeleted(false);
+        // 不设置 c_time, u_time, c_id, u_id, dbversion - 自动填充
         baseMapper.insert(runtimeNode);
 
+        // 参考 aideepin:53 - 重新查询获取完整数据
         runtimeNode = baseMapper.selectById(runtimeNode.getId());
 
+        // 参考 aideepin:55-58 - 转换为 VO
         AiWorkflowRuntimeNodeVo vo = changeNodeToDTO(runtimeNode);
         fillInputOutput(vo);
         return vo;
@@ -83,12 +88,10 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * 更新节点输入数据
      *
      * @param id 节点执行记录ID
-     * @param inputData 输入数据
-     * @param status 执行状态
-     * @param statusRemark 状态描述
+     * @param state 工作流节点状态
      */
-    public void updateInput(Long id, ObjectNode inputData, Integer status, String statusRemark) {
-        if (inputData == null || inputData.isEmpty()) {
+    public void updateInput(Long id, WfNodeState state) {
+        if (CollectionUtils.isEmpty(state.getInputs())) {
             log.warn("没有输入数据,id:{}", id);
             return;
         }
@@ -101,12 +104,18 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
 
         AiWorkflowRuntimeNodeEntity updateObj = new AiWorkflowRuntimeNodeEntity();
         updateObj.setId(id);
-        updateObj.setInputData(inputData.toString());
-        if (status != null) {
-            updateObj.setStatus(status);
+
+        JSONObject inputNode = new JSONObject();
+        for (NodeIOData data : state.getInputs()) {
+            inputNode.put(data.getName(), data.getContent());
         }
-        if (StringUtils.isNotBlank(statusRemark)) {
-            updateObj.setErrorMessage(StringUtils.substring(statusRemark, 0, 500));
+        updateObj.setInput(inputNode);
+
+        if (state.getProcessStatus() != null) {
+            updateObj.setStatus(state.getProcessStatus());
+        }
+        if (StringUtils.isNotBlank(state.getProcessStatusRemark())) {
+            updateObj.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
         }
         baseMapper.updateById(updateObj);
     }
@@ -115,11 +124,9 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * 更新节点输出数据
      *
      * @param id 节点执行记录ID
-     * @param outputData 输出数据
-     * @param status 执行状态
-     * @param statusRemark 状态描述
+     * @param state 工作流节点状态
      */
-    public void updateOutput(Long id, ObjectNode outputData, Integer status, String statusRemark) {
+    public void updateOutput(Long id, WfNodeState state) {
         AiWorkflowRuntimeNodeEntity node = baseMapper.selectById(id);
         if (node == null) {
             log.error("节点实例不存在,id:{}", id);
@@ -129,16 +136,20 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         AiWorkflowRuntimeNodeEntity updateObj = new AiWorkflowRuntimeNodeEntity();
         updateObj.setId(id);
 
-        if (outputData != null && !outputData.isEmpty()) {
-            updateObj.setOutputData(outputData.toString());
+        if (!CollectionUtils.isEmpty(state.getOutputs())) {
+            JSONObject outputNode = new JSONObject();
+            for (NodeIOData data : state.getOutputs()) {
+                outputNode.put(data.getName(), data.getContent());
+            }
+            updateObj.setOutput(outputNode);
         }
 
-        if (status != null) {
-            updateObj.setStatus(status);
+        if (state.getProcessStatus() != null) {
+            updateObj.setStatus(state.getProcessStatus());
         }
 
-        if (StringUtils.isNotBlank(statusRemark)) {
-            updateObj.setErrorMessage(StringUtils.substring(statusRemark, 0, 500));
+        if (StringUtils.isNotBlank(state.getProcessStatusRemark())) {
+            updateObj.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
         }
 
         baseMapper.updateById(updateObj);
@@ -157,16 +168,25 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
     }
 
     /**
+     * 删除运行时节点记录
+     *
+     * @param id 节点执行记录ID
+     */
+    public void delete(Long id) {
+        baseMapper.deleteById(id);
+    }
+
+    /**
      * 填充输入输出数据(确保不为null)
      *
      * @param vo 节点VO
      */
     private void fillInputOutput(AiWorkflowRuntimeNodeVo vo) {
         if (vo.getInput() == null) {
-            vo.setInput(JsonNodeFactory.instance.objectNode());
+            vo.setInput(new JSONObject());
         }
         if (vo.getOutput() == null) {
-            vo.setOutput(JsonNodeFactory.instance.objectNode());
+            vo.setOutput(new JSONObject());
         }
     }
 }

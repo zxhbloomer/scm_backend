@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow.node;
 
 import cn.hutool.extra.spring.SpringUtil;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.utils.JsonUtil;
@@ -116,7 +116,6 @@ public abstract class AbstractWfNode {
      * @return 节点处理结果
      */
     public NodeProcessResult process(Consumer<WfNodeState> inputConsumer, Consumer<WfNodeState> outputConsumer) {
-        log.info("↓↓↓↓↓ node process start, name: {}, uuid: {}", node.getName(), node.getNodeUuid());
         state.setProcessStatus(NODE_PROCESS_STATUS_DOING);
         initInput();
 
@@ -142,7 +141,6 @@ public abstract class AbstractWfNode {
             state.setProcessStatus(NODE_PROCESS_STATUS_FAIL);
             state.setProcessStatusRemark("process error: " + e.getMessage());
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_FAIL);
-            log.error("↑↑↑↑↑ node process error, name: {}, uuid: {}", node.getName(), node.getNodeUuid(), e);
             if (null != outputConsumer) {
                 outputConsumer.accept(state);
             }
@@ -156,9 +154,6 @@ public abstract class AbstractWfNode {
         state.setProcessStatus(NODE_PROCESS_STATUS_SUCCESS);
         // 将当前节点添加到已完成节点列表
         wfState.getCompletedNodes().add(this);
-
-        log.info("↑↑↑↑↑ node process end, name: {}, uuid: {}, output: {}",
-                 node.getName(), node.getNodeUuid(), JsonUtil.toJson(state.getOutputs()));
 
         if (null != outputConsumer) {
             outputConsumer.accept(state);
@@ -198,14 +193,16 @@ public abstract class AbstractWfNode {
 
     /**
      * 获取并验证节点配置
+     * 严格参考 aideepin 的 AbstractWfNode.checkAndGetConfig 方法
      *
      * @param clazz 配置类型
      * @param <T>   泛型类型
      * @return 反序列化后的配置对象
      */
     protected <T> T checkAndGetConfig(Class<T> clazz) {
-        Object configObj = node.getNodeConfig();
-        if (null == configObj) {
+        // 使用 Fastjson2 的 JSONObject
+        JSONObject configObj = node.getNodeConfig();
+        if (null == configObj || configObj.isEmpty()) {
             log.error("node config is empty, node uuid: {}", state.getUuid());
             throw new BusinessException("节点配置不存在");
         }
@@ -214,13 +211,8 @@ public abstract class AbstractWfNode {
 
         T nodeConfig;
         try {
-            if (configObj instanceof String) {
-                nodeConfig = JsonUtil.fromJson((String) configObj, clazz);
-            } else if (configObj instanceof ObjectNode) {
-                nodeConfig = JsonUtil.fromJson((ObjectNode) configObj, clazz);
-            } else {
-                nodeConfig = JsonUtil.fromJson(JsonUtil.toJson(configObj), clazz);
-            }
+            // 使用 Fastjson2 直接转换
+            nodeConfig = configObj.toJavaObject(clazz);
         } catch (Exception e) {
             log.error("节点配置反序列化失败, node uuid: {}, error: {}", state.getUuid(), e.getMessage());
             throw new BusinessException("节点配置反序列化失败: " + e.getMessage());

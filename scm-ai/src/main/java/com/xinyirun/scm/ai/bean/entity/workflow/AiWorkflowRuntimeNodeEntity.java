@@ -1,7 +1,8 @@
 package com.xinyirun.scm.ai.bean.entity.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.annotation.*;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.xinyirun.scm.ai.config.handler.FastjsonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -9,7 +10,6 @@ import lombok.experimental.Accessors;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 /**
  * AI工作流运行时节点实体类
@@ -54,22 +54,18 @@ public class AiWorkflowRuntimeNodeEntity implements Serializable {
     private Long nodeId;
 
     /**
-     * 节点UUID
-     */
-    @TableField("node_uuid")
-    private String nodeUuid;
-
-    /**
      * 节点输入数据(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Map<String, Object>
      */
-    @TableField(value = "input", typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> input;
+    @TableField(value = "input", typeHandler = FastjsonTypeHandler.class)
+    private JSONObject input;
 
     /**
      * 节点输出数据(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Map<String, Object>
      */
-    @TableField(value = "output", typeHandler = JacksonTypeHandler.class)
-    private Map<String, Object> output;
+    @TableField(value = "output", typeHandler = FastjsonTypeHandler.class)
+    private JSONObject output;
 
     /**
      * 执行状态(1-等待中,2-运行中,3-成功,4-失败)
@@ -87,7 +83,7 @@ public class AiWorkflowRuntimeNodeEntity implements Serializable {
      * 是否删除(0-未删除,1-已删除)
      */
     @TableField("is_deleted")
-    private Integer isDeleted;
+    private Boolean isDeleted;
 
     /**
      * 创建时间

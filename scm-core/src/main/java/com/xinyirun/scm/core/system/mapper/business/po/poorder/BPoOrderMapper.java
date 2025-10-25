@@ -142,7 +142,8 @@ public interface BPoOrderMapper extends BaseMapper<BPoOrderEntity> {    /**
             	GROUP BY
             		tab2.po_order_id
             </script>
-            """)    @Results({
+            """)
+    @Results({
             @Result(property = "detailListData", column = "detailListData", javaType = List.class, typeHandler = PoOrderDetailListTypeHandler.class),
     })
     IPage<BPoOrderVo> selectPage(Page<BPoOrderVo> page, @Param("p1") BPoOrderVo searchCondition);

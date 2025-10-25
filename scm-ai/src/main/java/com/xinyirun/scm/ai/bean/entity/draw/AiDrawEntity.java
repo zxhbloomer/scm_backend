@@ -133,13 +133,13 @@ public class AiDrawEntity implements Serializable {
      * 是否公开(0-私有,1-公开)
      */
     @TableField("is_public")
-    private Integer isPublic;
+    private Boolean isPublic;
 
     /**
      * 是否带水印(0-不带,1-带)
      */
     @TableField("with_watermark")
-    private Integer withWatermark;
+    private Boolean withWatermark;
 
     /**
      * 点赞数
@@ -157,7 +157,7 @@ public class AiDrawEntity implements Serializable {
      * 是否删除(0-未删除,1-已删除)
      */
     @TableField("is_deleted")
-    private Integer isDeleted;
+    private Boolean isDeleted;
 
     /**
      * 创建时间

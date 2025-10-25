@@ -20,7 +20,7 @@ public class AiWorkflowEdgeVo {
     /**
      * 连接边UUID(业务主键)
      */
-    private String edgeUuid;
+    private String uuid;
 
     /**
      * 工作流ID

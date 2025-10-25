@@ -1,8 +1,8 @@
 package com.xinyirun.scm.ai.core.service.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
@@ -76,16 +76,16 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             return;
         }
 
-        // 从WfState的输入数据构建ObjectNode
-        ObjectNode inputNode = com.xinyirun.scm.ai.utils.JsonUtil.createObjectNode();
+        // 从WfState的输入数据构建 JSONObject
+        JSONObject inputNode = new JSONObject();
         for (NodeIOData data : wfState.getInput()) {
-            inputNode.set(data.getName(), com.xinyirun.scm.ai.utils.JsonUtil.classToJsonNode(data.getContent()));
+            inputNode.put(data.getName(), data.getContent());
         }
 
         AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
         updateObj.setId(id);
-        // 直接将ObjectNode转换为Map供数据库存储
-        updateObj.setInput(com.xinyirun.scm.ai.utils.JsonUtil.toMap(inputNode));
+        // Entity 已经是 JSONObject 类型，直接赋值
+        updateObj.setInput(inputNode);
         updateObj.setStatus(1); // 1-运行中
         baseMapper.updateById(updateObj);
     }
@@ -104,19 +104,19 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             return null;
         }
 
-        // 从WfState的输出数据构建ObjectNode
-        ObjectNode outputNode = com.xinyirun.scm.ai.utils.JsonUtil.createObjectNode();
+        // 从WfState的输出数据构建 JSONObject
+        JSONObject outputNode = new JSONObject();
         if (wfState.getOutput() != null) {
             for (NodeIOData data : wfState.getOutput()) {
-                outputNode.set(data.getName(), com.xinyirun.scm.ai.utils.JsonUtil.classToJsonNode(data.getContent()));
+                outputNode.put(data.getName(), data.getContent());
             }
         }
 
         AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
         updateObj.setId(id);
         if (!outputNode.isEmpty()) {
-            // 直接将ObjectNode转换为Map供数据库存储
-            updateObj.setOutput(com.xinyirun.scm.ai.utils.JsonUtil.toMap(outputNode));
+            // Entity 已经是 JSONObject 类型，直接赋值
+            updateObj.setOutput(outputNode);
         }
         if (wfState.getProcessStatus() != null) {
             updateObj.setStatus(wfState.getProcessStatus());
@@ -243,7 +243,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
 
         AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
         updateObj.setId(runtime.getId());
-        updateObj.setIsDeleted(1);
+        updateObj.setIsDeleted(true);
         return baseMapper.updateById(updateObj) > 0;
     }
 
@@ -266,10 +266,10 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      */
     private void fillInputOutput(AiWorkflowRuntimeVo vo) {
         if (vo.getInput() == null) {
-            vo.setInput(com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode());
+            vo.setInput(new JSONObject());
         }
         if (vo.getOutput() == null) {
-            vo.setOutput(com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode());
+            vo.setOutput(new JSONObject());
         }
     }
 }

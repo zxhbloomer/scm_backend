@@ -38,9 +38,9 @@ public class AiWorkflowComponentVo {
     private String remark;
 
     /**
-     * 是否启用(0-禁用,1-启用)
+     * 是否启用(false-禁用,true-启用)
      */
-    private Integer isEnable;
+    private Boolean isEnable;
 
     /**
      * 显示顺序

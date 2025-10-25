@@ -66,11 +66,11 @@ public class AiDrawService extends ServiceImpl<AiDrawMapper, AiDrawEntity> {
         draw.setGenerateSeed(seed);
         draw.setInteractingMethod(1); // 1-文本生图
         draw.setProcessStatus(1); // 1-处理中
-        draw.setIsPublic(0);
-        draw.setWithWatermark(0);
+        draw.setIsPublic(false);
+        draw.setWithWatermark(false);
         draw.setStarCount(0);
         draw.setCommentCount(0);
-        draw.setIsDeleted(0);
+        draw.setIsDeleted(false);
 
         baseMapper.insert(draw);
 
@@ -108,11 +108,11 @@ public class AiDrawService extends ServiceImpl<AiDrawMapper, AiDrawEntity> {
         draw.setGenerateNumber(number);
         draw.setInteractingMethod(2); // 2-编辑
         draw.setProcessStatus(1); // 1-处理中
-        draw.setIsPublic(0);
-        draw.setWithWatermark(0);
+        draw.setIsPublic(false);
+        draw.setWithWatermark(false);
         draw.setStarCount(0);
         draw.setCommentCount(0);
-        draw.setIsDeleted(0);
+        draw.setIsDeleted(false);
 
         baseMapper.insert(draw);
 
@@ -143,11 +143,11 @@ public class AiDrawService extends ServiceImpl<AiDrawMapper, AiDrawEntity> {
         draw.setGenerateNumber(number);
         draw.setInteractingMethod(3); // 3-图生图
         draw.setProcessStatus(1); // 1-处理中
-        draw.setIsPublic(0);
-        draw.setWithWatermark(0);
+        draw.setIsPublic(false);
+        draw.setWithWatermark(false);
         draw.setStarCount(0);
         draw.setCommentCount(0);
-        draw.setIsDeleted(0);
+        draw.setIsDeleted(false);
 
         baseMapper.insert(draw);
 
@@ -269,7 +269,7 @@ public class AiDrawService extends ServiceImpl<AiDrawMapper, AiDrawEntity> {
         }
 
         // 公开的图片或者自己的图片,都可以获取到
-        if (draw.getIsPublic() == 1 || (userId != null && userId.equals(draw.getUserId()))) {
+        if (Boolean.TRUE.equals(draw.getIsPublic()) || (userId != null && userId.equals(draw.getUserId()))) {
             AiDrawVo vo = new AiDrawVo();
             BeanUtils.copyProperties(draw, vo);
             // 判断是否已点赞
@@ -473,13 +473,13 @@ public class AiDrawService extends ServiceImpl<AiDrawMapper, AiDrawEntity> {
 
         lambdaUpdate()
                 .eq(AiDrawEntity::getId, draw.getId())
-                .set(AiDrawEntity::getIsPublic, isPublic ? 1 : 0)
-                .set(withWatermark != null, AiDrawEntity::getWithWatermark, withWatermark ? 1 : 0)
+                .set(AiDrawEntity::getIsPublic, isPublic)
+                .set(withWatermark != null, AiDrawEntity::getWithWatermark, withWatermark)
                 .update();
 
-        draw.setIsPublic(isPublic ? 1 : 0);
+        draw.setIsPublic(isPublic);
         if (withWatermark != null) {
-            draw.setWithWatermark(withWatermark ? 1 : 0);
+            draw.setWithWatermark(withWatermark);
         }
 
         AiDrawVo vo = new AiDrawVo();

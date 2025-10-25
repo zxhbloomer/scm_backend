@@ -1,8 +1,12 @@
 package com.xinyirun.scm.ai.workflow;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.alibaba.fastjson2.JSONObject;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEdgeEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.core.service.workflow.*;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -51,12 +55,12 @@ public class WorkflowStarter {
     /**
      * 流式执行工作流
      *
-     * @param userId 用户ID
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
      * @return SSE Emitter
      */
-    public SseEmitter streaming(Long userId, String workflowUuid, List<ObjectNode> userInputs) {
+    public SseEmitter streaming(String workflowUuid, List<JSONObject> userInputs) {
+        Long userId = SecurityUtil.getStaff_id();
         SseEmitter sseEmitter = new SseEmitter(SSE_TIMEOUT);
 
         // TODO: 检查用户并发限制
@@ -66,7 +70,7 @@ public class WorkflowStarter {
 
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
-        if (workflow.getIsEnable() == null || workflow.getIsEnable() == 0) {
+        if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
             sendErrorAndComplete(userId, sseEmitter, "工作流已禁用");
             return sseEmitter;
         }
@@ -85,7 +89,7 @@ public class WorkflowStarter {
      */
     @Async
     public void asyncRun(Long userId, AiWorkflowEntity workflow,
-                         List<ObjectNode> userInputs, SseEmitter sseEmitter) {
+                         List<JSONObject> userInputs, SseEmitter sseEmitter) {
         log.info("WorkflowEngine run,userId:{},workflowUuid:{},userInputs:{}",
                 userId, workflow.getWorkflowUuid(), userInputs);
 

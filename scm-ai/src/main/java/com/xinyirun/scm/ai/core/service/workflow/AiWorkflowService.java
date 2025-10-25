@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowEdgeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowMapper;
+import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -49,12 +50,12 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      *
      * @param title 标题
      * @param remark 备注
-     * @param isPublic 是否公开(0-私有,1-公开)
-     * @param userId 用户ID
+     * @param isPublic 是否公开(false-私有,true-公开)
      * @return 工作流VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public AiWorkflowVo add(String title, String remark, Integer isPublic, Long userId) {
+    public AiWorkflowVo add(String title, String remark, Boolean isPublic) {
+        Long userId = SecurityUtil.getStaff_id();
         String workflowUuid = UuidUtil.createShort();
 
         AiWorkflowEntity entity = new AiWorkflowEntity();
@@ -62,7 +63,8 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         entity.setTitle(title);
         entity.setRemark(remark);
         entity.setIsPublic(isPublic);
-        entity.setIsEnable(1);
+        entity.setIsEnable(true);
+        entity.setIsDeleted(false);
         entity.setUserId(userId);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         baseMapper.insert(entity);
@@ -91,12 +93,12 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * <p>复制工作流定义及其所有节点和连线,自动生成新的UUID</p>
      *
      * @param wfUuid 源工作流UUID
-     * @param userId 当前用户ID
      * @return 新工作流VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public AiWorkflowVo copy(String wfUuid, Long userId) {
+    public AiWorkflowVo copy(String wfUuid) {
         // TODO: 添加频率限制(Redis锁)
+        Long userId = SecurityUtil.getStaff_id();
 
         AiWorkflowEntity sourceWorkflow = getOrThrow(wfUuid);
 
@@ -105,8 +107,9 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         newWorkflow.setWorkflowUuid(newWorkflowUuid);
         newWorkflow.setTitle(sourceWorkflow.getTitle() + "-copy");
         newWorkflow.setRemark(sourceWorkflow.getRemark());
-        newWorkflow.setIsPublic(0); // 复制的工作流默认私有
-        newWorkflow.setIsEnable(1);
+        newWorkflow.setIsPublic(false); // 复制的工作流默认私有
+        newWorkflow.setIsEnable(true);
+        newWorkflow.setIsDeleted(false);
         newWorkflow.setUserId(userId);
         baseMapper.insert(newWorkflow);
 
@@ -133,19 +136,73 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * 设置工作流公开状态
      *
      * @param wfUuid 工作流UUID
-     * @param isPublic 是否公开(0-私有,1-公开)
-     * @param userId 当前用户ID
+     * @param isPublic 是否公开(true-公开,false-私有)
      */
-    public void setPublic(String wfUuid, Integer isPublic, Long userId) {
+    public void setPublic(String wfUuid, Boolean isPublic) {
+        Long userId = SecurityUtil.getStaff_id();
+
         AiWorkflowEntity workflow = getOrThrow(wfUuid);
         if (!workflow.getUserId().equals(userId)) {
             throw new RuntimeException("无权限修改此工作流");
         }
 
-        AiWorkflowEntity updateObj = new AiWorkflowEntity();
-        updateObj.setId(workflow.getId());
-        updateObj.setIsPublic(isPublic);
-        baseMapper.updateById(updateObj);
+        // 更新工作流公开状态（在查询出的实体上直接修改）
+        workflow.setIsPublic(isPublic);
+        baseMapper.updateById(workflow);
+    }
+
+    /**
+     * 更新工作流
+     * 对应AIDeepin: update(WorkflowUpdateReq req)
+     * 对应前端: workflowService.workflowUpdate({id, title, remark, isPublic, nodes, edges, deleteNodes, deleteEdges})
+     *
+     * @param vo 工作流VO对象
+     * @return 更新后的工作流VO
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AiWorkflowVo update(AiWorkflowVo vo) {
+        Long userId = SecurityUtil.getStaff_id();
+
+        if (vo.getId() == null || StringUtils.isBlank(vo.getTitle())) {
+            throw new RuntimeException("工作流ID和标题不能为空");
+        }
+
+        // 查询现有工作流
+        AiWorkflowEntity workflow = baseMapper.selectById(vo.getId());
+        if (workflow == null) {
+            throw new RuntimeException("工作流不存在: " + vo.getId());
+        }
+
+        // 权限检查
+        if (!workflow.getUserId().equals(userId)) {
+            throw new RuntimeException("无权限修改此工作流");
+        }
+
+        // 更新工作流基本信息（在查询出的实体上直接修改）
+        workflow.setTitle(vo.getTitle());
+        workflow.setRemark(vo.getRemark());
+        if (vo.getIsPublic() != null) {
+            workflow.setIsPublic(vo.getIsPublic());
+        }
+        // u_time, u_id, dbversion由MyBatis-Plus自动填充
+        baseMapper.updateById(workflow);
+
+        // 更新节点和边（参考aideepin WorkflowService.update()）
+        if (vo.getNodes() != null) {
+            workflowNodeService.createOrUpdateNodes(vo.getId(), vo.getNodes());
+        }
+        if (vo.getEdges() != null) {
+            workflowEdgeService.createOrUpdateEdges(vo.getId(), vo.getEdges());
+        }
+        if (vo.getDeleteNodes() != null && !vo.getDeleteNodes().isEmpty()) {
+            workflowNodeService.deleteNodes(vo.getId(), vo.getDeleteNodes());
+        }
+        if (vo.getDeleteEdges() != null && !vo.getDeleteEdges().isEmpty()) {
+            workflowEdgeService.deleteEdges(vo.getId(), vo.getDeleteEdges());
+        }
+
+        // 返回更新后的工作流VO
+        return getDtoByWorkflowId(vo.getId());
     }
 
     /**
@@ -154,11 +211,12 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * @param wfUuid 工作流UUID
      * @param title 标题
      * @param remark 备注
-     * @param isPublic 是否公开
-     * @param userId 当前用户ID
+     * @param isPublic 是否公开(false-私有,true-公开)
      * @return 更新后的工作流VO
      */
-    public AiWorkflowVo updateBaseInfo(String wfUuid, String title, String remark, Integer isPublic, Long userId) {
+    public AiWorkflowVo updateBaseInfo(String wfUuid, String title, String remark, Boolean isPublic) {
+        Long userId = SecurityUtil.getStaff_id();
+
         if (StringUtils.isAnyBlank(wfUuid, title)) {
             throw new RuntimeException("工作流UUID和标题不能为空");
         }
@@ -168,14 +226,13 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
             throw new RuntimeException("无权限修改此工作流");
         }
 
-        AiWorkflowEntity updateObj = new AiWorkflowEntity();
-        updateObj.setId(workflow.getId());
-        updateObj.setTitle(title);
-        updateObj.setRemark(remark);
+        // 更新工作流基本信息（在查询出的实体上直接修改）
+        workflow.setTitle(title);
+        workflow.setRemark(remark);
         if (isPublic != null) {
-            updateObj.setIsPublic(isPublic);
+            workflow.setIsPublic(isPublic);
         }
-        baseMapper.updateById(updateObj);
+        baseMapper.updateById(workflow);
 
         return getDtoByUuid(wfUuid);
     }
@@ -226,17 +283,18 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      *
      * @param keyword 关键词
      * @param isPublic 是否公开
-     * @param userId 用户ID
      * @param currentPage 当前页
      * @param pageSize 每页数量
      * @return 分页结果
      */
-    public Page<AiWorkflowVo> search(String keyword, Integer isPublic, Long userId, Integer currentPage, Integer pageSize) {
+    public Page<AiWorkflowVo> search(String keyword, Boolean isPublic, Integer currentPage, Integer pageSize) {
+        Long userId = SecurityUtil.getStaff_id();
+
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowEntity> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
 
         wrapper.eq(AiWorkflowEntity::getUserId, userId);
-        wrapper.eq(AiWorkflowEntity::getIsDeleted, 0);
+        wrapper.eq(AiWorkflowEntity::getIsDeleted, false);
 
         if (isPublic != null) {
             wrapper.eq(AiWorkflowEntity::getIsPublic, isPublic);
@@ -290,9 +348,9 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowEntity> wrapper =
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
 
-        wrapper.eq(AiWorkflowEntity::getIsPublic, 1); // 1-公开
-        wrapper.eq(AiWorkflowEntity::getIsDeleted, 0);
-        wrapper.eq(AiWorkflowEntity::getIsEnable, 1); // 1-启用
+        wrapper.eq(AiWorkflowEntity::getIsPublic, true); // true-公开
+        wrapper.eq(AiWorkflowEntity::getIsDeleted, false);
+        wrapper.eq(AiWorkflowEntity::getIsEnable, true); // true-启用
 
         if (org.apache.commons.lang3.StringUtils.isNotBlank(keyword)) {
             wrapper.and(w -> w.like(AiWorkflowEntity::getTitle, keyword)
@@ -334,29 +392,30 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * 软删除工作流
      *
      * @param uuid 工作流UUID
-     * @param userId 当前用户ID
      */
-    public void softDelete(String uuid, Long userId) {
+    public void softDelete(String uuid) {
+        Long userId = SecurityUtil.getStaff_id();
+
         AiWorkflowEntity workflow = getOrThrow(uuid);
         if (!workflow.getUserId().equals(userId)) {
             throw new RuntimeException("无权限删除此工作流");
         }
 
-        AiWorkflowEntity updateObj = new AiWorkflowEntity();
-        updateObj.setId(workflow.getId());
-        updateObj.setIsDeleted(1);
-        baseMapper.updateById(updateObj);
+        // 软删除工作流（在查询出的实体上直接修改）
+        workflow.setIsDeleted(true);
+        baseMapper.updateById(workflow);
     }
 
     /**
      * 启用/禁用工作流
-     * 启用状态：0-禁用,1-启用
+     * 启用状态：true-启用,false-禁用
      *
      * @param uuid 工作流UUID
      * @param enable 是否启用
-     * @param userId 当前用户ID
      */
-    public void enable(String uuid, Integer enable, Long userId) {
+    public void enable(String uuid, Boolean enable) {
+        Long userId = SecurityUtil.getStaff_id();
+
         if (enable == null) {
             throw new RuntimeException("启用状态不能为空");
         }
@@ -367,5 +426,32 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         }
 
         baseMapper.updateEnableStatus(uuid, enable);
+    }
+
+    /**
+     * 根据工作流ID查询工作流VO
+     *
+     * @param workflowId 工作流ID
+     * @return 工作流VO
+     */
+    public AiWorkflowVo getDtoByWorkflowId(Long workflowId) {
+        AiWorkflowEntity entity = baseMapper.selectById(workflowId);
+        if (entity == null) {
+            return null;
+        }
+
+        // 转换为VO
+        AiWorkflowVo vo = new AiWorkflowVo();
+        BeanUtils.copyProperties(entity, vo);
+
+        // 填充节点和边信息
+        if (vo.getId() != null) {
+            List<AiWorkflowNodeVo> nodes = workflowNodeService.listDtoByWfId(vo.getId());
+            vo.setNodes(nodes);
+            List<AiWorkflowEdgeVo> edges = workflowEdgeService.listDtoByWfId(vo.getId());
+            vo.setEdges(edges);
+        }
+
+        return vo;
     }
 }

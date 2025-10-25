@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.bean.vo.workflow;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -38,13 +38,15 @@ public class AiWorkflowRuntimeVo {
 
     /**
      * 输入参数(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      */
-    private ObjectNode input;
+    private JSONObject input;
 
     /**
      * 输出结果(JSON格式)
+     * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      */
-    private ObjectNode output;
+    private JSONObject output;
 
     /**
      * 执行状态(1-运行中,2-成功,3-失败)
@@ -58,7 +60,8 @@ public class AiWorkflowRuntimeVo {
 
     /**
      * 创建时间
+     * 使用 Fastjson2 的 @JSONField 替代 Jackson 的 @JsonFormat
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    @JSONField(format = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime cTime;
 }

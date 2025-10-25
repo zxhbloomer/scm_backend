@@ -36,7 +36,7 @@ public class HumanFeedbackNode extends AbstractWfNode {
         // 获取用户反馈输入
         Object feedbackData = state.data().get(HUMAN_FEEDBACK_KEY);
         if (feedbackData == null) {
-            log.error("人机交互节点未获取到用户反馈，nodeUuid: {}", node.getNodeUuid());
+            log.error("人机交互节点未获取到用户反馈，nodeUuid: {}", node.getUuid());
             throw new BusinessException("未获取到用户反馈");
         }
 

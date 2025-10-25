@@ -56,8 +56,8 @@ public class AiMcpService extends ServiceImpl<AiMcpMapper, AiMcpEntity> {
         mcp.setPresetParams(presetParams);
         mcp.setCustomizedParamDefinitions(customizedParamDefinitions);
         mcp.setInstallType(installType);
-        mcp.setIsEnable(1);
-        mcp.setIsDeleted(0);
+        mcp.setIsEnable(true);
+        mcp.setIsDeleted(false);
 
         baseMapper.insert(mcp);
         AiMcpEntity savedEntity = baseMapper.selectById(mcp.getId());

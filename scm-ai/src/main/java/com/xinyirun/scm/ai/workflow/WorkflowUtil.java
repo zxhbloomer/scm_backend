@@ -1,13 +1,13 @@
 package com.xinyirun.scm.ai.workflow;
 
+import cn.hutool.extra.spring.SpringUtil;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -19,13 +19,11 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
  * 提供工作流执行过程中常用的功能：
  * 1. 模板渲染 - 支持 ${paramName} 格式的变量替换
  * 2. LLM 调用 - 调用 AI 模型生成响应
+ *
+ * 注意：所有方法均为静态方法，不需要 Spring 组件注册
  */
 @Slf4j
-@Component
 public class WorkflowUtil {
-
-    @Autowired
-    private AiChatBaseService aiChatBaseService;
 
     /**
      * 渲染模板字符串
@@ -59,9 +57,10 @@ public class WorkflowUtil {
     }
 
     /**
-     * 调用 LLM 模型生成响应
+     * 调用 LLM 模型生成响应（非流式）
      *
-     * 通过 Spring AI 调用配置的 LLM 模型，获取 AI 生成的响应内容
+     * 通过 AiChatBaseService 调用配置的 LLM 模型，获取 AI 生成的响应内容
+     * 用于需要获取完整响应的场景（如分类器节点）
      *
      * @param wfState 工作流状态对象
      * @param modelName 模型名称
@@ -69,7 +68,7 @@ public class WorkflowUtil {
      * @return 包含 LLM 响应的 NodeIOData 对象
      */
     public static NodeIOData invokeLLM(WfState wfState, String modelName, String prompt) {
-        log.info("invoke LLM, modelName: {}, prompt length: {}", modelName,
+        log.info("invoke LLM (non-streaming), modelName: {}, prompt length: {}", modelName,
                 StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
 
         try {
@@ -77,7 +76,12 @@ public class WorkflowUtil {
             AIChatRequestVo request = new AIChatRequestVo();
             request.setAiType("LLM");
 
-            // 获取模型配置
+            // 获取模型配置 - 从 Spring 容器中获取 AiChatBaseService
+            AiChatBaseService aiChatBaseService = SpringUtil.getBean(AiChatBaseService.class);
+            if (aiChatBaseService == null) {
+                throw new RuntimeException("AiChatBaseService not found in Spring context");
+            }
+
             var modelConfig = aiChatBaseService.getModule(request, null);
 
             // 构建聊天选项
@@ -85,16 +89,67 @@ public class WorkflowUtil {
             chatOption.setModule(modelConfig);
             chatOption.setPrompt(prompt);
 
-            // 调用 AI 模型
-            String response = aiChatBaseService.chat(chatOption)
-                    .content();
+            // 调用 AI 模型获取完整响应
+            String response = aiChatBaseService.chat(chatOption).content();
 
             log.info("LLM response length: {}", StringUtils.isNotBlank(response) ? response.length() : 0);
 
+            // 返回结果
             return NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);
         } catch (Exception e) {
             log.error("invoke LLM failed", e);
             throw new RuntimeException("LLM 调用失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 流式调用 LLM 模型生成响应
+     *
+     * 通过 AiChatBaseService 调用配置的 LLM 模型，支持流式响应
+     * 用于需要实时流式输出的场景（如 LLM 答案节点）
+     *
+     * 注意：此方法为静态方法，与 invokeLLM() 方法一致，便于在节点中直接调用
+     *
+     * @param wfState 工作流状态对象
+     * @param nodeState 工作流节点状态
+     * @param node 工作流节点定义
+     * @param modelName 模型名称
+     * @param prompt 提示词/问题
+     */
+    public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeEntity node,
+                                           String modelName, String prompt) {
+        log.info("invoke LLM (streaming), modelName: {}, prompt length: {}", modelName,
+                StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
+
+        try {
+            // 构建聊天请求
+            AIChatRequestVo request = new AIChatRequestVo();
+            request.setAiType("LLM");
+
+            // 获取模型配置 - 从 Spring 容器中获取 AiChatBaseService
+            AiChatBaseService aiChatBaseService = SpringUtil.getBean(AiChatBaseService.class);
+            if (aiChatBaseService == null) {
+                throw new RuntimeException("AiChatBaseService not found in Spring context");
+            }
+
+            var modelConfig = aiChatBaseService.getModule(request, null);
+
+            // 构建聊天选项
+            AIChatOptionVo chatOption = new AIChatOptionVo();
+            chatOption.setModule(modelConfig);
+            chatOption.setPrompt(prompt);
+
+            // 调用 AI 模型获取完整响应
+            String response = aiChatBaseService.chat(chatOption).content();
+
+            log.info("LLM streaming response length: {}", StringUtils.isNotBlank(response) ? response.length() : 0);
+
+            // 添加输出数据到节点状态
+            NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);
+            nodeState.getOutputs().add(output);
+        } catch (Exception e) {
+            log.error("invoke LLM (streaming) failed", e);
+            throw new RuntimeException("LLM 流式调用失败: " + e.getMessage(), e);
         }
     }
 

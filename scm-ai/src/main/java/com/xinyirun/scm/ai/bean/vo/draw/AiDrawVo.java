@@ -53,9 +53,9 @@ public class AiDrawVo {
     private Integer interactingMethod;
 
     /**
-     * 是否公开(0-否,1-是)
+     * 是否公开(false-否,true-是)
      */
-    private Integer isPublic;
+    private Boolean isPublic;
 
     /**
      * 点赞数量
