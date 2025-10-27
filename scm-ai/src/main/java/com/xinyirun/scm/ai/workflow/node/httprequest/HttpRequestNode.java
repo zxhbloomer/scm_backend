@@ -89,7 +89,7 @@ public class HttpRequestNode extends AbstractWfNode {
                     StringEntity textEntity = new StringEntity(nodeConfig.getTextBody(), ContentType.TEXT_PLAIN);
                     httpPost.setEntity(textEntity);
                 } else if (contentType.equalsIgnoreCase("application/json")) {
-                    StringEntity jsonEntity = new StringEntity(JsonUtil.toJson(nodeConfig.getJsonBody()), ContentType.APPLICATION_JSON);
+                    StringEntity jsonEntity = new StringEntity(nodeConfig.getJsonBody().toJSONString(), ContentType.APPLICATION_JSON);
                     httpPost.setEntity(jsonEntity);
                 } else if (contentType.equalsIgnoreCase("multipart/form-data")) {
                     MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();

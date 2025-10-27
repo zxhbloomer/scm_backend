@@ -4,6 +4,9 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeInputConfigVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeParamRefVo;
 import com.xinyirun.scm.ai.utils.JsonUtil;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
@@ -24,6 +27,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import org.apache.commons.collections4.CollectionUtils;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.*;
 
@@ -50,15 +56,18 @@ public abstract class AbstractWfNode {
     /**
      * 初始化节点输入参数
      *
+     * 参考 aideepin AbstractWfNode.initInput() 完整实现
+     *
      * 流程：
      * 1. 如果是开始节点，直接使用工作流的初始输入
      * 2. 否则，使用上游节点的输出作为当前节点的输入
      * 3. 处理引用类型的输入参数
      * 4. 根据节点的输入参数定义进行筛选
+     * 5. 处理默认参数名转换(output -> input)
      */
     public void initInput() {
-        Object inputConfigObj = node.getInputConfig();
-        if (null == inputConfigObj) {
+        AiWfNodeInputConfigVo inputConfig = node.getInputConfig();
+        if (null == inputConfig) {
             log.info("节点输入参数没有配置");
             return;
         }
@@ -75,11 +84,29 @@ public abstract class AbstractWfNode {
         List<NodeIOData> upstreamOutputs = wfState.getLatestOutputs();
         if (!upstreamOutputs.isEmpty()) {
             inputs.addAll(new ArrayList<>(deepCopyList(upstreamOutputs)));
-        } else {
-            log.warn("upstream output params is empty");
         }
 
-        state.getInputs().addAll(inputs);
+        // 处理引用类型的输入参数
+        List<AiWfNodeParamRefVo> refInputDefs = inputConfig.getRefInputs();
+        inputs.addAll(changeRefersToNodeIODatas(refInputDefs));
+
+        // 根据节点的输入参数定义，筛选出符合要求的输入参数
+        List<String> defInputNames = inputConfig.getRefInputs().stream()
+            .map(AiWfNodeParamRefVo::getName).collect(Collectors.toList());
+        defInputNames.addAll(inputConfig.getUserInputs().stream()
+            .map(AiWfNodeIOVo::getName).toList());
+
+        List<NodeIOData> needInputs = inputs.stream().filter(item -> {
+            String needInputName = item.getName();
+            // 上游节点的默认输出参数(output)，改成input即可
+            if (DEFAULT_OUTPUT_PARAM_NAME.equals(needInputName)) {
+                item.setName(DEFAULT_INPUT_PARAM_NAME);
+                return true;
+            }
+            return defInputNames.contains(needInputName);
+        }).toList();
+
+        state.getInputs().addAll(needInputs);
     }
 
     /**
@@ -91,6 +118,54 @@ public abstract class AbstractWfNode {
             result.add(SerializationUtils.clone(item));
         }
         return result;
+    }
+
+    /**
+     * 将引用类型的输入参数定义转换为实际的输入数据
+     * 参考 aideepin AbstractWfNode.changeRefersToNodeIODatas()
+     *
+     * @param refInputDefs 引用输入参数定义列表
+     * @return 实际的输入数据列表
+     */
+    private List<NodeIOData> changeRefersToNodeIODatas(List<AiWfNodeParamRefVo> refInputDefs) {
+        if (CollectionUtils.isEmpty(refInputDefs)) {
+            return new ArrayList<>();
+        }
+
+        List<NodeIOData> result = new ArrayList<>();
+        for (AiWfNodeParamRefVo refer : refInputDefs) {
+            NodeIOData data = createByReferParam(refer);
+            if (data != null) {
+                result.add(data);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 根据引用参数创建输入数据
+     * 参考 aideepin AbstractWfNode.createByReferParam()
+     *
+     * @param refer 引用参数定义
+     * @return 输入数据
+     */
+    private NodeIOData createByReferParam(AiWfNodeParamRefVo refer) {
+        // 从已完成节点中获取指定节点的输入输出数据
+        List<NodeIOData> ioDataList = wfState.getIOByNodeUuid(refer.getNodeUuid());
+
+        // 查找匹配的参数
+        Optional<NodeIOData> hitDataOpt = ioDataList.stream()
+                .filter(ioData -> ioData.getName().equalsIgnoreCase(refer.getNodeParamName()))
+                .findFirst();
+
+        if (hitDataOpt.isEmpty()) {
+            return null;
+        }
+
+        // 深拷贝并设置新名称
+        NodeIOData item = SerializationUtils.clone(hitDataOpt.get());
+        item.setName(refer.getName());
+        return item;
     }
 
     /**

@@ -9,6 +9,10 @@ import com.xinyirun.scm.ai.workflow.node.classifier.ClassifierNode;
 import com.xinyirun.scm.ai.workflow.node.httprequest.HttpRequestNode;
 import com.xinyirun.scm.ai.workflow.node.humanfeedback.HumanFeedbackNode;
 import com.xinyirun.scm.ai.workflow.node.knowledgeretrieval.KnowledgeRetrievalNode;
+import com.xinyirun.scm.ai.workflow.node.documentextractor.DocumentExtractorNode;
+import com.xinyirun.scm.ai.workflow.node.faqextractor.FaqExtractorNode;
+import com.xinyirun.scm.ai.workflow.node.keywordextractor.KeywordExtractorNode;
+import com.xinyirun.scm.ai.workflow.node.mailsend.MailSendNode;
 import com.xinyirun.scm.ai.workflow.node.start.StartNode;
 import com.xinyirun.scm.ai.workflow.node.switcher.SwitcherNode;
 import com.xinyirun.scm.ai.workflow.node.template.TemplateNode;
@@ -58,6 +62,14 @@ public class WfNodeFactory {
             wfNode = new HumanFeedbackNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("HttpRequest".equals(componentName)) {
             wfNode = new HttpRequestNode(wfComponent, nodeDefinition, wfState, nodeState);
+        } else if ("MailSend".equals(componentName)) {
+            wfNode = new MailSendNode(wfComponent, nodeDefinition, wfState, nodeState);
+        } else if ("FaqExtractor".equals(componentName)) {
+            wfNode = new FaqExtractorNode(wfComponent, nodeDefinition, wfState, nodeState);
+        } else if ("KeywordExtractor".equals(componentName)) {
+            wfNode = new KeywordExtractorNode(wfComponent, nodeDefinition, wfState, nodeState);
+        } else if ("DocumentExtractor".equals(componentName)) {
+            wfNode = new DocumentExtractorNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("End".equals(componentName)) {
             wfNode = new EndNode(wfComponent, nodeDefinition, wfState, nodeState);
         }

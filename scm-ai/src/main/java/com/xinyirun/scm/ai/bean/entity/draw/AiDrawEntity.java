@@ -52,6 +52,13 @@ public class AiDrawEntity implements Serializable {
     private Long aiModelId;
 
     /**
+     * AI模型名称（避免关联查询ai_model_config表）
+     * 参考 aideepin Draw.aiModelName
+     */
+    @TableField("ai_model_name")
+    private String aiModelName;
+
+    /**
      * 原始绘图UUID(用于编辑或变体)
      */
     @TableField("original_draw_uuid")

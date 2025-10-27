@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow.node.httprequest;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.annotation.JSONField;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -10,6 +10,11 @@ import java.util.List;
 
 /**
  * 工作流HTTP请求节点配置
+ * 参考 aideepin: com.moyz.adi.common.workflow.node.httprequest.HttpRequestNodeConfig
+ * 
+ * 转换说明：
+ * - @JsonProperty → @JSONField
+ * - JsonNode → JSONObject (Fastjson2)
  */
 @Data
 public class HttpRequestNodeConfig {
@@ -42,32 +47,33 @@ public class HttpRequestNodeConfig {
      * 支持：text/plain、application/json、multipart/form-data、application/x-www-form-urlencoded
      */
     @NotNull
-    @JsonProperty("content_type")
+    @JSONField(name = "content_type")
     private String contentType;
 
     /**
      * 纯文本请求体
      */
-    @JsonProperty("text_body")
+    @JSONField(name = "text_body")
     private String textBody;
 
     /**
      * 表单数据请求体
      */
-    @JsonProperty("form_data_body")
+    @JSONField(name = "form_data_body")
     private List<Param> formDataBody;
 
     /**
      * URL编码表单请求体
      */
-    @JsonProperty("form_urlencoded_body")
+    @JSONField(name = "form_urlencoded_body")
     private List<Param> formUrlencodedBody;
 
     /**
      * JSON请求体
+     * 转换：JsonNode → JSONObject (Fastjson2)
      */
-    @JsonProperty("json_body")
-    private JsonNode jsonBody;
+    @JSONField(name = "json_body")
+    private JSONObject jsonBody;
 
     /**
      * 请求超时时间（秒）
@@ -79,13 +85,13 @@ public class HttpRequestNodeConfig {
      * 重试次数
      */
     @NotNull
-    @JsonProperty("retry_times")
+    @JSONField(name = "retry_times")
     private Integer retryTimes;
 
     /**
      * 是否清理HTML标签（仅提取文本内容）
      */
-    @JsonProperty("clear_html")
+    @JSONField(name = "clear_html")
     private Boolean clearHtml;
 
     /**

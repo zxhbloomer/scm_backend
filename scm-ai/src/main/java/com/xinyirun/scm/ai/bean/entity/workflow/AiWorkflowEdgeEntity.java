@@ -72,8 +72,8 @@ public class AiWorkflowEdgeEntity implements Serializable {
     /**
      * 是否删除(0-未删除,1-已删除)
      */
-    @TableField("is_deleted")
-    private Boolean isDeleted;
+    @TableField(value = "is_deleted", fill = FieldFill.INSERT)
+    private Boolean isDeleted = false;
 
     /**
      * 创建时间
