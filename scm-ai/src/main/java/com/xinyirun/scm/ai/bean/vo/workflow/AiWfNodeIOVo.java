@@ -58,6 +58,16 @@ public class AiWfNodeIOVo implements Serializable {
     private Integer maxLength;
 
     /**
+     * 最大文件数量（FILES 类型使用）
+     */
+    private Integer limit;
+
+    /**
+     * 是否多选（OPTIONS 类型使用）
+     */
+    private Boolean multiple;
+
+    /**
      * 检查数据是否合规
      * 参考 aideepin: WfNodeIO.checkValue() 及其5个子类实现
      *
@@ -105,7 +115,15 @@ public class AiWfNodeIOVo implements Serializable {
             if (!(data.getContent() instanceof NodeIODataFilesContent filesContent)) {
                 return false;
             }
-            return !(required != null && required) || !CollectionUtils.isEmpty(filesContent.getValue());
+            // 检查必填
+            if (required != null && required && CollectionUtils.isEmpty(filesContent.getValue())) {
+                return false;
+            }
+            // 检查文件数量限制
+            if (limit != null && filesContent.getValue() != null && filesContent.getValue().size() > limit) {
+                return false;
+            }
+            return true;
 
         } else if (type == 3) {
             // OPTIONS 类型验证 - 参考 WfNodeIOOptions.checkValue() 第27-37行

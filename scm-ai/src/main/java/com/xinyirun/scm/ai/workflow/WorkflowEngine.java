@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.core.service.workflow.*;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
+import com.xinyirun.scm.ai.workflow.helper.SSEEmitterHelper;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -41,6 +42,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 public class WorkflowEngine {
     private CompiledGraph<WfNodeState> app;
     private final AiWorkflowEntity workflow;
+    private final SSEEmitterHelper sseEmitterHelper;
     private final List<AiWorkflowComponentEntity> components;
     private final List<AiWorkflowNodeEntity> wfNodes;
     private final List<AiWorkflowEdgeEntity> wfEdges;
@@ -58,14 +60,20 @@ public class WorkflowEngine {
     private WfState wfState;
     private AiWorkflowRuntimeVo wfRuntimeResp;
 
+    /**
+     * 构造函数
+     * 参考 aideepin: WorkflowEngine 构造函数 第61-76行
+     */
     public WorkflowEngine(
             AiWorkflowEntity workflow,
+            SSEEmitterHelper sseEmitterHelper,
             List<AiWorkflowComponentEntity> components,
             List<AiWorkflowNodeEntity> nodes,
             List<AiWorkflowEdgeEntity> wfEdges,
             AiWorkflowRuntimeService workflowRuntimeService,
             AiWorkflowRuntimeNodeService workflowRuntimeNodeService) {
         this.workflow = workflow;
+        this.sseEmitterHelper = sseEmitterHelper;
         this.components = components;
         this.wfNodes = nodes;
         this.wfEdges = wfEdges;
@@ -79,13 +87,17 @@ public class WorkflowEngine {
         log.info("WorkflowEngine run,userId:{},workflowUuid:{},userInputs:{}", userId, workflow.getWorkflowUuid(), userInputs);
 
         if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
-            sendErrorAndComplete("工作流已禁用");
+            // 参考 aideepin: WorkflowEngine.run() 第83-84行
+            sseEmitterHelper.sendErrorAndComplete(userId, sseEmitter, "工作流已禁用");
             throw new RuntimeException("工作流已禁用");
         }
 
         Long workflowId = this.workflow.getId();
         this.wfRuntimeResp = workflowRuntimeService.create(userId, workflowId);
-        sendSseStart();
+
+        // 启动SSE并设置Redis标记，传递运行时信息
+        // 参考 aideepin: WorkflowEngine.run() 第89行
+        sseEmitterHelper.startSse(userId, sseEmitter, JSONObject.toJSONString(wfRuntimeResp));
 
         String runtimeUuid = this.wfRuntimeResp.getRuntimeUuid();
         try {
@@ -142,10 +154,15 @@ public class WorkflowEngine {
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_WAITING_INPUT);
             workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
         } else {
+            // 工作流执行完成
+            // 参考 aideepin: WorkflowEngine.exe() 第142-144行
             AiWorkflowRuntimeEntity updatedRuntime = workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
             JSONObject outputJson = updatedRuntime.getOutput();
             String outputStr = outputJson != null ? outputJson.toJSONString() : "{}";
-            sendSseComplete(outputStr);
+
+            // 发送完成事件并清理Redis状态
+            // 参考 aideepin: WorkflowEngine.exe() 第143行
+            sseEmitterHelper.sendComplete(userId, sseEmitter);
             InterruptedFlow.RUNTIME_TO_GRAPH.remove(wfState.getUuid());
         }
     }
@@ -171,12 +188,15 @@ public class WorkflowEngine {
     }
 
     private void errorWhenExe(Exception e) {
+        // 参考 aideepin: WorkflowEngine.errorWhenExe() 第168-176行
         log.error("Workflow execution error", e);
         String errorMsg = e.getMessage();
         if (errorMsg != null && errorMsg.contains("parallel node doesn't support conditional branch")) {
             errorMsg = "并行节点中不能包含条件分支";
         }
-        sendErrorAndComplete(errorMsg);
+        // 使用sseEmitterHelper发送错误并完成SSE
+        // 参考 aideepin: WorkflowEngine.errorWhenExe() 第174行
+        sseEmitterHelper.sendErrorAndComplete(userId, sseEmitter, errorMsg);
         workflowRuntimeService.updateStatus(wfRuntimeResp.getId(), WORKFLOW_PROCESS_STATUS_FAIL, errorMsg);
     }
 
@@ -364,12 +384,12 @@ public class WorkflowEngine {
                     .filter(item -> item.getId().equals(node.getWorkflowComponentId()))
                     .findFirst();
 
-            if (wfComponent.isPresent() && "start".equals(wfComponent.get().getName())) {
+            if (wfComponent.isPresent() && "Start".equals(wfComponent.get().getName())) {
                 if (null != startNode) {
                     throw new RuntimeException("工作流中存在多个开始节点");
                 }
                 startNode = node;
-            } else if (wfComponent.isPresent() && "end".equals(wfComponent.get().getName())) {
+            } else if (wfComponent.isPresent() && "End".equals(wfComponent.get().getName())) {
                 endNodes.add(node);
             }
         }
@@ -633,16 +653,6 @@ public class WorkflowEngine {
     }
 
     // SSE辅助方法
-    private void sendSseStart() {
-        try {
-            sseEmitter.send(SseEmitter.event()
-                    .name("start")
-                    .data("{\"status\":\"started\",\"runtimeUuid\":\"" + wfRuntimeResp.getRuntimeUuid() + "\"}"));
-        } catch (Exception e) {
-            log.error("发送SSE start失败", e);
-        }
-    }
-
     private void sendSseMessage(String event, String data) {
         try {
             sseEmitter.send(SseEmitter.event()
@@ -650,28 +660,6 @@ public class WorkflowEngine {
                     .data(data));
         } catch (Exception e) {
             log.error("发送SSE消息失败,event:{}", event, e);
-        }
-    }
-
-    private void sendSseComplete(String data) {
-        try {
-            sseEmitter.send(SseEmitter.event()
-                    .name("complete")
-                    .data(data));
-            sseEmitter.complete();
-        } catch (Exception e) {
-            log.error("发送SSE complete失败", e);
-        }
-    }
-
-    private void sendErrorAndComplete(String errorMsg) {
-        try {
-            sseEmitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(errorMsg));
-            sseEmitter.complete();
-        } catch (Exception e) {
-            log.error("发送SSE错误失败", e);
         }
     }
 

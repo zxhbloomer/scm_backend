@@ -51,6 +51,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         runtime.setUserId(userId);
         runtime.setWorkflowId(workflowId);
         runtime.setStatus(1); // 1-运行中
+        runtime.setIsDeleted(false);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         baseMapper.insert(runtime);
 
@@ -82,12 +83,11 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             inputNode.put(data.getName(), data.getContent());
         }
 
-        AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
-        updateObj.setId(id);
-        // Entity 已经是 JSONObject 类型，直接赋值
-        updateObj.setInput(inputNode);
-        updateObj.setStatus(1); // 1-运行中
-        baseMapper.updateById(updateObj);
+        // 在查出的实体上修改字段
+        runtime.setInput(inputNode);
+        runtime.setStatus(1); // 1-运行中
+
+        baseMapper.updateById(runtime);
     }
 
     /**
@@ -112,18 +112,17 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             }
         }
 
-        AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
-        updateObj.setId(id);
+        // 在查出的实体上修改字段
         if (!outputNode.isEmpty()) {
-            // Entity 已经是 JSONObject 类型，直接赋值
-            updateObj.setOutput(outputNode);
+            runtime.setOutput(outputNode);
         }
         if (wfState.getProcessStatus() != null) {
-            updateObj.setStatus(wfState.getProcessStatus());
+            runtime.setStatus(wfState.getProcessStatus());
         }
-        baseMapper.updateById(updateObj);
 
-        return updateObj;
+        baseMapper.updateById(runtime);
+
+        return runtime;
     }
 
     /**
@@ -140,13 +139,13 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             return;
         }
 
-        AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
-        updateObj.setId(id);
-        updateObj.setStatus(status);
+        // 在查出的实体上修改字段
+        runtime.setStatus(status);
         if (StringUtils.isNotBlank(statusRemark)) {
-            updateObj.setStatusRemark(StringUtils.substring(statusRemark, 0, 500));
+            runtime.setStatusRemark(StringUtils.substring(statusRemark, 0, 500));
         }
-        baseMapper.updateById(updateObj);
+
+        baseMapper.updateById(runtime);
     }
 
     /**

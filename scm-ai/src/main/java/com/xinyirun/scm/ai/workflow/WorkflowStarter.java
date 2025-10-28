@@ -6,7 +6,9 @@ import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEdgeEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.core.service.workflow.*;
+import com.xinyirun.scm.ai.workflow.helper.SSEEmitterHelper;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -52,30 +54,34 @@ public class WorkflowStarter {
     @Resource
     private AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
 
+    @Resource
+    private SSEEmitterHelper sseEmitterHelper;
+
     /**
      * 流式执行工作流
      *
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
+     * @param tenantCode 租户编码（从Controller层传递，用于异步线程数据源切换）
      * @return SSE Emitter
      */
-    public SseEmitter streaming(String workflowUuid, List<JSONObject> userInputs) {
+    public SseEmitter streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode) {
         Long userId = SecurityUtil.getStaff_id();
         SseEmitter sseEmitter = new SseEmitter(SSE_TIMEOUT);
 
-        // TODO: 检查用户并发限制
-        // if (!sseEmitterHelper.checkOrComplete(user, sseEmitter)) {
-        //     return sseEmitter;
-        // }
+        // 检查用户并发限制和限流
+        if (!sseEmitterHelper.checkOrComplete(userId, sseEmitter)) {
+            return sseEmitter;
+        }
 
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
         if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
-            sendErrorAndComplete(userId, sseEmitter, "工作流已禁用");
+            sseEmitterHelper.sendErrorAndComplete(userId, sseEmitter, "工作流已禁用");
             return sseEmitter;
         }
 
-        self.asyncRun(userId, workflow, userInputs, sseEmitter);
+        self.asyncRun(userId, workflow, userInputs, sseEmitter, tenantCode);
         return sseEmitter;
     }
 
@@ -86,12 +92,17 @@ public class WorkflowStarter {
      * @param workflow 工作流实体
      * @param userInputs 用户输入
      * @param sseEmitter SSE Emitter
+     * @param tenantCode 租户编码（用于异步线程数据源切换）
      */
     @Async
     public void asyncRun(Long userId, AiWorkflowEntity workflow,
-                         List<JSONObject> userInputs, SseEmitter sseEmitter) {
-        log.info("WorkflowEngine run,userId:{},workflowUuid:{},userInputs:{}",
-                userId, workflow.getWorkflowUuid(), userInputs);
+                         List<JSONObject> userInputs, SseEmitter sseEmitter, String tenantCode) {
+        log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},userInputs:{}",
+                userId, workflow.getWorkflowUuid(), tenantCode, userInputs);
+
+        // 【多租户关键】在异步线程中切换到正确的数据源
+        // 参考 TenantDyanmicDataSourceInterceptor 第106行和第143行的标准用法
+        DataSourceHelper.use(tenantCode);
 
         try {
             List<AiWorkflowComponentEntity> components = workflowComponentService.getAllEnable();
@@ -100,6 +111,7 @@ public class WorkflowStarter {
 
             WorkflowEngine workflowEngine = new WorkflowEngine(
                     workflow,
+                    sseEmitterHelper,
                     components,
                     nodes,
                     edges,
@@ -107,9 +119,9 @@ public class WorkflowStarter {
                     workflowRuntimeNodeService
             );
             workflowEngine.run(userId, userInputs, sseEmitter);
-        } catch (Exception e) {
-            log.error("Workflow execution failed", e);
-            sendErrorAndComplete(userId, sseEmitter, e.getMessage());
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -121,31 +133,16 @@ public class WorkflowStarter {
      */
     @Async
     public void resumeFlow(String runtimeUuid, String userInput) {
+        // 参考 aideepin: WorkflowStarter.resumeFlow() 第90-97行
         WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
         if (workflowEngine == null) {
             log.error("工作流恢复执行时失败,runtime:{}", runtimeUuid);
             throw new RuntimeException("工作流实例不存在或已超时");
         }
 
-        // TODO: 实现恢复逻辑
-        // workflowEngine.resume(userInput);
+        // 调用engine的resume方法恢复工作流
+        // 参考 aideepin: WorkflowStarter.resumeFlow() 第96行
+        workflowEngine.resume(userInput);
     }
 
-    /**
-     * 发送错误并完成SSE
-     *
-     * @param userId 用户ID
-     * @param sseEmitter SSE Emitter
-     * @param errorMsg 错误消息
-     */
-    private void sendErrorAndComplete(Long userId, SseEmitter sseEmitter, String errorMsg) {
-        try {
-            sseEmitter.send(SseEmitter.event()
-                    .name("error")
-                    .data(errorMsg));
-            sseEmitter.complete();
-        } catch (Exception e) {
-            log.error("发送SSE错误失败,userId:{}", userId, e);
-        }
-    }
 }

@@ -102,22 +102,21 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             return;
         }
 
-        AiWorkflowRuntimeNodeEntity updateObj = new AiWorkflowRuntimeNodeEntity();
-        updateObj.setId(id);
-
+        // 在查询出的实体上修改字段
         JSONObject inputNode = new JSONObject();
         for (NodeIOData data : state.getInputs()) {
             inputNode.put(data.getName(), data.getContent());
         }
-        updateObj.setInput(inputNode);
+        node.setInput(inputNode);
 
         if (state.getProcessStatus() != null) {
-            updateObj.setStatus(state.getProcessStatus());
+            node.setStatus(state.getProcessStatus());
         }
         if (StringUtils.isNotBlank(state.getProcessStatusRemark())) {
-            updateObj.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
+            node.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
         }
-        baseMapper.updateById(updateObj);
+
+        baseMapper.updateById(node);
     }
 
     /**
@@ -133,26 +132,24 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             return;
         }
 
-        AiWorkflowRuntimeNodeEntity updateObj = new AiWorkflowRuntimeNodeEntity();
-        updateObj.setId(id);
-
+        // 在查询出的实体上修改字段
         if (!CollectionUtils.isEmpty(state.getOutputs())) {
             JSONObject outputNode = new JSONObject();
             for (NodeIOData data : state.getOutputs()) {
                 outputNode.put(data.getName(), data.getContent());
             }
-            updateObj.setOutput(outputNode);
+            node.setOutput(outputNode);
         }
 
         if (state.getProcessStatus() != null) {
-            updateObj.setStatus(state.getProcessStatus());
+            node.setStatus(state.getProcessStatus());
         }
 
         if (StringUtils.isNotBlank(state.getProcessStatusRemark())) {
-            updateObj.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
+            node.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
         }
 
-        baseMapper.updateById(updateObj);
+        baseMapper.updateById(node);
     }
 
     /**

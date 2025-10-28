@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.controller.workflow;
 
 import com.alibaba.fastjson2.JSONObject;
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
@@ -19,6 +20,7 @@ import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
@@ -173,9 +175,15 @@ public class WorkflowController {
     @Operation(summary = "流式执行工作流")
     @PostMapping(value = "/run/{wfUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SysLogAnnotion("流式执行工作流")
+    @DS("#header.X-Tenant-ID")
     public SseEmitter run(@PathVariable String wfUuid,
-                          @RequestBody List<JSONObject> inputs) {
-        return workflowStarter.streaming(wfUuid, inputs);
+                          @RequestBody List<JSONObject> inputs,
+                          HttpServletRequest request) {
+        // 【多租户支持】从请求头中获取租户编码
+        // 由于使用了异步响应式流，必须在主线程获取租户编码后传递给Service层
+        String tenantCode = request.getHeader("X-Tenant-ID");
+
+        return workflowStarter.streaming(wfUuid, inputs, tenantCode);
     }
 
     /**
