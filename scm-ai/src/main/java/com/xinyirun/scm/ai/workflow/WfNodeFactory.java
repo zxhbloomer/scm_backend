@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow;
 
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import com.xinyirun.scm.ai.workflow.node.EndNode;
 import com.xinyirun.scm.ai.workflow.node.answer.LLMAnswerNode;
@@ -39,7 +39,7 @@ public class WfNodeFactory {
      * @return 节点实例
      */
     public static AbstractWfNode create(AiWorkflowComponentEntity wfComponent,
-                                       AiWorkflowNodeEntity nodeDefinition,
+                                       AiWorkflowNodeVo nodeDefinition,
                                        WfState wfState,
                                        WfNodeState nodeState) {
         AbstractWfNode wfNode = null;

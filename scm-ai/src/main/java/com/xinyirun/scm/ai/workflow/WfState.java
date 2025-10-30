@@ -1,9 +1,9 @@
 package com.xinyirun.scm.ai.workflow;
 
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.bsc.langgraph4j.langchain4j.generators.StreamingChatGenerator;
@@ -122,7 +122,7 @@ public class WfState {
     }
 
     public AiWorkflowRuntimeNodeVo getRuntimeNodeByNodeUuid(String wfNodeUuid) {
-        AiWorkflowNodeEntity wfNode = getCompletedNodes().stream()
+        AiWorkflowNodeVo wfNode = getCompletedNodes().stream()
                 .map(AbstractWfNode::getNode)
                 .filter(node -> node.getUuid().equals(wfNodeUuid))
                 .findFirst()

@@ -171,7 +171,11 @@ public class DataChangeInterceptor implements Interceptor {
             try {
                 Statement statement = null;
                 try {
-                    statement = CCJSqlParserUtil.parse(boundSql.getSql());
+                    // 预处理SQL：压缩连续空白为单个空格，提高解析成功率
+                    String cleanedSql = boundSql.getSql().replaceAll("\\s+", " ").trim();
+                    statement = CCJSqlParserUtil.parse(cleanedSql, parser -> {
+                        parser.withAllowComplexParsing(true);
+                    });
                 } catch (JSQLParserException e) {
                     log.error("sql无法解析,可能是DDL相关语句, SQL语句:{}", boundSql.getSql());
                 }
@@ -211,7 +215,11 @@ public class DataChangeInterceptor implements Interceptor {
             try {
                 Statement statement = null;
                 try {
-                    statement = CCJSqlParserUtil.parse(boundSql.getSql());
+                    // 预处理SQL：压缩连续空白为单个空格，提高解析成功率
+                    String cleanedSql = boundSql.getSql().replaceAll("\\s+", " ").trim();
+                    statement = CCJSqlParserUtil.parse(cleanedSql, parser -> {
+                        parser.withAllowComplexParsing(true);
+                    });
                 } catch (JSQLParserException e) {
                     log.error("sql无法解析,可能是DDL相关语句, SQL语句:{}", boundSql.getSql());
                 }
@@ -509,7 +517,11 @@ public class DataChangeInterceptor implements Interceptor {
 
         Statement statement = null;
         try {
-            statement = CCJSqlParserUtil.parse(boundSql.getSql());
+            // 预处理SQL：压缩连续空白为单个空格，提高解析成功率
+            String cleanedSql = boundSql.getSql().replaceAll("\\s+", " ").trim();
+            statement = CCJSqlParserUtil.parse(cleanedSql, parser -> {
+                parser.withAllowComplexParsing(true);
+            });
         } catch (JSQLParserException e) {
             log.warn("sql无法解析,可能是DDL相关语句, SQL语句:{}", boundSql.getSql());
             log.error("isDataChangeEntityAnnotation error", e);

@@ -34,6 +34,9 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
     private static final String CACHE_WORKFLOW_COMPONENTS = "workflow:components";
     private static final String CACHE_WORKFLOW_COMPONENT_START = "workflow:component:start";
 
+    @Resource
+    private AiWorkflowComponentMapper aiWorkflowComponentMapper;
+
     @Lazy
     @Resource
     private AiWorkflowComponentService self;
@@ -50,7 +53,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
 
         if (StringUtils.isNotBlank(componentVo.getComponentUuid())) {
             // 更新
-            AiWorkflowComponentEntity existing = baseMapper.selectOne(
+            AiWorkflowComponentEntity existing = aiWorkflowComponentMapper.selectOne(
                     new LambdaQueryWrapper<AiWorkflowComponentEntity>()
                             .eq(AiWorkflowComponentEntity::getComponentUuid, componentVo.getComponentUuid())
                             .eq(AiWorkflowComponentEntity::getIsDeleted, 0)
@@ -62,14 +65,14 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
 
             BeanUtils.copyProperties(componentVo, entity, "id", "componentUuid");
             entity.setId(existing.getId());
-            baseMapper.updateById(entity);
+            aiWorkflowComponentMapper.updateById(entity);
 
             return entity;
         } else {
             // 新增
             BeanUtils.copyProperties(componentVo, entity, "id", "componentUuid");
             entity.setComponentUuid(UuidUtil.createShort());
-            baseMapper.insert(entity);
+            aiWorkflowComponentMapper.insert(entity);
 
             return entity;
         }
@@ -84,7 +87,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
      */
     @CacheEvict(cacheNames = {CACHE_WORKFLOW_COMPONENTS, CACHE_WORKFLOW_COMPONENT_START}, allEntries = true)
     public void enable(String componentUuid, Boolean isEnable) {
-        AiWorkflowComponentEntity component = baseMapper.selectOne(
+        AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectOne(
                 new LambdaQueryWrapper<AiWorkflowComponentEntity>()
                         .eq(AiWorkflowComponentEntity::getComponentUuid, componentUuid)
                         .eq(AiWorkflowComponentEntity::getIsDeleted, false)
@@ -97,7 +100,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
         AiWorkflowComponentEntity updateObj = new AiWorkflowComponentEntity();
         updateObj.setId(component.getId());
         updateObj.setIsEnable(isEnable);
-        baseMapper.updateById(updateObj);
+        aiWorkflowComponentMapper.updateById(updateObj);
     }
 
     /**
@@ -108,12 +111,12 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
     @CacheEvict(cacheNames = {CACHE_WORKFLOW_COMPONENTS, CACHE_WORKFLOW_COMPONENT_START}, allEntries = true)
     public void deleteByUuid(String componentUuid) {
         // TODO: 检查是否有节点引用此组件
-        // Integer refNodeCount = baseMapper.countRefNodes(componentUuid);
+        // Integer refNodeCount = aiWorkflowComponentMapper.countRefNodes(componentUuid);
         // if (refNodeCount > 0) {
         //     throw new RuntimeException("组件被节点引用,无法删除");
         // }
 
-        AiWorkflowComponentEntity component = baseMapper.selectOne(
+        AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectOne(
                 new LambdaQueryWrapper<AiWorkflowComponentEntity>()
                         .eq(AiWorkflowComponentEntity::getComponentUuid, componentUuid)
                         .eq(AiWorkflowComponentEntity::getIsDeleted, false)
@@ -123,7 +126,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
             AiWorkflowComponentEntity updateObj = new AiWorkflowComponentEntity();
             updateObj.setId(component.getId());
             updateObj.setIsDeleted(true);
-            baseMapper.updateById(updateObj);
+            aiWorkflowComponentMapper.updateById(updateObj);
         }
     }
 
@@ -151,7 +154,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
 
         wrapper.orderByAsc(AiWorkflowComponentEntity::getDisplayOrder, AiWorkflowComponentEntity::getId);
 
-        Page<AiWorkflowComponentEntity> entityPage = baseMapper.selectPage(
+        Page<AiWorkflowComponentEntity> entityPage = aiWorkflowComponentMapper.selectPage(
                 new Page<>(currentPage, pageSize), wrapper
         );
 
@@ -177,7 +180,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
      */
     @Cacheable(cacheNames = CACHE_WORKFLOW_COMPONENTS)
     public List<AiWorkflowComponentEntity> getAllEnable() {
-        return baseMapper.selectList(
+        return aiWorkflowComponentMapper.selectList(
                 new LambdaQueryWrapper<AiWorkflowComponentEntity>()
                         .eq(AiWorkflowComponentEntity::getIsEnable, 1)
                         .eq(AiWorkflowComponentEntity::getIsDeleted, 0)

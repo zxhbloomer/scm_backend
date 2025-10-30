@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow.node.httprequest;
 
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.utils.JsonUtil;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
@@ -48,7 +48,7 @@ public class HttpRequestNode extends AbstractWfNode {
 
     private static final String FORM_DATA_BOUNDARY_PRE = "----WebKitFormBoundary";
 
-    public HttpRequestNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeEntity node, WfState wfState, WfNodeState nodeState) {
+    public HttpRequestNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo node, WfState wfState, WfNodeState nodeState) {
         super(wfComponent, node, wfState, nodeState);
     }
 

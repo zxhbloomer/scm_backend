@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow.node.humanfeedback;
 
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.utils.JsonUtil;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
@@ -24,7 +24,7 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.HUMAN_FEEDBACK_KEY;
 @Slf4j
 public class HumanFeedbackNode extends AbstractWfNode {
 
-    public HumanFeedbackNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeEntity node, WfState wfState, WfNodeState nodeState) {
+    public HumanFeedbackNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo node, WfState wfState, WfNodeState nodeState) {
         super(wfComponent, node, wfState, nodeState);
     }
 
@@ -53,23 +53,18 @@ public class HumanFeedbackNode extends AbstractWfNode {
     /**
      * 获取人机交互节点的提示文本
      *
-     * @param feedbackNode 人机交互节点
+     * @param feedbackNode 人机交互节点（VO类型）
      * @return 提示文本
      */
-    public static String getTip(AiWorkflowNodeEntity feedbackNode) {
+    public static String getTip(AiWorkflowNodeVo feedbackNode) {
         try {
-            Object configObj = feedbackNode.getNodeConfig();
-            if (configObj == null) {
+            com.alibaba.fastjson2.JSONObject configObj = feedbackNode.getNodeConfig();
+            if (configObj == null || configObj.isEmpty()) {
                 return "";
             }
 
-            HumanFeedbackNodeConfig nodeConfig;
-            if (configObj instanceof String) {
-                nodeConfig = JsonUtil.fromJson((String) configObj, HumanFeedbackNodeConfig.class);
-            } else {
-                nodeConfig = JsonUtil.fromJson(JsonUtil.toJson(configObj), HumanFeedbackNodeConfig.class);
-            }
-
+            // VO的nodeConfig是JSONObject，直接转换为配置对象
+            HumanFeedbackNodeConfig nodeConfig = configObj.toJavaObject(HumanFeedbackNodeConfig.class);
             if (nodeConfig == null) {
                 return "";
             }

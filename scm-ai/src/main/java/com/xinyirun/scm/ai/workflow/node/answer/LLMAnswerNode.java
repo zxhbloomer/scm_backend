@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow.node.answer;
 
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.WfState;
@@ -21,7 +21,7 @@ import java.util.List;
 @Slf4j
 public class LLMAnswerNode extends AbstractWfNode {
 
-    public LLMAnswerNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeEntity nodeDef, WfState wfState, WfNodeState nodeState) {
+    public LLMAnswerNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo nodeDef, WfState wfState, WfNodeState nodeState) {
         super(wfComponent, nodeDef, wfState, nodeState);
     }
 

@@ -8,11 +8,13 @@ import com.xinyirun.scm.ai.workflow.data.NodeIODataFilesContent;
 import com.xinyirun.scm.ai.workflow.enums.WfIODataTypeEnum;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 工作流节点IO数据工具类
@@ -125,22 +127,15 @@ public class WfNodeIODataUtil {
 
     /**
      * 深度复制NodeIOData列表
+     * 参考 aideepin: com.moyz.adi.common.util.CollectionUtil.deepCopy()
+     * 使用Java原生序列化，避免JSON序列化可能返回null的问题
      */
     private static List<NodeIOData> deepCopy(List<NodeIOData> source) {
         if (source == null) {
             return null;
         }
-        List<NodeIOData> result = new ArrayList<>(source.size());
-        for (NodeIOData item : source) {
-            try {
-                // 使用JSON序列化进行深度复制
-                String json = JsonUtil.toJson(item);
-                NodeIOData copy = JsonUtil.fromJson(json, NodeIOData.class);
-                result.add(copy);
-            } catch (Exception e) {
-                throw new BusinessException("深度复制失败: " + e.getMessage());
-            }
-        }
-        return result;
+        return source.stream()
+                .map(SerializationUtils::clone)
+                .collect(Collectors.toList());
     }
 }

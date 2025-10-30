@@ -1,7 +1,7 @@
 package com.xinyirun.scm.ai.workflow;
 
 import cn.hutool.extra.spring.SpringUtil;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
@@ -116,7 +116,7 @@ public class WorkflowUtil {
      * @param modelName 模型名称
      * @param prompt 提示词/问题
      */
-    public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeEntity node,
+    public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
                                            String modelName, String prompt) {
         log.info("invoke LLM (streaming), modelName: {}, prompt length: {}", modelName,
                 StringUtils.isNotBlank(prompt) ? prompt.length() : 0);

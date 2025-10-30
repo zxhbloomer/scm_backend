@@ -27,6 +27,9 @@ import java.util.List;
 @Service
 public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiWorkflowEdgeEntity> {
 
+    @Resource
+    private AiWorkflowEdgeMapper aiWorkflowEdgeMapper;
+
     @Lazy
     @Resource
     private AiWorkflowEdgeService self;
@@ -38,7 +41,7 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      * @return 边实体
      */
     public AiWorkflowEdgeEntity getByUuid(String uuid) {
-        return baseMapper.selectByUuid(uuid);
+        return aiWorkflowEdgeMapper.selectByUuid(uuid);
     }
 
     /**
@@ -48,7 +51,7 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      * @return 连接边列表
      */
     public List<AiWorkflowEdgeEntity> listByWorkflowId(Long workflowId) {
-        return baseMapper.selectByWorkflowId(workflowId);
+        return aiWorkflowEdgeMapper.selectByWorkflowId(workflowId);
     }
 
     /**
@@ -100,9 +103,9 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
         newEdge.setUuid(UuidUtil.createShort());
         newEdge.setWorkflowId(targetWorkflowId);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
-        baseMapper.insert(newEdge);
+        aiWorkflowEdgeMapper.insert(newEdge);
 
-        return baseMapper.selectById(newEdge.getId());
+        return aiWorkflowEdgeMapper.selectById(newEdge.getId());
     }
 
     /**
@@ -124,7 +127,7 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
                 }
                 BeanUtils.copyProperties(edgeVo, old, "id", "cTime", "cId", "uTime", "uId", "dbversion");
                 old.setWorkflowId(workflowId);
-                baseMapper.updateById(old);
+                aiWorkflowEdgeMapper.updateById(old);
                 log.info("更新边,uuid:{},source:{},target:{}",
                         edgeVo.getUuid(), edgeVo.getSourceNodeUuid(), edgeVo.getTargetNodeUuid());
             } else {
@@ -133,7 +136,7 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
                 BeanUtils.copyProperties(edgeVo, entity);
                 entity.setWorkflowId(workflowId);
                 entity.setId(null);
-                baseMapper.insert(entity);
+                aiWorkflowEdgeMapper.insert(entity);
                 log.info("新增边,uuid:{},source:{},target:{}",
                         edgeVo.getUuid(), edgeVo.getSourceNodeUuid(), edgeVo.getTargetNodeUuid());
             }
@@ -166,7 +169,7 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
 
             // 软删除边（在查询出的实体上直接修改）
             edge.setIsDeleted(true);
-            baseMapper.updateById(edge);
+            aiWorkflowEdgeMapper.updateById(edge);
         }
     }
 

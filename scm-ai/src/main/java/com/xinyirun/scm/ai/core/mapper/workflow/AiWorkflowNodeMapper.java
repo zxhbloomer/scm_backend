@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeInputConfigVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.config.handler.FastjsonInputConfigTypeHandler;
 import com.xinyirun.scm.ai.config.handler.FastjsonTypeHandler;
 import org.apache.ibatis.annotations.*;
@@ -58,8 +59,8 @@ public interface AiWorkflowNodeMapper extends BaseMapper<AiWorkflowNodeEntity> {
                 javaType = JSONObject.class,
                 typeHandler = FastjsonTypeHandler.class)
     })
-    AiWorkflowNodeEntity selectByWorkflowIdAndUuid(@Param("workflowId") Long workflowId,
-                                                     @Param("uuid") String uuid);
+    AiWorkflowNodeVo selectByWorkflowIdAndUuid(@Param("workflowId") Long workflowId,
+                                                @Param("uuid") String uuid);
 
     /**
      * 按 workflow_id 查询所有节点（排除已删除）
@@ -99,7 +100,7 @@ public interface AiWorkflowNodeMapper extends BaseMapper<AiWorkflowNodeEntity> {
                 javaType = JSONObject.class,
                 typeHandler = FastjsonTypeHandler.class)
     })
-    List<AiWorkflowNodeEntity> selectByWorkflowId(@Param("workflowId") Long workflowId);
+    List<AiWorkflowNodeVo> selectByWorkflowId(@Param("workflowId") Long workflowId);
 
     /**
      * 获取工作流的起始节点（按 workflow_component_id 查询）
@@ -140,8 +141,8 @@ public interface AiWorkflowNodeMapper extends BaseMapper<AiWorkflowNodeEntity> {
                 javaType = JSONObject.class,
                 typeHandler = FastjsonTypeHandler.class)
     })
-    AiWorkflowNodeEntity selectStartNode(@Param("workflowId") Long workflowId,
-                                          @Param("componentId") Long componentId);
+    AiWorkflowNodeVo selectStartNode(@Param("workflowId") Long workflowId,
+                                      @Param("componentId") Long componentId);
 
     /**
      * 按 workflow_id 和 uuid 查询节点（包含已删除，用于复制后查询）
@@ -181,6 +182,6 @@ public interface AiWorkflowNodeMapper extends BaseMapper<AiWorkflowNodeEntity> {
                 javaType = JSONObject.class,
                 typeHandler = FastjsonTypeHandler.class)
     })
-    AiWorkflowNodeEntity selectByWorkflowIdAndUuidIncludeDeleted(@Param("workflowId") Long workflowId,
-                                                                   @Param("uuid") String uuid);
+    AiWorkflowNodeVo selectByWorkflowIdAndUuidIncludeDeleted(@Param("workflowId") Long workflowId,
+                                                              @Param("uuid") String uuid);
 }

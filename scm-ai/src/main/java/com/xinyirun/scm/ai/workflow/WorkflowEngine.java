@@ -3,11 +3,11 @@ package com.xinyirun.scm.ai.workflow;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.*;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.core.service.workflow.*;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
-import com.xinyirun.scm.ai.workflow.helper.SSEEmitterHelper;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -20,7 +20,6 @@ import org.bsc.langgraph4j.serializer.std.ObjectStreamStateSerializer;
 import org.bsc.langgraph4j.state.AgentState;
 import org.bsc.langgraph4j.state.StateSnapshot;
 import org.bsc.langgraph4j.streaming.StreamingOutput;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
 
@@ -42,9 +41,9 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 public class WorkflowEngine {
     private CompiledGraph<WfNodeState> app;
     private final AiWorkflowEntity workflow;
-    private final SSEEmitterHelper sseEmitterHelper;
+    private final WorkflowStreamHandler streamHandler;
     private final List<AiWorkflowComponentEntity> components;
-    private final List<AiWorkflowNodeEntity> wfNodes;
+    private final List<AiWorkflowNodeVo> wfNodes;
     private final List<AiWorkflowEdgeEntity> wfEdges;
     private final AiWorkflowRuntimeService workflowRuntimeService;
     private final AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
@@ -55,25 +54,24 @@ public class WorkflowEngine {
     private final Map<String, String> rootToSubGraph = new HashMap<>();
     private final Map<String, GraphCompileNode> nodeToParallelBranch = new HashMap<>();
 
-    private SseEmitter sseEmitter;
     private Long userId;
     private WfState wfState;
     private AiWorkflowRuntimeVo wfRuntimeResp;
 
     /**
      * 构造函数
-     * 参考 aideepin: WorkflowEngine 构造函数 第61-76行
+     * 使用 WorkflowStreamHandler 实现事件驱动的流式输出
      */
     public WorkflowEngine(
             AiWorkflowEntity workflow,
-            SSEEmitterHelper sseEmitterHelper,
+            WorkflowStreamHandler streamHandler,
             List<AiWorkflowComponentEntity> components,
-            List<AiWorkflowNodeEntity> nodes,
+            List<AiWorkflowNodeVo> nodes,
             List<AiWorkflowEdgeEntity> wfEdges,
             AiWorkflowRuntimeService workflowRuntimeService,
             AiWorkflowRuntimeNodeService workflowRuntimeNodeService) {
         this.workflow = workflow;
-        this.sseEmitterHelper = sseEmitterHelper;
+        this.streamHandler = streamHandler;
         this.components = components;
         this.wfNodes = nodes;
         this.wfEdges = wfEdges;
@@ -81,28 +79,25 @@ public class WorkflowEngine {
         this.workflowRuntimeNodeService = workflowRuntimeNodeService;
     }
 
-    public void run(Long userId, List<JSONObject> userInputs, SseEmitter sseEmitter) {
+    public void run(Long userId, List<JSONObject> userInputs) {
         this.userId = userId;
-        this.sseEmitter = sseEmitter;
         log.info("WorkflowEngine run,userId:{},workflowUuid:{},userInputs:{}", userId, workflow.getWorkflowUuid(), userInputs);
 
         if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
-            // 参考 aideepin: WorkflowEngine.run() 第83-84行
-            sseEmitterHelper.sendErrorAndComplete(userId, sseEmitter, "工作流已禁用");
+            streamHandler.sendError(new RuntimeException("工作流已禁用"));
             throw new RuntimeException("工作流已禁用");
         }
 
         Long workflowId = this.workflow.getId();
         this.wfRuntimeResp = workflowRuntimeService.create(userId, workflowId);
 
-        // 启动SSE并设置Redis标记，传递运行时信息
-        // 参考 aideepin: WorkflowEngine.run() 第89行
-        sseEmitterHelper.startSse(userId, sseEmitter, JSONObject.toJSONString(wfRuntimeResp));
+        // 发送工作流开始事件
+        streamHandler.sendStart(JSONObject.toJSONString(wfRuntimeResp));
 
         String runtimeUuid = this.wfRuntimeResp.getRuntimeUuid();
         try {
-            Pair<AiWorkflowNodeEntity, Set<AiWorkflowNodeEntity>> startAndEnds = findStartAndEndNode();
-            AiWorkflowNodeEntity startNode = startAndEnds.getLeft();
+            Pair<AiWorkflowNodeVo, Set<AiWorkflowNodeVo>> startAndEnds = findStartAndEndNode();
+            AiWorkflowNodeVo startNode = startAndEnds.getLeft();
             List<NodeIOData> wfInputs = getAndCheckUserInput(userInputs, startNode);
 
             // 工作流运行实例状态
@@ -138,7 +133,7 @@ public class WorkflowEngine {
     private void exe(RunnableConfig invokeConfig, boolean resume) {
         // 不使用langgraph4j state的update相关方法，无需传入input
         AsyncGenerator<NodeOutput<WfNodeState>> outputs = app.stream(resume ? null : Map.of(), invokeConfig);
-        streamingResult(wfState, outputs, sseEmitter);
+        streamingResult(wfState, outputs);
 
         StateSnapshot<WfNodeState> stateSnapshot = app.getState(invokeConfig);
         String nextNode = stateSnapshot.config().nextNode().orElse("");
@@ -146,8 +141,8 @@ public class WorkflowEngine {
         // 还有下个节点，表示进入中断状态，等待用户输入后继续执行
         if (StringUtils.isNotBlank(nextNode) && !nextNode.equalsIgnoreCase(END)) {
             String intTip = getHumanFeedbackTip(nextNode);
-            // 将等待输入信息[事件与提示词]发送到到客户端
-            sendSseMessage("[NODE_WAIT_FEEDBACK_BY_" + nextNode + "]", intTip);
+            // 将等待输入信息发送到客户端（通过NODE_INPUT事件）
+            streamHandler.sendNodeInput(nextNode, intTip);
             InterruptedFlow.RUNTIME_TO_GRAPH.put(wfState.getUuid(), this);
 
             // 更新状态
@@ -157,12 +152,14 @@ public class WorkflowEngine {
             // 工作流执行完成
             // 参考 aideepin: WorkflowEngine.exe() 第142-144行
             AiWorkflowRuntimeEntity updatedRuntime = workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
-            JSONObject outputJson = updatedRuntime.getOutput();
-            String outputStr = outputJson != null ? outputJson.toJSONString() : "{}";
+            // Entity的getOutputData()返回String类型，无需类型转换
+            String outputStr = updatedRuntime.getOutputData();
+            if (StringUtils.isBlank(outputStr)) {
+                outputStr = "{}";
+            }
 
-            // 发送完成事件并清理Redis状态
-            // 参考 aideepin: WorkflowEngine.exe() 第143行
-            sseEmitterHelper.sendComplete(userId, sseEmitter);
+            // 发送完成事件
+            streamHandler.sendComplete();
             InterruptedFlow.RUNTIME_TO_GRAPH.remove(wfState.getUuid());
         }
     }
@@ -188,15 +185,13 @@ public class WorkflowEngine {
     }
 
     private void errorWhenExe(Exception e) {
-        // 参考 aideepin: WorkflowEngine.errorWhenExe() 第168-176行
         log.error("Workflow execution error", e);
         String errorMsg = e.getMessage();
         if (errorMsg != null && errorMsg.contains("parallel node doesn't support conditional branch")) {
             errorMsg = "并行节点中不能包含条件分支";
         }
-        // 使用sseEmitterHelper发送错误并完成SSE
-        // 参考 aideepin: WorkflowEngine.errorWhenExe() 第174行
-        sseEmitterHelper.sendErrorAndComplete(userId, sseEmitter, errorMsg);
+        // 发送错误事件
+        streamHandler.sendError(e);
         workflowRuntimeService.updateStatus(wfRuntimeResp.getId(), WORKFLOW_PROCESS_STATUS_FAIL, errorMsg);
     }
 
@@ -208,7 +203,7 @@ public class WorkflowEngine {
      * @param nodeState 节点状态
      * @return 执行结果Map
      */
-    private Map<String, Object> runNode(AiWorkflowNodeEntity wfNode, WfNodeState nodeState) {
+    private Map<String, Object> runNode(AiWorkflowNodeVo wfNode, WfNodeState nodeState) {
         Map<String, Object> resultMap = new HashMap<>();
         try {
             // 1. 找到对应的组件（参考 aideepin:181）
@@ -225,21 +220,19 @@ public class WorkflowEngine {
                     userId, wfNode.getId(), wfRuntimeResp.getId(), nodeState);
             wfState.getRuntimeNodes().add(runtimeNodeVo);
 
-            // 4. 发送节点运行开始消息（参考 aideepin:187）
-            sendSseMessage("[NODE_RUN_" + wfNode.getUuid() + "]",
-                    JSONObject.toJSONString(runtimeNodeVo));
+            // 4. 发送节点运行开始消息
+            streamHandler.sendNodeRun(wfNode.getUuid(), JSONObject.toJSONString(runtimeNodeVo));
 
-            // 5. 执行节点，带输入输出回调（参考 aideepin:189-204）
+            // 5. 执行节点，带输入输出回调
             NodeProcessResult processResult = abstractWfNode.process(
-                    // 输入回调（参考 aideepin:189-193）
+                    // 输入回调
                     (is) -> {
                         workflowRuntimeNodeService.updateInput(runtimeNodeVo.getId(), nodeState);
                         for (NodeIOData input : nodeState.getInputs()) {
-                            sendSseMessage("[NODE_INPUT_" + wfNode.getUuid() + "]",
-                                    JSONObject.toJSONString(input));
+                            streamHandler.sendNodeInput(wfNode.getUuid(), JSONObject.toJSONString(input));
                         }
                     },
-                    // 输出回调（参考 aideepin:194-203）
+                    // 输出回调
                     (is) -> {
                         workflowRuntimeNodeService.updateOutput(runtimeNodeVo.getId(), nodeState);
 
@@ -248,8 +241,7 @@ public class WorkflowEngine {
                         List<NodeIOData> nodeOutputs = nodeState.getOutputs();
                         for (NodeIOData output : nodeOutputs) {
                             log.info("callback node:{},output:{}", nodeUuid, output.getContent());
-                            sendSseMessage("[NODE_OUTPUT_" + nodeUuid + "]",
-                                    JSONObject.toJSONString(output));
+                            streamHandler.sendNodeOutput(nodeUuid, JSONObject.toJSONString(output));
                         }
                     }
             );
@@ -283,15 +275,14 @@ public class WorkflowEngine {
      *
      * @param wfState    工作流状态
      * @param outputs    输出
-     * @param sseEmitter sse emitter
      */
-    private void streamingResult(WfState wfState, AsyncGenerator<NodeOutput<WfNodeState>> outputs, SseEmitter sseEmitter) {
+    private void streamingResult(WfState wfState, AsyncGenerator<NodeOutput<WfNodeState>> outputs) {
         for (NodeOutput<WfNodeState> out : outputs) {
             if (out instanceof StreamingOutput<WfNodeState> streamingOutput) {
                 String node = streamingOutput.node();
                 String chunk = streamingOutput.chunk();
                 log.info("node:{},chunk:{}", node, chunk);
-                sendSseMessage("[NODE_CHUNK_" + node + "]", chunk);
+                sendNodeChunk(node, chunk);
             } else {
                 // 找到对应的 abstractWfNode（参考 aideepin:236-237）
                 AbstractWfNode abstractWfNode = wfState.getCompletedNodes().stream()
@@ -324,7 +315,7 @@ public class WorkflowEngine {
      * @param startNode  开始节点定义
      * @return 正确的用户输入列表
      */
-    private List<NodeIOData> getAndCheckUserInput(List<JSONObject> userInputs, AiWorkflowNodeEntity startNode) {
+    private List<NodeIOData> getAndCheckUserInput(List<JSONObject> userInputs, AiWorkflowNodeVo startNode) {
         // 参考 aideepin:260 - 获取 Start 节点的输入定义列表
         List<AiWfNodeIOVo> defList = startNode.getInputConfig().getUserInputs();
         List<NodeIOData> wfInputs = new ArrayList<>();
@@ -375,11 +366,11 @@ public class WorkflowEngine {
      *
      * @return 开始节点及结束节点列表
      */
-    public Pair<AiWorkflowNodeEntity, Set<AiWorkflowNodeEntity>> findStartAndEndNode() {
-        AiWorkflowNodeEntity startNode = null;
-        Set<AiWorkflowNodeEntity> endNodes = new HashSet<>();
+    public Pair<AiWorkflowNodeVo, Set<AiWorkflowNodeVo>> findStartAndEndNode() {
+        AiWorkflowNodeVo startNode = null;
+        Set<AiWorkflowNodeVo> endNodes = new HashSet<>();
 
-        for (AiWorkflowNodeEntity node : wfNodes) {
+        for (AiWorkflowNodeVo node : wfNodes) {
             Optional<AiWorkflowComponentEntity> wfComponent = components.stream()
                     .filter(item -> item.getId().equals(node.getWorkflowComponentId()))
                     .findFirst();
@@ -426,7 +417,7 @@ public class WorkflowEngine {
         return Pair.of(startNode, endNodes);
     }
 
-    private void buildCompileNode(CompileNode parentNode, AiWorkflowNodeEntity node) {
+    private void buildCompileNode(CompileNode parentNode, AiWorkflowNodeVo node) {
         log.info("buildByNode, parentNode:{}, node:{},name:{}", parentNode.getId(), node.getUuid(), node.getTitle());
         CompileNode newNode;
         List<String> upstreamNodeUuids = getUpstreamNodeUuids(node.getUuid());
@@ -463,7 +454,7 @@ public class WorkflowEngine {
 
         List<String> downstreamUuids = getDownstreamNodeUuids(node.getUuid());
         for (String downstream : downstreamUuids) {
-            Optional<AiWorkflowNodeEntity> n = wfNodes.stream()
+            Optional<AiWorkflowNodeVo> n = wfNodes.stream()
                     .filter(item -> item.getUuid().equals(downstream))
                     .findFirst();
             n.ifPresent(workflowNode -> buildCompileNode(newNode, workflowNode));
@@ -602,7 +593,7 @@ public class WorkflowEngine {
         }
 
         log.info("addNodeToStateGraph,node uuid:{}", stateGraphNodeUuid);
-        AiWorkflowNodeEntity wfNode = getNodeByUuid(stateGraphNodeUuid);
+        AiWorkflowNodeVo wfNode = getNodeByUuid(stateGraphNodeUuid);
         stateGraph.addNode(stateGraphNodeUuid, node_async((state) -> runNode(wfNode, state)));
         stateGraphList.add(stateGraph);
 
@@ -630,7 +621,7 @@ public class WorkflowEngine {
         stateGraphList.add(stateGraph);
     }
 
-    private AiWorkflowNodeEntity getNodeByUuid(String nodeUuid) {
+    private AiWorkflowNodeVo getNodeByUuid(String nodeUuid) {
         return wfNodes.stream()
                 .filter(item -> item.getUuid().equals(nodeUuid))
                 .findFirst()
@@ -652,14 +643,12 @@ public class WorkflowEngine {
                 .orElse("等待用户输入");
     }
 
-    // SSE辅助方法
-    private void sendSseMessage(String event, String data) {
+    // 发送节点输出块（用于流式输出）
+    private void sendNodeChunk(String nodeUuid, String chunk) {
         try {
-            sseEmitter.send(SseEmitter.event()
-                    .name(event)
-                    .data(data));
+            streamHandler.sendNodeChunk(nodeUuid, chunk);
         } catch (Exception e) {
-            log.error("发送SSE消息失败,event:{}", event, e);
+            log.error("发送节点输出块失败,nodeUuid:{}", nodeUuid, e);
         }
     }
 

@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowRuntimeService;
@@ -29,6 +30,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -166,21 +168,22 @@ public class WorkflowController {
     }
 
     /**
-     * 流式执行工作流
+     * 流式执行工作流（Reactor Flux）
+     * 技术栈升级：从SseEmitter迁移到Reactor Flux，统一知识库对话和工作流的SSE实现
      *
      * @param wfUuid 工作流UUID
      * @param inputs 用户输入参数
-     * @return SSE Emitter
+     * @return 工作流事件流
      */
     @Operation(summary = "流式执行工作流")
     @PostMapping(value = "/run/{wfUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SysLogAnnotion("流式执行工作流")
     @DS("#header.X-Tenant-ID")
-    public SseEmitter run(@PathVariable String wfUuid,
-                          @RequestBody List<JSONObject> inputs,
-                          HttpServletRequest request) {
+    public Flux<WorkflowEventVo> run(@PathVariable String wfUuid,
+                                      @RequestBody List<JSONObject> inputs,
+                                      HttpServletRequest request) {
         // 【多租户支持】从请求头中获取租户编码
-        // 由于使用了异步响应式流，必须在主线程获取租户编码后传递给Service层
+        // 由于使用了响应式流，必须在主线程获取租户编码后传递给Service层
         String tenantCode = request.getHeader("X-Tenant-ID");
 
         return workflowStarter.streaming(wfUuid, inputs, tenantCode);

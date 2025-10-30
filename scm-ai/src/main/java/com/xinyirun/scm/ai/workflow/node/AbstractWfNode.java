@@ -3,8 +3,8 @@ package com.xinyirun.scm.ai.workflow.node;
 import cn.hutool.extra.spring.SpringUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeInputConfigVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeParamRefVo;
 import com.xinyirun.scm.ai.utils.JsonUtil;
@@ -44,9 +44,9 @@ public abstract class AbstractWfNode {
     protected WfState wfState;
     @Getter
     protected WfNodeState state;
-    protected AiWorkflowNodeEntity node;
+    protected AiWorkflowNodeVo node;
 
-    public AbstractWfNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeEntity node, WfState wfState, WfNodeState nodeState) {
+    public AbstractWfNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo node, WfState wfState, WfNodeState nodeState) {
         this.wfState = wfState;
         this.wfComponent = wfComponent;
         this.state = nodeState;

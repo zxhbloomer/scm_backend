@@ -2,7 +2,7 @@ package com.xinyirun.scm.ai.workflow.node.mailsend;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.WfState;
@@ -40,7 +40,7 @@ public class MailSendNode extends AbstractWfNode {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^(.+)@(\\S+)$");
 
-    public MailSendNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeEntity node, 
+    public MailSendNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo node,
                        WfState wfState, WfNodeState nodeState) {
         super(wfComponent, node, wfState, nodeState);
     }

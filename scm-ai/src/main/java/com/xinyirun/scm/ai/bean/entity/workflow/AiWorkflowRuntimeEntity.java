@@ -1,8 +1,6 @@
 package com.xinyirun.scm.ai.bean.entity.workflow;
 
-import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.annotation.*;
-import com.xinyirun.scm.ai.config.handler.FastjsonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
@@ -23,7 +21,7 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName(value = "ai_workflow_runtime", autoResultMap = true)
+@TableName(value = "ai_workflow_runtime")
 public class AiWorkflowRuntimeEntity implements Serializable {
 
     @Serial
@@ -56,16 +54,18 @@ public class AiWorkflowRuntimeEntity implements Serializable {
     /**
      * 输入数据(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Map<String, Object>
+     * 字段名从input改为input_data，避免JSqlParser保留字冲突
      */
-    @TableField(value = "input", typeHandler = FastjsonTypeHandler.class)
-    private JSONObject input;
+    @TableField(value = "input_data")
+    private String inputData;
 
     /**
      * 输出数据(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Map<String, Object>
+     * 字段名从output改为output_data，避免JSqlParser保留字冲突
      */
-    @TableField(value = "output", typeHandler = FastjsonTypeHandler.class)
-    private JSONObject output;
+    @TableField(value = "output_data")
+    private String outputData;
 
     /**
      * 执行状态(1-运行中,2-成功,3-失败)

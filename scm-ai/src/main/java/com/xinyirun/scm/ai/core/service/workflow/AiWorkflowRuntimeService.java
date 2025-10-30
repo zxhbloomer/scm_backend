@@ -33,6 +33,9 @@ import java.util.List;
 public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMapper, AiWorkflowRuntimeEntity> {
 
     @Resource
+    private AiWorkflowRuntimeMapper aiWorkflowRuntimeMapper;
+
+    @Resource
     private AiWorkflowService workflowService;
 
     @Resource
@@ -53,9 +56,9 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         runtime.setStatus(1); // 1-运行中
         runtime.setIsDeleted(false);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
-        baseMapper.insert(runtime);
+        aiWorkflowRuntimeMapper.insert(runtime);
 
-        runtime = baseMapper.selectById(runtime.getId());
+        runtime = aiWorkflowRuntimeMapper.selectById(runtime.getId());
         return changeRuntimeToDTO(runtime);
     }
 
@@ -71,7 +74,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             return;
         }
 
-        AiWorkflowRuntimeEntity runtime = baseMapper.selectById(id);
+        AiWorkflowRuntimeEntity runtime = aiWorkflowRuntimeMapper.selectById(id);
         if (runtime == null) {
             log.error("工作流实例不存在,id:{}", id);
             return;
@@ -83,11 +86,11 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             inputNode.put(data.getName(), data.getContent());
         }
 
-        // 在查出的实体上修改字段
-        runtime.setInput(inputNode);
+        // 在查出的实体上修改字段（JSON对象转String）
+        runtime.setInputData(inputNode.toJSONString());
         runtime.setStatus(1); // 1-运行中
 
-        baseMapper.updateById(runtime);
+        aiWorkflowRuntimeMapper.updateById(runtime);
     }
 
     /**
@@ -98,7 +101,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      * @return 更新后的实体
      */
     public AiWorkflowRuntimeEntity updateOutput(Long id, WfState wfState) {
-        AiWorkflowRuntimeEntity runtime = baseMapper.selectById(id);
+        AiWorkflowRuntimeEntity runtime = aiWorkflowRuntimeMapper.selectById(id);
         if (runtime == null) {
             log.error("工作流实例不存在,id:{}", id);
             return null;
@@ -112,15 +115,15 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             }
         }
 
-        // 在查出的实体上修改字段
+        // 在查出的实体上修改字段（JSON对象转String）
         if (!outputNode.isEmpty()) {
-            runtime.setOutput(outputNode);
+            runtime.setOutputData(outputNode.toJSONString());
         }
         if (wfState.getProcessStatus() != null) {
             runtime.setStatus(wfState.getProcessStatus());
         }
 
-        baseMapper.updateById(runtime);
+        aiWorkflowRuntimeMapper.updateById(runtime);
 
         return runtime;
     }
@@ -133,7 +136,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      * @param statusRemark 状态描述
      */
     public void updateStatus(Long id, Integer status, String statusRemark) {
-        AiWorkflowRuntimeEntity runtime = baseMapper.selectById(id);
+        AiWorkflowRuntimeEntity runtime = aiWorkflowRuntimeMapper.selectById(id);
         if (runtime == null) {
             log.error("工作流实例不存在,id:{}", id);
             return;
@@ -145,7 +148,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             runtime.setStatusRemark(StringUtils.substring(statusRemark, 0, 500));
         }
 
-        baseMapper.updateById(runtime);
+        aiWorkflowRuntimeMapper.updateById(runtime);
     }
 
     /**
@@ -155,7 +158,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      * @return 运行实例
      */
     public AiWorkflowRuntimeEntity getByUuid(String runtimeUuid) {
-        return baseMapper.selectOne(
+        return aiWorkflowRuntimeMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
                         .eq(AiWorkflowRuntimeEntity::getRuntimeUuid, runtimeUuid)
                         .eq(AiWorkflowRuntimeEntity::getIsDeleted, 0)
@@ -174,7 +177,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
     public Page<AiWorkflowRuntimeVo> page(String workflowUuid, Integer currentPage, Integer pageSize) {
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
-        Page<AiWorkflowRuntimeEntity> entityPage = baseMapper.selectPage(
+        Page<AiWorkflowRuntimeEntity> entityPage = aiWorkflowRuntimeMapper.selectPage(
                 new Page<>(currentPage, pageSize),
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
                         .eq(AiWorkflowRuntimeEntity::getWorkflowId, workflow.getId())
@@ -221,7 +224,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
     public boolean deleteAll(String workflowUuid) {
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
-        return baseMapper.update(null,
+        return aiWorkflowRuntimeMapper.update(null,
                 new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<AiWorkflowRuntimeEntity>()
                         .eq(AiWorkflowRuntimeEntity::getWorkflowId, workflow.getId())
                         .set(AiWorkflowRuntimeEntity::getIsDeleted, 1)
@@ -243,7 +246,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
         updateObj.setId(runtime.getId());
         updateObj.setIsDeleted(true);
-        return baseMapper.updateById(updateObj) > 0;
+        return aiWorkflowRuntimeMapper.updateById(updateObj) > 0;
     }
 
     /**
@@ -264,11 +267,11 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      * @param vo 运行实例VO
      */
     private void fillInputOutput(AiWorkflowRuntimeVo vo) {
-        if (vo.getInput() == null) {
-            vo.setInput(new JSONObject());
+        if (vo.getInputData() == null) {
+            vo.setInputData(new JSONObject());
         }
-        if (vo.getOutput() == null) {
-            vo.setOutput(new JSONObject());
+        if (vo.getOutputData() == null) {
+            vo.setOutputData(new JSONObject());
         }
     }
 }

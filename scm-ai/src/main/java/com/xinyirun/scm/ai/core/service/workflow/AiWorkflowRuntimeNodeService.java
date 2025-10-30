@@ -8,6 +8,7 @@ import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowRuntimeNodeMapper;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.common.utils.UuidUtil;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +30,9 @@ import java.util.List;
 @Service
 public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeNodeMapper, AiWorkflowRuntimeNodeEntity> {
 
+    @Resource
+    private AiWorkflowRuntimeNodeMapper aiWorkflowRuntimeNodeMapper;
+
     /**
      * 查询运行实例的所有节点执行记录
      *
@@ -36,7 +40,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * @return 节点执行记录VO列表
      */
     public List<AiWorkflowRuntimeNodeVo> listByWfRuntimeId(Long wfRuntimeId) {
-        List<AiWorkflowRuntimeNodeEntity> entityList = baseMapper.selectList(
+        List<AiWorkflowRuntimeNodeEntity> entityList = aiWorkflowRuntimeNodeMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeNodeEntity>()
                         .eq(AiWorkflowRuntimeNodeEntity::getWorkflowRuntimeId, wfRuntimeId)
                         .eq(AiWorkflowRuntimeNodeEntity::getIsDeleted, 0)
@@ -73,10 +77,10 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         runtimeNode.setStatus(state.getProcessStatus());
         runtimeNode.setIsDeleted(false);
         // 不设置 c_time, u_time, c_id, u_id, dbversion - 自动填充
-        baseMapper.insert(runtimeNode);
+        aiWorkflowRuntimeNodeMapper.insert(runtimeNode);
 
         // 参考 aideepin:53 - 重新查询获取完整数据
-        runtimeNode = baseMapper.selectById(runtimeNode.getId());
+        runtimeNode = aiWorkflowRuntimeNodeMapper.selectById(runtimeNode.getId());
 
         // 参考 aideepin:55-58 - 转换为 VO
         AiWorkflowRuntimeNodeVo vo = changeNodeToDTO(runtimeNode);
@@ -96,7 +100,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             return;
         }
 
-        AiWorkflowRuntimeNodeEntity node = baseMapper.selectById(id);
+        AiWorkflowRuntimeNodeEntity node = aiWorkflowRuntimeNodeMapper.selectById(id);
         if (node == null) {
             log.error("节点实例不存在,id:{}", id);
             return;
@@ -107,7 +111,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         for (NodeIOData data : state.getInputs()) {
             inputNode.put(data.getName(), data.getContent());
         }
-        node.setInput(inputNode);
+        node.setInputData(inputNode.toJSONString());
 
         if (state.getProcessStatus() != null) {
             node.setStatus(state.getProcessStatus());
@@ -116,7 +120,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             node.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
         }
 
-        baseMapper.updateById(node);
+        aiWorkflowRuntimeNodeMapper.updateById(node);
     }
 
     /**
@@ -126,7 +130,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * @param state 工作流节点状态
      */
     public void updateOutput(Long id, WfNodeState state) {
-        AiWorkflowRuntimeNodeEntity node = baseMapper.selectById(id);
+        AiWorkflowRuntimeNodeEntity node = aiWorkflowRuntimeNodeMapper.selectById(id);
         if (node == null) {
             log.error("节点实例不存在,id:{}", id);
             return;
@@ -138,7 +142,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             for (NodeIOData data : state.getOutputs()) {
                 outputNode.put(data.getName(), data.getContent());
             }
-            node.setOutput(outputNode);
+            node.setOutputData(outputNode.toJSONString());
         }
 
         if (state.getProcessStatus() != null) {
@@ -149,7 +153,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             node.setStatusRemark(StringUtils.substring(state.getProcessStatusRemark(), 0, 500));
         }
 
-        baseMapper.updateById(node);
+        aiWorkflowRuntimeNodeMapper.updateById(node);
     }
 
     /**
@@ -170,7 +174,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * @param id 节点执行记录ID
      */
     public void delete(Long id) {
-        baseMapper.deleteById(id);
+        aiWorkflowRuntimeNodeMapper.deleteById(id);
     }
 
     /**
@@ -179,11 +183,11 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * @param vo 节点VO
      */
     private void fillInputOutput(AiWorkflowRuntimeNodeVo vo) {
-        if (vo.getInput() == null) {
-            vo.setInput(new JSONObject());
+        if (vo.getInputData() == null) {
+            vo.setInputData(new JSONObject());
         }
-        if (vo.getOutput() == null) {
-            vo.setOutput(new JSONObject());
+        if (vo.getOutputData() == null) {
+            vo.setOutputData(new JSONObject());
         }
     }
 }

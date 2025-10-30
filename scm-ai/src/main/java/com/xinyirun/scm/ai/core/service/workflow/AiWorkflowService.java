@@ -32,6 +32,9 @@ import java.util.List;
 @Service
 public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowEntity> {
 
+    @Resource
+    private AiWorkflowMapper aiWorkflowMapper;
+
     @Lazy
     @Resource
     private AiWorkflowService self;
@@ -67,7 +70,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         entity.setIsDeleted(false);
         entity.setUserId(userId);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
-        baseMapper.insert(entity);
+        aiWorkflowMapper.insert(entity);
 
         // 创建开始节点
         workflowNodeService.createStartNode(entity);
@@ -111,7 +114,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         newWorkflow.setIsEnable(true);
         newWorkflow.setIsDeleted(false);
         newWorkflow.setUserId(userId);
-        baseMapper.insert(newWorkflow);
+        aiWorkflowMapper.insert(newWorkflow);
 
         // 复制节点和连线
         workflowNodeService.copyByWorkflowId(sourceWorkflow.getId(), newWorkflow.getId());
@@ -148,7 +151,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
 
         // 更新工作流公开状态（在查询出的实体上直接修改）
         workflow.setIsPublic(isPublic);
-        baseMapper.updateById(workflow);
+        aiWorkflowMapper.updateById(workflow);
     }
 
     /**
@@ -168,7 +171,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         }
 
         // 查询现有工作流
-        AiWorkflowEntity workflow = baseMapper.selectById(vo.getId());
+        AiWorkflowEntity workflow = aiWorkflowMapper.selectById(vo.getId());
         if (workflow == null) {
             throw new RuntimeException("工作流不存在: " + vo.getId());
         }
@@ -185,7 +188,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
             workflow.setIsPublic(vo.getIsPublic());
         }
         // u_time, u_id, dbversion由MyBatis-Plus自动填充
-        baseMapper.updateById(workflow);
+        aiWorkflowMapper.updateById(workflow);
 
         // 更新节点和边（参考aideepin WorkflowService.update()）
         if (vo.getNodes() != null) {
@@ -232,7 +235,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         if (isPublic != null) {
             workflow.setIsPublic(isPublic);
         }
-        baseMapper.updateById(workflow);
+        aiWorkflowMapper.updateById(workflow);
 
         return getDtoByUuid(wfUuid);
     }
@@ -244,7 +247,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * @return 工作流实体
      */
     public AiWorkflowEntity getOrThrow(String uuid) {
-        AiWorkflowEntity workflow = baseMapper.selectByWorkflowUuid(uuid);
+        AiWorkflowEntity workflow = aiWorkflowMapper.selectByWorkflowUuid(uuid);
         if (workflow == null) {
             throw new RuntimeException("工作流不存在: " + uuid);
         }
@@ -258,7 +261,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * @return 工作流VO
      */
     public AiWorkflowVo getDtoByUuid(String uuid) {
-        AiWorkflowEntity entity = baseMapper.selectByWorkflowUuid(uuid);
+        AiWorkflowEntity entity = aiWorkflowMapper.selectByWorkflowUuid(uuid);
         if (entity == null) {
             return null;
         }
@@ -307,7 +310,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
 
         wrapper.orderByDesc(AiWorkflowEntity::getUTime);
 
-        Page<AiWorkflowEntity> entityPage = baseMapper.selectPage(
+        Page<AiWorkflowEntity> entityPage = aiWorkflowMapper.selectPage(
                 new Page<>(currentPage, pageSize), wrapper
         );
 
@@ -359,7 +362,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
 
         wrapper.orderByDesc(AiWorkflowEntity::getUTime);
 
-        Page<AiWorkflowEntity> entityPage = baseMapper.selectPage(
+        Page<AiWorkflowEntity> entityPage = aiWorkflowMapper.selectPage(
                 new Page<>(currentPage, pageSize), wrapper
         );
 
@@ -403,7 +406,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
 
         // 软删除工作流（在查询出的实体上直接修改）
         workflow.setIsDeleted(true);
-        baseMapper.updateById(workflow);
+        aiWorkflowMapper.updateById(workflow);
     }
 
     /**
@@ -425,7 +428,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
             throw new RuntimeException("无权限修改此工作流");
         }
 
-        baseMapper.updateEnableStatus(uuid, enable);
+        aiWorkflowMapper.updateEnableStatus(uuid, enable);
     }
 
     /**
@@ -435,7 +438,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * @return 工作流VO
      */
     public AiWorkflowVo getDtoByWorkflowId(Long workflowId) {
-        AiWorkflowEntity entity = baseMapper.selectById(workflowId);
+        AiWorkflowEntity entity = aiWorkflowMapper.selectById(workflowId);
         if (entity == null) {
             return null;
         }

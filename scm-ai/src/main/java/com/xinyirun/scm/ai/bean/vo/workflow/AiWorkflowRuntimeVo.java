@@ -39,14 +39,16 @@ public class AiWorkflowRuntimeVo {
     /**
      * 输入参数(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
+     * 字段名从input改为inputData，避免JSqlParser保留字冲突
      */
-    private JSONObject input;
+    private JSONObject inputData;
 
     /**
      * 输出结果(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
+     * 字段名从output改为outputData，避免JSqlParser保留字冲突
      */
-    private JSONObject output;
+    private JSONObject outputData;
 
     /**
      * 执行状态(1-运行中,2-成功,3-失败)

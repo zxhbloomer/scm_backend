@@ -2,7 +2,7 @@ package com.xinyirun.scm.ai.workflow.node.switcher;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.utils.JsonUtil;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
@@ -28,7 +28,7 @@ import static com.xinyirun.scm.ai.workflow.WfNodeIODataUtil.changeInputsToOutput
 @Slf4j
 public class SwitcherNode extends AbstractWfNode {
 
-    public SwitcherNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeEntity node, WfState wfState, WfNodeState nodeState) {
+    public SwitcherNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo node, WfState wfState, WfNodeState nodeState) {
         super(wfComponent, node, wfState, nodeState);
     }
 

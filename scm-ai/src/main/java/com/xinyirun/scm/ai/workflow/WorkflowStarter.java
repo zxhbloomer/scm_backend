@@ -5,16 +5,18 @@ import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEdgeEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.core.service.workflow.*;
-import com.xinyirun.scm.ai.workflow.helper.SSEEmitterHelper;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
+import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -29,12 +31,6 @@ import java.util.List;
 @Slf4j
 @Component
 public class WorkflowStarter {
-
-    private static final Long SSE_TIMEOUT = 60 * 60 * 1000L; // 1小时超时
-
-    @Lazy
-    @Resource
-    private WorkflowStarter self;
 
     @Resource
     private AiWorkflowService workflowService;
@@ -54,75 +50,102 @@ public class WorkflowStarter {
     @Resource
     private AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
 
-    @Resource
-    private SSEEmitterHelper sseEmitterHelper;
-
     /**
      * 流式执行工作流
      *
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
      * @param tenantCode 租户编码（从Controller层传递，用于异步线程数据源切换）
-     * @return SSE Emitter
+     * @return Flux流式响应
      */
-    public SseEmitter streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode) {
+    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode) {
         Long userId = SecurityUtil.getStaff_id();
-        SseEmitter sseEmitter = new SseEmitter(SSE_TIMEOUT);
 
-        // 检查用户并发限制和限流
-        if (!sseEmitterHelper.checkOrComplete(userId, sseEmitter)) {
-            return sseEmitter;
-        }
+        return Flux.<WorkflowEventVo>create(fluxSink -> {
+            try {
+                // 【多租户关键】在异步线程中切换到正确的数据源
+                DataSourceHelper.use(tenantCode);
 
-        AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
+                // 获取工作流配置
+                AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
-        if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
-            sseEmitterHelper.sendErrorAndComplete(userId, sseEmitter, "工作流已禁用");
-            return sseEmitter;
-        }
+                // 检查工作流是否启用
+                if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
+                    fluxSink.error(new BusinessException("工作流已禁用"));
+                    return;
+                }
 
-        self.asyncRun(userId, workflow, userInputs, sseEmitter, tenantCode);
-        return sseEmitter;
-    }
+                log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},userInputs:{}",
+                        userId, workflow.getWorkflowUuid(), tenantCode, userInputs);
 
-    /**
-     * 异步执行工作流
-     *
-     * @param userId 用户ID
-     * @param workflow 工作流实体
-     * @param userInputs 用户输入
-     * @param sseEmitter SSE Emitter
-     * @param tenantCode 租户编码（用于异步线程数据源切换）
-     */
-    @Async
-    public void asyncRun(Long userId, AiWorkflowEntity workflow,
-                         List<JSONObject> userInputs, SseEmitter sseEmitter, String tenantCode) {
-        log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},userInputs:{}",
-                userId, workflow.getWorkflowUuid(), tenantCode, userInputs);
+                // 获取工作流组件、节点、边配置
+                List<AiWorkflowComponentEntity> components = workflowComponentService.getAllEnable();
+                List<AiWorkflowNodeVo> nodes = workflowNodeService.listByWorkflowId(workflow.getId());
+                List<AiWorkflowEdgeEntity> edges = workflowEdgeService.listByWorkflowId(workflow.getId());
 
-        // 【多租户关键】在异步线程中切换到正确的数据源
-        // 参考 TenantDyanmicDataSourceInterceptor 第106行和第143行的标准用法
-        DataSourceHelper.use(tenantCode);
+                // 创建工作流流式回调处理器
+                WorkflowStreamHandler streamHandler = new WorkflowStreamHandler(
+                        new WorkflowStreamHandler.StreamCallback() {
+                            @Override
+                            public void onStart(String runtimeData) {
+                                fluxSink.next(WorkflowEventVo.createStartEvent(runtimeData));
+                            }
 
-        try {
-            List<AiWorkflowComponentEntity> components = workflowComponentService.getAllEnable();
-            List<AiWorkflowNodeEntity> nodes = workflowNodeService.listByWorkflowId(workflow.getId());
-            List<AiWorkflowEdgeEntity> edges = workflowEdgeService.listByWorkflowId(workflow.getId());
+                            @Override
+                            public void onNodeRun(String nodeUuid, String nodeData) {
+                                fluxSink.next(WorkflowEventVo.createNodeRunEvent(nodeUuid, nodeData));
+                            }
 
-            WorkflowEngine workflowEngine = new WorkflowEngine(
-                    workflow,
-                    sseEmitterHelper,
-                    components,
-                    nodes,
-                    edges,
-                    workflowRuntimeService,
-                    workflowRuntimeNodeService
-            );
-            workflowEngine.run(userId, userInputs, sseEmitter);
-        } finally {
+                            @Override
+                            public void onNodeInput(String nodeUuid, String inputData) {
+                                fluxSink.next(WorkflowEventVo.createNodeInputEvent(nodeUuid, inputData));
+                            }
+
+                            @Override
+                            public void onNodeOutput(String nodeUuid, String outputData) {
+                                fluxSink.next(WorkflowEventVo.createNodeOutputEvent(nodeUuid, outputData));
+                            }
+
+                            @Override
+                            public void onNodeChunk(String nodeUuid, String chunk) {
+                                fluxSink.next(WorkflowEventVo.createNodeChunkEvent(nodeUuid, chunk));
+                            }
+
+                            @Override
+                            public void onComplete(String data) {
+                                fluxSink.next(WorkflowEventVo.createDoneEvent(data));
+                                fluxSink.complete();
+                            }
+
+                            @Override
+                            public void onError(Throwable error) {
+                                fluxSink.error(error);
+                            }
+                        }
+                );
+
+                // 创建工作流引擎并执行
+                WorkflowEngine workflowEngine = new WorkflowEngine(
+                        workflow,
+                        streamHandler,
+                        components,
+                        nodes,
+                        edges,
+                        workflowRuntimeService,
+                        workflowRuntimeNodeService
+                );
+                workflowEngine.run(userId, userInputs);
+
+            } catch (Exception e) {
+                log.error("工作流执行异常: workflowUuid={}, userId={}", workflowUuid, userId, e);
+                fluxSink.error(e);
+            }
+        })
+        .subscribeOn(Schedulers.boundedElastic()) // 在弹性线程池中执行
+        .doFinally(signalType -> {
             // 清理数据源上下文
             DataSourceHelper.close();
-        }
+        });
     }
 
     /**
