@@ -6,8 +6,6 @@ import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.Getter;
 import lombok.Setter;
-import org.bsc.langgraph4j.langchain4j.generators.StreamingChatGenerator;
-import org.bsc.langgraph4j.state.AgentState;
 
 import java.util.*;
 
@@ -25,18 +23,19 @@ public class WfState {
 
     private String uuid;
     private Long userId;
+    private String tenantCode;
     private String processingNodeUuid;
+
+    /**
+     * 工作流流式处理器（用于发送 SSE 事件）
+     */
+    private WorkflowStreamHandler streamHandler;
 
     /**
      * Source node uuid => target node uuid list
      */
     private Map<String, List<String>> edges = new HashMap<>();
     private Map<String, List<String>> conditionalEdges = new HashMap<>();
-
-    /**
-     * Source node uuid => streaming chat generator
-     */
-    private Map<String, StreamingChatGenerator<AgentState>> nodeToStreamingGenerator = new HashMap<>();
 
     /**
      * 已运行节点列表
@@ -65,6 +64,13 @@ public class WfState {
         this.input = input;
         this.userId = userId;
         this.uuid = uuid;
+    }
+
+    public WfState(Long userId, List<NodeIOData> input, String uuid, String tenantCode) {
+        this.input = input;
+        this.userId = userId;
+        this.uuid = uuid;
+        this.tenantCode = tenantCode;
     }
 
     /**

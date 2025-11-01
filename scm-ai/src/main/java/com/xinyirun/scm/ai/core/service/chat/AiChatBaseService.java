@@ -114,6 +114,23 @@ public class AiChatBaseService {
     }
 
     /**
+     * 执行AI流式聊天（无记忆模式）
+     *
+     * 流式聊天可以实时接收AI回复的内容片段，提供更好的用户体验
+     * 这种模式下，AI不会记忆之前的对话内容，每次都是独立的对话
+     * 适用于工作流节点等无需上下文关联的场景
+     *
+     * @param aiChatOption 聊天选项配置对象，包含提示词、模型配置等
+     * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
+     */
+    public ChatClient.StreamResponseSpec chatStream(AIChatOptionVo aiChatOption) {
+        return getClient(aiChatOption.getModule())
+                .prompt()
+                .user(aiChatOption.getPrompt())
+                .stream();
+    }
+
+    /**
      * 执行AI流式聊天（带记忆模式）
      *
      * 流式聊天可以实时接收AI回复的内容片段，提供更好的用户体验

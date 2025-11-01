@@ -77,6 +77,8 @@
         <spring-ai.version>1.0.3</spring-ai.version>
         <spring-ai-alibaba.version>1.0.0.3</spring-ai-alibaba.version>
         <ansj_seg.version>5.1.6</ansj_seg.version>
+        <!-- LangGraph4j 版本管理 -->
+        <langgraph4j.version>1.7.2</langgraph4j.version>
     </properties>
 
     <dependencyManagement>
@@ -943,6 +945,18 @@
                 <groupId>com.clickhouse</groupId>
                 <artifactId>client-v2</artifactId>
                 <version>0.9.2</version>
+            </dependency>
+            <!-- LangGraph4j - 工作流编排引擎(基于DAG) -->
+            <dependency>
+                <groupId>org.bsc.langgraph4j</groupId>
+                <artifactId>langgraph4j-core</artifactId>
+                <version>${langgraph4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bsc.langgraph4j</groupId>
+                <artifactId>langgraph4j-langchain4j</artifactId>
+                <version>${langgraph4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

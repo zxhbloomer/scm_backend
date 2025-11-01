@@ -139,10 +139,29 @@ public class WorkflowUtil {
             chatOption.setModule(modelConfig);
             chatOption.setPrompt(prompt);
 
-            // 调用 AI 模型获取完整响应
-            String response = aiChatBaseService.chat(chatOption).content();
+            // ⭐ 使用流式调用（chatStream）而不是同步调用（chat）
+            // 参考AiChatBaseService的chatStream()方法（新增的无记忆流式方法）
+            StringBuilder fullResponse = new StringBuilder();
 
-            log.info("LLM streaming response length: {}", StringUtils.isNotBlank(response) ? response.length() : 0);
+            aiChatBaseService.chatStream(chatOption)
+                    .chatResponse()
+                    .doOnNext(chatResponse -> {
+                        // 实时接收每个chunk
+                        String content = chatResponse.getResult().getOutput().getText();
+                        if (StringUtils.isNotBlank(content)) {
+                            log.debug("LLM chunk: length={}", content.length());
+                            fullResponse.append(content);
+
+                            // ⭐ 通过streamHandler实时发送chunk到前端
+                            if (wfState.getStreamHandler() != null) {
+                                wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
+                            }
+                        }
+                    })
+                    .blockLast(); // 等待流式响应完成
+
+            String response = fullResponse.toString();
+            log.info("LLM streaming response completed, total length: {}", response.length());
 
             // 添加输出数据到节点状态
             NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);

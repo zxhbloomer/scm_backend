@@ -27,6 +27,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -171,6 +172,12 @@ public class WorkflowController {
      * 流式执行工作流（Reactor Flux）
      * 技术栈升级：从SseEmitter迁移到Reactor Flux，统一知识库对话和工作流的SSE实现
      *
+     * SSE格式说明：
+     * - 使用ServerSentEvent包装WorkflowEventVo，确保event字段正确映射到SSE的event:行
+     * - 前端@microsoft/fetch-event-source库期望的格式：
+     *   event: done
+     *   data: {"data":"..."}
+     *
      * @param wfUuid 工作流UUID
      * @param inputs 用户输入参数
      * @return 工作流事件流
@@ -179,14 +186,18 @@ public class WorkflowController {
     @PostMapping(value = "/run/{wfUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SysLogAnnotion("流式执行工作流")
     @DS("#header.X-Tenant-ID")
-    public Flux<WorkflowEventVo> run(@PathVariable String wfUuid,
-                                      @RequestBody List<JSONObject> inputs,
-                                      HttpServletRequest request) {
+    public Flux<ServerSentEvent<String>> run(@PathVariable String wfUuid,
+                                               @RequestBody List<JSONObject> inputs,
+                                               HttpServletRequest request) {
         // 【多租户支持】从请求头中获取租户编码
         // 由于使用了响应式流，必须在主线程获取租户编码后传递给Service层
         String tenantCode = request.getHeader("X-Tenant-ID");
 
-        return workflowStarter.streaming(wfUuid, inputs, tenantCode);
+        return workflowStarter.streaming(wfUuid, inputs, tenantCode)
+                .map(event -> ServerSentEvent.<String>builder()
+                        .event(event.getEvent())  // SSE的event:行
+                        .data(event.getData())    // SSE的data:行
+                        .build());
     }
 
     /**

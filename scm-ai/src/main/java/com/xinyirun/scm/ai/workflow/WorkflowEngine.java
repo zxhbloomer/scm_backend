@@ -55,6 +55,7 @@ public class WorkflowEngine {
     private final Map<String, GraphCompileNode> nodeToParallelBranch = new HashMap<>();
 
     private Long userId;
+    private String tenantCode;
     private WfState wfState;
     private AiWorkflowRuntimeVo wfRuntimeResp;
 
@@ -79,9 +80,11 @@ public class WorkflowEngine {
         this.workflowRuntimeNodeService = workflowRuntimeNodeService;
     }
 
-    public void run(Long userId, List<JSONObject> userInputs) {
+    public void run(Long userId, List<JSONObject> userInputs, String tenantCode) {
         this.userId = userId;
-        log.info("WorkflowEngine run,userId:{},workflowUuid:{},userInputs:{}", userId, workflow.getWorkflowUuid(), userInputs);
+        this.tenantCode = tenantCode;
+        log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},userInputs:{}",
+                 userId, workflow.getWorkflowUuid(), tenantCode, userInputs);
 
         if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
             streamHandler.sendError(new RuntimeException("工作流已禁用"));
@@ -101,7 +104,9 @@ public class WorkflowEngine {
             List<NodeIOData> wfInputs = getAndCheckUserInput(userInputs, startNode);
 
             // 工作流运行实例状态
-            this.wfState = new WfState(userId, wfInputs, runtimeUuid);
+            this.wfState = new WfState(userId, wfInputs, runtimeUuid, tenantCode);
+            // 设置流式处理器，供节点使用（如 LLM 流式响应）
+            this.wfState.setStreamHandler(streamHandler);
             workflowRuntimeService.updateInput(this.wfRuntimeResp.getId(), wfState);
 
             CompileNode rootCompileNode = new CompileNode();
@@ -138,6 +143,19 @@ public class WorkflowEngine {
         StateSnapshot<WfNodeState> stateSnapshot = app.getState(invokeConfig);
         String nextNode = stateSnapshot.config().nextNode().orElse("");
 
+        // ========== 工作流完成检查调试日志 ==========
+        log.info("========== Workflow Completion Check ==========");
+        log.info("  runtimeUuid: {}", wfState.getUuid());
+        log.info("  nextNode: '{}' (isEmpty: {}, equalsEND: {})",
+                 nextNode,
+                 StringUtils.isBlank(nextNode),
+                 "END".equalsIgnoreCase(nextNode));
+        log.info("  wfState.processStatus: {} (0=READY, 1=RUNNING, 2=SUCCESS, 3=WAITING, 4=FAIL)",
+                 wfState.getProcessStatus());
+        log.info("  completed nodes count: {}", wfState.getCompletedNodes().size());
+        log.info("===============================================");
+        // ==========================================
+
         // 还有下个节点，表示进入中断状态，等待用户输入后继续执行
         if (StringUtils.isNotBlank(nextNode) && !nextNode.equalsIgnoreCase(END)) {
             String intTip = getHumanFeedbackTip(nextNode);
@@ -148,10 +166,19 @@ public class WorkflowEngine {
             // 更新状态
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_WAITING_INPUT);
             workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
+            log.info("Workflow entering WAITING_INPUT state, nextNode: {}", nextNode);
         } else {
             // 工作流执行完成
+            log.info("Workflow execution completed, preparing to send done event");
+
+            // 显式设置工作流状态为成功
+            wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_SUCCESS);
+            log.info("Set wfState.processStatus to SUCCESS(2)");
+
             // 参考 aideepin: WorkflowEngine.exe() 第142-144行
             AiWorkflowRuntimeEntity updatedRuntime = workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
+            log.info("Updated runtime output, status in DB: {}", updatedRuntime.getStatus());
+
             // Entity的getOutputData()返回String类型，无需类型转换
             String outputStr = updatedRuntime.getOutputData();
             if (StringUtils.isBlank(outputStr)) {
@@ -159,8 +186,10 @@ public class WorkflowEngine {
             }
 
             // 发送完成事件
+            log.info("Sending workflow complete event (done)");
             streamHandler.sendComplete();
             InterruptedFlow.RUNTIME_TO_GRAPH.remove(wfState.getUuid());
+            log.info("Workflow execution finished successfully, runtimeUuid: {}", wfState.getUuid());
         }
     }
 
@@ -206,11 +235,14 @@ public class WorkflowEngine {
     private Map<String, Object> runNode(AiWorkflowNodeVo wfNode, WfNodeState nodeState) {
         Map<String, Object> resultMap = new HashMap<>();
         try {
+            log.info("========== Running Node: {} ({}) ==========", wfNode.getTitle(), wfNode.getUuid());
+
             // 1. 找到对应的组件（参考 aideepin:181）
             AiWorkflowComponentEntity wfComponent = components.stream()
                     .filter(item -> item.getId().equals(wfNode.getWorkflowComponentId()))
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("组件不存在"));
+            log.info("  Component: {}", wfComponent.getName());
 
             // 2. 通过工厂创建节点实例（参考 aideepin:182）
             AbstractWfNode abstractWfNode = WfNodeFactory.create(wfComponent, wfNode, wfState, nodeState);
@@ -219,6 +251,7 @@ public class WorkflowEngine {
             AiWorkflowRuntimeNodeVo runtimeNodeVo = workflowRuntimeNodeService.createByState(
                     userId, wfNode.getId(), wfRuntimeResp.getId(), nodeState);
             wfState.getRuntimeNodes().add(runtimeNodeVo);
+            log.info("  Created runtimeNode: id={}, uuid={}", runtimeNodeVo.getId(), runtimeNodeVo.getRuntimeNodeUuid());
 
             // 4. 发送节点运行开始消息
             streamHandler.sendNodeRun(wfNode.getUuid(), JSONObject.toJSONString(runtimeNodeVo));
@@ -227,6 +260,7 @@ public class WorkflowEngine {
             NodeProcessResult processResult = abstractWfNode.process(
                     // 输入回调
                     (is) -> {
+                        log.info("  [INPUT CALLBACK] Node: {}, inputs count: {}", wfNode.getUuid(), nodeState.getInputs().size());
                         workflowRuntimeNodeService.updateInput(runtimeNodeVo.getId(), nodeState);
                         for (NodeIOData input : nodeState.getInputs()) {
                             streamHandler.sendNodeInput(wfNode.getUuid(), JSONObject.toJSONString(input));
@@ -234,38 +268,35 @@ public class WorkflowEngine {
                     },
                     // 输出回调
                     (is) -> {
+                        log.info("  [OUTPUT CALLBACK] Node: {}, outputs count: {}", wfNode.getUuid(), nodeState.getOutputs().size());
                         workflowRuntimeNodeService.updateOutput(runtimeNodeVo.getId(), nodeState);
 
                         // 并行节点内部的节点执行结束后，需要主动向客户端发送输出结果
                         String nodeUuid = wfNode.getUuid();
                         List<NodeIOData> nodeOutputs = nodeState.getOutputs();
                         for (NodeIOData output : nodeOutputs) {
-                            log.info("callback node:{},output:{}", nodeUuid, output.getContent());
+                            log.info("  [OUTPUT DATA] callback node:{}, output:{}", nodeUuid, output.getContent());
                             streamHandler.sendNodeOutput(nodeUuid, JSONObject.toJSONString(output));
                         }
+                        log.info("  [OUTPUT CALLBACK] Sent {} NODE_OUTPUT events", nodeOutputs.size());
                     }
             );
 
             // 6. 设置下一个节点（如果有）（参考 aideepin:205-207）
             if (StringUtils.isNotBlank(processResult.getNextNodeUuid())) {
                 resultMap.put("next", processResult.getNextNodeUuid());
+                log.info("  Next node: {}", processResult.getNextNodeUuid());
             }
 
+            log.info("========== Node Execution Completed: {} ==========", wfNode.getTitle());
+
         } catch (Exception e) {
-            log.error("Node run error", e);
+            log.error("Node run error: {} ({})", wfNode.getTitle(), wfNode.getUuid(), e);
             throw new RuntimeException(e);
         }
 
         // 7. 设置节点名称（参考 aideepin:212）
         resultMap.put("name", wfNode.getTitle());
-
-        // 8. 处理流式生成器（参考 aideepin:213-218）
-        // langgraph4j state 中的 data 不做数据存储，只存储元数据
-        StreamingChatGenerator<AgentState> generator = wfState.getNodeToStreamingGenerator().get(wfNode.getUuid());
-        if (null != generator) {
-            resultMap.put("_streaming_messages", generator);
-            return resultMap;
-        }
 
         return resultMap;
     }

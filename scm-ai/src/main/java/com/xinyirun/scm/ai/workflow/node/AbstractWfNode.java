@@ -191,6 +191,7 @@ public abstract class AbstractWfNode {
      * @return 节点处理结果
      */
     public NodeProcessResult process(Consumer<WfNodeState> inputConsumer, Consumer<WfNodeState> outputConsumer) {
+        log.info("[AbstractWfNode.process] START - Node: {}", node.getTitle());
         state.setProcessStatus(NODE_PROCESS_STATUS_DOING);
         initInput();
 
@@ -203,6 +204,7 @@ public abstract class AbstractWfNode {
             }
         }
 
+        log.info("[AbstractWfNode.process] Calling inputConsumer, consumer is null: {}", inputConsumer == null);
         if (null != inputConsumer) {
             inputConsumer.accept(state);
         }
@@ -211,8 +213,12 @@ public abstract class AbstractWfNode {
 
         NodeProcessResult processResult;
         try {
+            log.info("[AbstractWfNode.process] Calling onProcess()");
             processResult = onProcess();
+            log.info("[AbstractWfNode.process] onProcess() returned, result content size: {}",
+                     processResult.getContent() != null ? processResult.getContent().size() : 0);
         } catch (Exception e) {
+            log.error("[AbstractWfNode.process] onProcess() failed", e);
             state.setProcessStatus(NODE_PROCESS_STATUS_FAIL);
             state.setProcessStatusRemark("process error: " + e.getMessage());
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_FAIL);
@@ -224,16 +230,23 @@ public abstract class AbstractWfNode {
 
         if (!processResult.getContent().isEmpty()) {
             state.setOutputs(processResult.getContent());
+            log.info("[AbstractWfNode.process] Set outputs, count: {}", state.getOutputs().size());
+        } else {
+            log.warn("[AbstractWfNode.process] processResult.getContent() is EMPTY!");
         }
 
         state.setProcessStatus(NODE_PROCESS_STATUS_SUCCESS);
         // 将当前节点添加到已完成节点列表
         wfState.getCompletedNodes().add(this);
 
+        log.info("[AbstractWfNode.process] Calling outputConsumer, consumer is null: {}, outputs count: {}",
+                 outputConsumer == null, state.getOutputs().size());
         if (null != outputConsumer) {
             outputConsumer.accept(state);
+            log.info("[AbstractWfNode.process] outputConsumer.accept() completed");
         }
 
+        log.info("[AbstractWfNode.process] END - Node: {}", node.getTitle());
         return processResult;
     }
 
@@ -277,8 +290,12 @@ public abstract class AbstractWfNode {
     protected <T> T checkAndGetConfig(Class<T> clazz) {
         // 使用 Fastjson2 的 JSONObject
         JSONObject configObj = node.getNodeConfig();
-        if (null == configObj || configObj.isEmpty()) {
-            log.error("node config is empty, node uuid: {}", state.getUuid());
+
+        // 参考 aideepin AbstractWfNode: 只检查 null,允许空对象 {}
+        // aideepin 代码: if (null == objectConfig) throw exception
+        // 空对象 {} 可以反序列化为配置类,字段为 null 值
+        if (null == configObj) {
+            log.error("node config is null, node uuid: {}", state.getUuid());
             throw new BusinessException("节点配置不存在");
         }
 
@@ -287,6 +304,7 @@ public abstract class AbstractWfNode {
         T nodeConfig;
         try {
             // 使用 Fastjson2 直接转换
+            // 即使 configObj 是 {},也能反序列化为对象,字段为默认值
             nodeConfig = configObj.toJavaObject(clazz);
         } catch (Exception e) {
             log.error("节点配置反序列化失败, node uuid: {}, error: {}", state.getUuid(), e.getMessage());

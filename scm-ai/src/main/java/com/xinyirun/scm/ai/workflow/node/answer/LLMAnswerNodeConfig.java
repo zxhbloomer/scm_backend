@@ -1,7 +1,6 @@
 package com.xinyirun.scm.ai.workflow.node.answer;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -14,8 +13,8 @@ public class LLMAnswerNodeConfig {
     /**
      * LLM提示词模板
      * 支持 ${参数名} 的变量替换语法
+     * 为空时使用上游节点输出作为提示词
      */
-    @NotBlank
     private String prompt;
 
     /**

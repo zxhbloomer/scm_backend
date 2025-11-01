@@ -18,6 +18,7 @@ import com.xinyirun.scm.ai.core.mapper.chat.ExtAiConversationContentMapper;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -85,6 +86,11 @@ public class AiConversationService {
         final Usage[] finalUsage = new Usage[1];
 
         try {
+            // 【多租户关键】在异步流开始前设置数据源,供ChatMemory查询历史记录使用
+            if (StringUtils.isNotBlank(request.getTenantId())) {
+                DataSourceHelper.use(request.getTenantId());
+            }
+
             // 使用流式聊天
             aiChatBaseService.chatWithMemoryStream(aiChatOption)
                 .chatResponse()

@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.core.service.workflow;
 
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -59,7 +60,19 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         aiWorkflowRuntimeMapper.insert(runtime);
 
         runtime = aiWorkflowRuntimeMapper.selectById(runtime.getId());
-        return changeRuntimeToDTO(runtime);
+
+        AiWorkflowRuntimeVo vo = new AiWorkflowRuntimeVo();
+        BeanUtils.copyProperties(runtime, vo);
+
+        // 手动转换 JSON 字段: String → JSONObject
+        if (StringUtils.isNotBlank(runtime.getInputData())) {
+            vo.setInputData(JSON.parseObject(runtime.getInputData()));
+        }
+        if (StringUtils.isNotBlank(runtime.getOutputData())) {
+            vo.setOutputData(JSON.parseObject(runtime.getOutputData()));
+        }
+
+        return vo;
     }
 
     /**
@@ -192,7 +205,17 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
 
         List<AiWorkflowRuntimeVo> voList = new ArrayList<>();
         for (AiWorkflowRuntimeEntity entity : entityPage.getRecords()) {
-            AiWorkflowRuntimeVo vo = changeRuntimeToDTO(entity);
+            AiWorkflowRuntimeVo vo = new AiWorkflowRuntimeVo();
+            BeanUtils.copyProperties(entity, vo);
+
+            // 手动转换 JSON 字段: String → JSONObject
+            if (StringUtils.isNotBlank(entity.getInputData())) {
+                vo.setInputData(JSON.parseObject(entity.getInputData()));
+            }
+            if (StringUtils.isNotBlank(entity.getOutputData())) {
+                vo.setOutputData(JSON.parseObject(entity.getOutputData()));
+            }
+
             fillInputOutput(vo);
             voList.add(vo);
         }
@@ -249,17 +272,6 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         return aiWorkflowRuntimeMapper.updateById(updateObj) > 0;
     }
 
-    /**
-     * 将运行实例实体转换为VO
-     *
-     * @param runtime 运行实例实体
-     * @return 运行实例VO
-     */
-    private AiWorkflowRuntimeVo changeRuntimeToDTO(AiWorkflowRuntimeEntity runtime) {
-        AiWorkflowRuntimeVo vo = new AiWorkflowRuntimeVo();
-        BeanUtils.copyProperties(runtime, vo);
-        return vo;
-    }
 
     /**
      * 填充输入输出数据(确保不为null)

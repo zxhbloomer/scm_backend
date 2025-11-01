@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.core.service.workflow;
 
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeNodeEntity;
@@ -49,7 +50,17 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
 
         List<AiWorkflowRuntimeNodeVo> result = new ArrayList<>();
         for (AiWorkflowRuntimeNodeEntity entity : entityList) {
-            AiWorkflowRuntimeNodeVo vo = changeNodeToDTO(entity);
+            AiWorkflowRuntimeNodeVo vo = new AiWorkflowRuntimeNodeVo();
+            BeanUtils.copyProperties(entity, vo);
+
+            // 手动转换 JSON 字段: String → JSONObject
+            if (StringUtils.isNotBlank(entity.getInputData())) {
+                vo.setInputData(JSON.parseObject(entity.getInputData()));
+            }
+            if (StringUtils.isNotBlank(entity.getOutputData())) {
+                vo.setOutputData(JSON.parseObject(entity.getOutputData()));
+            }
+
             fillInputOutput(vo);
             result.add(vo);
         }
@@ -83,7 +94,17 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         runtimeNode = aiWorkflowRuntimeNodeMapper.selectById(runtimeNode.getId());
 
         // 参考 aideepin:55-58 - 转换为 VO
-        AiWorkflowRuntimeNodeVo vo = changeNodeToDTO(runtimeNode);
+        AiWorkflowRuntimeNodeVo vo = new AiWorkflowRuntimeNodeVo();
+        BeanUtils.copyProperties(runtimeNode, vo);
+
+        // 手动转换 JSON 字段: String → JSONObject
+        if (StringUtils.isNotBlank(runtimeNode.getInputData())) {
+            vo.setInputData(JSON.parseObject(runtimeNode.getInputData()));
+        }
+        if (StringUtils.isNotBlank(runtimeNode.getOutputData())) {
+            vo.setOutputData(JSON.parseObject(runtimeNode.getOutputData()));
+        }
+
         fillInputOutput(vo);
         return vo;
     }
@@ -156,17 +177,6 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         aiWorkflowRuntimeNodeMapper.updateById(node);
     }
 
-    /**
-     * 将节点实体转换为VO
-     *
-     * @param entity 节点实体
-     * @return 节点VO
-     */
-    private AiWorkflowRuntimeNodeVo changeNodeToDTO(AiWorkflowRuntimeNodeEntity entity) {
-        AiWorkflowRuntimeNodeVo vo = new AiWorkflowRuntimeNodeVo();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
-    }
 
     /**
      * 删除运行时节点记录
