@@ -6,6 +6,7 @@ import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
+import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -39,18 +40,18 @@ public class WorkflowUtil {
         String result = template;
         for (NodeIOData next : values) {
             String name = next.getName();
-            Object content = next.getContent();
+            NodeIODataContent<?> dataContent = (NodeIODataContent<?>) next.getContent();
 
-            if (content instanceof List) {
+            if (dataContent.getValue() instanceof List) {
                 // 处理列表类型（如文件列表）
-                List<?> list = (List<?>) content;
+                List<?> list = (List<?>) dataContent.getValue();
                 String joinedValue = String.join(",", list.stream()
                         .map(Object::toString)
                         .toArray(String[]::new));
                 result = result.replace("${" + name + "}", joinedValue);
-            } else if (content != null) {
-                // 处理基本类型
-                result = result.replace("${" + name + "}", content.toString());
+            } else if (dataContent.getValue() != null) {
+                // 提取 NodeIODataContent 对象中的实际值，而不是调用对象的 toString()
+                result = result.replace("${" + name + "}", dataContent.getValue().toString());
             }
         }
         return result;
