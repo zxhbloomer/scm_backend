@@ -62,6 +62,16 @@ public class WorkflowStreamHandler {
         void onNodeChunk(String nodeUuid, String chunk);
 
         /**
+         * 节点等待用户反馈（人机交互）
+         * 前端回调: messageReceived(tip, "[NODE_WAIT_FEEDBACK_BY_xxx]")
+         * 参考: aideepin WorkflowEngine.java Line 136
+         *
+         * @param nodeUuid 节点UUID
+         * @param tip 提示信息
+         */
+        void onNodeWaitFeedback(String nodeUuid, String tip);
+
+        /**
          * 工作流执行完成
          * 前端回调: doneCallback(data)
          *
@@ -124,6 +134,14 @@ public class WorkflowStreamHandler {
      */
     public void sendNodeChunk(String nodeUuid, String chunk) {
         callback.onNodeChunk(nodeUuid, chunk);
+    }
+
+    /**
+     * 发送NODE_WAIT_FEEDBACK_BY事件（人机交互）
+     * 参考: aideepin WorkflowEngine.java Line 136
+     */
+    public void sendNodeWaitFeedback(String nodeUuid, String tip) {
+        callback.onNodeWaitFeedback(nodeUuid, tip);
     }
 
     /**

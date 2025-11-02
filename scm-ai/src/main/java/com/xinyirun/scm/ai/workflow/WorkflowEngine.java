@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.core.service.workflow.*;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -60,6 +61,19 @@ public class WorkflowEngine {
     private AiWorkflowRuntimeVo wfRuntimeResp;
 
     /**
+     * 需要在执行前中断的节点UUID集合（HumanFeedbackNode）
+     */
+    private final Set<String> humanFeedbackNodeUuids = new HashSet<>();
+
+    /**
+     * 获取租户编码（用于数据源切换）
+     * @return 租户编码
+     */
+    public String getTenantCode() {
+        return this.tenantCode;
+    }
+
+    /**
      * 构造函数
      * 使用 WorkflowStreamHandler 实现事件驱动的流式输出
      */
@@ -78,6 +92,19 @@ public class WorkflowEngine {
         this.wfEdges = wfEdges;
         this.workflowRuntimeService = workflowRuntimeService;
         this.workflowRuntimeNodeService = workflowRuntimeNodeService;
+
+        // 识别所有 HumanFeedbackNode
+        for (AiWorkflowNodeVo node : nodes) {
+            AiWorkflowComponentEntity component = components.stream()
+                .filter(c -> c.getId().equals(node.getWorkflowComponentId()))
+                .findFirst()
+                .orElse(null);
+
+            if (component != null && COMPONENT_UUID_HUMAN_FEEDBACK.equals(component.getComponentUuid())) {
+                humanFeedbackNodeUuids.add(node.getUuid());
+                log.info("识别到 HumanFeedbackNode: {}", node.getUuid());
+            }
+        }
     }
 
     public void run(Long userId, List<JSONObject> userInputs, String tenantCode) {
@@ -107,6 +134,13 @@ public class WorkflowEngine {
             this.wfState = new WfState(userId, wfInputs, runtimeUuid, tenantCode);
             // 设置流式处理器，供节点使用（如 LLM 流式响应）
             this.wfState.setStreamHandler(streamHandler);
+
+            // 添加需要中断的节点（HumanFeedbackNode）
+            for (String humanFeedbackNodeUuid : humanFeedbackNodeUuids) {
+                this.wfState.addInterruptNode(humanFeedbackNodeUuid);
+                log.info("添加中断节点到 wfState: {}", humanFeedbackNodeUuid);
+            }
+
             workflowRuntimeService.updateInput(this.wfRuntimeResp.getId(), wfState);
 
             CompileNode rootCompileNode = new CompileNode();
@@ -157,10 +191,11 @@ public class WorkflowEngine {
         // ==========================================
 
         // 还有下个节点，表示进入中断状态，等待用户输入后继续执行
+        // 参考: aideepin WorkflowEngine.java Line 131-140
         if (StringUtils.isNotBlank(nextNode) && !nextNode.equalsIgnoreCase(END)) {
             String intTip = getHumanFeedbackTip(nextNode);
-            // 将等待输入信息发送到客户端（通过NODE_INPUT事件）
-            streamHandler.sendNodeInput(nextNode, intTip);
+            // 将等待输入信息发送到客户端（通过NODE_WAIT_FEEDBACK_BY事件）
+            streamHandler.sendNodeWaitFeedback(nextNode, intTip);
             InterruptedFlow.RUNTIME_TO_GRAPH.put(wfState.getUuid(), this);
 
             // 更新状态
@@ -235,6 +270,10 @@ public class WorkflowEngine {
     private Map<String, Object> runNode(AiWorkflowNodeVo wfNode, WfNodeState nodeState) {
         Map<String, Object> resultMap = new HashMap<>();
         try {
+            // ⭐【多租户关键】在异步线程中重新设置数据源上下文
+            // LangGraph4j创建的新线程无法继承ThreadLocal的数据源上下文
+            DataSourceHelper.use(this.tenantCode);
+
             log.info("========== Running Node: {} ({}) ==========", wfNode.getTitle(), wfNode.getUuid());
 
             // 1. 找到对应的组件（参考 aideepin:181）

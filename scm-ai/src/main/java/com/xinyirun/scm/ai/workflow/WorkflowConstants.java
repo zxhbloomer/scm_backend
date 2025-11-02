@@ -24,6 +24,14 @@ public class WorkflowConstants {
     public static final String HUMAN_FEEDBACK_KEY = "human_feedback";
 
     /**
+     * 工作流组件UUID常量
+     * 对应 ai_workflow_component 表的 component_uuid 字段
+     */
+    public static final String COMPONENT_UUID_START = "395c7985b00411f0aeeca284340e1cbb";
+    public static final String COMPONENT_UUID_END = "39686b3fb00411f0aeeca284340e1cbb";
+    public static final String COMPONENT_UUID_HUMAN_FEEDBACK = "402c0936b00411f0aeeca284340e1cbb";
+
+    /**
      * 节点处理状态-就绪
      */
     public static final Integer NODE_PROCESS_STATUS_READY = 0;

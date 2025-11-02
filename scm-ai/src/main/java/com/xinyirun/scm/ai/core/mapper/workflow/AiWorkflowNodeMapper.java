@@ -145,6 +145,49 @@ public interface AiWorkflowNodeMapper extends BaseMapper<AiWorkflowNodeEntity> {
                                       @Param("componentId") Long componentId);
 
     /**
+     * 按 workflow_id 和 component_uuid 查询节点（使用 UUID 识别节点类型）
+     *
+     * @param workflowId 工作流ID
+     * @param componentUuid 组件UUID
+     * @return 节点VO
+     */
+    @Select("""
+        SELECT
+            n.id,
+            n.uuid,
+            n.workflow_id AS workflowId,
+            n.workflow_component_id AS workflowComponentId,
+            n.title,
+            n.remark,
+            n.input_config,
+            n.node_config,
+            n.position_x AS positionX,
+            n.position_y AS positionY,
+            n.is_deleted AS isDeleted,
+            n.c_time AS cTime,
+            n.c_id AS cId,
+            n.u_time AS uTime,
+            n.u_id AS uId,
+            n.dbversion
+        FROM ai_workflow_node n
+        INNER JOIN ai_workflow_component c ON n.workflow_component_id = c.id
+        WHERE n.workflow_id = #{workflowId}
+            AND c.component_uuid = #{componentUuid}
+            AND n.is_deleted = 0
+        LIMIT 1
+    """)
+    @Results({
+        @Result(property = "inputConfig", column = "input_config",
+                javaType = AiWfNodeInputConfigVo.class,
+                typeHandler = FastjsonInputConfigTypeHandler.class),
+        @Result(property = "nodeConfig", column = "node_config",
+                javaType = JSONObject.class,
+                typeHandler = FastjsonTypeHandler.class)
+    })
+    AiWorkflowNodeVo selectNodeByComponentUuid(@Param("workflowId") Long workflowId,
+                                                 @Param("componentUuid") String componentUuid);
+
+    /**
      * 按 workflow_id 和 uuid 查询节点（包含已删除，用于复制后查询）
      *
      * @param workflowId 工作流ID

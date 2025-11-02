@@ -112,6 +112,22 @@ public class WorkflowEventVo {
     }
 
     /**
+     * 创建NODE_WAIT_FEEDBACK_BY事件（人机交互）
+     * 前端回调: messageReceived(tip, "[NODE_WAIT_FEEDBACK_BY_xxx]")
+     * 参考: aideepin WorkflowEngine.java Line 136
+     *
+     * @param nodeUuid 节点UUID
+     * @param tip 提示信息
+     * @return NODE_WAIT_FEEDBACK_BY事件
+     */
+    public static WorkflowEventVo createNodeWaitFeedbackEvent(String nodeUuid, String tip) {
+        return WorkflowEventVo.builder()
+                .event("[NODE_WAIT_FEEDBACK_BY_" + nodeUuid + "]")
+                .data(tip != null ? tip : "")
+                .build();
+    }
+
+    /**
      * 创建done事件
      * 前端回调: doneCallback(data)
      *

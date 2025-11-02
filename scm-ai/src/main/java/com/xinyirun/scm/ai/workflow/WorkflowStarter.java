@@ -4,7 +4,6 @@ import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEdgeEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.core.service.workflow.*;
@@ -121,6 +120,11 @@ public class WorkflowStarter {
                         @Override
                         public void onNodeChunk(String nodeUuid, String chunk) {
                             fluxSink.next(WorkflowEventVo.createNodeChunkEvent(nodeUuid, chunk));
+                        }
+
+                        @Override
+                        public void onNodeWaitFeedback(String nodeUuid, String tip) {
+                            fluxSink.next(WorkflowEventVo.createNodeWaitFeedbackEvent(nodeUuid, tip));
                         }
 
                         @Override
@@ -245,16 +249,28 @@ public class WorkflowStarter {
      */
     @Async("mainExecutor")
     public void resumeFlow(String runtimeUuid, String userInput) {
-        // 参考 aideepin: WorkflowStarter.resumeFlow() 第90-97行
-        WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
-        if (workflowEngine == null) {
-            log.error("工作流恢复执行时失败,runtime:{}", runtimeUuid);
-            throw new RuntimeException("工作流实例不存在或已超时");
-        }
+        try {
+            // 参考 aideepin: WorkflowStarter.resumeFlow() 第90-97行
+            WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
+            if (workflowEngine == null) {
+                log.error("工作流恢复执行时失败,runtime:{}", runtimeUuid);
+                throw new RuntimeException("工作流实例不存在或已超时");
+            }
 
-        // 调用engine的resume方法恢复工作流
-        // 参考 aideepin: WorkflowStarter.resumeFlow() 第96行
-        workflowEngine.resume(userInput);
+            // ⭐【多租户关键】在异步线程中切换到正确的数据源
+            // WorkflowEngine中保存了tenantCode，使用getTenantCode()获取
+            String tenantCode = workflowEngine.getTenantCode();
+            if (tenantCode != null) {
+                DataSourceHelper.use(tenantCode);
+            }
+
+            // 调用engine的resume方法恢复工作流
+            // 参考 aideepin: WorkflowStarter.resumeFlow() 第96行
+            workflowEngine.resume(userInput);
+        } finally {
+            // ⭐ 清理数据源上下文
+            DataSourceHelper.close();
+        }
     }
 
 }

@@ -2,6 +2,7 @@ package com.xinyirun.scm.ai.core.service.workflow;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowNodeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
@@ -10,6 +11,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowNodeMapper;
 import com.xinyirun.scm.ai.utils.JsonUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
+import static com.xinyirun.scm.ai.workflow.WorkflowConstants.COMPONENT_UUID_START;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -50,8 +52,8 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
      * @return 开始节点VO
      */
     public AiWorkflowNodeVo getStartNode(Long workflowId) {
-        Long startComponentId = workflowComponentService.getStartComponent().getId();
-        return aiWorkflowNodeMapper.selectStartNode(workflowId, startComponentId);
+        // 使用 UUID 常量来识别开始节点
+        return aiWorkflowNodeMapper.selectNodeByComponentUuid(workflowId, COMPONENT_UUID_START);
     }
 
     /**
@@ -224,7 +226,8 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
             return;
         }
 
-        Long startComponentId = workflowComponentService.getStartComponent().getId();
+        // 使用 UUID 而不是 ID 来识别开始节点
+        String startComponentUuid = workflowComponentService.getStartComponent().getComponentUuid();
 
         for (String uuid : uuids) {
             AiWorkflowNodeVo node = self.getByUuid(workflowId, uuid);
@@ -238,9 +241,14 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
                 throw new RuntimeException("节点不属于指定的工作流");
             }
 
-            if (startComponentId.equals(node.getWorkflowComponentId())) {
-                log.warn("开始节点不能删除,uuid:{}", uuid);
-                continue;
+            // 使用 component UUID 判断是否为开始节点
+            // 通过 workflowComponentId 查询 component 获取其 UUID
+            if (node.getWorkflowComponentId() != null) {
+                AiWorkflowComponentEntity component = workflowComponentService.getById(node.getWorkflowComponentId());
+                if (component != null && startComponentUuid.equals(component.getComponentUuid())) {
+                    log.warn("开始节点不能删除,uuid:{}", uuid);
+                    continue;
+                }
             }
 
             // 软删除节点（VO转Entity后更新）
