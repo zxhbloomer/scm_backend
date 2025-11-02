@@ -7,6 +7,8 @@ import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -62,8 +64,10 @@ public class DocumentParsingService {
             String ext = getFileExtension(fileName).toLowerCase();
             log.info("开始解析文档，文件名: {}, 扩展名: {}, URL: {}", fileName, ext, fileUrl);
 
-            // 2. 创建UrlResource（使用URI避免过时警告）
-            UrlResource resource = new UrlResource(new URI(fileUrl).toURL());
+            // 2. 创建UrlResource（处理URL中的中文字符）
+            // 对URL进行编码处理，避免中文字符导致URISyntaxException
+            String encodedUrl = encodeUrl(fileUrl);
+            UrlResource resource = new UrlResource(new URI(encodedUrl).toURL());
 
             // 3. 根据文件类型选择解析器
             String content;
@@ -187,7 +191,7 @@ public class DocumentParsingService {
 
     /**
      * 获取文件扩展名
-     * 
+     *
      *
      * @param fileName 文件名
      * @return 扩展名（不包含点号）
@@ -197,5 +201,61 @@ public class DocumentParsingService {
             return "";
         }
         return fileName.substring(fileName.lastIndexOf(".") + 1);
+    }
+
+    /**
+     * 对URL进行编码处理
+     *
+     * <p>处理URL中的中文字符和特殊字符，避免URISyntaxException</p>
+     * <p>只对路径部分的文件名进行编码，保留协议、域名和路径分隔符</p>
+     *
+     * @param url 原始URL
+     * @return 编码后的URL
+     */
+    private String encodeUrl(String url) {
+        try {
+            // 如果URL已经编码过（包含%），直接返回
+            if (url.contains("%")) {
+                return url;
+            }
+
+            // 分离URL的各个部分：protocol://domain/path/filename
+            int protocolEnd = url.indexOf("://");
+            if (protocolEnd == -1) {
+                // 没有协议，直接编码整个URL
+                return URLEncoder.encode(url, StandardCharsets.UTF_8)
+                        .replace("+", "%20"); // 空格用%20而不是+
+            }
+
+            String protocol = url.substring(0, protocolEnd + 3); // 包含://
+            String remaining = url.substring(protocolEnd + 3);
+
+            // 分离域名和路径
+            int pathStart = remaining.indexOf("/");
+            if (pathStart == -1) {
+                // 只有域名，没有路径
+                return url;
+            }
+
+            String domain = remaining.substring(0, pathStart);
+            String path = remaining.substring(pathStart);
+
+            // 对路径中的每个部分进行编码（保留/分隔符）
+            String[] pathParts = path.split("/");
+            StringBuilder encodedPath = new StringBuilder();
+            for (String part : pathParts) {
+                if (!part.isEmpty()) {
+                    encodedPath.append("/")
+                            .append(URLEncoder.encode(part, StandardCharsets.UTF_8)
+                                    .replace("+", "%20")); // 空格用%20而不是+
+                }
+            }
+
+            return protocol + domain + encodedPath.toString();
+
+        } catch (Exception e) {
+            log.warn("URL编码失败，使用原始URL: {}, 错误: {}", url, e.getMessage());
+            return url;
+        }
     }
 }

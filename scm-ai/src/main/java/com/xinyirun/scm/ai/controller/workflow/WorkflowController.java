@@ -352,24 +352,19 @@ public class WorkflowController {
 
     /**
      * 删除工作流运行时记录
-     * 对应前端: workflowService.deleteWorkflowRuntime(runtimeId)
+     * 对应前端: workflowService.deleteWorkflowRuntime(wfRuntimeUuid)
+     * 参考AIDeepin: WorkflowRuntimeController.delete() - 使用@PostMapping和UUID参数
      *
-     * @param runtimeId 运行时ID
+     * @param wfRuntimeUuid 运行时UUID
      * @return 删除结果
      */
     @Operation(summary = "删除工作流运行时记录")
-    @DeleteMapping("/runtime/{runtimeId}")
+    @PostMapping("/runtime/del/{wfRuntimeUuid}")
     @SysLogAnnotion("删除工作流运行时记录")
-    public ResponseEntity<JsonResultAo<Boolean>> deleteRuntime(@PathVariable @NotNull Long runtimeId) {
-        log.info("删除工作流运行时记录,runtimeId:{}", runtimeId);
+    public ResponseEntity<JsonResultAo<Boolean>> deleteRuntime(@PathVariable @NotNull String wfRuntimeUuid) {
+        log.info("删除工作流运行时记录,wfRuntimeUuid:{}", wfRuntimeUuid);
 
-        // ID转UUID
-        AiWorkflowRuntimeEntity runtime = workflowRuntimeService.getById(runtimeId);
-        if (runtime == null) {
-            throw new RuntimeException("运行时实例不存在: " + runtimeId);
-        }
-
-        boolean result = workflowRuntimeService.softDelete(runtime.getRuntimeUuid());
+        boolean result = workflowRuntimeService.softDelete(wfRuntimeUuid);
 
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }

@@ -81,12 +81,14 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
     /**
      * 启用/禁用组件
      * 启用状态：false-禁用,true-启用
+     * 符合SCM标准: 先selectOne查询完整实体,然后set修改字段,最后updateById更新
      *
      * @param componentUuid 组件UUID
      * @param isEnable 是否启用
      */
     @CacheEvict(cacheNames = {CACHE_WORKFLOW_COMPONENTS, CACHE_WORKFLOW_COMPONENT_START}, allEntries = true)
     public void enable(String componentUuid, Boolean isEnable) {
+        // 1. 先查询出完整实体
         AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectOne(
                 new LambdaQueryWrapper<AiWorkflowComponentEntity>()
                         .eq(AiWorkflowComponentEntity::getComponentUuid, componentUuid)
@@ -97,14 +99,16 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
             throw new RuntimeException("组件不存在: " + componentUuid);
         }
 
-        AiWorkflowComponentEntity updateObj = new AiWorkflowComponentEntity();
-        updateObj.setId(component.getId());
-        updateObj.setIsEnable(isEnable);
-        aiWorkflowComponentMapper.updateById(updateObj);
+        // 2. 在查询出的对象上直接修改字段
+        component.setIsEnable(isEnable);
+
+        // 3. 使用完整对象更新(其他字段不受影响)
+        aiWorkflowComponentMapper.updateById(component);
     }
 
     /**
      * 删除组件
+     * 符合SCM标准: 先selectOne查询完整实体,然后set修改字段,最后updateById更新
      *
      * @param componentUuid 组件UUID
      */
@@ -116,6 +120,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
         //     throw new RuntimeException("组件被节点引用,无法删除");
         // }
 
+        // 1. 先查询出完整实体
         AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectOne(
                 new LambdaQueryWrapper<AiWorkflowComponentEntity>()
                         .eq(AiWorkflowComponentEntity::getComponentUuid, componentUuid)
@@ -123,10 +128,11 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
         );
 
         if (component != null) {
-            AiWorkflowComponentEntity updateObj = new AiWorkflowComponentEntity();
-            updateObj.setId(component.getId());
-            updateObj.setIsDeleted(true);
-            aiWorkflowComponentMapper.updateById(updateObj);
+            // 2. 在查询出的对象上直接修改字段
+            component.setIsDeleted(true);
+
+            // 3. 使用完整对象更新(其他字段不受影响)
+            aiWorkflowComponentMapper.updateById(component);
         }
     }
 

@@ -256,20 +256,23 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
 
     /**
      * 软删除单个运行实例
+     * 符合SCM标准: 先selectById查询完整实体,然后set修改字段,最后updateById更新
      *
      * @param runtimeUuid 运行实例UUID
      * @return 是否成功
      */
     public boolean softDelete(String runtimeUuid) {
+        // 1. 先查询出完整实体
         AiWorkflowRuntimeEntity runtime = getByUuid(runtimeUuid);
         if (runtime == null) {
             throw new RuntimeException("运行实例不存在: " + runtimeUuid);
         }
 
-        AiWorkflowRuntimeEntity updateObj = new AiWorkflowRuntimeEntity();
-        updateObj.setId(runtime.getId());
-        updateObj.setIsDeleted(true);
-        return aiWorkflowRuntimeMapper.updateById(updateObj) > 0;
+        // 2. 在查询出的对象上直接修改字段
+        runtime.setIsDeleted(true);
+
+        // 3. 使用完整对象更新(其他字段不受影响)
+        return aiWorkflowRuntimeMapper.updateById(runtime) > 0;
     }
 
 
