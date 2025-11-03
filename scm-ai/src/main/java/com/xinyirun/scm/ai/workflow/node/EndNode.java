@@ -19,7 +19,6 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
 
 /**
  * 工作流结束节点
- * 参考 aideepin EndNode 完整实现
  *
  * 此节点是工作流执行的最后一个节点，负责：
  * - 将工作流执行结果渲染成最终输出格式
@@ -47,9 +46,9 @@ public class EndNode extends AbstractWfNode {
             // 从节点配置中获取结果模板
             String resultTemplate = nodeConfigObj.getString("result");
             if (null != resultTemplate) {
-                // 将文件内容转换为Markdown格式 (参考 aideepin)
+                // 将文件内容转换为Markdown格式
                 WfNodeIODataUtil.changeFilesContentToMarkdown(state.getInputs());
-                // 使用标准模板渲染方法 (参考 aideepin)
+                // 使用标准模板渲染方法
                 output = WorkflowUtil.renderTemplate(resultTemplate, state.getInputs());
             }
         }

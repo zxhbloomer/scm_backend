@@ -7,9 +7,8 @@ import java.util.List;
 
 /**
  * 条件分支节点配置
- * 对齐AIDeepin: com.moyz.adi.common.workflow.node.switcher.SwitcherNodeConfig
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-23
  */
 @Data

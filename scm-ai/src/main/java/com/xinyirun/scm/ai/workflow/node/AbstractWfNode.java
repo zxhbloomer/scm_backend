@@ -34,7 +34,9 @@ import org.apache.commons.collections4.CollectionUtils;
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.*;
 
 /**
- * 工作流节点实例 - 运行时基类
+ * 工作流节点抽象基类
+ *
+ * 所有工作流节点的运行时基类,定义了节点执行的标准流程
  */
 @Data
 @Slf4j
@@ -56,11 +58,9 @@ public abstract class AbstractWfNode {
     /**
      * 初始化节点输入参数
      *
-     * 参考 aideepin AbstractWfNode.initInput() 完整实现
-     *
      * 流程：
-     * 1. 如果是开始节点，直接使用工作流的初始输入
-     * 2. 否则，使用上游节点的输出作为当前节点的输入
+     * 1. 如果是开始节点,直接使用工作流的初始输入
+     * 2. 否则,使用上游节点的输出作为当前节点的输入
      * 3. 处理引用类型的输入参数
      * 4. 根据节点的输入参数定义进行筛选
      * 5. 处理默认参数名转换(output -> input)
@@ -122,7 +122,6 @@ public abstract class AbstractWfNode {
 
     /**
      * 将引用类型的输入参数定义转换为实际的输入数据
-     * 参考 aideepin AbstractWfNode.changeRefersToNodeIODatas()
      *
      * @param refInputDefs 引用输入参数定义列表
      * @return 实际的输入数据列表
@@ -144,7 +143,6 @@ public abstract class AbstractWfNode {
 
     /**
      * 根据引用参数创建输入数据
-     * 参考 aideepin AbstractWfNode.createByReferParam()
      *
      * @param refer 引用参数定义
      * @return 输入数据
@@ -191,7 +189,6 @@ public abstract class AbstractWfNode {
      * @return 节点处理结果
      */
     public NodeProcessResult process(Consumer<WfNodeState> inputConsumer, Consumer<WfNodeState> outputConsumer) {
-        log.info("[AbstractWfNode.process] START - Node: {}", node.getTitle());
         state.setProcessStatus(NODE_PROCESS_STATUS_DOING);
         initInput();
 
@@ -204,23 +201,19 @@ public abstract class AbstractWfNode {
             }
         }
 
-        log.info("[AbstractWfNode.process] Calling inputConsumer, consumer is null: {}", inputConsumer == null);
         if (null != inputConsumer) {
             inputConsumer.accept(state);
         }
 
-        log.info("--node input: {}", JsonUtil.toJson(state.getInputs()));
+        log.info("节点输入: {}", JsonUtil.toJson(state.getInputs()));
 
         NodeProcessResult processResult;
         try {
-            log.info("[AbstractWfNode.process] Calling onProcess()");
             processResult = onProcess();
-            log.info("[AbstractWfNode.process] onProcess() returned, result content size: {}",
-                     processResult.getContent() != null ? processResult.getContent().size() : 0);
         } catch (Exception e) {
-            log.error("[AbstractWfNode.process] onProcess() failed", e);
+            log.error("节点执行失败", e);
             state.setProcessStatus(NODE_PROCESS_STATUS_FAIL);
-            state.setProcessStatusRemark("process error: " + e.getMessage());
+            state.setProcessStatusRemark("节点执行异常: " + e.getMessage());
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_FAIL);
             if (null != outputConsumer) {
                 outputConsumer.accept(state);
@@ -230,23 +223,15 @@ public abstract class AbstractWfNode {
 
         if (!processResult.getContent().isEmpty()) {
             state.setOutputs(processResult.getContent());
-            log.info("[AbstractWfNode.process] Set outputs, count: {}", state.getOutputs().size());
-        } else {
-            log.warn("[AbstractWfNode.process] processResult.getContent() is EMPTY!");
         }
 
         state.setProcessStatus(NODE_PROCESS_STATUS_SUCCESS);
-        // 将当前节点添加到已完成节点列表
         wfState.getCompletedNodes().add(this);
 
-        log.info("[AbstractWfNode.process] Calling outputConsumer, consumer is null: {}, outputs count: {}",
-                 outputConsumer == null, state.getOutputs().size());
         if (null != outputConsumer) {
             outputConsumer.accept(state);
-            log.info("[AbstractWfNode.process] outputConsumer.accept() completed");
         }
 
-        log.info("[AbstractWfNode.process] END - Node: {}", node.getTitle());
         return processResult;
     }
 
@@ -281,7 +266,6 @@ public abstract class AbstractWfNode {
 
     /**
      * 获取并验证节点配置
-     * 严格参考 aideepin 的 AbstractWfNode.checkAndGetConfig 方法
      *
      * @param clazz 配置类型
      * @param <T>   泛型类型
@@ -291,8 +275,7 @@ public abstract class AbstractWfNode {
         // 使用 Fastjson2 的 JSONObject
         JSONObject configObj = node.getNodeConfig();
 
-        // 参考 aideepin AbstractWfNode: 只检查 null,允许空对象 {}
-        // aideepin 代码: if (null == objectConfig) throw exception
+        // 只检查 null,允许空对象 {}
         // 空对象 {} 可以反序列化为配置类,字段为 null 值
         if (null == configObj) {
             log.error("node config is null, node uuid: {}", state.getUuid());

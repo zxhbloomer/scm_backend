@@ -10,7 +10,7 @@ import java.io.Serializable;
 /**
  * 工作流节点布尔类型数据
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @EqualsAndHashCode(callSuper = true)

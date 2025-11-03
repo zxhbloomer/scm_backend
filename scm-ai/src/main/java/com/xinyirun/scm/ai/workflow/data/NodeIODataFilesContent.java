@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 工作流节点文件列表类型数据
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @EqualsAndHashCode(callSuper = true)

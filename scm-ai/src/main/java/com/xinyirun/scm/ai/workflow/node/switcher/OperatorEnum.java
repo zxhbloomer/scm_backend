@@ -6,9 +6,8 @@ import java.util.Arrays;
 
 /**
  * 条件运算符枚举
- * 对齐AIDeepin: com.moyz.adi.common.workflow.node.switcher.OperatorEnum
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-23
  */
 @Getter

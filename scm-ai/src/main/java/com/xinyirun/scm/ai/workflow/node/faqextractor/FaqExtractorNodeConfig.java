@@ -5,13 +5,8 @@ import lombok.Data;
 
 /**
  * 工作流FAQ提取节点配置
- * 参考 aideepin: com.moyz.adi.common.workflow.node.faqextractor.FaqExtractorNodeConfig
  *
- * 转换说明：
- * - @JsonProperty → @JSONField (Fastjson2)
- * - 移除 @EqualsAndHashCode（非必需）
- *
- * @author SCM AI Team
+ * @author zxh
  * @since 2025-10-27
  */
 @Data

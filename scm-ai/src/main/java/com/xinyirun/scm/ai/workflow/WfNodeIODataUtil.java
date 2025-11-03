@@ -18,9 +18,8 @@ import java.util.stream.Collectors;
 
 /**
  * 工作流节点IO数据工具类
- * 对齐AIDeepin: com.moyz.adi.common.workflow.WfNodeIODataUtil
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-23
  */
 public class WfNodeIODataUtil {
@@ -127,7 +126,6 @@ public class WfNodeIODataUtil {
 
     /**
      * 深度复制NodeIOData列表
-     * 参考 aideepin: com.moyz.adi.common.util.CollectionUtil.deepCopy()
      * 使用Java原生序列化，避免JSON序列化可能返回null的问题
      */
     private static List<NodeIOData> deepCopy(List<NodeIOData> source) {

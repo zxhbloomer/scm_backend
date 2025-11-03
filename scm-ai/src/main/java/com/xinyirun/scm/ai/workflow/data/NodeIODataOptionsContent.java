@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * 工作流节点下拉选项类型数据
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @EqualsAndHashCode(callSuper = true)

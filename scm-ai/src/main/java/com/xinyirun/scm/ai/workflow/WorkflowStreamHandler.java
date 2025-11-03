@@ -4,10 +4,7 @@ package com.xinyirun.scm.ai.workflow;
  * 工作流流式处理器 - 回调接口
  * 用于WorkflowEngine向Flux发送事件
  *
- * 参考: AiStreamHandler.CallbackStreamHandler
- * 对齐: 前端 workflowService.js 的 workflowRun() 回调
- *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-29
  */
 public class WorkflowStreamHandler {
@@ -64,7 +61,6 @@ public class WorkflowStreamHandler {
         /**
          * 节点等待用户反馈（人机交互）
          * 前端回调: messageReceived(tip, "[NODE_WAIT_FEEDBACK_BY_xxx]")
-         * 参考: aideepin WorkflowEngine.java Line 136
          *
          * @param nodeUuid 节点UUID
          * @param tip 提示信息
@@ -138,7 +134,6 @@ public class WorkflowStreamHandler {
 
     /**
      * 发送NODE_WAIT_FEEDBACK_BY事件（人机交互）
-     * 参考: aideepin WorkflowEngine.java Line 136
      */
     public void sendNodeWaitFeedback(String nodeUuid, String tip) {
         callback.onNodeWaitFeedback(nodeUuid, tip);

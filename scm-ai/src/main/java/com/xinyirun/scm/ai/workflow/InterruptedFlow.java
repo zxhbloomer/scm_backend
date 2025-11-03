@@ -5,9 +5,9 @@ import org.apache.commons.collections4.map.PassiveExpiringMap;
 /**
  * 已中断正在等待用户输入的流程
  *
- * <p>TODO: 需要考虑项目多节点部署的情况(使用Redis存储)</p>
+ * <p>注意：当前使用内存存储，分布式部署时需改用Redis存储</p>
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 public class InterruptedFlow {

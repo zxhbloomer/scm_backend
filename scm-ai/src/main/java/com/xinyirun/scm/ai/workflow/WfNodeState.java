@@ -18,9 +18,9 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_INPUT_PARAM
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.NODE_PROCESS_STATUS_READY;
 
 /**
- * 工作流节点实例状态 | workflow node instance state
+ * 工作流节点实例状态
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @Setter

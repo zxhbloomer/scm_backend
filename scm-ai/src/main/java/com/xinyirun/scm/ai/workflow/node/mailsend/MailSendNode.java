@@ -25,14 +25,13 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
 
 /**
  * 工作流邮件发送节点
- * 参考 aideepin: com.moyz.adi.common.workflow.node.mailsender.MailSendNode
- * 
- * 适配说明：
- * - 使用scm-ai的ISendMailService替代aideepin的AdiMailSender
- * - 使用config_code管理邮件配置，替代自定义SMTP
- * - 支持scm-ai的高级功能：bcc、single_send
- * 
- * @author SCM-AI团队
+ *
+ * 功能说明：
+ * - 使用ISendMailService发送邮件
+ * - 使用config_code管理邮件配置
+ * - 支持抄送(cc)、密送(bcc)、单独发送(single_send)等高级功能
+ *
+ * @author zxh
  * @since 2025-10-27
  */
 @Slf4j
@@ -48,33 +47,29 @@ public class MailSendNode extends AbstractWfNode {
     @Override
     protected NodeProcessResult onProcess() {
         // 1. 获取并验证配置
-        // 参考 aideepin MailSendNode.java Line 36
         MailSendNodeConfig nodeConfig = checkAndGetConfig(MailSendNodeConfig.class);
-        
+
         // 2. 渲染模板变量
-        // 参考 aideepin MailSendNode.java Line 38-40
         String subject = WorkflowUtil.renderTemplate(nodeConfig.getSubject(), state.getInputs());
         String content = WorkflowUtil.renderTemplate(nodeConfig.getContent(), state.getInputs());
         String toMails = WorkflowUtil.renderTemplate(nodeConfig.getToMails(), state.getInputs());
-        
+
         // 3. 验证收件人
-        // 参考 aideepin MailSendNode.java Line 45-48
         List<String> validToMails = filterValidMails(toMails);
         if (validToMails.isEmpty()) {
             log.warn("邮件发送节点收件人为空, nodeUuid: {}", state.getUuid());
             throw new BusinessException("邮件收件人不能为空");
         }
-        
-        // 4. 构建SendMailVo参数（使用scm-ai的邮件服务）
+
+        // 4. 构建SendMailVo参数
         SendMailVo sendMailVo = new SendMailVo();
         sendMailVo.setConfig_code(nodeConfig.getConfigCode());
         sendMailVo.setSubject(subject);
-        sendMailVo.setMessage(content);  // scm-ai用message字段
+        sendMailVo.setMessage(content);
         sendMailVo.setTo(validToMails);
         sendMailVo.setSingle_send(nodeConfig.getSingleSend());
-        
+
         // 5. 处理抄送
-        // 参考 aideepin MailSendNode.java Line 50-54
         if (StringUtils.isNotBlank(nodeConfig.getCcMails())) {
             String ccMails = WorkflowUtil.renderTemplate(nodeConfig.getCcMails(), state.getInputs());
             List<String> validCcMails = filterValidMails(ccMails);
@@ -82,8 +77,8 @@ public class MailSendNode extends AbstractWfNode {
                 sendMailVo.setCc_list(validCcMails);
             }
         }
-        
-        // 6. 处理密送（scm-ai扩展功能）
+
+        // 6. 处理密送
         if (StringUtils.isNotBlank(nodeConfig.getBccMails())) {
             String bccMails = WorkflowUtil.renderTemplate(nodeConfig.getBccMails(), state.getInputs());
             List<String> validBccMails = filterValidMails(bccMails);
@@ -91,22 +86,19 @@ public class MailSendNode extends AbstractWfNode {
                 sendMailVo.setBcc_list(validBccMails);
             }
         }
-        
+
         // 7. 发送邮件
-        // 参考 aideepin MailSendNode.java Line 65-73
         ISendMailService sendMailService = SpringUtil.getBean(ISendMailService.class);
         sendMailService.send(sendMailVo);
-        
+
         // 8. 返回结果
-        // 参考 aideepin MailSendNode.java Line 75
         NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", "邮件发送成功");
         return NodeProcessResult.builder().content(List.of(output)).build();
     }
     
     /**
      * 过滤有效邮箱地址
-     * 参考 aideepin MailSendNode.java Line 99-110: filterValidMails()
-     * 
+     *
      * @param mails 邮箱地址字符串（逗号分隔）
      * @return 有效邮箱地址列表
      */
@@ -123,8 +115,7 @@ public class MailSendNode extends AbstractWfNode {
     
     /**
      * 验证邮箱地址格式
-     * 参考 aideepin MailSendNode.java Line 112-114: checkMail()
-     * 
+     *
      * @param email 邮箱地址
      * @return 是否有效
      */

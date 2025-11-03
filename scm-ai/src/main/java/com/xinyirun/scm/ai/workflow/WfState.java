@@ -12,9 +12,9 @@ import java.util.*;
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.WORKFLOW_PROCESS_STATUS_READY;
 
 /**
- * 工作流实例状态 | workflow instance state
+ * 工作流实例状态
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @Setter

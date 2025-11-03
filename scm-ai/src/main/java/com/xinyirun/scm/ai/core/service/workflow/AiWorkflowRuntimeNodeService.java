@@ -34,6 +34,9 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
     @Resource
     private AiWorkflowRuntimeNodeMapper aiWorkflowRuntimeNodeMapper;
 
+    @Resource
+    private AiWorkflowNodeService workflowNodeService;
+
     /**
      * 查询运行实例的所有节点执行记录
      *
@@ -59,6 +62,15 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
             }
             if (StringUtils.isNotBlank(entity.getOutputData())) {
                 vo.setOutputData(JSON.parseObject(entity.getOutputData()));
+            }
+
+            // ⭐ 填充节点标题：通过nodeId查询ai_workflow_node表获取title
+            // 前端执行详情页面直接使用nodeTitle字段显示节点名称，避免通过nodeId匹配workflow.nodes
+            if (entity.getNodeId() != null) {
+                var node = workflowNodeService.getById(entity.getNodeId());
+                if (node != null && StringUtils.isNotBlank(node.getTitle())) {
+                    vo.setNodeTitle(node.getTitle());
+                }
             }
 
             fillInputOutput(vo);

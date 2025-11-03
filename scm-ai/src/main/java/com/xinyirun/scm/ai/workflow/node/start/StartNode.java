@@ -17,9 +17,8 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
 
 /**
  * 工作流开始节点
- * 参考 aideepin: com.moyz.adi.common.workflow.node.start.StartNode
  *
- * 此节点是工作流执行的起点，负责：
+ * 此节点是工作流执行的起点,负责：
  * - 处理工作流的初始输入
  * - 可选地设置开场白(prologue)信息
  * - 将输入参数转换为后续节点的输入
@@ -36,13 +35,11 @@ public class StartNode extends AbstractWfNode {
         StartNodeConfig nodeConfig = checkAndGetConfig(StartNodeConfig.class);
         List<NodeIOData> result;
 
-        // 参考 aideepin StartNode.java Line 43-48
-        // 如果配置了开场白，则使用开场白作为输出
+        // 如果配置了开场白,则使用开场白作为输出
         if (StringUtils.isNotBlank(nodeConfig.getPrologue())) {
             result = List.of(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "default", nodeConfig.getPrologue()));
         } else {
             // 否则使用标准工具类方法转换输入为输出
-            // 参考 aideepin StartNode.java Line 46: WfNodeIODataUtil.changeInputsToOutputs(state.getInputs())
             result = WfNodeIODataUtil.changeInputsToOutputs(state.getInputs());
         }
 

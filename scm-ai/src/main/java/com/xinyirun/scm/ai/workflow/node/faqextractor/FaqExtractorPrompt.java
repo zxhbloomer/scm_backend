@@ -2,21 +2,19 @@ package com.xinyirun.scm.ai.workflow.node.faqextractor;
 
 /**
  * 工作流FAQ提取节点提示词
- * 参考 aideepin: com.moyz.adi.common.workflow.node.faqextractor.FaqExtractorPrompt
  *
  * 功能：
  * - 生成FAQ提取的提示词
  * - 指导LLM提取常见问题及答案
  * - 输出格式化的Q&A文本
  *
- * @author SCM AI Team
+ * @author zxh
  * @since 2025-10-27
  */
 public class FaqExtractorPrompt {
 
     /**
      * 生成FAQ提取提示词
-     * 参考 aideepin FaqExtractorPrompt.getPrompt() 完整实现
      *
      * @param topN 提取前N组FAQ
      * @param text 用户输入的文本内容
@@ -31,7 +29,7 @@ public class FaqExtractorPrompt {
                 1. 将输出格式化为纯文本，
                 2. 输出的每个问题前加上'Q:'，做为一行内容输出；
                 3. 输出的每个答案前加上'A:'，做为一行内容输出；
-                4. 如果未提取到问题和答案，则输出'无结果'；
+                4. 如果未提取到问题和答案，则输出'无可用的问题和回答'；
                 5. 确保输出清晰、简洁。
                 ### 示例（用户输入）
                 要重置密码，请转到登录页面并点击'忘记密码'。

@@ -19,20 +19,13 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
 
 /**
  * 工作流文档解析节点
- * 参考 aideepin: com.moyz.adi.common.workflow.node.documentextractor.DocumentExtractorNode
  *
  * 功能：
  * - 解析文档文件内容（PDF、TXT、Office文档）
  * - 提取文档中的纯文本内容
  * - 支持批量文档解析
  *
- * 转换说明：
- * - langchain4j FileOperatorContext → scm-ai DocumentParsingService
- * - langchain4j Document → Spring AI Document
- * - AdiFile → 使用文件URL和文件名
- * - NodeIODataFilesContent → 使用inputConfig中的文件信息
- *
- * @author SCM AI Team
+ * @author zxh
  * @since 2025-10-27
  */
 @Slf4j
@@ -44,7 +37,6 @@ public class DocumentExtractorNode extends AbstractWfNode {
 
     /**
      * 节点处理逻辑
-     * 参考 aideepin DocumentExtractorNode.onProcess() 35-66行
      *
      * 处理流程：
      * 1. 从inputs中提取文件信息（URL和文件名）
@@ -59,34 +51,28 @@ public class DocumentExtractorNode extends AbstractWfNode {
         StringBuilder documentText = new StringBuilder();
 
         // 1. 从inputs中提取文件URL列表
-        // 参考 aideepin DocumentExtractorNode.java 38-45行
         List<NodeIOData> inputList = state.getInputs();
         List<String> fileUrls = new ArrayList<>();
 
         for (NodeIOData nodeIOData : inputList) {
             // 检查是否为文件类型的输入
-            // 参考 aideepin: WfIODataTypeEnum.FILES.getValue().equals(nodeIOData.getContent().getType())
             if (nodeIOData.getContent() instanceof NodeIODataFilesContent filesContent) {
                 // scm-ai的NodeIODataFilesContent.getValue()返回List<String> fileUrls
-                // aideepin的NodeIODataFilesContent.getValue()返回List<String> fileUuids
                 fileUrls.addAll(filesContent.getValue());
             }
         }
 
         // 2. 获取DocumentParsingService
-        // 参考 aideepin: FileService fileService = SpringUtil.getBean(FileService.class);
         DocumentParsingService documentParsingService = SpringUtil.getBean(DocumentParsingService.class);
 
         // 3. 解析文档
-        // 参考 aideepin DocumentExtractorNode.java 48-60行
         try {
             for (String fileUrl : fileUrls) {
                 // 从URL中提取文件名
                 String fileName = extractFileNameFromUrl(fileUrl);
                 log.info("开始解析文档: {}, URL: {}", fileName, fileUrl);
 
-                // 使用scm-ai的DocumentParsingService解析文档
-                // 参考 aideepin: Document document = FileOperatorContext.loadDocument(adiFile);
+                // 使用DocumentParsingService解析文档
                 String content = documentParsingService.parseDocumentFromUrl(fileUrl, fileName);
 
                 if (content == null || content.isEmpty()) {
@@ -101,7 +87,6 @@ public class DocumentExtractorNode extends AbstractWfNode {
         }
 
         // 4. 构建输出
-        // 参考 aideepin DocumentExtractorNode.java 61-65行
         NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", documentText.toString());
         List<NodeIOData> result = List.of(output);
 

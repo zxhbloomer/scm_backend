@@ -34,6 +34,12 @@ public class AiWorkflowRuntimeNodeVo {
     private Long nodeId;
 
     /**
+     * 节点标题（直接从ai_workflow_node表查询）
+     * 前端执行详情页面直接使用此字段，避免通过nodeId匹配workflow.nodes
+     */
+    private String nodeTitle;
+
+    /**
      * 节点输入(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      * 字段名从input改为inputData，避免JSqlParser保留字冲突

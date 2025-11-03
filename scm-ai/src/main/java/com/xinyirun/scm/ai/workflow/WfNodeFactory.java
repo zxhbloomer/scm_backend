@@ -19,18 +19,16 @@ import com.xinyirun.scm.ai.workflow.node.template.TemplateNode;
 
 /**
  * 工作流节点工厂类
- * 参考 aideepin: com.moyz.adi.common.workflow.WfNodeFactory
  *
  * 功能：根据组件类型创建对应的节点实例
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-25
  */
 public class WfNodeFactory {
 
     /**
      * 根据组件类型创建对应的节点实例
-     * 参考 aideepin: WfNodeFactory.create() 第24-78行
      *
      * @param wfComponent 组件定义
      * @param nodeDefinition 节点定义
@@ -45,7 +43,6 @@ public class WfNodeFactory {
         AbstractWfNode wfNode = null;
         String componentName = wfComponent.getName();
 
-        // 参考 aideepin 第26-74行的 switch 逻辑
         if ("Start".equals(componentName)) {
             wfNode = new StartNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("Answer".equals(componentName)) {

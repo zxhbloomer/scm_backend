@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * 工作流输入输出数据类型枚举
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @Getter

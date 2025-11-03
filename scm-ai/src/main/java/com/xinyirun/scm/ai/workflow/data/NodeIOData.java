@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * 工作流节点输入输出数据
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @Builder

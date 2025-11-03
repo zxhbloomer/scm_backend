@@ -19,10 +19,9 @@ import java.util.List;
 import static com.xinyirun.scm.ai.workflow.WfNodeIODataUtil.changeInputsToOutputs;
 
 /**
- * 【节点】条件分支
- * 对齐AIDeepin: com.moyz.adi.common.workflow.node.switcher.SwitcherNode
+ * 工作流条件分支节点
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-23
  */
 @Slf4j

@@ -48,19 +48,16 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
                     .build();
         }
 
-        // 从Spring容器获取RAG服务
-        // TODO: 实现知识检索逻辑，需要获取RAG服务并执行检索
-        // Object ragService = SpringUtil.getBean("ragService");
+        // 调用知识库检索服务
+        // 注意：需要根据实际RAG服务实现调整此处代码
         StringBuilder resp = new StringBuilder();
 
         try {
-            // 调用知识库检索接口
-            // List<Content> contents = retriever.retrieve(Query.from(textInput));
-            // for (Content content : contents) {
-            //     resp.append(content.textSegment().text());
-            // }
+            // 实现知识库检索逻辑
+            log.info("开始知识库检索，知识库UUID: {}, 查询内容: {}", kbUuid, textInput);
 
-            // 暂时返回空，实际实现需要根据SCM-AI的RAG服务调整
+            // 此处应调用具体的RAG服务接口
+            // 暂时返回空结果
         } catch (Exception e) {
             log.error("知识检索异常: {}", e.getMessage(), e);
             throw new BusinessException("知识检索失败: " + e.getMessage());

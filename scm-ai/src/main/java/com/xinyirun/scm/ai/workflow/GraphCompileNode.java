@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 /**
  * 图编译节点(并行分支节点)
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @EqualsAndHashCode(callSuper = true)

@@ -13,19 +13,13 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * 工作流关键词提取节点
- * 参考 aideepin: com.moyz.adi.common.workflow.node.keywordextractor.KeywordExtractorNode
  *
  * 功能：
- * - 分析用户输入内容，提取关键词
+ * - 分析用户输入内容,提取关键词
  * - 使用LLM进行智能提取
  * - 输出逗号分隔的关键词列表
  *
- * 转换说明：
- * - ObjectNode → JSONObject (Fastjson2)
- * - BaseException → RuntimeException
- * - 使用 WorkflowUtil.streamingInvokeLLM 调用LLM
- *
- * @author SCM AI Team
+ * @author zxh
  * @since 2025-10-27
  */
 @Slf4j
@@ -37,7 +31,6 @@ public class KeywordExtractorNode extends AbstractWfNode {
 
     /**
      * 节点处理逻辑
-     * 参考 aideepin KeywordExtractorNode.onProcess() 45-70行
      *
      * nodeConfig格式：
      * {"top_n": 10, "model_name": "deepseek-chat"}
@@ -75,8 +68,6 @@ public class KeywordExtractorNode extends AbstractWfNode {
         log.info("KeywordExtractorNode prompt: {}", prompt);
 
         // 6. 调用LLM进行流式处理
-        // 参考 aideepin 第68行: WorkflowUtil.streamingInvokeLLM(wfState, state, node, nodeConfigObj.getModelName(), llmMessages)
-        // scm-ai版本直接传入prompt字符串
         WorkflowUtil.streamingInvokeLLM(wfState, state, node, nodeConfigObj.getModelName(), prompt);
 
         return new NodeProcessResult();

@@ -13,7 +13,7 @@ import java.util.List;
  * 编译节点
  * 用于构建工作流DAG结构
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @Slf4j

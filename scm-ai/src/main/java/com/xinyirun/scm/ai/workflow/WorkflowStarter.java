@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>负责工作流的流式执行和中断恢复</p>
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 @Slf4j
@@ -37,14 +37,13 @@ public class WorkflowStarter {
     /**
      * self注入 - 用于调用@Async方法
      * 必须使用@Lazy避免循环依赖
-     * 参考: aideepin WorkflowStarter Line 24-26
      */
     @Lazy
     @Resource
     private WorkflowStarter self;
 
     /**
-     * StreamHandler临时缓存
+     * StreamHandler缓存
      * Key: executionId (UUID)
      * Value: WorkflowStreamHandler
      * 用于在Flux.create和@Async方法之间传递StreamHandler
@@ -71,28 +70,22 @@ public class WorkflowStarter {
     private AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
 
     /**
-     * 流式执行工作流 - @Async优化版本
+     * 流式执行工作流
      *
-     * <p>核心改进（2025-11-01）：</p>
-     * <ul>
-     *   <li>使用@Async异步执行工作流，避免Flux.create lambda阻塞</li>
-     *   <li>Flux.create立即返回，workflowEngine.run()在独立线程执行</li>
-     *   <li>解决Reactor缓冲事件导致的流式响应延迟问题</li>
-     * </ul>
-     *
-     * <p>参考: aideepin WorkflowStarter.streaming() Line 50-65</p>
+     * 使用@Async异步执行工作流，避免阻塞Flux流。
+     * Flux.create立即返回，workflowEngine.run()在独立线程执行。
      *
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
-     * @param tenantCode 租户编码（从Controller层传递，用于异步线程数据源切换）
+     * @param tenantCode 租户编码
      * @return Flux流式响应
      */
     public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode) {
         Long userId = SecurityUtil.getStaff_id();
         String executionId = UUID.randomUUID().toString();
 
-        // ✅ 创建Flux并立即返回（不阻塞）
-        // ⭐【时序修复】改为同步订阅，确保FluxSink在asyncRunWorkflow之前创建
+        // 创建Flux并立即返回(不阻塞)
+        // 改为同步订阅,确保FluxSink在asyncRunWorkflow之前创建
         Flux<WorkflowEventVo> flux = Flux.<WorkflowEventVo>create(fluxSink -> {
             // 创建工作流流式回调处理器
             WorkflowStreamHandler streamHandler = new WorkflowStreamHandler(
@@ -140,15 +133,15 @@ public class WorkflowStarter {
                     }
             );
 
-            // ⭐ 存储streamHandler到缓存，供异步方法使用
+            // 存储streamHandler到缓存,供异步方法使用
             handlerCache.put(executionId, streamHandler);
 
-            // ⭐【关键】在FluxSink创建后立即启动异步执行
+            // 在FluxSink创建后立即启动异步执行
             self.asyncRunWorkflow(executionId, workflowUuid, userId, userInputs, tenantCode);
         })
         .subscribeOn(Schedulers.boundedElastic())
         .doFinally(signalType -> {
-            // ⭐ 清理缓存和数据源上下文
+            // 清理缓存和数据源上下文
             handlerCache.remove(executionId);
             DataSourceHelper.close();
         });
@@ -157,21 +150,12 @@ public class WorkflowStarter {
     }
 
     /**
-     * 异步执行工作流（在独立线程中）
+     * 异步执行工作流
      *
-     * <p>此方法使用@Async注解，在mainExecutor线程池中执行</p>
-     * <p>核心职责：</p>
-     * <ul>
-     *   <li>切换到正确的租户数据源</li>
-     *   <li>获取工作流配置和组件</li>
-     *   <li>创建WorkflowEngine并执行</li>
-     *   <li>通过StreamHandler实时发送事件</li>
-     *   <li>异常处理和资源清理</li>
-     * </ul>
+     * 此方法在独立线程池中执行，负责工作流的实际运行。
+     * 包括数据源切换、配置加载、引擎创建和执行。
      *
-     * <p>参考: aideepin WorkflowStarter.asyncRun() Line 67-87</p>
-     *
-     * @param executionId 执行ID（用于从缓存获取StreamHandler）
+     * @param executionId 执行ID
      * @param workflowUuid 工作流UUID
      * @param userId 用户ID
      * @param userInputs 用户输入参数
@@ -184,10 +168,10 @@ public class WorkflowStarter {
                                  List<JSONObject> userInputs,
                                  String tenantCode) {
         try {
-            // ⭐【多租户关键】在异步线程中切换到正确的数据源
+            // 在异步线程中切换到正确的数据源
             DataSourceHelper.use(tenantCode);
 
-            // ⭐ 从缓存获取StreamHandler
+            // 从缓存获取StreamHandler
             WorkflowStreamHandler streamHandler = handlerCache.get(executionId);
             if (streamHandler == null) {
                 log.error("StreamHandler not found for execution: {}", executionId);
@@ -222,8 +206,7 @@ public class WorkflowStarter {
                     workflowRuntimeNodeService
             );
 
-            // ✅ 在独立线程中执行工作流（不阻塞Flux.create）
-            // 参考: aideepin WorkflowStarter Line 86
+            // 在独立线程中执行工作流(不阻塞Flux.create)
             workflowEngine.run(userId, userInputs, tenantCode);
 
         } catch (Exception e) {
@@ -236,7 +219,7 @@ public class WorkflowStarter {
                 streamHandler.sendError(e);
             }
         } finally {
-            // ⭐ 清理数据源上下文
+            // 清理数据源上下文
             DataSourceHelper.close();
         }
     }
@@ -250,25 +233,23 @@ public class WorkflowStarter {
     @Async("mainExecutor")
     public void resumeFlow(String runtimeUuid, String userInput) {
         try {
-            // 参考 aideepin: WorkflowStarter.resumeFlow() 第90-97行
             WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
             if (workflowEngine == null) {
                 log.error("工作流恢复执行时失败,runtime:{}", runtimeUuid);
                 throw new RuntimeException("工作流实例不存在或已超时");
             }
 
-            // ⭐【多租户关键】在异步线程中切换到正确的数据源
-            // WorkflowEngine中保存了tenantCode，使用getTenantCode()获取
+            // 在异步线程中切换到正确的数据源
+            // WorkflowEngine中保存了tenantCode,使用getTenantCode()获取
             String tenantCode = workflowEngine.getTenantCode();
             if (tenantCode != null) {
                 DataSourceHelper.use(tenantCode);
             }
 
             // 调用engine的resume方法恢复工作流
-            // 参考 aideepin: WorkflowStarter.resumeFlow() 第96行
             workflowEngine.resume(userInput);
         } finally {
-            // ⭐ 清理数据源上下文
+            // 清理数据源上下文
             DataSourceHelper.close();
         }
     }

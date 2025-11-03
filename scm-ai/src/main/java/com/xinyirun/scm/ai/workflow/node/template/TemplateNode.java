@@ -17,7 +17,6 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
 
 /**
  * 工作流模板节点
- * 参考 aideepin: com.moyz.adi.common.workflow.node.template.TemplateNode
  *
  * 此节点负责使用指定的模板字符串来渲染工作流数据。
  * 模板支持 ${参数名} 的变量替换语法。
@@ -34,7 +33,6 @@ public class TemplateNode extends AbstractWfNode {
         TemplateNodeConfig nodeConfig = checkAndGetConfig(TemplateNodeConfig.class);
         log.info("Template node config: {}", nodeConfig);
 
-        // 参考 aideepin TemplateNode.java Line 35
         // 将文件内容转换为Markdown格式
         WfNodeIODataUtil.changeFilesContentToMarkdown(state.getInputs());
 

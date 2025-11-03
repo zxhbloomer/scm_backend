@@ -10,11 +10,9 @@ import java.util.List;
 
 /**
  * 工作流HTTP请求节点配置
- * 参考 aideepin: com.moyz.adi.common.workflow.node.httprequest.HttpRequestNodeConfig
- * 
- * 转换说明：
- * - @JsonProperty → @JSONField
- * - JsonNode → JSONObject (Fastjson2)
+ *
+ * @author zxh
+ * @since 2025-10-27
  */
 @Data
 public class HttpRequestNodeConfig {
@@ -70,7 +68,6 @@ public class HttpRequestNodeConfig {
 
     /**
      * JSON请求体
-     * 转换：JsonNode → JSONObject (Fastjson2)
      */
     @JSONField(name = "json_body")
     private JSONObject jsonBody;

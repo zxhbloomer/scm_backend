@@ -3,7 +3,7 @@ package com.xinyirun.scm.ai.workflow;
 /**
  * Workflow常量定义
  *
- * @author SCM-AI团队
+ * @author zxh
  * @since 2025-10-21
  */
 public class WorkflowConstants {
