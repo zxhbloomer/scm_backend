@@ -190,18 +190,20 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         // u_time, u_id, dbversion由MyBatis-Plus自动填充
         aiWorkflowMapper.updateById(workflow);
 
-        // 更新节点和边（参考aideepin WorkflowService.update()）
-        if (vo.getNodes() != null) {
-            workflowNodeService.createOrUpdateNodes(vo.getId(), vo.getNodes());
-        }
-        if (vo.getEdges() != null) {
-            workflowEdgeService.createOrUpdateEdges(vo.getId(), vo.getEdges());
-        }
+        // 更新节点和边：先删除再创建/更新，避免UUID冲突
+        // 1. 先删除节点和边
         if (vo.getDeleteNodes() != null && !vo.getDeleteNodes().isEmpty()) {
             workflowNodeService.deleteNodes(vo.getId(), vo.getDeleteNodes());
         }
         if (vo.getDeleteEdges() != null && !vo.getDeleteEdges().isEmpty()) {
             workflowEdgeService.deleteEdges(vo.getId(), vo.getDeleteEdges());
+        }
+        // 2. 再创建/更新节点和边
+        if (vo.getNodes() != null) {
+            workflowNodeService.createOrUpdateNodes(vo.getId(), vo.getNodes());
+        }
+        if (vo.getEdges() != null) {
+            workflowEdgeService.createOrUpdateEdges(vo.getId(), vo.getEdges());
         }
 
         // 返回更新后的工作流VO

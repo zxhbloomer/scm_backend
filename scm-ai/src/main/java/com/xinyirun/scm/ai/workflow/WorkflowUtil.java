@@ -143,6 +143,10 @@ public class WorkflowUtil {
                     .blockLast();
 
             String response = fullResponse.toString();
+            // 移除前导和尾随空白字符，避免Markdown渲染为代码块
+            if (StringUtils.isNotBlank(response)) {
+                response = response.trim();
+            }
             log.info("LLM streaming response completed, total length: {}", response.length());
 
             NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);

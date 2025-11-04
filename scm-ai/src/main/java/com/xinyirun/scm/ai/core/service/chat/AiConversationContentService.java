@@ -58,7 +58,8 @@ public class AiConversationContentService {
             AiConversationContentEntity entity = new AiConversationContentEntity();
             entity.setConversationId(conversationId);
             entity.setType(type);
-            entity.setContent(content);
+            // 移除前导和尾随空白字符，避免Markdown渲染为代码块
+            entity.setContent(StringUtils.isNotBlank(content) ? content.trim() : content);
             entity.setModelSourceId(modelSourceId);
             entity.setProviderName(providerName);
             entity.setBaseName(baseName);
