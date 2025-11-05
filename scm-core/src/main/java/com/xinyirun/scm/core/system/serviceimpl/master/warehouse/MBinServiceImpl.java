@@ -134,7 +134,7 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
     }
 
     @Override
-    public List<MBinEntity> selectByCode(String code,int warehouse_id,int location_id) {
+    public List<MBinVo> selectByCode(String code,int warehouse_id,int location_id) {
         // 查询 数据
         return mapper.selectByCode(code,warehouse_id,location_id);
     }
@@ -255,7 +255,7 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
         // 数据查询库位名称是否重复
         List<MBinEntity> selectByName = selectByName(name,warehouse_id,location_id);
         // 数据查询库位编码是否重复
-        List<MBinEntity> selectByKey = selectByCode(code,warehouse_id,location_id);
+        List<MBinVo> selectByKey = selectByCode(code,warehouse_id,location_id);
         // 数据库查询仓库库位状态是否启用
         MWarehouseEntity warehouseEntity = warehouseMapper.selectById(warehouse_id);
 
@@ -431,7 +431,7 @@ public class MBinServiceImpl extends BaseServiceImpl<MBinMapper, MBinEntity> imp
                     return CheckResultUtil.OK();
                 }
                 // 恢复场合，检查编码不能重复
-                List<MBinEntity> codeList = selectByCode(entity.getCode(), entity.getWarehouse_id(), entity.getLocation_id());
+                List<MBinVo> codeList = selectByCode(entity.getCode(), entity.getWarehouse_id(), entity.getLocation_id());
                 if(codeList.size() > 1) {
                     return CheckResultUtil.NG("恢复保存出错：库位编码【"+ entity.getCode() +"】出现重复");
                 }

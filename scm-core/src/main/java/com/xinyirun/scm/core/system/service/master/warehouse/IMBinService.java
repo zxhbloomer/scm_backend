@@ -51,7 +51,7 @@ public interface IMBinService extends IService<MBinEntity> {
      * 通过code查询
      *
      */
-    List<MBinEntity> selectByCode(String code, int warehouse_id,int location_id);
+    List<MBinVo> selectByCode(String code, int warehouse_id,int location_id);
 
 
     /**

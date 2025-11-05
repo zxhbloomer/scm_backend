@@ -40,48 +40,66 @@ public class WarehouseMcpTools {
 
     /**
      * 查询仓库信息
-     * 
+     *
      * 这是最常用的仓库查询工具，支持多种查询条件的组合使用。
-     * 用户可以通过仓库编码、名称、状态等条件来查找仓库信息。
-     * 
+     * 用户可以通过仓库编码、名称、状态、地理位置等条件来查找仓库信息。
+     *
      * 使用场景：
      * - "查询所有仓库"
      * - "找一下主仓库"
      * - "查询编码为WH001的仓库"
      * - "查询启用状态的仓库"
      * - "查找名称包含'成品'的仓库"
-     * 
+     * - "查询上海的仓库"
+     * - "查找启用了库位管理的仓库"
+     *
      * @param tenantId 租户ID（必填，用于多租户数据隔离）
      * @param code 仓库编码（可选，支持模糊匹配）
      * @param name 仓库名称（可选，支持模糊匹配）
+     * @param shortName 仓库简称（可选，支持模糊匹配）
+     * @param province 省份（可选，如：上海市、江苏省）
+     * @param city 城市（可选，如：浦东新区、苏州市）
      * @param status 仓库状态（可选，ENABLED-启用/DISABLED-停用）
-     * @param warehouseType 仓库类型（可选，根据业务定义）
+     * @param warehouseType 仓库类型（可选，如'成品仓'、'原料仓'等）
+     * @param enableLocation 是否启用库区（可选，true/false）
+     * @param enableBin 是否启用库位（可选，true/false）
      * @return JSON格式的仓库查询结果
      */
-    @Tool(description = "查询仓库信息，支持按编码、名称、状态等条件查询仓库列表，用于仓库信息的查找和浏览")
+    @Tool(description = "查询仓库信息，支持按编码、名称、地理位置、状态等多种条件查询仓库列表，用于仓库信息的查找和浏览")
     public String queryWarehouses(
             @ToolParam(description = "租户ID，用于数据权限控制") String tenantId,
             @ToolParam(description = "仓库编码，支持模糊查询，如'WH001'") String code,
             @ToolParam(description = "仓库名称，支持模糊查询，如'主仓库'") String name,
+            @ToolParam(description = "仓库简称，支持模糊查询") String shortName,
+            @ToolParam(description = "省份，如'上海市'、'江苏省'") String province,
+            @ToolParam(description = "城市，如'浦东新区'、'苏州市'") String city,
             @ToolParam(description = "仓库状态：ENABLED-启用，DISABLED-停用") String status,
-            @ToolParam(description = "仓库类型，如'成品仓'、'原料仓'等") String warehouseType) {
-        
-        log.info("MCP工具调用 - 查询仓库信息: 租户={}, 编码={}, 名称={}, 状态={}, 类型={}", 
-                tenantId, code, name, status, warehouseType);
-        
+            @ToolParam(description = "仓库类型，如'成品仓'、'原料仓'等") String warehouseType,
+            @ToolParam(description = "是否启用库区管理，true或false") Boolean enableLocation,
+            @ToolParam(description = "是否启用库位管理，true或false") Boolean enableBin) {
+
+        log.info("MCP工具调用 - 查询仓库信息: 租户={}, 编码={}, 名称={}, 简称={}, 省份={}, 城市={}, 状态={}, 类型={}, 启用库区={}, 启用库位={}",
+                tenantId, code, name, shortName, province, city, status, warehouseType, enableLocation, enableBin);
+
         try {
             // 调用AI服务执行查询
-            Map<String, Object> result = warehouseAiService.queryWarehouses(code, name, status, warehouseType);
-            
+            Map<String, Object> result = warehouseAiService.queryWarehouses(
+                    code, name, shortName, province, city, status, warehouseType, enableLocation, enableBin);
+
             // 添加调用信息
             result.put("tenantId", tenantId);
             result.put("toolName", "query_warehouses");
-            result.put("queryConditions", Map.of(
-                "code", code != null ? code : "",
-                "name", name != null ? name : "",
-                "status", status != null ? status : "",
-                "warehouseType", warehouseType != null ? warehouseType : ""
-            ));
+            java.util.Map<String, Object> queryConditions = new java.util.HashMap<>();
+            queryConditions.put("code", code != null ? code : "");
+            queryConditions.put("name", name != null ? name : "");
+            queryConditions.put("shortName", shortName != null ? shortName : "");
+            queryConditions.put("province", province != null ? province : "");
+            queryConditions.put("city", city != null ? city : "");
+            queryConditions.put("status", status != null ? status : "");
+            queryConditions.put("warehouseType", warehouseType != null ? warehouseType : "");
+            queryConditions.put("enableLocation", enableLocation != null ? enableLocation : "");
+            queryConditions.put("enableBin", enableBin != null ? enableBin : "");
+            result.put("queryConditions", queryConditions);
             
             // 转换为JSON字符串返回
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
@@ -348,7 +366,17 @@ public class WarehouseMcpTools {
         try {
             // 根据推荐条件查询仓库
             String status = (mustEnabled == null || mustEnabled) ? "ENABLED" : null;
-            Map<String, Object> result = warehouseAiService.queryWarehouses(null, null, status, preferredType);
+            Map<String, Object> result = warehouseAiService.queryWarehouses(
+                    null,              // code
+                    null,              // name
+                    null,              // shortName
+                    null,              // province
+                    null,              // city
+                    status,            // status
+                    preferredType,     // warehouseType
+                    null,              // enableLocation
+                    null               // enableBin
+            );
             
             // 添加推荐逻辑的结果信息
             result.put("tenantId", tenantId);

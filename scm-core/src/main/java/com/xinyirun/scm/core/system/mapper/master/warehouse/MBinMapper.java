@@ -126,7 +126,7 @@ public interface MBinMapper extends BaseMapper<MBinEntity> {
             + "    and t.warehouse_id =  #{p2,jdbcType=INTEGER}"
             + "    and t.location_id =  #{p3,jdbcType=INTEGER}"
             + "      ")
-    List<MBinEntity> selectByCode(@Param("p1") String code,@Param("p2")int warehouse_id,@Param("p3")int location_id);
+    List<MBinVo> selectByCode(@Param("p1") String code,@Param("p2")int warehouse_id,@Param("p3")int location_id);
 
     /**
      * 按条件获取所有数据，没有分页

@@ -35,18 +35,27 @@ public class WarehouseAiService {
 
     /**
      * 查询仓库列表
-     * 
+     *
      * 提供灵活的仓库查询功能，支持按多种条件过滤
-     * 
+     *
      * @param code 仓库编码（可选，支持模糊查询）
      * @param name 仓库名称（可选，支持模糊查询）
+     * @param shortName 仓库简称（可选，支持模糊查询）
+     * @param province 省份（可选）
+     * @param city 城市（可选）
      * @param status 状态（可选）：ENABLED-启用，DISABLED-停用
      * @param warehouseType 仓库类型（可选）
+     * @param enableLocation 是否启用库区（可选）
+     * @param enableBin 是否启用库位（可选）
      * @return 仓库查询结果
      */
-    public Map<String, Object> queryWarehouses(String code, String name, String status, String warehouseType) {
-        log.info("AI查询仓库列表 - 编码: {}, 名称: {}, 状态: {}, 类型: {}", code, name, status, warehouseType);
-        
+    public Map<String, Object> queryWarehouses(String code, String name, String shortName,
+                                                String province, String city, String status,
+                                                String warehouseType, Boolean enableLocation,
+                                                Boolean enableBin) {
+        log.info("AI查询仓库列表 - 编码: {}, 名称: {}, 简称: {}, 省份: {}, 城市: {}, 状态: {}, 类型: {}, 启用库区: {}, 启用库位: {}",
+                code, name, shortName, province, city, status, warehouseType, enableLocation, enableBin);
+
         try {
             // 构建查询条件
             MWarehouseVo searchCondition = new MWarehouseVo();
@@ -56,6 +65,15 @@ public class WarehouseAiService {
             if (name != null && !name.trim().isEmpty()) {
                 searchCondition.setName(name.trim());
             }
+            if (shortName != null && !shortName.trim().isEmpty()) {
+                searchCondition.setShort_name(shortName.trim());
+            }
+            if (province != null && !province.trim().isEmpty()) {
+                searchCondition.setProvince(province.trim());
+            }
+            if (city != null && !city.trim().isEmpty()) {
+                searchCondition.setCity(city.trim());
+            }
             if (status != null && !status.trim().isEmpty()) {
                 // 将AI友好的状态转换为实际状态值
                 if ("ENABLED".equalsIgnoreCase(status) || "启用".equals(status)) {
@@ -63,6 +81,15 @@ public class WarehouseAiService {
                 } else if ("DISABLED".equalsIgnoreCase(status) || "停用".equals(status)) {
                     searchCondition.setEnable(false);
                 }
+            }
+            if (warehouseType != null && !warehouseType.trim().isEmpty()) {
+                searchCondition.setWarehouse_type(warehouseType.trim());
+            }
+            if (enableLocation != null) {
+                searchCondition.setEnable_location(enableLocation);
+            }
+            if (enableBin != null) {
+                searchCondition.setEnable_bin(enableBin);
             }
             
             // 调用现有服务查询
@@ -342,17 +369,192 @@ public class WarehouseAiService {
         summary.put("enabled", enabledCount);
         summary.put("disabled", disabledCount);
         summary.put("enabledPercent", warehouses.size() > 0 ? (enabledCount * 100.0 / warehouses.size()) : 0);
-        
-        // 按仓库类型统计（如果有类型字段的话）
+
+        // 按仓库类型统计
         Map<String, Long> typeCount = new HashMap<>();
         for (MWarehouseVo warehouse : warehouses) {
-            // 这里可以根据实际的仓库类型字段进行统计
-            // 由于没有看到具体的类型字段，先用默认值
-            String type = "普通仓库"; // warehouse.getWarehouseType() 或类似字段
-            typeCount.put(type, typeCount.getOrDefault(type, 0L) + 1);
+            String type = warehouse.getWarehouse_type();
+            if (type != null && !type.trim().isEmpty()) {
+                typeCount.put(type.trim(), typeCount.getOrDefault(type.trim(), 0L) + 1);
+            } else {
+                typeCount.put("未分类", typeCount.getOrDefault("未分类", 0L) + 1);
+            }
         }
         summary.put("typeDistribution", typeCount);
-        
+
         return summary;
+    }
+
+    /**
+     * 按仓库类型查询
+     *
+     * @param warehouseType 仓库类型（必填）
+     * @return 匹配该类型的仓库列表
+     */
+    public Map<String, Object> getWarehousesByType(String warehouseType) {
+        log.info("AI按类型查询仓库 - 类型: {}", warehouseType);
+
+        if (warehouseType == null || warehouseType.trim().isEmpty()) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "仓库类型不能为空");
+            return result;
+        }
+
+        try {
+            MWarehouseVo searchCondition = new MWarehouseVo();
+            searchCondition.setWarehouse_type(warehouseType.trim());
+
+            List<MWarehouseVo> warehouses = warehouseService.selectList(searchCondition);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "按类型查询仓库成功");
+            result.put("total", warehouses.size());
+            result.put("warehouses", warehouses);
+            result.put("searchType", warehouseType.trim());
+            result.put("summary", calculateWarehouseSummary(warehouses));
+
+            log.info("找到 {} 个类型为 '{}' 的仓库", warehouses.size(), warehouseType);
+            return result;
+
+        } catch (Exception e) {
+            log.error("按类型查询仓库异常 - 类型: {}, 错误: {}", warehouseType, e.getMessage(), e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("message", "按类型查询仓库失败: " + e.getMessage());
+            return errorResult;
+        }
+    }
+
+    /**
+     * 按省份查询仓库
+     *
+     * @param province 省份名称（必填）
+     * @return 该省份的仓库列表
+     */
+    public Map<String, Object> getWarehousesByProvince(String province) {
+        log.info("AI按省份查询仓库 - 省份: {}", province);
+
+        if (province == null || province.trim().isEmpty()) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "省份名称不能为空");
+            return result;
+        }
+
+        try {
+            MWarehouseVo searchCondition = new MWarehouseVo();
+            searchCondition.setProvince(province.trim());
+
+            List<MWarehouseVo> warehouses = warehouseService.selectList(searchCondition);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "按省份查询仓库成功");
+            result.put("total", warehouses.size());
+            result.put("warehouses", warehouses);
+            result.put("searchProvince", province.trim());
+            result.put("summary", calculateWarehouseSummary(warehouses));
+
+            log.info("在省份 '{}' 找到 {} 个仓库", province, warehouses.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("按省份查询仓库异常 - 省份: {}, 错误: {}", province, e.getMessage(), e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("message", "按省份查询仓库失败: " + e.getMessage());
+            return errorResult;
+        }
+    }
+
+    /**
+     * 按城市查询仓库
+     *
+     * @param city 城市名称（必填）
+     * @return 该城市的仓库列表
+     */
+    public Map<String, Object> getWarehousesByCity(String city) {
+        log.info("AI按城市查询仓库 - 城市: {}", city);
+
+        if (city == null || city.trim().isEmpty()) {
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", false);
+            result.put("message", "城市名称不能为空");
+            return result;
+        }
+
+        try {
+            MWarehouseVo searchCondition = new MWarehouseVo();
+            searchCondition.setCity(city.trim());
+
+            List<MWarehouseVo> warehouses = warehouseService.selectList(searchCondition);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("success", true);
+            result.put("message", "按城市查询仓库成功");
+            result.put("total", warehouses.size());
+            result.put("warehouses", warehouses);
+            result.put("searchCity", city.trim());
+            result.put("summary", calculateWarehouseSummary(warehouses));
+
+            log.info("在城市 '{}' 找到 {} 个仓库", city, warehouses.size());
+            return result;
+
+        } catch (Exception e) {
+            log.error("按城市查询仓库异常 - 城市: {}, 错误: {}", city, e.getMessage(), e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("success", false);
+            errorResult.put("message", "按城市查询仓库失败: " + e.getMessage());
+            return errorResult;
+        }
+    }
+
+    /**
+     * 构建仓库状态描述（用于AI理解）
+     *
+     * @param warehouse 仓库对象
+     * @return 状态描述文本
+     */
+    private String buildWarehouseStatusDescription(MWarehouseVo warehouse) {
+        if (warehouse == null) {
+            return "仓库信息不存在";
+        }
+
+        StringBuilder description = new StringBuilder();
+
+        description.append("仓库 ").append(warehouse.getName())
+                .append(" (").append(warehouse.getCode()).append(")");
+
+        if (Boolean.TRUE.equals(warehouse.getEnable())) {
+            description.append(", 状态: 启用中");
+        } else {
+            description.append(", 状态: 已停用");
+        }
+
+        if (warehouse.getWarehouse_type() != null && !warehouse.getWarehouse_type().trim().isEmpty()) {
+            description.append(", 类型: ").append(warehouse.getWarehouse_type());
+        }
+
+        if (Boolean.TRUE.equals(warehouse.getEnable_location())) {
+            description.append(", 启用库区管理");
+        }
+
+        if (Boolean.TRUE.equals(warehouse.getEnable_bin())) {
+            description.append(", 启用库位管理");
+        }
+
+        if (warehouse.getProvince() != null || warehouse.getCity() != null) {
+            description.append(", 位置: ");
+            if (warehouse.getProvince() != null) {
+                description.append(warehouse.getProvince());
+            }
+            if (warehouse.getCity() != null) {
+                description.append(warehouse.getCity());
+            }
+        }
+
+        return description.toString();
     }
 }
