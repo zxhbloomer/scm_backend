@@ -67,11 +67,18 @@ public class AiModelProvider {
     private RestTemplate restTemplate;
 
     /**
-     * 租户级ChatModel缓存
+     * 租户级ChatModel缓存（默认模型）
      * key: 数据源名称（租户标识）
      * value: ChatModel实例
      */
     private final Map<String, ChatModel> chatModelCache = new ConcurrentHashMap<>();
+
+    /**
+     * 租户级ChatModel缓存（按模型名称）
+     * key: 数据源名称::模型名称（例如：scm_tenant_20250519_001::gpt-3.5-turbo）
+     * value: ChatModel实例
+     */
+    private final Map<String, ChatModel> namedChatModelCache = new ConcurrentHashMap<>();
 
     /**
      * 租户级EmbeddingModel缓存
@@ -90,6 +97,39 @@ public class AiModelProvider {
     public ChatModel getChatModel() {
         String cacheKey = DataSourceHelper.getCurrentDataSourceName();
         return chatModelCache.computeIfAbsent(cacheKey, this::createChatModel);
+    }
+
+    /**
+     * 获取当前租户的指定模型ChatModel（用于工作流节点指定模型场景）
+     *
+     * <p>租户上下文由系统拦截器自动设置，无需手动处理</p>
+     *
+     * @param modelName 模型名称（例如：gpt-3.5-turbo、deepseek-chat）
+     * @return ChatModel实例
+     */
+    public ChatModel getChatModelByName(String modelName) {
+        log.info("===== AiModelProvider.getChatModelByName 被调用 =====");
+        log.info("接收到的 modelName 参数: [{}]", modelName);
+
+        String tenantId = DataSourceHelper.getCurrentDataSourceName();
+        log.info("当前租户ID: [{}]", tenantId);
+
+        String cacheKey = tenantId + "::" + modelName;
+        log.info("缓存Key: [{}]", cacheKey);
+
+        return namedChatModelCache.computeIfAbsent(cacheKey, key -> {
+            log.info("缓存中未找到，开始创建新的ChatModel实例");
+            log.info("为租户 [{}] 创建指定模型 [{}] 的ChatModel", tenantId, modelName);
+
+            AiModelConfigVo config = aiModelConfigService.getModelConfigByName(modelName);
+            log.info("从数据库查询到的模型配置: id={}, name={}, modelName={}, provider={}, baseUrl={}",
+                config.getId(), config.getName(), config.getModelName(), config.getProvider(), config.getBaseUrl());
+
+            ChatModel chatModel = buildChatModel(config);
+            log.info("ChatModel实例创建成功");
+
+            return chatModel;
+        });
     }
 
     /**
@@ -114,6 +154,10 @@ public class AiModelProvider {
     public void clearCache(String tenantId) {
         chatModelCache.remove(tenantId);
         embeddingModelCache.remove(tenantId);
+
+        // 清除指定租户的所有命名模型缓存
+        namedChatModelCache.keySet().removeIf(key -> key.startsWith(tenantId + "::"));
+
         log.info("清除租户 {} 的AI模型缓存", tenantId);
     }
 
@@ -122,6 +166,7 @@ public class AiModelProvider {
      */
     public void clearAllCache() {
         chatModelCache.clear();
+        namedChatModelCache.clear();
         embeddingModelCache.clear();
         log.info("清除所有租户的AI模型缓存");
     }
@@ -141,6 +186,16 @@ public class AiModelProvider {
         log.info("ChatModel配置: provider={}, model={}, baseUrl={}",
             config.getProvider(), config.getModelName(), config.getBaseUrl());
 
+        return buildChatModel(config);
+    }
+
+    /**
+     * 根据模型配置构建ChatModel实例
+     *
+     * @param config 模型配置
+     * @return ChatModel实例
+     */
+    private ChatModel buildChatModel(AiModelConfigVo config) {
         // 使用 OpenAI 兼容 API 创建 ChatModel
         // 大部分 AI provider（SiliconFlow、DeepSeek、Moonshot、智谱AI等）都兼容 OpenAI API
         OpenAiApi openAiApi = OpenAiApi.builder()

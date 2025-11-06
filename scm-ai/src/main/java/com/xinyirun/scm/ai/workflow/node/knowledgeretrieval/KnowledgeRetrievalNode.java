@@ -68,9 +68,16 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
         double minScore = nodeConfig.getScore() != null ? nodeConfig.getScore() : 0.3;
         boolean isStrict = Boolean.TRUE.equals(nodeConfig.getIsStrict());
         boolean enableGraph = Boolean.TRUE.equals(nodeConfig.getEnableGraphRetrieval());
+        String graphModelName = nodeConfig.getGraphModelName();
 
-        log.info("开始知识库检索，知识库UUID: {}, 查询内容: {}, topN: {}, minScore: {}, isStrict: {}, enableGraph: {}",
-                kbUuid, textInput, topN, minScore, isStrict, enableGraph);
+        // 图谱检索模型验证（与生成回答节点逻辑一致：不配置就报错，不使用默认模型）
+        if (enableGraph && StringUtils.isBlank(graphModelName)) {
+            log.error("❌ 启用图谱检索时必须配置图谱检索模型");
+            throw new BusinessException("启用图谱检索时必须配置图谱检索模型。请在节点属性中选择模型，或关闭图谱检索开关。");
+        }
+
+        log.info("开始知识库检索，知识库UUID: {}, 查询内容: {}, topN: {}, minScore: {}, isStrict: {}, enableGraph: {}, graphModel: {}",
+                kbUuid, textInput, topN, minScore, isStrict, enableGraph, graphModelName);
 
         StringBuilder resp = new StringBuilder();
 
@@ -100,11 +107,19 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
                     // 获取GraphRetrievalService实例
                     GraphRetrievalService graphRetrievalService = SpringUtil.getBean(GraphRetrievalService.class);
 
-                    // 调用图谱检索服务
-                    log.info("开始调用GraphRetrievalService.searchRelatedEntities");
+                    // 调用图谱检索服务（使用指定模型）
+                    log.info("===== 图谱检索调用信息 =====");
+                    log.info("graphModelName 参数值: [{}]", graphModelName);
+                    log.info("graphModelName 是否为空: {}", StringUtils.isBlank(graphModelName));
+                    log.info("开始调用 GraphRetrievalService.searchRelatedEntities");
+                    log.info("传递的参数: question=[{}], kbUuid=[{}], tenantCode=[{}], topN=[{}], modelName=[{}]",
+                            textInput, kbUuid, tenantCode, topN, graphModelName);
+
                     graphResults = graphRetrievalService.searchRelatedEntities(
-                            textInput, kbUuid, tenantCode, topN
+                            textInput, kbUuid, tenantCode, topN, graphModelName
                     );
+
+                    log.info("===== 图谱检索调用完成 =====");
 
                     // 详细记录图谱检索结果
                     log.info("图谱检索完成，返回结果数: {}", graphResults.size());

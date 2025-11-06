@@ -52,4 +52,12 @@ public class KnowledgeRetrievalNodeConfig {
      */
     @JsonProperty("enable_graph_retrieval")
     private Boolean enableGraphRetrieval;
+
+    /**
+     * 图谱检索使用的模型名称
+     * <p>仅当enableGraphRetrieval=true时生效</p>
+     * <p>用于控制图谱实体提取使用的LLM模型</p>
+     */
+    @JsonProperty("graph_model_name")
+    private String graphModelName;
 }

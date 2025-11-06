@@ -142,4 +142,33 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
         ORDER BY c_time DESC
     """)
     List<AiModelConfigVo> selectAvailableEmbeddingModels();
+
+    /**
+     * 根据模型显示名称查询模型配置（包含完整配置信息）
+     *
+     * @param modelName 模型显示名称（name字段，如"gj-deepseek"）
+     * @return 模型配置VO
+     */
+    @Select("""
+        SELECT
+            t1.id,
+            t1.name,
+            t1.model_name AS modelName,
+            t1.model_type AS modelType,
+            t1.provider,
+            t1.api_key AS apiKey,
+            t1.base_url AS baseUrl,
+            t1.deployment_name AS deploymentName,
+            t1.temperature,
+            t1.max_tokens AS maxTokens,
+            t1.top_p AS topP,
+            t1.timeout,
+            t1.enabled,
+            t1.support_chat AS supportChat,
+            t1.support_vision AS supportVision,
+            t1.support_embedding AS supportEmbedding
+        FROM ai_model_config t1
+        WHERE t1.name = #{modelName} AND t1.enabled = 1
+    """)
+    AiModelConfigVo selectByModelName(@Param("modelName") String modelName);
 }

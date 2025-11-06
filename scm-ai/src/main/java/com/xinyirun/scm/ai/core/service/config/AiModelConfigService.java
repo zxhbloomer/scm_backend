@@ -374,4 +374,25 @@ public class AiModelConfigService {
         // 不调用 maskSkString，保留完整API Key
         return vo;
     }
+
+    /**
+     * 根据模型名称获取模型配置（包含完整API Key，用于内部调用）
+     *
+     * @param modelName 模型名称
+     * @return 模型配置VO（包含完整API Key）
+     * @throws RuntimeException 当配置不存在或模型未启用时
+     */
+    public AiModelConfigVo getModelConfigByName(String modelName) {
+        if (StringUtils.isBlank(modelName)) {
+            throw new IllegalArgumentException("模型名称不能为空");
+        }
+
+        AiModelConfigVo config = aiModelConfigMapper.selectByModelName(modelName);
+
+        if (config == null) {
+            throw new RuntimeException("模型配置不存在或未启用: " + modelName);
+        }
+
+        return config;
+    }
 }
