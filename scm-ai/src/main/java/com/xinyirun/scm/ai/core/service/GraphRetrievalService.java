@@ -103,30 +103,42 @@ public class GraphRetrievalService {
      * @return 图谱检索结果列表
      */
     public List<GraphSearchResultVo> searchRelatedEntities(String question, String kbUuid, String tenantCode, Integer maxResults) {
-        log.info("图谱检索开始，question: {}, kbUuid: {}, maxResults: {}", question, kbUuid, maxResults);
+        log.info("==================== 图谱检索服务开始 ====================");
+        log.info("问题: [{}]", question);
+        log.info("知识库UUID: [{}]", kbUuid);
+        log.info("租户编码: [{}]", tenantCode);
+        log.info("最大结果数: [{}]", maxResults);
 
         if (maxResults == null || maxResults <= 0) {
             maxResults = 3;
+            log.debug("使用默认最大结果数: 3");
         }
 
         // 1. 使用ChatModel提取实体
+        log.info("步骤1: 开始从问题中提取实体（使用LLM）");
         Set<String> extractedEntities = extractEntitiesFromQuestion(question);
         if (extractedEntities.isEmpty()) {
-            log.info("从用户问题中未提取到实体");
+            log.warn("⚠️ 步骤1失败: 从用户问题中未提取到任何实体");
+            log.info("==================== 图谱检索服务结束（未提取到实体）====================");
             return Collections.emptyList();
         }
 
-        log.info("提取到的实体：{}", extractedEntities);
+        log.info("✅ 步骤1完成: 提取到 {} 个实体", extractedEntities.size());
+        log.info("提取的实体列表: {}", extractedEntities);
 
         // 2. 在Neo4j中搜索实体节点
+        log.info("步骤2: 开始在Neo4j中搜索匹配的实体节点");
         List<EntityNode> matchedEntities = new ArrayList<>();
         for (String entityName : extractedEntities) {
+            log.debug("  搜索实体: [{}]", entityName);
             List<EntityNode> entities = entityRepository.searchByKeyword(entityName, tenantCode, maxResults);
+            log.debug("    找到 {} 个匹配节点", entities.size());
             matchedEntities.addAll(entities);
         }
 
         if (matchedEntities.isEmpty()) {
-            log.info("Neo4j中未找到匹配的实体");
+            log.warn("⚠️ 步骤2失败: Neo4j中未找到任何匹配的实体");
+            log.info("==================== 图谱检索服务结束（Neo4j未匹配）====================");
             return Collections.emptyList();
         }
 
@@ -138,15 +150,25 @@ public class GraphRetrievalService {
                         (e1, e2) -> e1
                 ));
 
-        log.info("Neo4j匹配到 {} 个实体", uniqueEntities.size());
+        log.info("✅ 步骤2完成: Neo4j匹配到 {} 个唯一实体", uniqueEntities.size());
+        uniqueEntities.values().forEach(entity -> {
+            log.debug("  - {}: {} (类型: {})", entity.getEntityUuid(), entity.getEntityName(), entity.getEntityType());
+        });
 
         // 3. 查询每个实体的直接关系
+        log.info("步骤3: 开始查询每个实体的直接关系");
         List<GraphSearchResultVo> results = new ArrayList<>();
+        int entityIndex = 0;
         for (EntityNode entity : uniqueEntities.values()) {
-            // 使用Neo4jClient查询实体的直接关系
+            entityIndex++;
+            log.debug("  处理实体 {}/{}: {} (UUID: {})",
+                    entityIndex, uniqueEntities.size(), entity.getEntityName(), entity.getEntityUuid());
+
+            // 使用Neo4jClient查询实体的直接关系（双向：包含入度和出度）
+            log.debug("    执行Neo4j Cypher查询: MATCH (e:Entity)-[r:RELATED_TO]-(target:Entity)");
             Collection<DirectRelationshipVo> relationshipVos = neo4jClient
                     .query("MATCH (e:Entity {entity_uuid: $entity_uuid, tenant_code: $tenant_code}) " +
-                           "-[r:RELATED_TO]->(target:Entity) " +
+                           "-[r:RELATED_TO]-(target:Entity) " +
                            "WHERE target.tenant_code = $tenant_code " +
                            "RETURN target, r.relation_type AS relationType, r.strength AS strength " +
                            "ORDER BY r.strength DESC")
@@ -169,6 +191,8 @@ public class GraphRetrievalService {
                     })
                     .all();
 
+            log.debug("    查询到 {} 条关系", relationshipVos.size());
+
             // 构建GraphRelationVo列表
             List<GraphRelationVo> relations = relationshipVos.stream()
                     .map(vo -> {
@@ -190,6 +214,7 @@ public class GraphRetrievalService {
 
             // 4. 计算实体相关性分数
             double score = calculateEntityScore(entity.getEntityName(), extractedEntities);
+            log.debug("    计算相关性分数: {}", score);
 
             // 缓存分数
             entityToScore.put(entity.getEntityUuid(), score);
@@ -209,13 +234,27 @@ public class GraphRetrievalService {
             results.add(result);
         }
 
+        log.info("✅ 步骤3完成: 构建了 {} 个图谱检索结果", results.size());
+
         // 6. 按分数降序排序并限制数量
+        log.info("步骤4: 按分数排序并限制数量");
         results.sort((r1, r2) -> Double.compare(r2.getScore(), r1.getScore()));
         if (results.size() > maxResults) {
+            log.debug("  结果数 {} 超过限制 {}，进行截断", results.size(), maxResults);
             results = results.subList(0, maxResults);
         }
 
-        log.info("图谱检索完成，返回 {} 个实体", results.size());
+        log.info("✅ 步骤4完成: 最终返回 {} 个实体", results.size());
+        log.info("==================== 图谱检索服务结束（成功）====================");
+        log.info("最终图谱检索结果:");
+        results.forEach(result -> {
+            log.info("  实体: {} | 类型: {} | 关系数: {} | 分数: {}",
+                    result.getEntityName(),
+                    result.getEntityType(),
+                    result.getRelations() != null ? result.getRelations().size() : 0,
+                    result.getScore());
+        });
+
         return results;
     }
 
@@ -226,17 +265,21 @@ public class GraphRetrievalService {
      * @return 提取的实体名称集合（已转大写并去除特殊字符）
      */
     private Set<String> extractEntitiesFromQuestion(String question) {
+        log.debug("调用LLM提取实体，问题: [{}]", question);
         String prompt = GRAPH_EXTRACTION_PROMPT_CN.replace("{input_text}", question);
 
         String response = "";
         try {
+            log.debug("发送LLM请求...");
             response = aiModelProvider.getChatModel().call(new Prompt(prompt)).getResult().getOutput().getText();
+            log.debug("LLM响应: [{}]", response);
         } catch (Exception e) {
-            log.error("图谱实体提取失败: {}", e.getMessage(), e);
+            log.error("❌ 图谱实体提取失败: {}", e.getMessage(), e);
             return Collections.emptySet();
         }
 
         if (StringUtils.isBlank(response)) {
+            log.warn("⚠️ LLM返回空响应");
             return Collections.emptySet();
         }
 

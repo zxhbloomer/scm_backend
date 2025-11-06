@@ -12,8 +12,10 @@ import com.xinyirun.scm.ai.workflow.data.NodeIODataTextContent;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +25,13 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
  * 工作流分类器节点
  *
  * 此节点使用LLM进行文本分类，支持自定义分类目录和路由。
+ *
+ * 输出数据：
+ * 1. 原始输入（保持原参数名，通常为"input"）- 传递给下游节点继续处理
+ * 2. classification - 分类结果名称，可在下游节点提示词中使用 ${classification}
+ *
+ * 路由机制：
+ * 根据分类结果自动路由到对应的 targetNodeUuid 节点
  */
 @Slf4j
 public class ClassifierNode extends AbstractWfNode {
@@ -79,23 +88,32 @@ public class ClassifierNode extends AbstractWfNode {
             throw new BusinessException("找不到分类目录");
         }
 
-        // 构造输出
-        NodeIODataTextContent content = new NodeIODataTextContent();
-        content.setValue(classifierResp.getCategoryName());
-        content.setTitle("default");
+        // 构造输出：保留原始输入 + 添加分类结果
+        List<NodeIOData> outputs = new ArrayList<>();
 
-        List<NodeIOData> result = List.of(
-            NodeIOData.builder()
-                .name(DEFAULT_OUTPUT_PARAM_NAME)
-                .content(content)
-                .build()
-        );
+        // 1. 保留原始输入，传递给下游节点
+        if (defaultInputOpt.isPresent()) {
+            NodeIOData originalInput = SerializationUtils.clone(defaultInputOpt.get());
+            // 关键：必须将参数名改为 "output"，下游节点才能接收到
+            originalInput.setName(DEFAULT_OUTPUT_PARAM_NAME);
+            outputs.add(originalInput);
+        }
+
+        // 2. 添加分类结果作为额外输出
+        NodeIODataTextContent classificationContent = new NodeIODataTextContent();
+        classificationContent.setValue(classifierResp.getCategoryName());
+        classificationContent.setTitle("分类结果");
+
+        outputs.add(NodeIOData.builder()
+                .name("classification")
+                .content(classificationContent)
+                .build());
 
         // 返回结果并指定下一个节点
         String nextNodeUuid = categoryOpt.get().getTargetNodeUuid();
         return NodeProcessResult.builder()
                 .nextNodeUuid(nextNodeUuid)
-                .content(result)
+                .content(outputs)
                 .build();
     }
 }

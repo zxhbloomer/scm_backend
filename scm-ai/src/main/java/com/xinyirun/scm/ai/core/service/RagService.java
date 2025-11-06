@@ -176,9 +176,27 @@ public class RagService {
                 log.info("向量检索完成，结果数: {}", vectorResults.size());
 
                 // 3.2 图谱检索
+                log.info("========== 开始图谱检索 ==========");
+                log.info("图谱检索参数: question=[{}], kbUuid=[{}], tenantCode=[{}], maxResults=[{}]",
+                        question, kbUuid, tenantCode, effectiveMaxResults);
+
                 List<GraphSearchResultVo> graphResults = graphRetrievalService.searchRelatedEntities(
                         question, kbUuid, tenantCode, effectiveMaxResults);
-                log.info("图谱检索完成，结果数: {}", graphResults.size());
+
+                log.info("========== 图谱检索完成 ==========");
+                log.info("图谱检索结果数: {}", graphResults.size());
+                if (!graphResults.isEmpty()) {
+                    log.info("图谱检索返回的实体:");
+                    graphResults.forEach(result -> {
+                        log.info("  - 实体: {} (类型:{}, 关系数:{}, 分数:{})",
+                                result.getEntityName(),
+                                result.getEntityType(),
+                                result.getRelations() != null ? result.getRelations().size() : 0,
+                                result.getScore());
+                    });
+                } else {
+                    log.warn("⚠️ 图谱检索未返回任何结果");
+                }
 
                 // 3.3. 【严格模式判断点2】检索结果为空检查
                 boolean vectorEmpty = vectorResults == null || vectorResults.isEmpty();

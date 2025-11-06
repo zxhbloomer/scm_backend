@@ -125,7 +125,7 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
 
         // 构建实体
         AiKnowledgeBaseQaRefGraphEntity entity = new AiKnowledgeBaseQaRefGraphEntity();
-        entity.setQaRecordId(qa.getId());
+        entity.setQaRecordId(qa.getUuid());
         entity.setUserId(userId);
         entity.setEntitiesFromQuestion(entitiesStr);
         entity.setGraphFromStore(JSON.toJSONString(graphFromStore));

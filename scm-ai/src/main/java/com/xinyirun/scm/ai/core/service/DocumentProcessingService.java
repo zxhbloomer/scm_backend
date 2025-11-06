@@ -86,42 +86,61 @@ public class DocumentProcessingService {
      */
     @Transactional(rollbackFor = Exception.class)
     public AiKnowledgeBaseItemVo saveOrUpdate(AiKnowledgeBaseItemVo vo, Boolean indexAfterCreate) {
-        AiKnowledgeBaseItemEntity entity = new AiKnowledgeBaseItemEntity();
-        BeanUtils.copyProperties(vo, entity);
-
         // 根据 kbUuid 查询知识库，获取 kbId
-        if (vo.getKbUuid() != null && !vo.getKbUuid().isEmpty()) {
-            AiKnowledgeBaseEntity kbEntity = kbMapper.selectByKbUuid(vo.getKbUuid());
-            if (kbEntity == null) {
-                log.error("知识库不存在, kbUuid: {}", vo.getKbUuid());
-                throw new RuntimeException("知识库不存在: " + vo.getKbUuid());
-            }
-            // 设置 entity 的 kbId
-            entity.setKbId(kbEntity.getId().toString());
-        } else {
+        if (vo.getKbUuid() == null || vo.getKbUuid().isEmpty()) {
             log.error("kbUuid不能为空");
             throw new RuntimeException("kbUuid不能为空");
+        }
+
+        AiKnowledgeBaseEntity kbEntity = kbMapper.selectByKbUuid(vo.getKbUuid());
+        if (kbEntity == null) {
+            log.error("知识库不存在, kbUuid: {}", vo.getKbUuid());
+            throw new RuntimeException("知识库不存在: " + vo.getKbUuid());
         }
 
         boolean isNewItem = false;
         String itemUuid = null;
 
-        if (entity.getItemUuid() == null || entity.getItemUuid().isEmpty()) {
-            // 新增
+        if (vo.getItemUuid() == null || vo.getItemUuid().isEmpty()) {
+            // 新增：使用VO数据创建新实体（SCM标准模式）
+            AiKnowledgeBaseItemEntity entity = new AiKnowledgeBaseItemEntity();
+            BeanUtils.copyProperties(vo, entity);
+
             String tenantCode = DataSourceHelper.getCurrentDataSourceName();
             String uuid = UuidUtil.createShort();
             itemUuid = tenantCode + "::" + uuid;
             entity.setItemUuid(itemUuid);
+            entity.setKbId(kbEntity.getId().toString());
             entity.setEmbeddingStatus(0);
+
             itemMapper.insert(entity);
             isNewItem = true;
-        } else {
-            // 更新
-            itemMapper.updateById(entity);
-            itemUuid = entity.getItemUuid();
-        }
 
-        BeanUtils.copyProperties(entity, vo);
+            // 返回插入后的实体
+            BeanUtils.copyProperties(entity, vo);
+        } else {
+            // 更新：先查询完整实体（SCM标准模式）
+            AiKnowledgeBaseItemEntity existEntity = itemMapper.selectByItemUuid(vo.getItemUuid());
+            if (existEntity == null) {
+                log.error("文档不存在, itemUuid: {}", vo.getItemUuid());
+                throw new RuntimeException("文档不存在，无法更新");
+            }
+
+            // 更新需要修改的字段
+            existEntity.setKbId(kbEntity.getId().toString());
+            existEntity.setTitle(vo.getTitle());
+            existEntity.setBrief(vo.getBrief());
+            existEntity.setRemark(vo.getRemark());
+            if (vo.getSourceFileName() != null) {
+                existEntity.setSourceFileName(vo.getSourceFileName());
+            }
+
+            itemMapper.updateById(existEntity);
+            itemUuid = existEntity.getItemUuid();
+
+            // 返回更新后的实体
+            BeanUtils.copyProperties(existEntity, vo);
+        }
 
         // 如果是新增且需要立即索引，触发索引任务
         if (isNewItem && Boolean.TRUE.equals(indexAfterCreate)) {

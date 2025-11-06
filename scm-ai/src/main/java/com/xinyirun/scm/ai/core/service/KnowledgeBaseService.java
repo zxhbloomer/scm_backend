@@ -67,6 +67,7 @@ public class KnowledgeBaseService {
     private final Neo4jGraphIndexingService neo4jGraphIndexingService;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper graphSegmentMapper;
     private final AiModelConfigService aiModelConfigService;
+    private final com.xinyirun.scm.ai.core.mapper.config.AiModelConfigMapper aiModelConfigMapper;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaMapper qaMapper;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefEmbeddingMapper qaRefEmbeddingMapper;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefGraphMapper qaRefGraphMapper;
@@ -118,16 +119,59 @@ public class KnowledgeBaseService {
 
             log.info("新增知识库成功，kbUuid: {}, title: {}",
                      entity.getKbUuid(), entity.getTitle());
+
+            // 返回插入后的实体
+            BeanUtils.copyProperties(entity, vo);
         } else {
-            // 更新：直接复制所有字段
-            BeanUtils.copyProperties(vo, entity);
-            knowledgeBaseMapper.updateById(entity);
+            // 更新：先查询完整实体（SCM标准模式）
+            AiKnowledgeBaseEntity existEntity = knowledgeBaseMapper.selectById(vo.getId());
+            if (existEntity == null) {
+                throw new RuntimeException("知识库不存在，无法更新");
+            }
+
+            // 更新需要修改的字段
+            existEntity.setTitle(vo.getTitle());
+            existEntity.setRemark(vo.getRemark());
+            existEntity.setIsPublic(vo.getIsPublic());
+            existEntity.setIsStrict(vo.getIsStrict());
+            existEntity.setIngestMaxOverlap(vo.getIngestMaxOverlap());
+            existEntity.setIngestTokenEstimator(vo.getIngestTokenEstimator());
+
+            // 模型配置字段：只有非空时才更新
+            if (StringUtils.isNotBlank(vo.getIngestModelId())) {
+                existEntity.setIngestModelId(vo.getIngestModelId());
+                // 同步更新模型名称
+                if (StringUtils.isNotBlank(vo.getIngestModelName())) {
+                    existEntity.setIngestModelName(vo.getIngestModelName());
+                } else {
+                    // 如果VO没有传模型名称，从AI模型配置中查询
+                    try {
+                        Long modelId = Long.parseLong(vo.getIngestModelId());
+                        com.xinyirun.scm.ai.bean.entity.config.AiModelConfigEntity modelConfig =
+                            aiModelConfigMapper.selectById(modelId);
+                        if (modelConfig != null) {
+                            existEntity.setIngestModelName(modelConfig.getModelName());
+                        }
+                    } catch (NumberFormatException e) {
+                        log.warn("模型ID格式错误: {}", vo.getIngestModelId());
+                    }
+                }
+            }
+
+            existEntity.setRetrieveMaxResults(vo.getRetrieveMaxResults());
+            existEntity.setRetrieveMinScore(vo.getRetrieveMinScore());
+            existEntity.setQuerySystemMessage(vo.getQuerySystemMessage());
+            existEntity.setQueryLlmTemperature(vo.getQueryLlmTemperature());
+
+            knowledgeBaseMapper.updateById(existEntity);
 
             log.info("更新知识库成功，kbUuid: {}, title: {}",
-                     entity.getKbUuid(), entity.getTitle());
+                     existEntity.getKbUuid(), existEntity.getTitle());
+
+            // 返回更新后的实体
+            BeanUtils.copyProperties(existEntity, vo);
         }
 
-        BeanUtils.copyProperties(entity, vo);
         return vo;
     }
 

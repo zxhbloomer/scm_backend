@@ -44,4 +44,12 @@ public class KnowledgeRetrievalNodeConfig {
      */
     @JsonProperty("default_response")
     private String defaultResponse;
+
+    /**
+     * 是否启用图谱检索
+     * <p>默认false，仅使用向量检索，保持向后兼容</p>
+     * <p>设置为true时，同时执行向量检索和图谱检索，合并结果</p>
+     */
+    @JsonProperty("enable_graph_retrieval")
+    private Boolean enableGraphRetrieval;
 }
