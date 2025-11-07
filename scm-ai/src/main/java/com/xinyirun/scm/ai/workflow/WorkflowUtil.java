@@ -147,6 +147,11 @@ public class WorkflowUtil {
                 aiChatBaseService.chatStream(chatOption)
                         .chatResponse()
                         .doOnNext(chatResponse -> {
+                            // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
+                            if (wfState.getTenantCode() != null) {
+                                DataSourceHelper.use(wfState.getTenantCode());
+                            }
+
                             String content = chatResponse.getResult().getOutput().getText();
                             if (StringUtils.isNotBlank(content)) {
                                 log.debug("LLM chunk: length={}", content.length());
@@ -172,6 +177,11 @@ public class WorkflowUtil {
                 aiChatBaseService.chatWithMemoryStream(chatOption)
                         .chatResponse()
                         .doOnNext(chatResponse -> {
+                            // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
+                            if (wfState.getTenantCode() != null) {
+                                DataSourceHelper.use(wfState.getTenantCode());
+                            }
+
                             String content = chatResponse.getResult().getOutput().getText();
                             if (StringUtils.isNotBlank(content)) {
                                 log.debug("LLM chunk: length={}", content.length());

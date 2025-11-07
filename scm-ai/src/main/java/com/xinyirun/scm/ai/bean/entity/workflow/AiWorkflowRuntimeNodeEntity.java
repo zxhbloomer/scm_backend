@@ -80,12 +80,6 @@ public class AiWorkflowRuntimeNodeEntity implements Serializable {
     private String statusRemark;
 
     /**
-     * 是否删除(0-未删除,1-已删除)
-     */
-    @TableField("is_deleted")
-    private Boolean isDeleted;
-
-    /**
      * 创建时间
      */
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

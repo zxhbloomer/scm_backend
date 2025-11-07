@@ -207,7 +207,8 @@ public class WorkflowStarter {
             );
 
             // 在独立线程中执行工作流(不阻塞Flux.create)
-            workflowEngine.run(userId, userInputs, tenantCode);
+            // 主工作流执行：传递 null 让系统自动生成新的 conversationId
+            workflowEngine.run(userId, userInputs, tenantCode, null);
 
         } catch (Exception e) {
             log.error("工作流执行异常: workflowUuid={}, userId={}, executionId={}",
@@ -271,7 +272,8 @@ public class WorkflowStarter {
                                        List<JSONObject> userInputs,
                                        String tenantCode,
                                        Long userId,
-                                       Set<String> parentExecutionStack) {
+                                       Set<String> parentExecutionStack,
+                                       String parentConversationId) {
         try {
             // 切换到正确的数据源
             DataSourceHelper.use(tenantCode);
@@ -355,8 +357,8 @@ public class WorkflowStarter {
                     workflowRuntimeNodeService
             );
 
-            // 同步执行工作流
-            workflowEngine.run(userId, userInputs, tenantCode);
+            // 同步执行工作流（传递父conversationId）
+            workflowEngine.run(userId, userInputs, tenantCode, parentConversationId);
 
             // 检查是否有错误
             if (errorRef.get() != null) {

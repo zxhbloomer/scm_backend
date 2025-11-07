@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowRuntimeMapper;
+import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.workflow.WfState;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.common.utils.UuidUtil;
@@ -43,6 +44,9 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
     @Resource
     private AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
 
+    @Resource
+    private AiConversationContentService conversationContentService;
+
     /**
      * 创建工作流运行实例
      *
@@ -69,8 +73,51 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         runtime.setConversationId(conversationId);
 
         runtime.setStatus(1); // 1-运行中
-        runtime.setIsDeleted(false);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
+        aiWorkflowRuntimeMapper.insert(runtime);
+
+        runtime = aiWorkflowRuntimeMapper.selectById(runtime.getId());
+
+        AiWorkflowRuntimeVo vo = new AiWorkflowRuntimeVo();
+        BeanUtils.copyProperties(runtime, vo);
+
+        // 手动转换 JSON 字段: String → JSONObject
+        if (StringUtils.isNotBlank(runtime.getInputData())) {
+            vo.setInputData(JSON.parseObject(runtime.getInputData()));
+        }
+        if (StringUtils.isNotBlank(runtime.getOutputData())) {
+            vo.setOutputData(JSON.parseObject(runtime.getOutputData()));
+        }
+
+        return vo;
+    }
+
+    /**
+     * 创建工作流运行实例（使用指定的conversationId）
+     *
+     * 用于子工作流继承父工作流的对话上下文
+     *
+     * @param userId 用户ID
+     * @param workflowId 工作流ID
+     * @param conversationId 继承的conversationId
+     * @return 运行时VO
+     */
+    public AiWorkflowRuntimeVo createWithConversationId(Long userId, Long workflowId, String conversationId) {
+        // 获取工作流信息
+        AiWorkflowEntity workflow = workflowService.getById(workflowId);
+        if (workflow == null) {
+            throw new RuntimeException("工作流不存在: workflowId=" + workflowId);
+        }
+
+        AiWorkflowRuntimeEntity runtime = new AiWorkflowRuntimeEntity();
+        runtime.setRuntimeUuid(UuidUtil.createShort());
+        runtime.setUserId(userId);
+        runtime.setWorkflowId(workflowId);
+
+        // 使用传入的conversationId（继承父工作流的对话上下文）
+        runtime.setConversationId(conversationId);
+
+        runtime.setStatus(1); // 1-运行中
         aiWorkflowRuntimeMapper.insert(runtime);
 
         runtime = aiWorkflowRuntimeMapper.selectById(runtime.getId());
@@ -188,7 +235,6 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         return aiWorkflowRuntimeMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
                         .eq(AiWorkflowRuntimeEntity::getRuntimeUuid, runtimeUuid)
-                        .eq(AiWorkflowRuntimeEntity::getIsDeleted, 0)
                         .last("LIMIT 1")
         );
     }
@@ -208,7 +254,6 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
                 new Page<>(currentPage, pageSize),
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
                         .eq(AiWorkflowRuntimeEntity::getWorkflowId, workflow.getId())
-                        .eq(AiWorkflowRuntimeEntity::getIsDeleted, 0)
                         .orderByDesc(AiWorkflowRuntimeEntity::getUTime)
         );
 
@@ -253,40 +298,85 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
     }
 
     /**
-     * 删除工作流的所有运行记录
+     * 批量删除工作流的所有运行记录（物理删除+级联）
+     *
+     * 注意：此操作会物理删除所有记录，无法恢复
      *
      * @param workflowUuid 工作流UUID
      * @return 是否成功
      */
     public boolean deleteAll(String workflowUuid) {
+        log.info("开始批量物理删除工作流所有运行记录: workflow_uuid={}", workflowUuid);
+
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
-        return aiWorkflowRuntimeMapper.update(null,
-                new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<AiWorkflowRuntimeEntity>()
+        // 查询该工作流的所有运行记录
+        List<AiWorkflowRuntimeEntity> runtimeList = aiWorkflowRuntimeMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
                         .eq(AiWorkflowRuntimeEntity::getWorkflowId, workflow.getId())
-                        .set(AiWorkflowRuntimeEntity::getIsDeleted, 1)
-        ) > 0;
+        );
+
+        if (runtimeList.isEmpty()) {
+            log.info("工作流没有运行记录, workflow_uuid={}", workflowUuid);
+            return true;
+        }
+
+        // 逐条调用delete()方法，实现级联删除
+        int successCount = 0;
+        for (AiWorkflowRuntimeEntity runtime : runtimeList) {
+            try {
+                boolean result = delete(runtime.getRuntimeUuid());
+                if (result) {
+                    successCount++;
+                }
+            } catch (Exception e) {
+                log.error("删除运行记录失败: runtime_uuid={}", runtime.getRuntimeUuid(), e);
+            }
+        }
+
+        log.info("批量删除完成: workflow_uuid={}, 总数={}, 成功={}",
+                workflowUuid, runtimeList.size(), successCount);
+
+        return successCount > 0;
     }
 
     /**
-     * 软删除单个运行实例
-     * 符合SCM标准: 先selectById查询完整实体,然后set修改字段,最后updateById更新
+     * 物理删除单个运行实例（级联删除）
+     *
+     * 删除顺序：
+     * 1. 删除运行节点记录（ai_workflow_runtime_node）
+     * 2. 删除对话历史记录（ai_conversation_content）
+     * 3. 删除运行实例主记录（ai_workflow_runtime）
      *
      * @param runtimeUuid 运行实例UUID
      * @return 是否成功
      */
-    public boolean softDelete(String runtimeUuid) {
-        // 1. 先查询出完整实体
+    public boolean delete(String runtimeUuid) {
+        log.info("开始物理删除工作流运行记录: {}", runtimeUuid);
+
         AiWorkflowRuntimeEntity runtime = getByUuid(runtimeUuid);
         if (runtime == null) {
             throw new RuntimeException("运行实例不存在: " + runtimeUuid);
         }
 
-        // 2. 在查询出的对象上直接修改字段
-        runtime.setIsDeleted(true);
+        Long runtimeId = runtime.getId();
+        String conversationId = runtime.getConversationId();
 
-        // 3. 使用完整对象更新(其他字段不受影响)
-        return aiWorkflowRuntimeMapper.updateById(runtime) > 0;
+        // 1. 级联删除运行节点记录
+        int nodeCount = workflowRuntimeNodeService.deleteByRuntimeId(runtimeId);
+        log.info("删除运行节点记录: runtime_id={}, count={}", runtimeId, nodeCount);
+
+        // 2. 级联删除对话历史（隐私保护）
+        if (StringUtils.isNotBlank(conversationId)) {
+            int conversationCount = conversationContentService.deleteByConversationId(conversationId);
+            log.info("删除对话历史: conversation_id={}, count={}", conversationId, conversationCount);
+        }
+
+        // 3. 物理删除主记录
+        int result = aiWorkflowRuntimeMapper.deleteById(runtimeId);
+        log.info("删除运行记录: runtime_id={}, result={}", runtimeId, result);
+
+        return result > 0;
     }
 
 

@@ -62,13 +62,14 @@ public class SubWorkflowNode extends AbstractWfNode {
             // 获取工作流启动器实例
             WorkflowStarter workflowStarter = SpringUtil.getBean(WorkflowStarter.class);
 
-            // 同步执行子工作流
+            // 同步执行子工作流（传递父conversationId以继承对话上下文）
             Map<String, Object> subOutputs = workflowStarter.runSync(
                 subWorkflowUuid,
                 convertToInputList(subInputs),
                 wfState.getTenantCode(),
                 wfState.getUserId(),
-                wfState.getExecutionStack()
+                wfState.getExecutionStack(),
+                wfState.getConversationId()
             );
 
             // 5. 设置输出
@@ -122,13 +123,24 @@ public class SubWorkflowNode extends AbstractWfNode {
 
     /**
      * 转换为WorkflowEngine需要的输入格式
+     * 需要构建符合 WfNodeIODataUtil.createNodeIOData 要求的格式
      */
     private List<JSONObject> convertToInputList(Map<String, Object> inputs) {
-        JSONObject inputJson = new JSONObject();
-        inputJson.putAll(inputs);
-
         List<JSONObject> inputList = new ArrayList<>();
-        inputList.add(inputJson);
+
+        for (Map.Entry<String, Object> entry : inputs.entrySet()) {
+            JSONObject inputItem = new JSONObject();
+            inputItem.put("name", entry.getKey());
+
+            JSONObject content = new JSONObject();
+            content.put("type", 1);  // TEXT类型
+            content.put("title", entry.getKey());
+            content.put("value", entry.getValue());
+
+            inputItem.put("content", content);
+
+            inputList.add(inputItem);
+        }
 
         return inputList;
     }

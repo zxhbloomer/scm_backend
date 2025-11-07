@@ -4,6 +4,8 @@ import com.alibaba.fastjson2.JSONFactory;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.xinyirun.scm.common.properies.SystemConfigProperies;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +81,10 @@ public class RedisCacheAutoConfiguration extends CachingConfigurerSupport {
         ObjectMapper om = new ObjectMapper();
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        // 注册JavaTimeModule以支持Java 8日期时间类型（LocalDateTime等）
+        om.registerModule(new JavaTimeModule());
+        // 禁用将日期写为时间戳
+        om.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         jackson2JsonRedisSerializer.setObjectMapper(om);
         return jackson2JsonRedisSerializer;
     }

@@ -47,7 +47,6 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         List<AiWorkflowRuntimeNodeEntity> entityList = aiWorkflowRuntimeNodeMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeNodeEntity>()
                         .eq(AiWorkflowRuntimeNodeEntity::getWorkflowRuntimeId, wfRuntimeId)
-                        .eq(AiWorkflowRuntimeNodeEntity::getIsDeleted, 0)
                         .orderByAsc(AiWorkflowRuntimeNodeEntity::getId)
         );
 
@@ -98,7 +97,6 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
         runtimeNode.setWorkflowRuntimeId(wfRuntimeId);
         runtimeNode.setNodeId(wfNodeId);
         runtimeNode.setStatus(state.getProcessStatus());
-        runtimeNode.setIsDeleted(false);
         // 不设置 c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowRuntimeNodeMapper.insert(runtimeNode);
 
@@ -197,6 +195,18 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      */
     public void delete(Long id) {
         aiWorkflowRuntimeNodeMapper.deleteById(id);
+    }
+
+    /**
+     * 根据运行实例ID批量删除节点记录
+     *
+     * @param runtimeId 运行实例ID
+     * @return 删除的记录数
+     */
+    public int deleteByRuntimeId(Long runtimeId) {
+        int count = aiWorkflowRuntimeNodeMapper.deleteByRuntimeId(runtimeId);
+        log.info("根据runtime_id批量删除节点记录, runtime_id: {}, 删除数量: {}", runtimeId, count);
+        return count;
     }
 
     /**

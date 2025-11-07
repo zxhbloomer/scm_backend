@@ -106,11 +106,12 @@ public class WorkflowEngine {
         }
     }
 
-    public void run(Long userId, List<JSONObject> userInputs, String tenantCode) {
+    public void run(Long userId, List<JSONObject> userInputs, String tenantCode, String parentConversationId) {
         this.userId = userId;
         this.tenantCode = tenantCode;
-        log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},userInputs:{}",
-                 userId, workflow.getWorkflowUuid(), tenantCode, userInputs);
+        DataSourceHelper.use(this.tenantCode);
+        log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},parentConversationId:{},userInputs:{}",
+                 userId, workflow.getWorkflowUuid(), tenantCode, parentConversationId, userInputs);
 
         if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
             streamHandler.sendError(new RuntimeException("工作流已禁用"));
@@ -118,7 +119,15 @@ public class WorkflowEngine {
         }
 
         Long workflowId = this.workflow.getId();
-        this.wfRuntimeResp = workflowRuntimeService.create(userId, workflowId);
+
+        // 如果传入了父conversationId，使用父ID；否则生成新ID
+        if (parentConversationId != null && !parentConversationId.isEmpty()) {
+            log.info("子工作流继承父conversationId: {}", parentConversationId);
+            this.wfRuntimeResp = workflowRuntimeService.createWithConversationId(
+                userId, workflowId, parentConversationId);
+        } else {
+            this.wfRuntimeResp = workflowRuntimeService.create(userId, workflowId);
+        }
 
         // 发送工作流开始事件
         streamHandler.sendStart(JSONObject.toJSONString(wfRuntimeResp));
@@ -169,6 +178,9 @@ public class WorkflowEngine {
     }
 
     private void exe(RunnableConfig invokeConfig, boolean resume) {
+        // 在执行前显式设置租户上下文，防止异步执行中上下文丢失
+        DataSourceHelper.use(this.tenantCode);
+
         // 不使用langgraph4j state的update相关方法，无需传入input
         AsyncGenerator<NodeOutput<WfNodeState>> outputs = app.stream(resume ? null : Map.of(), invokeConfig);
         streamingResult(wfState, outputs);
@@ -273,6 +285,8 @@ public class WorkflowEngine {
             NodeProcessResult processResult = abstractWfNode.process(
                     // 输入回调
                     (is) -> {
+                        // 在回调中设置租户上下文，防止异步执行时上下文丢失
+                        DataSourceHelper.use(this.tenantCode);
                         workflowRuntimeNodeService.updateInput(runtimeNodeVo.getId(), nodeState);
                         for (NodeIOData input : nodeState.getInputs()) {
                             streamHandler.sendNodeInput(wfNode.getUuid(), JSONObject.toJSONString(input));
@@ -280,6 +294,8 @@ public class WorkflowEngine {
                     },
                     // 输出回调
                     (is) -> {
+                        // 在回调中设置租户上下文，防止异步执行时上下文丢失
+                        DataSourceHelper.use(this.tenantCode);
                         workflowRuntimeNodeService.updateOutput(runtimeNodeVo.getId(), nodeState);
 
                         // 并行节点内部的节点执行结束后，需要主动向客户端发送输出结果
@@ -314,6 +330,9 @@ public class WorkflowEngine {
      * @param outputs    输出
      */
     private void streamingResult(WfState wfState, AsyncGenerator<NodeOutput<WfNodeState>> outputs) {
+        // 在流式处理中显式设置租户上下文，防止异步迭代器中上下文丢失
+        DataSourceHelper.use(this.tenantCode);
+
         for (NodeOutput<WfNodeState> out : outputs) {
             if (out instanceof StreamingOutput<WfNodeState> streamingOutput) {
                 String node = streamingOutput.node();
@@ -321,6 +340,9 @@ public class WorkflowEngine {
                 log.info("node:{},chunk:{}", node, chunk);
                 sendNodeChunk(node, chunk);
             } else {
+                // 在异步迭代过程中再次设置租户上下文，防止线程切换导致上下文丢失
+                DataSourceHelper.use(this.tenantCode);
+
                 // 找到对应的 abstractWfNode
                 AbstractWfNode abstractWfNode = wfState.getCompletedNodes().stream()
                         .filter(item -> item.getNode().getUuid().endsWith(out.node()))

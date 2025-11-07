@@ -16,4 +16,15 @@ import java.util.List;
 @Mapper
 public interface AiConversationContentMapper extends BaseMapper<AiConversationContentEntity> {
 
+    /**
+     * 根据对话ID物理删除对话历史记录
+     *
+     * @param conversationId 对话ID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_conversation_content
+        WHERE conversation_id = #{conversationId}
+    """)
+    int deleteByConversationId(@Param("conversationId") String conversationId);
 }

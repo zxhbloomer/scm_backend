@@ -364,7 +364,7 @@ public class WorkflowController {
     public ResponseEntity<JsonResultAo<Boolean>> deleteRuntime(@PathVariable @NotNull String wfRuntimeUuid) {
         log.info("删除工作流运行时记录,wfRuntimeUuid:{}", wfRuntimeUuid);
 
-        boolean result = workflowRuntimeService.softDelete(wfRuntimeUuid);
+        boolean result = workflowRuntimeService.delete(wfRuntimeUuid);
 
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }

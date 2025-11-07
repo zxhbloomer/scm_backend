@@ -30,4 +30,16 @@ public interface AiWorkflowRuntimeNodeMapper extends BaseMapper<AiWorkflowRuntim
     """)
     int updateStatus(@Param("id") Long id,
                      @Param("status") Integer status);
+
+    /**
+     * 根据运行实例ID批量物理删除节点记录
+     *
+     * @param runtimeId 运行实例ID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_workflow_runtime_node
+        WHERE workflow_runtime_id = #{runtimeId}
+    """)
+    int deleteByRuntimeId(@Param("runtimeId") Long runtimeId);
 }

@@ -48,12 +48,21 @@ public class WfNodeIODataUtil {
             if (value instanceof JSONArray) {
                 List<String> fileUrls = ((JSONArray) value).toJavaList(String.class);
                 result = NodeIOData.createByFiles(name, title, fileUrls);
+            } else {
+                result = NodeIOData.createByFiles(name, title, new ArrayList<>());
             }
         } else if (WfIODataTypeEnum.OPTIONS.getValue().equals(type)) {
             if (value instanceof JSONObject) {
                 result = NodeIOData.createByOptions(name, title, ((JSONObject) value).toJavaObject(Map.class));
+            } else {
+                result = NodeIOData.createByOptions(name, title, new java.util.HashMap<>());
             }
         }
+
+        if (result == null) {
+            throw new BusinessException("不支持的参数类型: " + type);
+        }
+
         return result;
     }
 

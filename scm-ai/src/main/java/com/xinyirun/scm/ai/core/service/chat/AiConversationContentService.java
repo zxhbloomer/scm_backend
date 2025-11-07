@@ -140,4 +140,22 @@ public class AiConversationContentService {
         return vo;
     }
 
+    /**
+     * 根据对话ID删除对话历史记录
+     *
+     * @param conversationId 对话ID
+     * @return 删除的记录数
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteByConversationId(String conversationId) {
+        try {
+            int count = aiConversationContentMapper.deleteByConversationId(conversationId);
+            log.info("删除对话历史记录成功, conversation_id: {}, 删除数量: {}", conversationId, count);
+            return count;
+        } catch (Exception e) {
+            log.error("删除对话历史记录失败, conversation_id: {}", conversationId, e);
+            throw new RuntimeException("删除对话历史记录失败", e);
+        }
+    }
+
 }
