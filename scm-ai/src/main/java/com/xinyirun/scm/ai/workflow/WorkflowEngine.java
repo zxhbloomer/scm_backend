@@ -130,7 +130,8 @@ public class WorkflowEngine {
             List<NodeIOData> wfInputs = getAndCheckUserInput(userInputs, startNode);
 
             // 工作流运行实例状态
-            this.wfState = new WfState(userId, wfInputs, runtimeUuid, tenantCode);
+            String conversationId = this.wfRuntimeResp.getConversationId();
+            this.wfState = new WfState(userId, wfInputs, runtimeUuid, tenantCode, conversationId);
             // 设置流式处理器，供节点使用（如 LLM 流式响应）
             this.wfState.setStreamHandler(streamHandler);
 

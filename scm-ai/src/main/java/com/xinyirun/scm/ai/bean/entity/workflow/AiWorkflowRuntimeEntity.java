@@ -52,6 +52,14 @@ public class AiWorkflowRuntimeEntity implements Serializable {
     private Long userId;
 
     /**
+     * 对话ID，用于多轮对话上下文管理
+     * 格式：tenantCode::uuid
+     * 关联ai_conversation表
+     */
+    @TableField("conversation_id")
+    private String conversationId;
+
+    /**
      * 输入数据(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Map<String, Object>
      * 字段名从input改为input_data，避免JSqlParser保留字冲突

@@ -12,6 +12,7 @@ import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowRuntimeMapper;
 import com.xinyirun.scm.ai.workflow.WfState;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.common.utils.UuidUtil;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -50,10 +51,23 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      * @return 运行时VO
      */
     public AiWorkflowRuntimeVo create(Long userId, Long workflowId) {
+        // 获取工作流信息
+        AiWorkflowEntity workflow = workflowService.getById(workflowId);
+        if (workflow == null) {
+            throw new RuntimeException("工作流不存在: workflowId=" + workflowId);
+        }
+
         AiWorkflowRuntimeEntity runtime = new AiWorkflowRuntimeEntity();
         runtime.setRuntimeUuid(UuidUtil.createShort());
         runtime.setUserId(userId);
         runtime.setWorkflowId(workflowId);
+
+        // 生成对话ID,用于多轮对话上下文管理
+        // 格式: tenantCode::workflowUuid::userId (用户+工作流级别记忆)
+        String tenantCode = DataSourceHelper.getCurrentDataSourceName();
+        String conversationId = tenantCode + "::" + workflow.getWorkflowUuid() + "::" + userId;
+        runtime.setConversationId(conversationId);
+
         runtime.setStatus(1); // 1-运行中
         runtime.setIsDeleted(false);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充

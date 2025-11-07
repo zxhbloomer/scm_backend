@@ -37,6 +37,12 @@ public class AiWorkflowRuntimeVo {
     private String workflowUuid;
 
     /**
+     * 对话ID,用于多轮对话上下文管理
+     * 格式:tenantCode::uuid
+     */
+    private String conversationId;
+
+    /**
      * 输入参数(JSON格式)
      * 使用 Fastjson2 的 JSONObject 替代 Jackson 的 ObjectNode
      * 字段名从input改为inputData，避免JSqlParser保留字冲突

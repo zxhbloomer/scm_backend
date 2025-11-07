@@ -5,8 +5,10 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
+import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
@@ -99,6 +101,15 @@ public class WorkflowUtil {
     /**
      * 流式调用 LLM 模型生成响应
      *
+     * <p>支持多轮对话上下文记忆功能：</p>
+     * <ul>
+     *   <li>从 wfState 获取 conversationId</li>
+     *   <li>LLM 调用前保存 USER 消息</li>
+     *   <li>使用 chatWithMemoryStream() 调用 LLM（带记忆）</li>
+     *   <li>LLM 调用后保存 ASSISTANT 消息</li>
+     *   <li>降级模式: conversationId 为 NULL 时使用 chatStream()（无记忆）</li>
+     * </ul>
+     *
      * @param wfState 工作流状态对象
      * @param nodeState 工作流节点状态
      * @param node 工作流节点定义
@@ -107,8 +118,9 @@ public class WorkflowUtil {
      */
     public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
                                            String modelName, String prompt) {
-        log.info("invoke LLM (streaming), modelName: {}, prompt length: {}", modelName,
-                StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
+        String conversationId = wfState.getConversationId();
+        log.info("invoke LLM (streaming), modelName: {}, conversationId: {}, prompt length: {}",
+                modelName, conversationId, StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
 
         try {
             AIChatRequestVo request = new AIChatRequestVo();
@@ -127,33 +139,144 @@ public class WorkflowUtil {
 
             StringBuilder fullResponse = new StringBuilder();
 
-            aiChatBaseService.chatStream(chatOption)
-                    .chatResponse()
-                    .doOnNext(chatResponse -> {
-                        String content = chatResponse.getResult().getOutput().getText();
-                        if (StringUtils.isNotBlank(content)) {
-                            log.debug("LLM chunk: length={}", content.length());
-                            fullResponse.append(content);
+            // 降级模式判断: conversationId 为 NULL 时使用无记忆模式
+            if (StringUtils.isBlank(conversationId)) {
+                log.warn("conversationId is null, fallback to no-memory mode");
 
-                            if (wfState.getStreamHandler() != null) {
-                                wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
+                // 无记忆模式 - 使用 chatStream()
+                aiChatBaseService.chatStream(chatOption)
+                        .chatResponse()
+                        .doOnNext(chatResponse -> {
+                            String content = chatResponse.getResult().getOutput().getText();
+                            if (StringUtils.isNotBlank(content)) {
+                                log.debug("LLM chunk: length={}", content.length());
+                                fullResponse.append(content);
+
+                                if (wfState.getStreamHandler() != null) {
+                                    wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
+                                }
                             }
-                        }
-                    })
-                    .blockLast();
+                        })
+                        .blockLast();
+            } else {
+                // 有记忆模式 - 使用 chatWithMemoryStream()
+
+                // 1. LLM 调用前保存 USER 消息
+                saveUserMessage(conversationId, prompt,
+                        modelConfig.getId() != null ? modelConfig.getId().toString() : null,
+                        modelConfig.getProvider(), modelConfig.getModelName());
+
+                // 2. 设置 conversationId 并调用 LLM
+                chatOption.setConversationId(conversationId);
+
+                aiChatBaseService.chatWithMemoryStream(chatOption)
+                        .chatResponse()
+                        .doOnNext(chatResponse -> {
+                            String content = chatResponse.getResult().getOutput().getText();
+                            if (StringUtils.isNotBlank(content)) {
+                                log.debug("LLM chunk: length={}", content.length());
+                                fullResponse.append(content);
+
+                                if (wfState.getStreamHandler() != null) {
+                                    wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
+                                }
+                            }
+                        })
+                        .blockLast();
+
+                // 3. LLM 调用后保存 ASSISTANT 消息
+                String response = fullResponse.toString();
+                if (StringUtils.isNotBlank(response)) {
+                    response = response.trim();
+                    saveAssistantMessage(conversationId, response,
+                            modelConfig.getId() != null ? modelConfig.getId().toString() : null,
+                            modelConfig.getProvider(), modelConfig.getModelName());
+                }
+            }
 
             String response = fullResponse.toString();
-            // 移除前导和尾随空白字符，避免Markdown渲染为代码块
+            // 移除前导和尾随空白字符,避免Markdown渲染为代码块
             if (StringUtils.isNotBlank(response)) {
                 response = response.trim();
             }
-            log.info("LLM streaming response completed, total length: {}", response.length());
+            log.info("LLM streaming response completed, conversationId: {}, total length: {}",
+                    conversationId, response.length());
 
             NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);
             nodeState.getOutputs().add(output);
         } catch (Exception e) {
-            log.error("invoke LLM (streaming) failed", e);
+            log.error("invoke LLM (streaming) failed, conversationId: {}", conversationId, e);
             throw new RuntimeException("LLM 流式调用失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 保存用户消息到对话历史
+     *
+     * @param conversationId 对话ID
+     * @param content 消息内容
+     * @param modelSourceId 模型源ID
+     * @param providerName 提供商名称
+     * @param baseName 基础模型名称
+     */
+    private static void saveUserMessage(String conversationId, String content,
+                                        String modelSourceId, String providerName, String baseName) {
+        try {
+            AiConversationContentService conversationContentService =
+                    SpringUtil.getBean(AiConversationContentService.class);
+            if (conversationContentService == null) {
+                log.error("AiConversationContentService not found, skip saving USER message");
+                return;
+            }
+
+            conversationContentService.saveConversationContent(
+                    conversationId,
+                    "user",
+                    content,
+                    modelSourceId,
+                    providerName,
+                    baseName,
+                    null
+            );
+
+            log.debug("Saved USER message to conversation: {}", conversationId);
+        } catch (Exception e) {
+            log.error("Failed to save USER message, conversationId: {}", conversationId, e);
+        }
+    }
+
+    /**
+     * 保存助手消息到对话历史
+     *
+     * @param conversationId 对话ID
+     * @param content 消息内容
+     * @param modelSourceId 模型源ID
+     * @param providerName 提供商名称
+     * @param baseName 基础模型名称
+     */
+    private static void saveAssistantMessage(String conversationId, String content,
+                                             String modelSourceId, String providerName, String baseName) {
+        try {
+            AiConversationContentService conversationContentService =
+                    SpringUtil.getBean(AiConversationContentService.class);
+            if (conversationContentService == null) {
+                log.error("AiConversationContentService not found, skip saving ASSISTANT message");
+                return;
+            }
+
+            conversationContentService.saveConversationContent(
+                    conversationId,
+                    "assistant",
+                    content,
+                    modelSourceId,
+                    providerName,
+                    baseName,
+                    null
+            );
+
+            log.debug("Saved ASSISTANT message to conversation: {}", conversationId);
+        } catch (Exception e) {
+            log.error("Failed to save ASSISTANT message, conversationId: {}", conversationId, e);
         }
     }
 

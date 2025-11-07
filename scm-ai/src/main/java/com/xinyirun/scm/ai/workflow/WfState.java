@@ -24,6 +24,7 @@ public class WfState {
     private String uuid;
     private Long userId;
     private String tenantCode;
+    private String conversationId;
     private String processingNodeUuid;
 
     /**
@@ -71,11 +72,12 @@ public class WfState {
         this.uuid = uuid;
     }
 
-    public WfState(Long userId, List<NodeIOData> input, String uuid, String tenantCode) {
+    public WfState(Long userId, List<NodeIOData> input, String uuid, String tenantCode, String conversationId) {
         this.input = input;
         this.userId = userId;
         this.uuid = uuid;
         this.tenantCode = tenantCode;
+        this.conversationId = conversationId;
     }
 
     /**
@@ -85,13 +87,15 @@ public class WfState {
      * @param input 工作流输入
      * @param uuid 运行时UUID
      * @param tenantCode 租户编码
+     * @param conversationId 对话ID
      * @param parentExecutionStack 父工作流的执行栈
      */
-    public WfState(Long userId, List<NodeIOData> input, String uuid, String tenantCode, Set<String> parentExecutionStack) {
+    public WfState(Long userId, List<NodeIOData> input, String uuid, String tenantCode, String conversationId, Set<String> parentExecutionStack) {
         this.input = input;
         this.userId = userId;
         this.uuid = uuid;
         this.tenantCode = tenantCode;
+        this.conversationId = conversationId;
         if (parentExecutionStack != null) {
             this.executionStack = new HashSet<>(parentExecutionStack);
         }
