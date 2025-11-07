@@ -459,4 +459,15 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
 
         return vo;
     }
+
+    /**
+     * 查询可用的工作流列表（用于子工作流选择器）
+     * 返回所有公开的工作流 + 当前用户自己的工作流
+     *
+     * @param userId 用户ID
+     * @return 工作流列表
+     */
+    public List<AiWorkflowEntity> getAvailableWorkflows(Long userId) {
+        return aiWorkflowMapper.selectAvailableWorkflows(userId);
+    }
 }

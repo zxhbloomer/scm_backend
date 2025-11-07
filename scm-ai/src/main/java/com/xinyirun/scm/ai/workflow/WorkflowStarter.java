@@ -18,9 +18,9 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 工作流启动器
@@ -248,6 +248,127 @@ public class WorkflowStarter {
 
             // 调用engine的resume方法恢复工作流
             workflowEngine.resume(userInput);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
+        }
+    }
+
+    /**
+     * 同步执行工作流（用于子工作流调用）
+     *
+     * <p>与streaming方法不同，此方法同步执行工作流并返回最终输出结果。
+     * 主要用于SubWorkflowNode调用子工作流。</p>
+     *
+     * @param workflowUuid 工作流UUID
+     * @param userInputs 用户输入参数
+     * @param tenantCode 租户编码
+     * @param userId 用户ID
+     * @param parentExecutionStack 父工作流的执行栈
+     * @return 工作流输出结果
+     */
+    public Map<String, Object> runSync(String workflowUuid,
+                                       List<JSONObject> userInputs,
+                                       String tenantCode,
+                                       Long userId,
+                                       Set<String> parentExecutionStack) {
+        try {
+            // 切换到正确的数据源
+            DataSourceHelper.use(tenantCode);
+
+            // 获取工作流配置
+            AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
+
+            // 检查工作流是否启用
+            if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
+                throw new BusinessException("子工作流已禁用: " + workflowUuid);
+            }
+
+            log.info("SubWorkflow runSync: workflowUuid={}, userId={}", workflowUuid, userId);
+
+            // 获取工作流组件、节点、边配置
+            List<AiWorkflowComponentEntity> components = workflowComponentService.getAllEnable();
+            List<AiWorkflowNodeVo> nodes = workflowNodeService.listByWorkflowId(workflow.getId());
+            List<AiWorkflowEdgeEntity> edges = workflowEdgeService.listByWorkflowId(workflow.getId());
+
+            // 创建一个简单的StreamHandler用于收集结果（不发送SSE事件）
+            final Map<String, Object> result = new ConcurrentHashMap<>();
+            final AtomicReference<Throwable> errorRef = new AtomicReference<>();
+
+            WorkflowStreamHandler streamHandler = new WorkflowStreamHandler(
+                    new WorkflowStreamHandler.StreamCallback() {
+                        @Override
+                        public void onStart(String runtimeData) {
+                            // 子工作流不需要发送start事件
+                        }
+
+                        @Override
+                        public void onNodeRun(String nodeUuid, String nodeData) {
+                            // 子工作流不需要发送node run事件
+                        }
+
+                        @Override
+                        public void onNodeInput(String nodeUuid, String inputData) {
+                            // 子工作流不需要发送node input事件
+                        }
+
+                        @Override
+                        public void onNodeOutput(String nodeUuid, String outputData) {
+                            // 子工作流不需要发送node output事件
+                        }
+
+                        @Override
+                        public void onNodeChunk(String nodeUuid, String chunk) {
+                            // 子工作流不需要发送node chunk事件
+                        }
+
+                        @Override
+                        public void onNodeWaitFeedback(String nodeUuid, String tip) {
+                            // 子工作流不支持人机交互
+                            throw new RuntimeException("子工作流不支持人机交互节点");
+                        }
+
+                        @Override
+                        public void onComplete(String data) {
+                            // 收集最终输出结果
+                            if (data != null && !data.isEmpty()) {
+                                JSONObject outputJson = JSONObject.parseObject(data);
+                                result.putAll(outputJson);
+                            }
+                        }
+
+                        @Override
+                        public void onError(Throwable error) {
+                            errorRef.set(error);
+                        }
+                    }
+            );
+
+            // 创建工作流引擎（支持传入父执行栈）
+            WorkflowEngine workflowEngine = new WorkflowEngine(
+                    workflow,
+                    streamHandler,
+                    components,
+                    nodes,
+                    edges,
+                    workflowRuntimeService,
+                    workflowRuntimeNodeService
+            );
+
+            // 同步执行工作流
+            workflowEngine.run(userId, userInputs, tenantCode);
+
+            // 检查是否有错误
+            if (errorRef.get() != null) {
+                throw new RuntimeException("子工作流执行失败", errorRef.get());
+            }
+
+            log.info("SubWorkflow runSync completed: workflowUuid={}, result={}", workflowUuid, result);
+            return result;
+
+        } catch (Exception e) {
+            log.error("子工作流同步执行异常: workflowUuid={}, userId={}", workflowUuid, userId, e);
+            throw new RuntimeException("子工作流执行失败: " + e.getMessage(), e);
         } finally {
             // 清理数据源上下文
             DataSourceHelper.close();

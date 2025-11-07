@@ -60,6 +60,11 @@ public class WfState {
      */
     private Set<String> interruptNodes = new HashSet<>();
 
+    /**
+     * 执行栈：用于检测子工作流循环依赖
+     */
+    private Set<String> executionStack = new HashSet<>();
+
     public WfState(Long userId, List<NodeIOData> input, String uuid) {
         this.input = input;
         this.userId = userId;
@@ -71,6 +76,25 @@ public class WfState {
         this.userId = userId;
         this.uuid = uuid;
         this.tenantCode = tenantCode;
+    }
+
+    /**
+     * 构造函数（支持传入父工作流的执行栈）
+     *
+     * @param userId 用户ID
+     * @param input 工作流输入
+     * @param uuid 运行时UUID
+     * @param tenantCode 租户编码
+     * @param parentExecutionStack 父工作流的执行栈
+     */
+    public WfState(Long userId, List<NodeIOData> input, String uuid, String tenantCode, Set<String> parentExecutionStack) {
+        this.input = input;
+        this.userId = userId;
+        this.uuid = uuid;
+        this.tenantCode = tenantCode;
+        if (parentExecutionStack != null) {
+            this.executionStack = new HashSet<>(parentExecutionStack);
+        }
     }
 
     /**
@@ -144,5 +168,33 @@ public class WfState {
 
     public void addInterruptNode(String nodeUuid) {
         this.interruptNodes.add(nodeUuid);
+    }
+
+    /**
+     * 检查工作流UUID是否在执行栈中（用于检测循环依赖）
+     *
+     * @param workflowUuid 工作流UUID
+     * @return true-存在循环依赖，false-不存在
+     */
+    public boolean isInExecutionStack(String workflowUuid) {
+        return executionStack.contains(workflowUuid);
+    }
+
+    /**
+     * 获取执行栈副本（用于子工作流）
+     *
+     * @return 执行栈副本
+     */
+    public Set<String> getExecutionStack() {
+        return new HashSet<>(executionStack);
+    }
+
+    /**
+     * 添加工作流到执行栈
+     *
+     * @param workflowUuid 工作流UUID
+     */
+    public void addToExecutionStack(String workflowUuid) {
+        this.executionStack.add(workflowUuid);
     }
 }

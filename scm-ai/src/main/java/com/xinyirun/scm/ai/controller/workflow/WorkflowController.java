@@ -394,4 +394,33 @@ public class WorkflowController {
 
         return ResponseEntity.ok().body(ResultUtil.OK(true));
     }
+
+    /**
+     * 查询可用的工作流列表（用于子工作流选择器）
+     * 返回所有公开的工作流 + 当前用户自己的工作流
+     *
+     * @param request HTTP请求
+     * @return 工作流选项列表
+     */
+    @Operation(summary = "查询可用的工作流列表")
+    @GetMapping("/available")
+    public ResponseEntity<JsonResultAo<List<com.xinyirun.scm.ai.bean.vo.workflow.WorkflowOptionVo>>> getAvailableWorkflows(
+            HttpServletRequest request) {
+        Long userId = com.xinyirun.scm.bean.utils.security.SecurityUtil.getStaff_id();
+
+        List<AiWorkflowEntity> workflows = workflowService.getAvailableWorkflows(userId);
+
+        List<com.xinyirun.scm.ai.bean.vo.workflow.WorkflowOptionVo> result = new ArrayList<>();
+        for (AiWorkflowEntity workflow : workflows) {
+            com.xinyirun.scm.ai.bean.vo.workflow.WorkflowOptionVo vo = new com.xinyirun.scm.ai.bean.vo.workflow.WorkflowOptionVo();
+            vo.setWorkflowUuid(workflow.getWorkflowUuid());
+            vo.setName(workflow.getTitle());
+            vo.setIsPublic(workflow.getIsPublic() ? 1 : 0);
+            vo.setUserId(workflow.getUserId());
+            vo.setDescription(workflow.getRemark());
+            result.add(vo);
+        }
+
+        return ResponseEntity.ok().body(ResultUtil.OK(result));
+    }
 }

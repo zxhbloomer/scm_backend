@@ -128,4 +128,35 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
     """)
     int updateEnableStatus(@Param("workflow_uuid") String workflow_uuid,
                           @Param("is_enable") Boolean is_enable);
+
+    /**
+     * 查询可用的工作流列表（用于子工作流选择器）
+     * 返回所有公开的工作流 + 当前用户自己的工作流
+     * 状态值：is_enable 0-禁用,1-启用; is_public 0-私有,1-公开
+     *
+     * @param user_id 用户ID
+     * @return 工作流列表
+     */
+    @Select("""
+        SELECT
+            id,
+            workflow_uuid AS workflowUuid,
+            title,
+            remark,
+            user_id AS userId,
+            is_public AS isPublic,
+            is_enable AS isEnable,
+            is_deleted AS isDeleted,
+            c_time AS cTime,
+            c_id AS cId,
+            u_time AS uTime,
+            u_id AS uId,
+            dbversion
+        FROM ai_workflow
+        WHERE (is_public = 1 OR user_id = #{user_id})
+            AND is_enable = 1
+            AND is_deleted = 0
+        ORDER BY is_public DESC, title ASC
+    """)
+    List<AiWorkflowEntity> selectAvailableWorkflows(@Param("user_id") Long user_id);
 }
