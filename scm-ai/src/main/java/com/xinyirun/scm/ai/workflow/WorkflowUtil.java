@@ -5,7 +5,6 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
-import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
@@ -164,17 +163,13 @@ public class WorkflowUtil {
                         })
                         .blockLast();
             } else {
-                // 有记忆模式 - 使用 chatWithMemoryStream()
+                // 有记忆模式 - 使用 chatWithWorkflowMemoryStream()
+                // MessageChatMemoryAdvisor会自动调用ChatMemory.add()保存USER消息
 
-                // 1. LLM 调用前保存 USER 消息
-                saveUserMessage(conversationId, prompt,
-                        modelConfig.getId() != null ? modelConfig.getId().toString() : null,
-                        modelConfig.getProvider(), modelConfig.getModelName());
-
-                // 2. 设置 conversationId 并调用 LLM
+                // 设置 conversationId 并调用 LLM（使用Workflow专用方法）
                 chatOption.setConversationId(conversationId);
 
-                aiChatBaseService.chatWithMemoryStream(chatOption)
+                aiChatBaseService.chatWithWorkflowMemoryStream(chatOption)
                         .chatResponse()
                         .doOnNext(chatResponse -> {
                             // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
@@ -194,14 +189,7 @@ public class WorkflowUtil {
                         })
                         .blockLast();
 
-                // 3. LLM 调用后保存 ASSISTANT 消息
-                String response = fullResponse.toString();
-                if (StringUtils.isNotBlank(response)) {
-                    response = response.trim();
-                    saveAssistantMessage(conversationId, response,
-                            modelConfig.getId() != null ? modelConfig.getId().toString() : null,
-                            modelConfig.getProvider(), modelConfig.getModelName());
-                }
+                // MessageChatMemoryAdvisor会自动调用ChatMemory.add()保存ASSISTANT消息
             }
 
             String response = fullResponse.toString();
@@ -220,74 +208,8 @@ public class WorkflowUtil {
         }
     }
 
-    /**
-     * 保存用户消息到对话历史
-     *
-     * @param conversationId 对话ID
-     * @param content 消息内容
-     * @param modelSourceId 模型源ID
-     * @param providerName 提供商名称
-     * @param baseName 基础模型名称
-     */
-    private static void saveUserMessage(String conversationId, String content,
-                                        String modelSourceId, String providerName, String baseName) {
-        try {
-            AiConversationContentService conversationContentService =
-                    SpringUtil.getBean(AiConversationContentService.class);
-            if (conversationContentService == null) {
-                log.error("AiConversationContentService not found, skip saving USER message");
-                return;
-            }
-
-            conversationContentService.saveConversationContent(
-                    conversationId,
-                    "user",
-                    content,
-                    modelSourceId,
-                    providerName,
-                    baseName,
-                    null
-            );
-
-            log.debug("Saved USER message to conversation: {}", conversationId);
-        } catch (Exception e) {
-            log.error("Failed to save USER message, conversationId: {}", conversationId, e);
-        }
-    }
-
-    /**
-     * 保存助手消息到对话历史
-     *
-     * @param conversationId 对话ID
-     * @param content 消息内容
-     * @param modelSourceId 模型源ID
-     * @param providerName 提供商名称
-     * @param baseName 基础模型名称
-     */
-    private static void saveAssistantMessage(String conversationId, String content,
-                                             String modelSourceId, String providerName, String baseName) {
-        try {
-            AiConversationContentService conversationContentService =
-                    SpringUtil.getBean(AiConversationContentService.class);
-            if (conversationContentService == null) {
-                log.error("AiConversationContentService not found, skip saving ASSISTANT message");
-                return;
-            }
-
-            conversationContentService.saveConversationContent(
-                    conversationId,
-                    "assistant",
-                    content,
-                    modelSourceId,
-                    providerName,
-                    baseName,
-                    null
-            );
-
-            log.debug("Saved ASSISTANT message to conversation: {}", conversationId);
-        } catch (Exception e) {
-            log.error("Failed to save ASSISTANT message, conversationId: {}", conversationId, e);
-        }
-    }
+    // 注意：USER和ASSISTANT消息的保存已由MessageChatMemoryAdvisor自动管理
+    // 通过ScmWorkflowMessageChatMemory.add()方法完成
+    // 符合Spring AI框架的最佳实践
 
 }

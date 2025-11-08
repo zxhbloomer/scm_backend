@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.bean.entity.chat;
+package com.xinyirun.scm.ai.bean.entity.workflow;
 
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
@@ -10,14 +10,17 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * AI对话内容实体类
- * 对应数据表：ai_conversation_content
+ * AI工作流对话内容实体类
+ * 对应数据表：ai_workflow_conversation_content
+ *
+ * 用于保存工作流执行过程中的对话记录，包括用户输入和AI回复
+ * 与ai_conversation_content分离，遵循DDD领域隔离原则
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("ai_conversation_content")
-public class AiConversationContentEntity implements Serializable {
+@TableName("ai_workflow_conversation_content")
+public class AiWorkflowConversationContentEntity implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -37,6 +40,7 @@ public class AiConversationContentEntity implements Serializable {
 
     /**
      * 对话ID
+     * 格式：tenantCode::workflowUuid::userId
      */
     @TableField("conversation_id")
     private String conversationId;

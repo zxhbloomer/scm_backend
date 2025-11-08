@@ -14,6 +14,8 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -45,7 +47,20 @@ import java.util.UUID;
 public class AiChatBaseService {
 
     @Resource
-    MessageChatMemoryAdvisor messageChatMemoryAdvisor;
+    MessageChatMemoryAdvisor chatMessageChatMemoryAdvisor;
+    @Resource
+    MessageChatMemoryAdvisor workflowMessageChatMemoryAdvisor;
+
+    @Lazy
+    @Resource
+    @Qualifier("chatDomainChatClient")
+    private ChatClient chatDomainChatClient;
+
+    @Lazy
+    @Resource
+    @Qualifier("workflowDomainChatClient")
+    private ChatClient workflowDomainChatClient;
+
     @Resource
     private AiConversationContentMapper aiConversationContentMapper;
     @Resource
@@ -136,25 +151,73 @@ public class AiChatBaseService {
      * 流式聊天可以实时接收AI回复的内容片段，提供更好的用户体验
      * 同样支持记忆功能和多租户环境，租户信息已包含在conversationId中
      *
+     * 使用预配置chatMessageChatMemoryAdvisor的chatDomainChatClient，
+     * 运行时只需设置conversationId参数
+     *
      * @param aiChatOption 聊天选项配置对象，包含对话ID、提示词、系统指令、租户ID等
      * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
      */
     public ChatClient.StreamResponseSpec chatWithMemoryStream(AIChatOptionVo aiChatOption) {
-        // conversationId已包含租户信息，直接使用即可
+        // Chat领域专用，conversationId已包含租户信息，直接使用即可
+        // 运行时同时传递advisor实例和conversationId参数
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
-            return getClient(aiChatOption.getModule())
+            return chatDomainChatClient
                     .prompt()
                     .system(aiChatOption.getSystem())
                     .user(aiChatOption.getPrompt())
-                    .advisors(messageChatMemoryAdvisor)
-                    .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
+                    .advisors(a -> {
+                        a.advisors(chatMessageChatMemoryAdvisor);
+                        a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
+                    })
                     .stream();
         }
-        return getClient(aiChatOption.getModule())
+        return chatDomainChatClient
                 .prompt()
                 .user(aiChatOption.getPrompt())
-                .advisors(messageChatMemoryAdvisor)
-                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId()))
+                .advisors(a -> {
+                    a.advisors(chatMessageChatMemoryAdvisor);
+                    a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
+                })
+                .stream();
+    }
+
+    /**
+     * Workflow领域专用：使用记忆功能的流式聊天方法
+     *
+     * 从ai_workflow_conversation_content表获取历史对话上下文，实现多轮对话记忆
+     *
+     * 使用预配置workflowMessageChatMemoryAdvisor的workflowDomainChatClient，
+     * 运行时只需设置conversationId参数
+     *
+     * @param aiChatOption 聊天选项对象，包含模型配置、提示词、conversationId等
+     * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
+     */
+    public ChatClient.StreamResponseSpec chatWithWorkflowMemoryStream(AIChatOptionVo aiChatOption) {
+        // Workflow领域专用，conversationId已包含租户信息，直接使用即可
+        log.info("🚀 [Workflow Memory] 调用chatWithWorkflowMemoryStream - conversationId: {}, prompt长度: {}, 是否有system: {}",
+                aiChatOption.getConversationId(),
+                aiChatOption.getPrompt() != null ? aiChatOption.getPrompt().length() : 0,
+                StringUtils.isNotBlank(aiChatOption.getSystem()));
+
+        // 运行时同时传递advisor实例和conversationId参数
+        if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
+            return workflowDomainChatClient
+                    .prompt()
+                    .system(aiChatOption.getSystem())
+                    .user(aiChatOption.getPrompt())
+                    .advisors(a -> {
+                        a.advisors(workflowMessageChatMemoryAdvisor);
+                        a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
+                    })
+                    .stream();
+        }
+        return workflowDomainChatClient
+                .prompt()
+                .user(aiChatOption.getPrompt())
+                .advisors(a -> {
+                    a.advisors(workflowMessageChatMemoryAdvisor);
+                    a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
+                })
                 .stream();
     }
 

@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.bean.vo.chat;
 
+import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -32,6 +33,12 @@ public class AiConversationContentVo implements Serializable {
      * 内容ID
      */
     private String id;
+
+    /**
+     * 消息ID（业务主键）
+     * 用于引用表关联
+     */
+    private String message_id;
 
     /**
      * 会话ID
@@ -407,21 +414,21 @@ public class AiConversationContentVo implements Serializable {
      * 检查是否为用户消息
      */
     public boolean isUserMessage() {
-        return "USER".equals(this.type);
+        return AiMessageTypeConstant.MESSAGE_TYPE_USER.equals(this.type);
     }
 
     /**
      * 检查是否为AI回复
      */
     public boolean isAiMessage() {
-        return "assistant".equals(this.type);
+        return AiMessageTypeConstant.MESSAGE_TYPE_ASSISTANT.equals(this.type);
     }
 
     /**
      * 检查是否为系统消息
      */
     public boolean isSystemMessage() {
-        return "system".equals(this.type);
+        return AiMessageTypeConstant.MESSAGE_TYPE_SYSTEM.equals(this.type);
     }
 
     /**

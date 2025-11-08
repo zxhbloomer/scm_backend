@@ -17,5 +17,25 @@ import java.util.List;
 @Mapper
 public interface AiConversationMapper extends BaseMapper<AiConversationEntity> {
 
+    /**
+     * 根据创建人ID查询对话列表
+     *
+     * @param userId 创建人ID
+     * @return 对话列表
+     */
+    @Select("""
+        SELECT
+            id,
+            title,
+            c_time AS cTime,
+            c_id AS cId,
+            u_time AS uTime,
+            u_id AS uId,
+            dbversion
+        FROM ai_conversation
+        WHERE c_id = #{userId}
+        ORDER BY c_time DESC
+        """)
+    List<AiConversationEntity> selectByUserId(@Param("userId") Long userId);
 
 }

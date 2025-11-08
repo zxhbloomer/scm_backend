@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.bean.vo.response;
 
+import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -76,10 +77,10 @@ public class ChatResponseVo {
         private String content;
 
         /**
-         * 消息类型，固定为ASSISTANT
+         * 消息类型，固定为assistant
          */
         @Builder.Default
-        private String messageType = "ASSISTANT";
+        private String messageType = AiMessageTypeConstant.MESSAGE_TYPE_ASSISTANT;
     }
 
     /**

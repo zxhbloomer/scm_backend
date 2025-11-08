@@ -40,4 +40,29 @@ public interface ExtAiConversationContentMapper {
         """)
     List<AiConversationContentVo> selectLastByConversationIdByLimit(@Param("conversationId") String conversationId,
                                                                     @Param("limit") int limit);
+
+    /**
+     * 根据会话ID查询所有对话内容（按时间正序）
+     *
+     * @param conversationId 会话ID
+     * @return 对话内容列表
+     */
+    @Select("""
+        SELECT
+            id,
+            message_id AS messageId,
+            conversation_id AS conversationId,
+            type,
+            content,
+            model_source_id AS modelSourceId,
+            c_time AS cTime,
+            u_time AS uTime,
+            c_id AS cId,
+            u_id AS uId,
+            dbversion
+        FROM ai_conversation_content
+        WHERE conversation_id = #{conversationId}
+        ORDER BY c_time ASC
+        """)
+    List<AiConversationContentVo> selectByConversationId(@Param("conversationId") String conversationId);
 }

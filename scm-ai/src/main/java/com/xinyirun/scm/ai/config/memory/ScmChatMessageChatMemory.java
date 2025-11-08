@@ -8,22 +8,28 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.*;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.core.NamedThreadLocal;
 import org.springframework.stereotype.Component;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 使用 MessageWindowChatMemory 只能记忆和持久化 max_messages 条消息
- * 该自定义类，能持久化所有消息，并且设置 ai 记忆消息的条数
+ * Chat领域专用ChatMemory实现
+ *
+ * 负责Chat领域的多轮对话记忆功能:
+ * - 查询 ai_conversation_content 表
+ * - 支持最多10条历史消息记忆
+ * - conversationId格式: tenantCode::conversationUUID (2段)
  *
  * 注意：此类在Reactor响应式流中被调用，不应使用@Transactional
  * 底层的查询方法已声明为NOT_SUPPORTED，不需要事务管理
+ *
+ * @author SCM-AI开发团队
+ * @since 2025-01-08
  */
 @Slf4j
-@Component
-public class ScmMessageChatMemory implements ChatMemory {
+@Component("chatMessageChatMemory")
+public class ScmChatMessageChatMemory implements ChatMemory {
 
     /**
      * 默认记忆10条消息
@@ -34,13 +40,6 @@ public class ScmMessageChatMemory implements ChatMemory {
      * 租户与会话ID的分隔符
      */
     private static final String TENANT_SEPARATOR = "::";
-
-    /**
-     * 当前线程的租户ID存储 - 使用NamedThreadLocal与dynamic-datasource保持一致
-     * 注意：优化后主要从conversationId中解析租户信息，此ThreadLocal作为降级方案
-     */
-    private static final ThreadLocal<String> CURRENT_TENANT = new NamedThreadLocal<>("tenant-context");
-
 
     @Resource
     @Lazy
@@ -54,7 +53,7 @@ public class ScmMessageChatMemory implements ChatMemory {
     @Override
     public List<Message> get(String conversationId) {
         try {
-            log.debug("聊天的conversationId {}", conversationId);
+            log.debug("Chat领域查询对话历史, conversationId: {}", conversationId);
 
             // 从conversationId解析租户ID
             String tenantId = parseTenantId(conversationId);
@@ -62,7 +61,7 @@ public class ScmMessageChatMemory implements ChatMemory {
             // 设置数据源
             DataSourceHelper.use(tenantId);
 
-            // 查询对话历史
+            // 查询Chat对话历史
             List<AiConversationContentVo> contents = aiConversationService.getConversationHistory(
                 conversationId, DEFAULT_MAX_MESSAGES);
 
@@ -77,9 +76,6 @@ public class ScmMessageChatMemory implements ChatMemory {
                             case USER -> new UserMessage(content);
                             case ASSISTANT -> new AssistantMessage(content);
                             case SYSTEM -> new SystemMessage(content);
-                            // The content is always stored empty for ToolResponseMessages.
-                            // If we want to capture the actual content, we need to extend
-                            // AddBatchPreparedStatement to support it.
                             case TOOL -> new ToolResponseMessage(List.of());
                         };
                         return message;

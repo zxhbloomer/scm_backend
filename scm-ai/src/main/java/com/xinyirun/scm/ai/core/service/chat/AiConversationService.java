@@ -1,7 +1,5 @@
 package com.xinyirun.scm.ai.core.service.chat;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationEntity;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationVo;
@@ -49,6 +47,12 @@ public class AiConversationService {
     AiTokenUsageService aiTokenUsageService;
     @Resource
     private ExtAiConversationContentMapper extAiConversationContentMapper;
+    @Resource
+    private AiConversationContentRefEmbeddingService refEmbeddingService;
+    @Resource
+    private AiConversationContentRefGraphService refGraphService;
+    @Resource
+    private AiConversationPresetRelService presetRelService;
 
     /**
      * 获取默认系统提示词
@@ -175,12 +179,39 @@ public class AiConversationService {
     }
 
     public void delete(String conversationId, String userId) {
-        AiConversationEntity aiConversation = aiConversationMapper.selectById(conversationId);
-        aiConversationMapper.deleteById(conversationId);
+        log.info("开始删除对话，conversationId: {}, userId: {}", conversationId, userId);
 
-        QueryWrapper<AiConversationContentEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("conversation_id", conversationId);
-        aiConversationContentMapper.delete(wrapper);
+        // 1. 查询该对话下的所有消息ID列表
+        List<String> messageIds = aiConversationContentMapper.selectMessageIdsByConversationId(conversationId);
+
+        if (!messageIds.isEmpty()) {
+            // 过滤空白messageId
+            messageIds = messageIds.stream()
+                    .filter(StringUtils::isNotBlank)
+                    .collect(Collectors.toList());
+
+            if (!messageIds.isEmpty()) {
+                // 2. 删除向量引用记录
+                int embeddingCount = refEmbeddingService.deleteByMessageIds(messageIds);
+                log.info("删除对话向量引用，conversationId: {}, 数量: {}", conversationId, embeddingCount);
+
+                // 3. 删除图谱引用记录
+                int graphCount = refGraphService.deleteByMessageIds(messageIds);
+                log.info("删除对话图谱引用，conversationId: {}, 数量: {}", conversationId, graphCount);
+            }
+        }
+
+        // 4. 删除预设关系
+        int presetRelCount = presetRelService.deleteByConversationId(conversationId);
+        log.info("删除对话预设关系，conversationId: {}, 数量: {}", conversationId, presetRelCount);
+
+        // 5. 删除对话内容
+        int contentCount = aiConversationContentMapper.deleteByConversationId(conversationId);
+        log.info("删除对话内容，conversationId: {}, 数量: {}", conversationId, contentCount);
+
+        // 6. 删除对话记录
+        aiConversationMapper.deleteById(conversationId);
+        log.info("删除对话完成，conversationId: {}", conversationId);
     }
 
     /**
@@ -191,9 +222,7 @@ public class AiConversationService {
     public void clearConversationContent(String conversationId, String userId) {
         try {
             // 删除所有对话内容
-            QueryWrapper<AiConversationContentEntity> deleteWrapper = new QueryWrapper<>();
-            deleteWrapper.eq("conversation_id", conversationId);
-            int deletedCount = aiConversationContentMapper.delete(deleteWrapper);
+            int deletedCount = aiConversationContentMapper.deleteByConversationId(conversationId);
 
             // 记录操作日志
             log.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, deletedCount);
@@ -205,10 +234,7 @@ public class AiConversationService {
     }
 
     public List<AiConversationVo> list(String userId) {
-        QueryWrapper<AiConversationEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("c_id", Long.valueOf(userId)); // 使用c_id字段查询创建人
-        wrapper.orderByDesc("c_time");
-        List<AiConversationEntity> entities = aiConversationMapper.selectList(wrapper);
+        List<AiConversationEntity> entities = aiConversationMapper.selectByUserId(Long.valueOf(userId));
         return entities.stream().map(entity -> {
             AiConversationVo vo = new AiConversationVo();
             BeanUtils.copyProperties(entity, vo);
@@ -273,15 +299,7 @@ public class AiConversationService {
     }
 
     public List<AiConversationContentVo> chatList(String conversationId, String userId) {
-        QueryWrapper<AiConversationContentEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("conversation_id", conversationId);
-        wrapper.orderByAsc("c_time");
-        List<AiConversationContentEntity> entities = aiConversationContentMapper.selectList(wrapper);
-        return entities.stream().map(entity -> {
-            AiConversationContentVo vo = new AiConversationContentVo();
-            BeanUtils.copyProperties(entity, vo);
-            return vo;
-        }).collect(Collectors.toList());
+        return extAiConversationContentMapper.selectByConversationId(conversationId);
     }
 
     public AiConversationVo update(AIConversationUpdateRequestVo request, String userId) {

@@ -3,6 +3,7 @@ package com.xinyirun.scm.ai.core.service.chat;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
+import com.xinyirun.scm.ai.bean.vo.rag.GraphSearchResultVo;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.bean.clickhouse.vo.ai.SLogAiChatVo;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
@@ -15,9 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +41,12 @@ public class AiConversationContentService {
 
     @Autowired
     private LogAiChatProducer logAiChatProducer;
+
+    @Resource
+    private AiConversationContentRefEmbeddingService refEmbeddingService;
+
+    @Resource
+    private AiConversationContentRefGraphService refGraphService;
 
     /**
      * 保存对话内容（包含模型信息）
@@ -155,6 +164,88 @@ public class AiConversationContentService {
         } catch (Exception e) {
             log.error("删除对话历史记录失败, conversation_id: {}", conversationId, e);
             throw new RuntimeException("删除对话历史记录失败", e);
+        }
+    }
+
+    /**
+     * 保存对话内容（包含模型信息和RAG引用记录）
+     *
+     * <p>用于RAG场景下保存对话内容及其引用的知识库片段和图谱实体。</p>
+     * <p>保存流程：</p>
+     * <ol>
+     *   <li>调用saveConversationContent()保存基础对话内容到MySQL</li>
+     *   <li>使用返回的messageId保存向量检索引用（ai_conversation_content_ref_embedding）</li>
+     *   <li>保存图谱检索引用（ai_conversation_content_ref_graph）</li>
+     * </ol>
+     *
+     * @param conversationId 对话ID
+     * @param type 内容类型（USER/ASSISTANT）
+     * @param content 内容
+     * @param modelSourceId 模型源ID
+     * @param providerName AI提供商名称
+     * @param baseName 基础模型名称
+     * @param operatorId 操作员ID
+     * @param embeddingScores 向量检索结果Map（embeddingId -> score），可为null
+     * @param kbId 知识库ID，用于图谱引用
+     * @param entitiesFromQuestion 从问题中提取的实体JSON
+     * @param graphFromStore 从图数据库检索的图谱JSON
+     * @param entityCount 实体数量
+     * @param relationCount 关系数量
+     * @return 保存的对话内容VO
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AiConversationContentVo saveConversationContentWithReferences(
+            String conversationId, String type, String content,
+            String modelSourceId, String providerName, String baseName, Long operatorId,
+            Map<String, Double> embeddingScores,
+            String kbId, String entitiesFromQuestion, String graphFromStore,
+            Integer entityCount, Integer relationCount) {
+
+        try {
+            // 1. 保存基础对话内容
+            AiConversationContentVo savedContent = saveConversationContent(
+                    conversationId, type, content, modelSourceId, providerName, baseName, operatorId);
+
+            if (savedContent == null || StringUtils.isBlank(savedContent.getMessage_id())) {
+                log.error("保存对话内容失败，无法保存引用记录");
+                return null;
+            }
+
+            String messageId = savedContent.getMessage_id();
+            log.info("对话内容已保存，messageId: {}, 开始保存引用记录", messageId);
+
+            // 2. 保存向量检索引用记录
+            if (!CollectionUtils.isEmpty(embeddingScores)) {
+                int embeddingCount = refEmbeddingService.saveRefEmbeddings(
+                        messageId, embeddingScores, operatorId);
+                log.info("保存对话向量引用成功，messageId: {}, 数量: {}", messageId, embeddingCount);
+            } else {
+                log.debug("向量检索结果为空，跳过保存向量引用，messageId: {}", messageId);
+            }
+
+            // 3. 保存图谱检索引用记录
+            if (StringUtils.isNotBlank(kbId) && StringUtils.isNotBlank(graphFromStore)) {
+                Long graphRefId = refGraphService.saveRefGraph(
+                        messageId, kbId, entitiesFromQuestion, graphFromStore,
+                        entityCount, relationCount, operatorId);
+
+                if (graphRefId != null) {
+                    log.info("保存对话图谱引用成功，messageId: {}, refId: {}, 实体数: {}, 关系数: {}",
+                            messageId, graphRefId, entityCount, relationCount);
+                } else {
+                    log.warn("保存对话图谱引用失败，messageId: {}", messageId);
+                }
+            } else {
+                log.debug("图谱检索结果为空，跳过保存图谱引用，messageId: {}", messageId);
+            }
+
+            log.info("对话内容及引用记录保存完成，messageId: {}", messageId);
+            return savedContent;
+
+        } catch (Exception e) {
+            log.error("保存对话内容及引用记录失败, conversationId: {}, provider: {}, model: {}",
+                    conversationId, providerName, baseName, e);
+            throw new RuntimeException("保存对话内容及引用记录失败", e);
         }
     }
 

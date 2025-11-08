@@ -9,7 +9,6 @@ import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowRuntimeMapper;
-import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.workflow.WfState;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.common.utils.UuidUtil;
@@ -45,7 +44,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
     private AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
 
     @Resource
-    private AiConversationContentService conversationContentService;
+    private AiWorkflowConversationContentService workflowConversationContentService;
 
     /**
      * 创建工作流运行实例
@@ -368,7 +367,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
 
         // 2. 级联删除对话历史（隐私保护）
         if (StringUtils.isNotBlank(conversationId)) {
-            int conversationCount = conversationContentService.deleteByConversationId(conversationId);
+            int conversationCount = workflowConversationContentService.deleteByConversationId(conversationId);
             log.info("删除对话历史: conversation_id={}, count={}", conversationId, conversationCount);
         }
 
