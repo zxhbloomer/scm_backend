@@ -2,7 +2,6 @@ package com.xinyirun.scm.ai.config.adapter;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
-import com.xinyirun.scm.ai.common.constant.AICommonConstants;
 import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.config.AiConfiguration;
 import lombok.Data;

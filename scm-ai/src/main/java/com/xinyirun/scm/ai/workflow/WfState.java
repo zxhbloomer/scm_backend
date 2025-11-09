@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
@@ -200,5 +201,21 @@ public class WfState {
      */
     public void addToExecutionStack(String workflowUuid) {
         this.executionStack.add(workflowUuid);
+    }
+
+    /**
+     * 获取输出数据的JSON字符串表示
+     * 用于子工作流返回输出结果
+     *
+     * @return JSON格式的输出数据
+     */
+    public String getOutputAsJsonString() {
+        JSONObject outputNode = new JSONObject();
+        if (this.output != null) {
+            for (NodeIOData data : this.output) {
+                outputNode.put(data.getName(), data.getContent());
+            }
+        }
+        return outputNode.toJSONString();
     }
 }

@@ -33,13 +33,28 @@ public class StartNode extends AbstractWfNode {
     @Override
     protected NodeProcessResult onProcess() {
         StartNodeConfig nodeConfig = checkAndGetConfig(StartNodeConfig.class);
+
+        // 日志：开始节点的输入参数
+        log.debug("开始节点执行 - nodeTitle: {}, nodeUuid: {}, inputs数量: {}",
+                node.getTitle(), node.getUuid(), state.getInputs().size());
+        for (int i = 0; i < state.getInputs().size(); i++) {
+            NodeIOData input = state.getInputs().get(i);
+            log.debug("  开始节点输入参数#{} - name: {}, type: {}, value: {}",
+                    i + 1,
+                    input.getName(),
+                    input.getContent().getType(),
+                    input.getContent().getValue());
+        }
+
         List<NodeIOData> result;
 
         // 如果配置了开场白,则使用开场白作为输出
         if (StringUtils.isNotBlank(nodeConfig.getPrologue())) {
+            log.debug("开始节点使用开场白作为输出: {}", nodeConfig.getPrologue());
             result = List.of(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "default", nodeConfig.getPrologue()));
         } else {
             // 否则使用标准工具类方法转换输入为输出
+            log.debug("开始节点直接传递输入参数作为输出");
             result = WfNodeIODataUtil.changeInputsToOutputs(state.getInputs());
         }
 

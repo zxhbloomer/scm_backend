@@ -71,18 +71,33 @@ public class AiChatMemoryConfig {
     /**
      * Workflow领域专属ChatClient
      *
-     * 为Workflow领域提供独立的ChatClient实例
-     * 注意：不在此处配置defaultAdvisors，而是在运行时动态添加advisor和conversationId参数
+     * 为Workflow领域提供独立的ChatClient实例，配置默认Advisors：
+     * - workflowMessageChatMemoryAdvisor: 读取历史对话（通过conversationId）
+     * - workflowConversationAdvisor: 保存新对话（通过runtime_uuid参数）
+     *
+     * 运行时需要通过advisors()传递参数：
+     * - ChatMemory.CONVERSATION_ID: 对话ID
+     * - WorkflowConversationAdvisor.RUNTIME_UUID: 运行时UUID
      *
      * 使用@Lazy延迟初始化，避免启动时因租户上下文未设置导致无法获取模型配置
      *
      * @param aiModelProvider AI模型提供者，用于获取ChatModel实例
+     * @param workflowMessageChatMemoryAdvisor Workflow对话历史读取Advisor
+     * @param workflowConversationAdvisor Workflow对话保存Advisor
      * @return 配置好的ChatClient实例
      */
     @Lazy
     @Bean("workflowDomainChatClient")
-    public ChatClient workflowDomainChatClient(AiModelProvider aiModelProvider) {
+    public ChatClient workflowDomainChatClient(
+            AiModelProvider aiModelProvider,
+            MessageChatMemoryAdvisor workflowMessageChatMemoryAdvisor,
+            WorkflowConversationAdvisor workflowConversationAdvisor) {
         ChatModel chatModel = aiModelProvider.getChatModel();
-        return ChatClient.builder(chatModel).build();
+        return ChatClient.builder(chatModel)
+                .defaultAdvisors(
+                    workflowMessageChatMemoryAdvisor,  // 读取历史对话
+                    workflowConversationAdvisor        // 保存新对话
+                )
+                .build();
     }
 }

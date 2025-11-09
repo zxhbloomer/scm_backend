@@ -19,16 +19,16 @@ import java.util.List;
 public interface AiWorkflowConversationContentMapper extends BaseMapper<AiWorkflowConversationContentEntity> {
 
     /**
-     * 根据对话ID物理删除对话历史记录
+     * 根据运行时UUID物理删除对话历史记录
      *
-     * @param conversationId 对话ID（格式：tenantCode::workflowUuid::userId）
+     * @param runtimeUuid 运行时UUID（关联 ai_workflow_runtime.runtime_uuid）
      * @return 删除的行数
      */
     @Delete("""
         DELETE FROM ai_workflow_conversation_content
-        WHERE conversation_id = #{conversationId}
+        WHERE runtime_uuid = #{runtimeUuid}
         """)
-    int deleteByConversationId(@Param("conversationId") String conversationId);
+    int deleteByRuntimeUuid(@Param("runtimeUuid") String runtimeUuid);
 
     /**
      * 根据对话ID查询所有消息ID列表

@@ -194,6 +194,18 @@ public class WorkflowController {
         String tenantCode = request.getHeader("X-Tenant-ID");
 
         return workflowStarter.streaming(wfUuid, inputs, tenantCode)
+                .onErrorResume(error -> {
+                    // 在Flux流中处理错误，防止异常传播到全局异常处理器导致SSE流中断
+                    log.error("工作流执行错误 - wfUuid: {}, tenantCode: {}", wfUuid, tenantCode, error);
+
+                    // 创建错误事件并返回给前端
+                    WorkflowEventVo errorEvent = new WorkflowEventVo();
+                    errorEvent.setEvent("error");
+                    errorEvent.setData("工作流执行失败: " + error.getMessage());
+
+                    // 返回错误事件流（确保ChatClientMessageAggregator能够完成）
+                    return Flux.just(errorEvent);
+                })
                 .map(event -> ServerSentEvent.<String>builder()
                         .event(event.getEvent())  // SSE的event:行
                         .data(event.getData())    // SSE的data:行

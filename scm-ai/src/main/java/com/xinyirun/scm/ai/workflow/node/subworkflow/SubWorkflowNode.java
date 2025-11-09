@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
 
+import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_INPUT_PARAM_NAME;
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
 
 /**
@@ -56,21 +57,30 @@ public class SubWorkflowNode extends AbstractWfNode {
             // 3. 映射输入参数
             Map<String, Object> subInputs = mapInputs(config);
 
+            // 日志：子工作流调用参数
+            log.debug("子工作流节点调用参数 - subWorkflowUuid: {}, subWorkflowName: {}, parentConversationId: {}, tenantCode: {}, userId: {}",
+                    subWorkflowUuid, config.getWorkflowName(), wfState.getConversationId(), wfState.getTenantCode(), wfState.getUserId());
+            log.debug("子工作流输入参数: {}", subInputs);
+
             // 4. 执行子工作流
             log.info("调用子工作流: {} ({})", config.getWorkflowName(), subWorkflowUuid);
 
             // 获取工作流启动器实例
             WorkflowStarter workflowStarter = SpringUtil.getBean(WorkflowStarter.class);
 
-            // 同步执行子工作流（传递父conversationId以继承对话上下文）
+            // 同步执行子工作流（传递父conversationId以继承对话上下文，传递父runtime_uuid避免创建新记录）
             Map<String, Object> subOutputs = workflowStarter.runSync(
                 subWorkflowUuid,
                 convertToInputList(subInputs),
                 wfState.getTenantCode(),
                 wfState.getUserId(),
                 wfState.getExecutionStack(),
-                wfState.getConversationId()
+                wfState.getConversationId(),
+                wfState.getUuid()  // 传递父runtime_uuid，子工作流将复用此UUID
             );
+
+            // 日志：子工作流执行结果
+            log.debug("子工作流执行完成 - subWorkflowUuid: {}, outputs: {}", subWorkflowUuid, subOutputs);
 
             // 5. 设置输出
             NodeIOData output = NodeIOData.createByText(
@@ -91,34 +101,41 @@ public class SubWorkflowNode extends AbstractWfNode {
     }
 
     /**
-     * 映射输入参数
+     * 映射输入参数（自动传递模式）
+     *
+     * 设计理念：
+     * 1. 父工作流开始节点的所有参数自动传递给子工作流
+     * 2. 上一节点的默认输出作为input参数传递
+     * 3. 不依赖手工配置的InputMapping
+     *
+     * 参数来源：
+     * - wfState.getInput(): 父工作流开始节点的参数（如var_user_input）
+     * - state.getInputs(): 当前节点（SubWorkflowNode）的输入（包含上一节点的输出）
      */
     private Map<String, Object> mapInputs(SubWorkflowNodeConfig config) {
-        List<NodeIOData> parentInputs = state.getInputs();
         Map<String, Object> subInputs = new HashMap<>();
 
-        // 将List<NodeIOData>转换为Map<String, Object>
-        for (NodeIOData input : parentInputs) {
-            subInputs.put(input.getName(), input.getContent().getValue());
+        // 第一步：传递父工作流开始节点的所有参数
+        if (wfState.getInput() != null && !wfState.getInput().isEmpty()) {
+            for (NodeIOData parentStartInput : wfState.getInput()) {
+                subInputs.put(parentStartInput.getName(), parentStartInput.getContent().getValue());
+            }
+            log.debug("传递父工作流开始节点参数: {}", subInputs);
         }
 
-        List<SubWorkflowNodeConfig.InputMapping> mappings = config.getInputMapping();
-        if (mappings != null && !mappings.isEmpty()) {
-            // 如果配置了映射，进行参数映射
-            Map<String, Object> mappedInputs = new HashMap<>();
-            for (SubWorkflowNodeConfig.InputMapping mapping : mappings) {
-                Object value = subInputs.get(mapping.getSourceKey());
-                if (value != null) {
-                    mappedInputs.put(mapping.getTargetKey(), value);
-                }
+        // 第二步：添加上一个节点的默认输出作为input参数
+        List<NodeIOData> currentNodeInputs = state.getInputs();
+        for (NodeIOData input : currentNodeInputs) {
+            // 查找默认输入参数（名为"input"的参数）
+            if (DEFAULT_INPUT_PARAM_NAME.equals(input.getName())) {
+                subInputs.put(DEFAULT_INPUT_PARAM_NAME, input.getContent().getValue());
+                log.debug("添加上一节点默认输出作为input参数: {}", input.getContent().getValue());
+                break;
             }
-            log.debug("子工作流输入参数映射: parent={}, sub={}", subInputs, mappedInputs);
-            return mappedInputs;
-        } else {
-            // 如果没有配置映射，直接传递所有输入
-            log.debug("子工作流直接传递输入参数: {}", subInputs);
-            return subInputs;
         }
+
+        log.info("子工作流最终输入参数: {}", subInputs);
+        return subInputs;
     }
 
     /**

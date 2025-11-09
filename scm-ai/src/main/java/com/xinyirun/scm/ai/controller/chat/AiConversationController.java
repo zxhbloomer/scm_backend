@@ -13,7 +13,7 @@ import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
-import com.xinyirun.scm.ai.common.constant.AICommonConstants;
+import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.mapper.client.user.MUserMapper;
@@ -187,7 +187,7 @@ public class AiConversationController {
                 // 持久化原始提示词（使用选中的模型信息）
                 aiConversationContentService.saveConversationContent(
                         request.getConversationId(),
-                        AICommonConstants.MESSAGE_TYPE_USER,
+                        AiMessageTypeConstant.MESSAGE_TYPE_USER,
                         request.getPrompt(),
                         selectedModel.getId().toString(),
                         selectedModel.getProvider(),
@@ -219,7 +219,7 @@ public class AiConversationController {
                                             // 保存完整回复内容（使用选中的模型信息）
                                             aiConversationContentService.saveConversationContent(
                                                     request.getConversationId(),
-                                                    AICommonConstants.MESSAGE_TYPE_ASSISTANT,
+                                                    AiMessageTypeConstant.MESSAGE_TYPE_ASSISTANT,
                                                     response.getContent(),
                                                     selectedModel.getId().toString(),
                                                     selectedModel.getProvider(),

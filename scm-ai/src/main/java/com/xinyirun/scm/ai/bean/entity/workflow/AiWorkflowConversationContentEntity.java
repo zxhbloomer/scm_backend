@@ -46,6 +46,14 @@ public class AiWorkflowConversationContentEntity implements Serializable {
     private String conversationId;
 
     /**
+     * 运行时UUID
+     * 关联 ai_workflow_runtime.runtime_uuid
+     * 用于实现运行时级别的对话记录隔离
+     */
+    @TableField("runtime_uuid")
+    private String runtimeUuid;
+
+    /**
      * 记录类型（USER, ASSISTANT, SYSTEM, TOOL）
      */
     @TableField("type")
@@ -79,13 +87,13 @@ public class AiWorkflowConversationContentEntity implements Serializable {
      * 创建时间
      */
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    private LocalDateTime createTime;
+    private LocalDateTime c_time;
 
     /**
      * 修改时间
      */
     @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
+    private LocalDateTime u_time;
 
     /**
      * 创建人id

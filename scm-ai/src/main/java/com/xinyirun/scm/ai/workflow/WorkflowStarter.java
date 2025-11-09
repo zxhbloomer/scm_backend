@@ -266,6 +266,8 @@ public class WorkflowStarter {
      * @param tenantCode 租户编码
      * @param userId 用户ID
      * @param parentExecutionStack 父工作流的执行栈
+     * @param parentConversationId 父工作流的conversationId
+     * @param parentRuntimeUuid 父工作流的runtime_uuid（用于子工作流复用，避免创建新runtime记录）
      * @return 工作流输出结果
      */
     public Map<String, Object> runSync(String workflowUuid,
@@ -273,7 +275,8 @@ public class WorkflowStarter {
                                        String tenantCode,
                                        Long userId,
                                        Set<String> parentExecutionStack,
-                                       String parentConversationId) {
+                                       String parentConversationId,
+                                       String parentRuntimeUuid) {
         try {
             // 切换到正确的数据源
             DataSourceHelper.use(tenantCode);
@@ -346,7 +349,7 @@ public class WorkflowStarter {
                     }
             );
 
-            // 创建工作流引擎（支持传入父执行栈）
+            // 创建工作流引擎（支持传入父执行栈和父runtime_uuid）
             WorkflowEngine workflowEngine = new WorkflowEngine(
                     workflow,
                     streamHandler,
@@ -354,7 +357,8 @@ public class WorkflowStarter {
                     nodes,
                     edges,
                     workflowRuntimeService,
-                    workflowRuntimeNodeService
+                    workflowRuntimeNodeService,
+                    parentRuntimeUuid  // 传递父runtime_uuid，子工作流将复用此UUID
             );
 
             // 同步执行工作流（传递父conversationId）

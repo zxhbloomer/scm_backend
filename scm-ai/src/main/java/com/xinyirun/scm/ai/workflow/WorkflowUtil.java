@@ -4,6 +4,7 @@ import cn.hutool.extra.spring.SpringUtil;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
+import com.xinyirun.scm.ai.config.memory.ScmWorkflowMessageChatMemory;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
@@ -118,8 +119,14 @@ public class WorkflowUtil {
     public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
                                            String modelName, String prompt) {
         String conversationId = wfState.getConversationId();
-        log.info("invoke LLM (streaming), modelName: {}, conversationId: {}, prompt length: {}",
-                modelName, conversationId, StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
+
+        // 提取原始用户输入（用于对话记录，而不是渲染后的prompt）
+        String originalUserInput = extractOriginalUserInput(wfState);
+
+        log.info("invoke LLM (streaming), modelName: {}, conversationId: {}, originalUserInput length: {}, prompt length: {}",
+                modelName, conversationId,
+                originalUserInput != null ? originalUserInput.length() : 0,
+                StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
 
         try {
             AIChatRequestVo request = new AIChatRequestVo();
@@ -164,12 +171,16 @@ public class WorkflowUtil {
                         .blockLast();
             } else {
                 // 有记忆模式 - 使用 chatWithWorkflowMemoryStream()
-                // MessageChatMemoryAdvisor会自动调用ChatMemory.add()保存USER消息
+                // WorkflowConversationAdvisor会通过参数传递runtime_uuid保存对话记录
 
                 // 设置 conversationId 并调用 LLM（使用Workflow专用方法）
                 chatOption.setConversationId(conversationId);
+                String runtimeUuid = wfState.getUuid();
 
-                aiChatBaseService.chatWithWorkflowMemoryStream(chatOption)
+                log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}",
+                        conversationId, runtimeUuid, originalUserInput);
+
+                aiChatBaseService.chatWithWorkflowMemoryStream(chatOption, runtimeUuid, originalUserInput)
                         .chatResponse()
                         .doOnNext(chatResponse -> {
                             // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
@@ -189,7 +200,7 @@ public class WorkflowUtil {
                         })
                         .blockLast();
 
-                // MessageChatMemoryAdvisor会自动调用ChatMemory.add()保存ASSISTANT消息
+                log.info("LLM 调用完成 - conversationId: {}, runtimeUuid: {}", conversationId, runtimeUuid);
             }
 
             String response = fullResponse.toString();
@@ -206,6 +217,33 @@ public class WorkflowUtil {
             log.error("invoke LLM (streaming) failed, conversationId: {}", conversationId, e);
             throw new RuntimeException("LLM 流式调用失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 提取原始用户输入
+     *
+     * 从工作流初始输入中提取var_user_input参数的值。
+     * 这是用户在开始节点输入的原始内容，用于保存到对话历史记录中。
+     *
+     * @param wfState 工作流状态对象
+     * @return 原始用户输入字符串，如果未找到则返回null
+     */
+    private static String extractOriginalUserInput(WfState wfState) {
+        if (wfState == null || wfState.getInput() == null) {
+            return null;
+        }
+
+        // 从工作流初始输入中查找var_user_input参数
+        for (NodeIOData input : wfState.getInput()) {
+            if ("var_user_input".equals(input.getName())) {
+                String value = input.valueToString();
+                log.debug("提取原始用户输入: {}", value);
+                return value;
+            }
+        }
+
+        log.debug("未找到var_user_input参数");
+        return null;
     }
 
     // 注意：USER和ASSISTANT消息的保存已由MessageChatMemoryAdvisor自动管理

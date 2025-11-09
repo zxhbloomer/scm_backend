@@ -37,6 +37,7 @@ public class AiWorkflowConversationContentService {
      * @param conversationId 对话ID（格式：tenantCode::workflowUuid::userId）
      * @param type 内容类型（USER, ASSISTANT, SYSTEM, TOOL）
      * @param content 消息内容
+     * @param runtimeUuid 运行时UUID（关联 ai_workflow_runtime.runtime_uuid）
      * @param modelSourceId 模型源ID
      * @param providerName AI提供商名称
      * @param baseName 基础模型名称
@@ -45,11 +46,13 @@ public class AiWorkflowConversationContentService {
      */
     @Transactional(rollbackFor = Exception.class)
     public AiWorkflowConversationContentVo saveMessage(String conversationId, String type, String content,
-                                                       String modelSourceId, String providerName, String baseName, Long operatorId) {
+                                                       String runtimeUuid, String modelSourceId, String providerName,
+                                                       String baseName, Long operatorId) {
         try {
             AiWorkflowConversationContentEntity entity = new AiWorkflowConversationContentEntity();
             entity.setMessageId(UuidUtil.createShort());
             entity.setConversationId(conversationId);
+            entity.setRuntimeUuid(runtimeUuid);
             entity.setType(type);
             entity.setContent(StringUtils.isNotBlank(content) ? content.trim() : content);
             entity.setModelSourceId(modelSourceId);
@@ -59,8 +62,8 @@ public class AiWorkflowConversationContentService {
             int result = workflowConversationContentMapper.insert(entity);
 
             if (result > 0) {
-                log.info("保存工作流对话消息成功, conversationId: {}, type: {}, provider: {}, model: {}",
-                        conversationId, type, providerName, baseName);
+                log.info("保存工作流对话消息成功, conversationId: {}, runtime_uuid: {}, type: {}, provider: {}, model: {}",
+                        conversationId, runtimeUuid, type, providerName, baseName);
 
                 AiWorkflowConversationContentVo vo = new AiWorkflowConversationContentVo();
                 BeanUtils.copyProperties(entity, vo);
@@ -69,26 +72,26 @@ public class AiWorkflowConversationContentService {
 
             return null;
         } catch (Exception e) {
-            log.error("保存工作流对话消息失败, conversationId: {}, provider: {}, model: {}",
-                    conversationId, providerName, baseName, e);
+            log.error("保存工作流对话消息失败, conversationId: {}, runtime_uuid: {}, provider: {}, model: {}",
+                    conversationId, runtimeUuid, providerName, baseName, e);
             throw new RuntimeException("保存工作流对话消息失败", e);
         }
     }
 
     /**
-     * 根据对话ID删除对话历史记录
+     * 根据运行时UUID删除对话历史记录
      *
-     * @param conversationId 对话ID（格式：tenantCode::workflowUuid::userId）
+     * @param runtimeUuid 运行时UUID（关联 ai_workflow_runtime.runtime_uuid）
      * @return 删除的记录数
      */
     @Transactional(rollbackFor = Exception.class)
-    public int deleteByConversationId(String conversationId) {
+    public int deleteByRuntimeUuid(String runtimeUuid) {
         try {
-            int count = workflowConversationContentMapper.deleteByConversationId(conversationId);
-            log.info("删除工作流对话历史记录成功, conversation_id: {}, 删除数量: {}", conversationId, count);
+            int count = workflowConversationContentMapper.deleteByRuntimeUuid(runtimeUuid);
+            log.info("删除工作流对话历史记录成功, runtime_uuid: {}, 删除数量: {}", runtimeUuid, count);
             return count;
         } catch (Exception e) {
-            log.error("删除工作流对话历史记录失败, conversation_id: {}", conversationId, e);
+            log.error("删除工作流对话历史记录失败, runtime_uuid: {}", runtimeUuid, e);
             throw new RuntimeException("删除工作流对话历史记录失败", e);
         }
     }

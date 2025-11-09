@@ -5,6 +5,7 @@ import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
+import com.xinyirun.scm.ai.config.memory.WorkflowConversationAdvisor;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.bean.clickhouse.vo.ai.SLogAiChatVo;
@@ -186,28 +187,38 @@ public class AiChatBaseService {
      *
      * 从ai_workflow_conversation_content表获取历史对话上下文，实现多轮对话记忆
      *
-     * 使用预配置workflowMessageChatMemoryAdvisor的workflowDomainChatClient，
-     * 运行时只需设置conversationId参数
+     * 使用预配置defaultAdvisors的workflowDomainChatClient：
+     * - workflowMessageChatMemoryAdvisor: 读取历史对话
+     * - workflowConversationAdvisor: 保存新对话（需要runtime_uuid和originalUserInput参数）
      *
      * @param aiChatOption 聊天选项对象，包含模型配置、提示词、conversationId等
+     * @param runtimeUuid 运行时UUID，用于隔离不同运行实例的对话记录
+     * @param originalUserInput 原始用户输入（用于对话记录，而不是渲染后的prompt）
      * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
      */
-    public ChatClient.StreamResponseSpec chatWithWorkflowMemoryStream(AIChatOptionVo aiChatOption) {
+    public ChatClient.StreamResponseSpec chatWithWorkflowMemoryStream(AIChatOptionVo aiChatOption, String runtimeUuid, String originalUserInput) {
         // Workflow领域专用，conversationId已包含租户信息，直接使用即可
-        log.info("🚀 [Workflow Memory] 调用chatWithWorkflowMemoryStream - conversationId: {}, prompt长度: {}, 是否有system: {}",
+        log.info("🚀 [Workflow Memory] 调用chatWithWorkflowMemoryStream - conversationId: {}, runtimeUuid: {}, originalUserInput长度: {}, prompt长度: {}, 是否有system: {}",
                 aiChatOption.getConversationId(),
+                runtimeUuid,
+                originalUserInput != null ? originalUserInput.length() : 0,
                 aiChatOption.getPrompt() != null ? aiChatOption.getPrompt().length() : 0,
                 StringUtils.isNotBlank(aiChatOption.getSystem()));
 
-        // 运行时同时传递advisor实例和conversationId参数
+        // 运行时传递conversationId、runtimeUuid和originalUserInput参数给Advisors
+        // 注意：不再重复添加advisor，因为已在workflowDomainChatClient中配置为defaultAdvisors
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
             return workflowDomainChatClient
                     .prompt()
                     .system(aiChatOption.getSystem())
                     .user(aiChatOption.getPrompt())
                     .advisors(a -> {
-                        a.advisors(workflowMessageChatMemoryAdvisor);
                         a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
+                        a.param(WorkflowConversationAdvisor.RUNTIME_UUID, runtimeUuid);
+                        // 传递原始用户输入（用于对话记录，而不是渲染后的prompt）
+                        if (StringUtils.isNotBlank(originalUserInput)) {
+                            a.param(WorkflowConversationAdvisor.ORIGINAL_USER_INPUT, originalUserInput);
+                        }
                     })
                     .stream();
         }
@@ -215,8 +226,12 @@ public class AiChatBaseService {
                 .prompt()
                 .user(aiChatOption.getPrompt())
                 .advisors(a -> {
-                    a.advisors(workflowMessageChatMemoryAdvisor);
                     a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
+                    a.param(WorkflowConversationAdvisor.RUNTIME_UUID, runtimeUuid);
+                    // 传递原始用户输入（用于对话记录，而不是渲染后的prompt）
+                    if (StringUtils.isNotBlank(originalUserInput)) {
+                        a.param(WorkflowConversationAdvisor.ORIGINAL_USER_INPUT, originalUserInput);
+                    }
                 })
                 .stream();
     }

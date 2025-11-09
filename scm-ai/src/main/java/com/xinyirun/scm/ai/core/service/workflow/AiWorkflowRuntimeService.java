@@ -359,17 +359,14 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         }
 
         Long runtimeId = runtime.getId();
-        String conversationId = runtime.getConversationId();
 
         // 1. 级联删除运行节点记录
         int nodeCount = workflowRuntimeNodeService.deleteByRuntimeId(runtimeId);
         log.info("删除运行节点记录: runtime_id={}, count={}", runtimeId, nodeCount);
 
-        // 2. 级联删除对话历史（隐私保护）
-        if (StringUtils.isNotBlank(conversationId)) {
-            int conversationCount = workflowConversationContentService.deleteByConversationId(conversationId);
-            log.info("删除对话历史: conversation_id={}, count={}", conversationId, conversationCount);
-        }
+        // 2. 级联删除对话历史（使用 runtime_uuid 精准删除）
+        int conversationCount = workflowConversationContentService.deleteByRuntimeUuid(runtimeUuid);
+        log.info("删除对话历史: runtime_uuid={}, count={}", runtimeUuid, conversationCount);
 
         // 3. 物理删除主记录
         int result = aiWorkflowRuntimeMapper.deleteById(runtimeId);
