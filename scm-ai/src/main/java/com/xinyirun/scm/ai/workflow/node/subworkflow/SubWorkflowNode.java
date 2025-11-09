@@ -68,7 +68,7 @@ public class SubWorkflowNode extends AbstractWfNode {
             // 获取工作流启动器实例
             WorkflowStarter workflowStarter = SpringUtil.getBean(WorkflowStarter.class);
 
-            // 同步执行子工作流（传递父conversationId以继承对话上下文，传递父runtime_uuid避免创建新记录）
+            // 同步执行子工作流（传递父conversationId以继承对话上下文，传递父runtime_uuid避免创建新记录，传递父StreamHandler以转发流式事件）
             Map<String, Object> subOutputs = workflowStarter.runSync(
                 subWorkflowUuid,
                 convertToInputList(subInputs),
@@ -76,17 +76,34 @@ public class SubWorkflowNode extends AbstractWfNode {
                 wfState.getUserId(),
                 wfState.getExecutionStack(),
                 wfState.getConversationId(),
-                wfState.getUuid()  // 传递父runtime_uuid，子工作流将复用此UUID
+                wfState.getUuid(),  // 传递父runtime_uuid，子工作流将复用此UUID
+                wfState.getStreamHandler()  // 传递父StreamHandler，子工作流的流式事件将实时转发到前端
             );
 
             // 日志：子工作流执行结果
             log.debug("子工作流执行完成 - subWorkflowUuid: {}, outputs: {}", subWorkflowUuid, subOutputs);
 
-            // 5. 设置输出
+            // 5. 从子工作流输出中提取实际内容
+            // 子工作流返回格式: {output={title="",type=1,value="实际回答内容"}}
+            // 需要提取output.value的值，而不是整个Map的JSON字符串
+            String outputValue = "";
+            Object outputObj = subOutputs.get(DEFAULT_OUTPUT_PARAM_NAME);
+            if (outputObj instanceof Map) {
+                Map<?, ?> outputMap = (Map<?, ?>) outputObj;
+                Object valueObj = outputMap.get("value");
+                if (valueObj != null) {
+                    outputValue = valueObj.toString();
+                }
+                log.debug("从子工作流输出中提取实际内容: {}", outputValue.length() > 100 ? outputValue.substring(0, 100) + "..." : outputValue);
+            } else {
+                log.warn("子工作流输出格式异常，预期output是Map类型，实际: {}", outputObj != null ? outputObj.getClass().getName() : "null");
+            }
+
+            // 6. 设置输出
             NodeIOData output = NodeIOData.createByText(
                 DEFAULT_OUTPUT_PARAM_NAME,
                 "",
-                JSON.toJSONString(subOutputs)
+                outputValue
             );
 
             log.info("子工作流节点执行完成: {}", node.getTitle());

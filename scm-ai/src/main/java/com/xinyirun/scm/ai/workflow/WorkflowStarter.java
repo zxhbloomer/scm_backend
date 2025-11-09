@@ -268,6 +268,7 @@ public class WorkflowStarter {
      * @param parentExecutionStack 父工作流的执行栈
      * @param parentConversationId 父工作流的conversationId
      * @param parentRuntimeUuid 父工作流的runtime_uuid（用于子工作流复用，避免创建新runtime记录）
+     * @param parentStreamHandler 父工作流的StreamHandler（用于转发子工作流的流式事件）
      * @return 工作流输出结果
      */
     public Map<String, Object> runSync(String workflowUuid,
@@ -276,7 +277,8 @@ public class WorkflowStarter {
                                        Long userId,
                                        Set<String> parentExecutionStack,
                                        String parentConversationId,
-                                       String parentRuntimeUuid) {
+                                       String parentRuntimeUuid,
+                                       WorkflowStreamHandler parentStreamHandler) {
         try {
             // 切换到正确的数据源
             DataSourceHelper.use(tenantCode);
@@ -296,7 +298,7 @@ public class WorkflowStarter {
             List<AiWorkflowNodeVo> nodes = workflowNodeService.listByWorkflowId(workflow.getId());
             List<AiWorkflowEdgeEntity> edges = workflowEdgeService.listByWorkflowId(workflow.getId());
 
-            // 创建一个简单的StreamHandler用于收集结果（不发送SSE事件）
+            // 创建一个StreamHandler用于收集结果并转发流式事件到父工作流
             final Map<String, Object> result = new ConcurrentHashMap<>();
             final AtomicReference<Throwable> errorRef = new AtomicReference<>();
 
@@ -309,22 +311,34 @@ public class WorkflowStarter {
 
                         @Override
                         public void onNodeRun(String nodeUuid, String nodeData) {
-                            // 子工作流不需要发送node run事件
+                            // 转发子工作流的node run事件到父工作流
+                            if (parentStreamHandler != null) {
+                                parentStreamHandler.sendNodeRun(nodeUuid, nodeData);
+                            }
                         }
 
                         @Override
                         public void onNodeInput(String nodeUuid, String inputData) {
-                            // 子工作流不需要发送node input事件
+                            // 转发子工作流的node input事件到父工作流
+                            if (parentStreamHandler != null) {
+                                parentStreamHandler.sendNodeInput(nodeUuid, inputData);
+                            }
                         }
 
                         @Override
                         public void onNodeOutput(String nodeUuid, String outputData) {
-                            // 子工作流不需要发送node output事件
+                            // 转发子工作流的node output事件到父工作流
+                            if (parentStreamHandler != null) {
+                                parentStreamHandler.sendNodeOutput(nodeUuid, outputData);
+                            }
                         }
 
                         @Override
                         public void onNodeChunk(String nodeUuid, String chunk) {
-                            // 子工作流不需要发送node chunk事件
+                            // 转发子工作流的chunk事件到父工作流，实现流式输出
+                            if (parentStreamHandler != null) {
+                                parentStreamHandler.sendNodeChunk(nodeUuid, chunk);
+                            }
                         }
 
                         @Override
