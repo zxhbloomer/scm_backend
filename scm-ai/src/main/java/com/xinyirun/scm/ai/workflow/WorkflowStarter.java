@@ -230,6 +230,18 @@ public class WorkflowStarter {
             // 主工作流执行：传递 null 让系统自动生成新的 conversationId
             workflowEngine.run(userId, userInputs, tenantCode, null);
 
+            // 工作流运行成功后,自动更新测试时间
+            // 注意: 只有在WORKFLOW_TEST模式下才更新测试时间
+            if (callSource == WorkflowCallSource.WORKFLOW_TEST) {
+                try {
+                    workflowService.updateTestTime(workflowUuid);
+                    log.info("工作流测试运行成功,已更新测试时间: workflowUuid={}", workflowUuid);
+                } catch (Exception testTimeException) {
+                    // 更新测试时间失败不影响工作流执行结果
+                    log.error("更新测试时间失败: workflowUuid={}", workflowUuid, testTimeException);
+                }
+            }
+
         } catch (Exception e) {
             log.error("工作流执行异常: workflowUuid={}, userId={}, executionId={}",
                     workflowUuid, userId, executionId, e);

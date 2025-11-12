@@ -6,14 +6,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowRuntimeEntity;
-import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
-import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
+import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
-import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowRuntimeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowService;
 import com.xinyirun.scm.ai.workflow.WorkflowStarter;
 import com.xinyirun.scm.ai.workflow.node.switcher.OperatorEnum;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
@@ -31,7 +32,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
@@ -435,5 +435,71 @@ public class WorkflowController {
         }
 
         return ResponseEntity.ok().body(ResultUtil.OK(result));
+    }
+
+    // ==================== 工作流生命周期管理接口 (2025-11-12) ====================
+
+    /**
+     * 发布工作流
+     *
+     * 功能: 设置工作流为已发布状态 (is_enable = true)
+     *
+     * 发布前校验:
+     * 1. lastTestTime != null (必须先测试)
+     * 2. lastTestTime > uTime (测试时间必须在最后修改时间之后)
+     *
+     * @param uuid 工作流UUID
+     * @return 发布结果
+     */
+    @Operation(summary = "发布工作流")
+    @PostMapping("/publish/{uuid}")
+    @SysLogAnnotion("发布工作流")
+    public ResponseEntity<JsonResultAo<Map<String, Object>>> publishWorkflow(@PathVariable String uuid) {
+        log.info("发布工作流,workflowUuid:{}", uuid);
+
+        try {
+            // 调用Service发布工作流(内部会校验测试时间)
+            workflowService.publishWorkflow(uuid);
+
+            Map<String, Object> result = Map.of(
+                "success", true,
+                "message", "发布成功"
+            );
+
+            return ResponseEntity.ok().body(ResultUtil.OK(result));
+        } catch (Exception e) {
+            log.error("发布工作流失败,workflowUuid:{}", uuid, e);
+            throw new AiBusinessException("发布工作流失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 取消发布工作流
+     *
+     * 功能: 设置工作流为草稿状态 (is_enable = false)
+     *
+     * @param uuid 工作流UUID
+     * @return 取消发布结果
+     */
+    @Operation(summary = "取消发布工作流")
+    @PostMapping("/unpublish/{uuid}")
+    @SysLogAnnotion("取消发布工作流")
+    public ResponseEntity<JsonResultAo<Map<String, Object>>> unpublishWorkflow(@PathVariable String uuid) {
+        log.info("取消发布工作流,workflowUuid:{}", uuid);
+
+        try {
+            // 调用Service取消发布
+            workflowService.unpublishWorkflow(uuid);
+
+            Map<String, Object> result = Map.of(
+                "success", true,
+                "message", "已取消发布"
+            );
+
+            return ResponseEntity.ok().body(ResultUtil.OK(result));
+        } catch (Exception e) {
+            log.error("取消发布工作流失败,workflowUuid:{}", uuid, e);
+            throw new AiBusinessException("取消发布工作流失败: " + e.getMessage());
+        }
     }
 }
