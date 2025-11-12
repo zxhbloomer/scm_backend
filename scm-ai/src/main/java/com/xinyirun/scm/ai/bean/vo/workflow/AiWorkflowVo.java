@@ -36,6 +36,36 @@ public class AiWorkflowVo {
     private String remark;
 
     /**
+     * 工作流详细描述(供LLM路由使用)
+     * 对应数据库字段: desc
+     */
+    private String desc;
+
+    /**
+     * 关键词(逗号分隔)
+     * 对应数据库字段: keywords
+     */
+    private String keywords;
+
+    /**
+     * 工作流分类(字典值)
+     * 对应数据库字段: category
+     */
+    private String category;
+
+    /**
+     * 工作流分类名称(从字典表关联查询)
+     * 对应数据库: s_dict_data.label
+     */
+    private String categoryName;
+
+    /**
+     * 优先级
+     * 对应数据库字段: priority
+     */
+    private Integer priority;
+
+    /**
      * 是否公开(false-否,true-是)
      */
     private Boolean isPublic;

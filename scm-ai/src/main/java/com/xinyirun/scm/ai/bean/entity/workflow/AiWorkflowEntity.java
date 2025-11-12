@@ -105,4 +105,47 @@ public class AiWorkflowEntity implements Serializable {
     @Version
     @TableField("dbversion")
     private Integer dbversion;
+
+    // ==================== 智能路由新增字段 (2025-11-10) ====================
+
+    /**
+     * 详细描述,供LLM理解适用场景
+     * 示例: "专门处理供应链管理相关问题,包括订单查询、库存管理等。
+     *       适用场景: 用户询问具体的SCM业务操作或数据查询。
+     *       不适用: 通用知识问答、闲聊。"
+     * 数据库字段: desc (MySQL保留关键字,需反引号)
+     */
+    @TableField("`desc`")
+    private String desc;
+
+    /**
+     * 关键词,逗号分隔
+     * 示例: "订单,采购,库存,入库,出库"
+     * 用于Layer 2关键词快速匹配
+     */
+    @TableField("keywords")
+    private String keywords;
+
+    /**
+     * 工作流分类(字典值: ai_workflow_category)
+     * 取值: 0=业务处理, 1=知识问答, 2=通用对话
+     *
+     * 注意: 仅用于前端UI筛选,不参与路由逻辑
+     */
+    @TableField("category")
+    private String category;
+
+    /**
+     * 优先级 (0-100)
+     * 数值越高,路由匹配时越优先
+     */
+    @TableField("priority")
+    private Integer priority;
+
+    /**
+     * 最后测试运行时间
+     * 用于判断是否可发布 (测试时间 > 更新时间)
+     */
+    @TableField("last_test_time")
+    private LocalDateTime lastTestTime;
 }
