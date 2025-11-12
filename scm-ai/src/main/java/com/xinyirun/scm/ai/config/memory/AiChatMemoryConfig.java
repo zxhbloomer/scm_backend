@@ -100,4 +100,25 @@ public class AiChatMemoryConfig {
                 )
                 .build();
     }
+
+    /**
+     * 工作流路由专用ChatClient
+     *
+     * <p>用于LLM智能路由的专用ChatClient，配置为：</p>
+     * <ul>
+     *   <li>无历史记忆: 路由决策基于当前输入，不需要上下文</li>
+     *   <li>无特殊参数: 使用默认模型配置</li>
+     * </ul>
+     *
+     * 使用@Lazy延迟初始化，避免启动时因租户上下文未设置导致无法获取模型配置
+     *
+     * @param aiModelProvider AI模型提供者，用于获取ChatModel实例
+     * @return 配置好的ChatClient实例
+     */
+    @Lazy
+    @Bean("workflowRoutingChatClient")
+    public ChatClient workflowRoutingChatClient(AiModelProvider aiModelProvider) {
+        ChatModel chatModel = aiModelProvider.getChatModel();
+        return ChatClient.builder(chatModel).build();
+    }
 }

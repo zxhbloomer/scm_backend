@@ -6,6 +6,7 @@ import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
 import com.xinyirun.scm.ai.bean.vo.rag.GraphSearchResultVo;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.bean.clickhouse.vo.ai.SLogAiChatVo;
+import com.xinyirun.scm.common.utils.UuidUtil;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.mq.rabbitmq.producer.business.log.ai.LogAiChatProducer;
 import jakarta.annotation.Resource;
@@ -49,6 +50,65 @@ public class AiConversationContentService {
     private AiConversationContentRefGraphService refGraphService;
 
     /**
+     * 保存对话内容（简化版，用于Workflow场景）
+     *
+     * @param conversationId 对话ID
+     * @param role 角色（1=用户, 2=AI）
+     * @param content 内容
+     * @param operatorId 操作员ID
+     * @param runtimeUuid 运行时UUID（可选，关联ai_conversation_workflow_runtime）
+     * @return 保存的对话内容VO
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public AiConversationContentVo saveContent(String conversationId, Integer role, String content, Long operatorId, String runtimeUuid) {
+        try {
+            AiConversationContentEntity entity = new AiConversationContentEntity();
+            entity.setMessageId(UuidUtil.createShort());
+            entity.setConversationId(conversationId);
+            // 根据role设置type: 1=USER, 2=ASSISTANT
+            entity.setType(role == 1 ? "USER" : "ASSISTANT");
+            // 移除前导和尾随空白字符，避免Markdown渲染为代码块
+            entity.setContent(StringUtils.isNotBlank(content) ? content.trim() : content);
+            // 设置运行时UUID（可选）
+            entity.setRuntimeUuid(runtimeUuid);
+            // Workflow场景下可以不设置模型信息（或设置为默认值）
+            entity.setModelSourceId(null);
+            entity.setProviderName("workflow");
+            entity.setBaseName("workflow");
+
+            // 保存到MySQL
+            int result = aiConversationContentMapper.insert(entity);
+
+            if (result > 0) {
+                log.info("保存对话内容成功 (Workflow场景), conversationId: {}, role: {}, contentLength: {}",
+                        conversationId, role, content != null ? content.length() : 0);
+
+                // 异步发送MQ消息到ClickHouse日志系统
+                try {
+                    SLogAiChatVo logVo = buildLogVo(entity, "workflow", "workflow");
+                    logAiChatProducer.mqSendMq(logVo);
+                    log.debug("发送AI聊天日志MQ消息成功 (Workflow场景)，conversation_id: {}, role: {}",
+                            conversationId, role);
+                } catch (Exception e) {
+                    // 日志发送失败不影响主业务，仅记录错误
+                    log.error("发送AI聊天日志MQ消息失败 (Workflow场景)，conversation_id: {}, role: {}",
+                            conversationId, role, e);
+                }
+
+                AiConversationContentVo vo = new AiConversationContentVo();
+                BeanUtils.copyProperties(entity, vo);
+                return vo;
+            }
+
+            return null;
+        } catch (Exception e) {
+            log.error("保存对话内容失败 (Workflow场景), conversationId: {}, role: {}",
+                    conversationId, role, e);
+            throw new RuntimeException("保存对话内容失败", e);
+        }
+    }
+
+    /**
      * 保存对话内容（包含模型信息）
      *
      * @param conversationId 对话ID
@@ -65,6 +125,7 @@ public class AiConversationContentService {
                                                           String modelSourceId, String providerName, String baseName, Long operatorId) {
         try {
             AiConversationContentEntity entity = new AiConversationContentEntity();
+            entity.setMessageId(UuidUtil.createShort());
             entity.setConversationId(conversationId);
             entity.setType(type);
             // 移除前导和尾随空白字符，避免Markdown渲染为代码块

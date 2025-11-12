@@ -1,5 +1,12 @@
 package com.xinyirun.scm.ai.controller.chat;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
+import com.xinyirun.scm.ai.common.constant.WorkflowStateConstant;
+import com.xinyirun.scm.ai.common.exception.AiBusinessException;
 import com.xinyirun.scm.ai.config.adapter.AiEngineAdapter;
 import com.xinyirun.scm.ai.config.adapter.AiStreamHandler;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
@@ -12,6 +19,10 @@ import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
+import com.xinyirun.scm.ai.core.service.workflow.WorkflowRoutingService;
+import com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeNodeService;
+import com.xinyirun.scm.ai.workflow.WorkflowStarter;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -22,14 +33,18 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -60,6 +75,25 @@ public class AiConversationController {
 
     @Resource
     private MUserMapper mUserMapper;
+
+    @Resource
+    private WorkflowStarter workflowStarter;
+
+    @Resource
+    private WorkflowRoutingService workflowRoutingService;
+
+    @Resource
+    private AiConversationWorkflowRuntimeNodeService conversationWorkflowRuntimeNodeService;
+
+    @Resource
+    private AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
+
+    /**
+     * Feature Toggle: 工作流路由功能开关
+     * 默认false,生产环境通过配置文件启用
+     */
+    @Value("${scm.ai.workflow.enabled:false}")
+    private boolean enableWorkflowRouting;
 
     /**
      * 获取用户对话列表
@@ -160,13 +194,448 @@ public class AiConversationController {
     }
 
     /**
+     * 获取AI Chat工作流运行时详情
+     *
+     * @param runtimeUuid AI Chat工作流运行时UUID
+     * @return 运行时详情
+     */
+    @GetMapping(value = "/workflow/runtime/{runtimeUuid}")
+    @Operation(summary = "获取AI Chat工作流运行时详情")
+    @SysLogAnnotion("获取AI Chat工作流运行时详情")
+    public ResponseEntity<AiConversationWorkflowRuntimeVo> getRuntimeDetail(@PathVariable String runtimeUuid) {
+        try {
+            log.info("【AI-Chat-Runtime详情】查询runtime详情, runtimeUuid: {}", runtimeUuid);
+            AiConversationWorkflowRuntimeVo runtime = conversationWorkflowRuntimeService.getDetailByUuid(runtimeUuid);
+            if (runtime == null) {
+                throw new AiBusinessException("工作流运行时实例不存在: " + runtimeUuid);
+            }
+            return ResponseEntity.ok(runtime);
+        } catch (Exception e) {
+            log.error("获取AI Chat工作流运行时详情失败, runtimeUuid: {}", runtimeUuid, e);
+            throw new AiBusinessException("获取工作流运行时详情失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取AI Chat工作流运行时节点详情列表
+     *
+     * @param runtimeUuid AI Chat工作流运行时UUID
+     * @return 节点详情列表
+     */
+    @GetMapping(value = "/workflow/runtime/nodes/{runtimeUuid}")
+    @Operation(summary = "获取AI Chat工作流执行详情")
+    @SysLogAnnotion("获取AI Chat工作流执行详情")
+    public ResponseEntity<List<AiConversationWorkflowRuntimeNodeVo>> listRuntimeNodes(@PathVariable String runtimeUuid) {
+        try {
+            log.info("【AI-Chat-Runtime节点】查询runtime节点列表, runtimeUuid: {}", runtimeUuid);
+
+            // 先根据UUID查询runtime,获取ID
+            AiConversationWorkflowRuntimeVo runtime = conversationWorkflowRuntimeService.getDetailByUuid(runtimeUuid);
+            if (runtime == null) {
+                throw new AiBusinessException("工作流运行时实例不存在: " + runtimeUuid);
+            }
+
+            List<AiConversationWorkflowRuntimeNodeVo> nodes =
+                conversationWorkflowRuntimeNodeService.listByWfRuntimeId(runtime.getId());
+            return ResponseEntity.ok(nodes);
+        } catch (Exception e) {
+            log.error("获取AI Chat工作流执行详情失败, runtimeUuid: {}", runtimeUuid, e);
+            throw new AiBusinessException("获取工作流执行详情失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * AI流式聊天
-     * ai chat 入口
+     * ai chat 入口 (支持工作流路由+智能意图判断)
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "流式聊天 (Spring AI标准)")
+    @Operation(summary = "流式聊天 (支持工作流路由+智能意图判断)")
     @SysLogAnnotion("AI流式聊天")
     public Flux<ChatResponseVo> chatStream(@Validated @RequestBody AIChatRequestVo request) {
+        // Feature Toggle: 工作流路由功能开关
+        if (!enableWorkflowRouting) {
+            // 工作流功能未启用，走原有逻辑
+            return chatStreamWithoutWorkflow(request);
+        }
+
+        // 获取用户上下文（外层变量，供闭包捕获）
+        String conversationId = request.getConversationId();
+        Long operatorId = SecurityUtil.getStaff_id();
+        String userId = operatorId.toString();
+        String tenantId = conversationId.split("::", 2)[0];
+        request.setTenantId(tenantId);
+
+        // 捕获用户问题和AI回复内容（用于最终保存到数据库）
+        String userPrompt = request.getPrompt();
+        StringBuilder aiResponseBuilder = new StringBuilder();
+
+        // Spring AI模式：Mono → Flux 链式调用
+        return Mono.fromCallable(() -> {
+                    // Step 1: 异步查询对话状态
+                    DataSourceHelper.use(tenantId);
+                    AiConversationVo conversation = aiConversationService.getConversation(conversationId);
+                    if (conversation == null) {
+                        throw new AiBusinessException("对话不存在: " + conversationId);
+                    }
+                    return conversation;
+                })
+                .flatMapMany(conversation -> {
+                    // Step 2: 根据状态决定执行路径（Mono → Flux转换）
+                    String workflowState = conversation.getWorkflowState();
+                    if (workflowState == null) {
+                        workflowState = WorkflowStateConstant.STATE_IDLE;
+                    }
+
+                    if (WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT.equals(workflowState)) {
+                        // KISS优化5: 智能路由判断
+                        boolean isContinuation = isInputContinuation(
+                            request.getPrompt(),
+                            conversation.getCurrentWorkflowUuid(),
+                            operatorId
+                        );
+
+                        if (isContinuation) {
+                            // 场景2A: 继续当前工作流(如"ORD-001"、"继续")
+                            String runtimeUuid = conversation.getCurrentRuntimeUuid();
+
+                            // KISS优化2: 删除预更新状态,只在事件响应时更新
+                            return workflowStarter.resumeFlowAsFlux(
+                                runtimeUuid,
+                                conversation.getCurrentWorkflowUuid(),
+                                request.getPrompt(),
+                                tenantId,
+                                WorkflowCallSource.AI_CHAT
+                            );
+                        } else {
+                            // 场景2B: 新意图,清理旧状态,路由新工作流
+                            aiConversationService.updateWorkflowState(
+                                conversationId,
+                                WorkflowStateConstant.STATE_IDLE,
+                                null,
+                                null
+                            );
+
+                            String newWorkflowUuid = workflowRoutingService.route(
+                                request.getPrompt(),
+                                operatorId,
+                                null
+                            );
+
+                            if (newWorkflowUuid == null) {
+                                newWorkflowUuid = getFallbackWorkflowUuid(operatorId);
+                                if (newWorkflowUuid == null) {
+                                    return Flux.error(new AiBusinessException("没有可用的工作流"));
+                                }
+                            }
+
+                            List<JSONObject> userInputs = List.of(
+                                new JSONObject()
+                                    .fluentPut("name", "var_user_input")
+                                    .fluentPut("content", new JSONObject()
+                                        .fluentPut("type", 1)
+                                        .fluentPut("title", "用户输入")
+                                        .fluentPut("value", request.getPrompt())
+                                    )
+                            );
+                            return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT);
+                        }
+
+                    } else {
+                        // 场景1：新请求 - 路由到工作流
+                        String workflowUuid = workflowRoutingService.route(
+                            request.getPrompt(),
+                            operatorId,
+                            null
+                        );
+
+                        if (workflowUuid == null) {
+                            // 获取兜底工作流
+                            workflowUuid = getFallbackWorkflowUuid(operatorId);
+                            if (workflowUuid == null) {
+                                return Flux.error(new AiBusinessException("没有可用的工作流"));
+                            }
+                        }
+
+                        // KISS优化2: 不预更新状态,直接执行工作流
+                        List<JSONObject> userInputs = List.of(
+                            new JSONObject()
+                                .fluentPut("name", "var_user_input")
+                                .fluentPut("content", new JSONObject()
+                                    .fluentPut("type", 1)
+                                    .fluentPut("title", "用户输入")
+                                    .fluentPut("value", request.getPrompt())
+                                )
+                        );
+                        return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT);
+                    }
+                })
+                // Step 3: 转换工作流事件为响应格式
+                .map(event -> convertWorkflowEventToResponse(event))
+
+                // Step 4: KISS优化2 - 只在workflow事件响应时更新状态(2次)
+                .doOnNext(response -> {
+                    // 累积AI回复内容（用于保存到数据库）
+                    if (response.getResults() != null && !response.getResults().isEmpty()) {
+                        ChatResponseVo.Generation generation = response.getResults().get(0);
+                        if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
+                            aiResponseBuilder.append(generation.getOutput().getContent());
+                        }
+                    }
+
+                    if (Boolean.TRUE.equals(response.getIsWaitingInput())) {
+                        // 更新1: 工作流等待用户输入
+                        aiConversationService.updateWorkflowState(
+                            conversationId,
+                            WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT,
+                            response.getWorkflowUuid(),
+                            response.getRuntimeUuid()
+                        );
+                    }
+                    if (Boolean.TRUE.equals(response.getIsComplete())) {
+                        // 更新2: 工作流完成
+                        aiConversationService.updateWorkflowState(
+                            conversationId,
+                            WorkflowStateConstant.STATE_IDLE,
+                            null,
+                            null
+                        );
+
+                        // 保存对话内容到数据库
+                        try {
+                            String finalAiResponse = aiResponseBuilder.toString();
+                            String runtimeUuid = response.getRuntimeUuid(); // 获取运行时UUID
+
+                            log.info("【AI-Chat-保存】准备保存对话内容: conversationId={}, runtimeUuid={}, userPrompt长度={}, aiResponse长度={}",
+                                conversationId, runtimeUuid, userPrompt.length(), finalAiResponse.length());
+
+                            if (!userPrompt.isEmpty() || !finalAiResponse.isEmpty()) {
+                                // 保存用户问题（ROLE=1，无需runtime_uuid）
+                                aiConversationContentService.saveContent(
+                                    conversationId,
+                                    1, // ROLE=1表示用户
+                                    userPrompt,
+                                    operatorId,
+                                    null // 用户消息不关联workflow runtime
+                                );
+                                log.info("【AI-Chat-保存】用户消息已保存");
+
+                                // 保存AI回复（ROLE=2，关联runtime_uuid）
+                                // aiResponseBuilder累积的内容已经是纯文本（done事件中已提取）
+                                aiConversationContentService.saveContent(
+                                    conversationId,
+                                    2, // ROLE=2表示AI
+                                    finalAiResponse,
+                                    operatorId,
+                                    runtimeUuid // 传递运行时UUID
+                                );
+                                log.info("【AI-Chat-保存】AI消息已保存, runtimeUuid={}", runtimeUuid);
+
+                                log.info("对话内容已保存: conversationId={}, userPrompt={}, aiResponse={}",
+                                    conversationId,
+                                    userPrompt.length() > 50 ? userPrompt.substring(0, 50) + "..." : userPrompt,
+                                    finalAiResponse.length() > 50 ? finalAiResponse.substring(0, 50) + "..." : finalAiResponse
+                                );
+                            }
+                        } catch (Exception e) {
+                            log.error("保存对话内容失败: conversationId={}", conversationId, e);
+                        }
+                    }
+                })
+
+                // Step 5: 错误和资源管理(统一处理)
+                .timeout(Duration.ofMinutes(30)) // KISS优化3: 延长到30分钟
+                .onErrorResume(e -> {
+                    // 统一错误处理(包含timeout和普通异常)
+                    log.error("工作流执行异常: conversationId={}", conversationId, e);
+                    aiConversationService.updateWorkflowState(
+                        conversationId,
+                        WorkflowStateConstant.STATE_IDLE,
+                        null,
+                        null
+                    );
+                    String errorMsg = e instanceof TimeoutException ?
+                        "工作流执行超时，已自动取消" : "工作流执行失败: " + e.getMessage();
+                    return Flux.just(ChatResponseVo.createErrorResponse(errorMsg));
+                })
+                .doOnCancel(() -> {
+                    // 用户取消: 保留状态(支持误点停止/临时中断)
+                    log.info("用户取消工作流执行: conversationId={}", conversationId);
+                })
+                .doFinally(signalType -> {
+                    DataSourceHelper.close();
+                });
+    }
+
+    /**
+     * KISS优化5: 智能路由判断 - 判断用户输入是继续当前工作流还是新意图
+     *
+     * @param userInput 用户输入
+     * @param currentWorkflowUuid 当前工作流UUID
+     * @param userId 用户ID
+     * @return true-继续当前工作流, false-新意图需要路由
+     */
+    private boolean isInputContinuation(String userInput, String currentWorkflowUuid, Long userId) {
+        // 策略1: 明确的继续关键词
+        if (userInput.matches("(?i)继续|continue|是|好|确认|ok")) {
+            return true;
+        }
+
+        // 策略2: 短输入(<20字符),可能是具体值(订单号/数量等)
+        if (userInput.length() <= 20) {
+            return true;
+        }
+
+        // 策略3: 路由判断 - 是否匹配到新工作流
+        String newWorkflowUuid = workflowRoutingService.route(userInput, userId, null);
+
+        // 没有匹配新工作流,或匹配的还是当前工作流 → 继续
+        return newWorkflowUuid == null || newWorkflowUuid.equals(currentWorkflowUuid);
+    }
+
+    /**
+     * 转换WorkflowEventVo为ChatResponseVo
+     */
+    private ChatResponseVo convertWorkflowEventToResponse(WorkflowEventVo event) {
+        ChatResponseVo.ChatResponseVoBuilder builder = ChatResponseVo.builder();
+
+        // 设置基础字段
+        if (event.getData() != null) {
+            // 解析event.data JSON获取内容
+            try {
+                JSONObject dataJson = JSONObject.parseObject(event.getData());
+                String content = dataJson.getString("content");
+                if (content != null) {
+                    builder.results(List.of(
+                        ChatResponseVo.Generation.builder()
+                            .output(ChatResponseVo.AssistantMessage.builder()
+                                .content(content)
+                                .build())
+                            .build()
+                    ));
+                }
+            } catch (Exception e) {
+                // 如果data不是JSON,直接作为content
+                builder.results(List.of(
+                    ChatResponseVo.Generation.builder()
+                        .output(ChatResponseVo.AssistantMessage.builder()
+                            .content(event.getData())
+                            .build())
+                        .build()
+                ));
+            }
+        }
+
+        ChatResponseVo response = builder.build();
+
+        // 标记特殊事件并提取runtime信息
+        if ("done".equals(event.getEvent())) {
+            response.setIsComplete(true);
+            // 尝试从event.data中提取runtime信息和content
+            if (event.getData() != null) {
+                try {
+                    JSONObject dataJson = JSONObject.parseObject(event.getData());
+
+                    // 提取content字段（新格式：done事件的data是JSON对象，包含content和runtime信息）
+                    String content = dataJson.getString("content");
+                    if (content != null) {
+                        // 从工作流JSON输出中提取纯文本内容
+                        // JSON格式: {"output":{"type":1,"value":"实际文本"}}
+                        try {
+                            JSONObject contentJson = JSONObject.parseObject(content);
+                            if (contentJson.containsKey("output")) {
+                                JSONObject output = contentJson.getJSONObject("output");
+                                if (output != null && output.containsKey("value")) {
+                                    content = output.getString("value");
+                                    log.debug("从done事件的工作流JSON输出中提取文本: {}", content);
+                                }
+                            }
+                        } catch (Exception e) {
+                            // 如果content不是JSON格式(普通Chat),直接使用原始内容
+                            log.debug("done事件content不是JSON格式,使用原始内容");
+                        }
+
+                        // 更新response中的content（已提取纯文本）
+                        response.getResults().get(0).getOutput().setContent(content);
+                    }
+
+                    // 提取runtime信息
+                    String runtimeUuid = dataJson.getString("runtime_uuid");
+                    Long runtimeId = dataJson.getLong("runtime_id");
+                    String workflowUuid = dataJson.getString("workflow_uuid");
+
+                    log.info("【AI-Chat-Done事件】提取runtime信息: runtimeUuid={}, runtimeId={}, workflowUuid={}",
+                        runtimeUuid, runtimeId, workflowUuid);
+
+                    if (runtimeUuid != null) {
+                        response.setRuntimeUuid(runtimeUuid);
+                        log.info("【AI-Chat-Done事件】已设置response.runtimeUuid={}", runtimeUuid);
+                    }
+                    if (runtimeId != null) {
+                        response.setRuntimeId(runtimeId);
+                    }
+                    if (workflowUuid != null) {
+                        response.setWorkflowUuid(workflowUuid);
+                    }
+                } catch (Exception e) {
+                    // 如果解析失败,忽略runtime信息提取
+                    log.debug("Failed to extract runtime info from done event", e);
+                }
+            }
+        }
+        if (event.getEvent() != null && event.getEvent().startsWith("[NODE_WAIT_FEEDBACK_BY_")) {
+            response.setIsWaitingInput(true);
+            response.setRuntimeUuid(extractRuntimeUuidFromEvent(event));
+            response.setWorkflowUuid(extractWorkflowUuidFromEvent(event));
+        }
+
+        return response;
+    }
+
+    /**
+     * 从事件中提取runtimeUuid
+     */
+    private String extractRuntimeUuidFromEvent(WorkflowEventVo event) {
+        // 从event.data JSON中提取runtime_uuid
+        if (event.getData() != null) {
+            try {
+                JSONObject dataJson = JSONObject.parseObject(event.getData());
+                return dataJson.getString("runtime_uuid");
+            } catch (Exception e) {
+                log.warn("Failed to extract runtimeUuid from event", e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从事件中提取workflowUuid
+     */
+    private String extractWorkflowUuidFromEvent(WorkflowEventVo event) {
+        // 从event.data JSON中提取workflow_uuid
+        if (event.getData() != null) {
+            try {
+                JSONObject dataJson = JSONObject.parseObject(event.getData());
+                return dataJson.getString("workflow_uuid");
+            } catch (Exception e) {
+                log.warn("Failed to extract workflowUuid from event", e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 获取用户的兜底工作流UUID
+     */
+    private String getFallbackWorkflowUuid(Long userId) {
+        // TODO: 查询用户配置的默认工作流
+        // 暂时返回null,让调用方返回error
+        return null;
+    }
+
+    /**
+     * 原有逻辑（不启用工作流路由时使用）
+     */
+    private Flux<ChatResponseVo> chatStreamWithoutWorkflow(AIChatRequestVo request) {
         // 获取用户ID
         Long operatorId = SecurityUtil.getStaff_id();
         String userId =  operatorId.toString() ;

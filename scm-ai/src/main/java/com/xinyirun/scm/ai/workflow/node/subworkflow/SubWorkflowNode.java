@@ -77,7 +77,8 @@ public class SubWorkflowNode extends AbstractWfNode {
                 wfState.getExecutionStack(),
                 wfState.getConversationId(),
                 wfState.getUuid(),  // 传递父runtime_uuid，子工作流将复用此UUID
-                wfState.getStreamHandler()  // 传递父StreamHandler，子工作流的流式事件将实时转发到前端
+                wfState.getStreamHandler(),  // 传递父StreamHandler，子工作流的流式事件将实时转发到前端
+                wfState.getCallSource()  // 传递父工作流的callSource，子工作流继承父工作流的调用来源
             );
 
             // 日志：子工作流执行结果

@@ -6,6 +6,9 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.core.service.workflow.*;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
@@ -42,12 +45,15 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 public class WorkflowEngine {
     private CompiledGraph<WfNodeState> app;
     private final AiWorkflowEntity workflow;
-    private final WorkflowStreamHandler streamHandler;
+    private WorkflowStreamHandler streamHandler;
     private final List<AiWorkflowComponentEntity> components;
     private final List<AiWorkflowNodeVo> wfNodes;
     private final List<AiWorkflowEdgeEntity> wfEdges;
+    private final WorkflowCallSource callSource;
     private final AiWorkflowRuntimeService workflowRuntimeService;
     private final AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
+    private final AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
+    private final AiConversationWorkflowRuntimeNodeService conversationWorkflowRuntimeNodeService;
 
     private final ObjectStreamStateSerializer<WfNodeState> stateSerializer = new ObjectStreamStateSerializer<>(WfNodeState::new);
     private final Map<String, List<StateGraph<WfNodeState>>> stateGraphNodes = new HashMap<>();
@@ -59,6 +65,7 @@ public class WorkflowEngine {
     private String tenantCode;
     private WfState wfState;
     private AiWorkflowRuntimeVo wfRuntimeResp;
+    private AiConversationWorkflowRuntimeVo conversationRuntimeResp;
 
     /**
      * 父工作流的runtime_uuid（用于子工作流复用）
@@ -80,6 +87,14 @@ public class WorkflowEngine {
     }
 
     /**
+     * 设置流式处理器（用于工作流恢复时替换StreamHandler）
+     * @param handler 新的流式处理器
+     */
+    public void setStreamHandler(WorkflowStreamHandler handler) {
+        this.streamHandler = handler;
+    }
+
+    /**
      * 构造函数（顶层工作流）
      * 使用 WorkflowStreamHandler 实现事件驱动的流式输出
      */
@@ -89,10 +104,14 @@ public class WorkflowEngine {
             List<AiWorkflowComponentEntity> components,
             List<AiWorkflowNodeVo> nodes,
             List<AiWorkflowEdgeEntity> wfEdges,
+            WorkflowCallSource callSource,
             AiWorkflowRuntimeService workflowRuntimeService,
-            AiWorkflowRuntimeNodeService workflowRuntimeNodeService) {
+            AiWorkflowRuntimeNodeService workflowRuntimeNodeService,
+            AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService,
+            AiConversationWorkflowRuntimeNodeService conversationWorkflowRuntimeNodeService) {
         this(workflow, streamHandler, components, nodes, wfEdges,
-            workflowRuntimeService, workflowRuntimeNodeService, null);
+            callSource, workflowRuntimeService, workflowRuntimeNodeService,
+            conversationWorkflowRuntimeService, conversationWorkflowRuntimeNodeService, null);
     }
 
     /**
@@ -107,16 +126,22 @@ public class WorkflowEngine {
             List<AiWorkflowComponentEntity> components,
             List<AiWorkflowNodeVo> nodes,
             List<AiWorkflowEdgeEntity> wfEdges,
+            WorkflowCallSource callSource,
             AiWorkflowRuntimeService workflowRuntimeService,
             AiWorkflowRuntimeNodeService workflowRuntimeNodeService,
+            AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService,
+            AiConversationWorkflowRuntimeNodeService conversationWorkflowRuntimeNodeService,
             String parentRuntimeUuid) {
         this.workflow = workflow;
         this.streamHandler = streamHandler;
         this.components = components;
         this.wfNodes = nodes;
         this.wfEdges = wfEdges;
+        this.callSource = callSource;
         this.workflowRuntimeService = workflowRuntimeService;
         this.workflowRuntimeNodeService = workflowRuntimeNodeService;
+        this.conversationWorkflowRuntimeService = conversationWorkflowRuntimeService;
+        this.conversationWorkflowRuntimeNodeService = conversationWorkflowRuntimeNodeService;
         this.parentRuntimeUuid = parentRuntimeUuid;
 
         // 识别所有 HumanFeedbackNode
@@ -153,18 +178,32 @@ public class WorkflowEngine {
         // 关键修改：只有顶层工作流创建runtime记录
         if (parentRuntimeUuid == null) {
             // 顶层工作流：创建新的runtime记录
-            if (parentConversationId != null && !parentConversationId.isEmpty()) {
-                this.wfRuntimeResp = workflowRuntimeService.createWithConversationId(
-                    userId, workflowId, parentConversationId);
+            // 根据callSource选择服务
+            if (callSource == WorkflowCallSource.AI_CHAT) {
+                // AI Chat调用：使用conversationWorkflowRuntimeService
+                if (parentConversationId != null && !parentConversationId.isEmpty()) {
+                    this.conversationRuntimeResp = conversationWorkflowRuntimeService.createWithConversationId(
+                        userId, workflowId, parentConversationId);
+                } else {
+                    this.conversationRuntimeResp = conversationWorkflowRuntimeService.create(userId, workflowId);
+                }
+                runtimeUuid = this.conversationRuntimeResp.getRuntimeUuid();
+                conversationId = this.conversationRuntimeResp.getConversationId();
+                // 发送工作流开始事件
+                streamHandler.sendStart(JSONObject.toJSONString(conversationRuntimeResp));
             } else {
-                this.wfRuntimeResp = workflowRuntimeService.create(userId, workflowId);
+                // Workflow独立测试：使用workflowRuntimeService
+                if (parentConversationId != null && !parentConversationId.isEmpty()) {
+                    this.wfRuntimeResp = workflowRuntimeService.createWithConversationId(
+                        userId, workflowId, parentConversationId);
+                } else {
+                    this.wfRuntimeResp = workflowRuntimeService.create(userId, workflowId);
+                }
+                runtimeUuid = this.wfRuntimeResp.getRuntimeUuid();
+                conversationId = this.wfRuntimeResp.getConversationId();
+                // 发送工作流开始事件
+                streamHandler.sendStart(JSONObject.toJSONString(wfRuntimeResp));
             }
-
-            runtimeUuid = this.wfRuntimeResp.getRuntimeUuid();
-            conversationId = this.wfRuntimeResp.getConversationId();
-
-            // 发送工作流开始事件
-            streamHandler.sendStart(JSONObject.toJSONString(wfRuntimeResp));
 
             log.info("顶层工作流创建runtime记录 - runtime_uuid: {}", runtimeUuid);
         } else {
@@ -190,6 +229,8 @@ public class WorkflowEngine {
             this.wfState = new WfState(userId, wfInputs, runtimeUuid, tenantCode, conversationId);
             // 设置流式处理器，供节点使用（如 LLM 流式响应）
             this.wfState.setStreamHandler(streamHandler);
+            // 设置调用来源标识，供子工作流节点使用
+            this.wfState.setCallSource(this.callSource);
 
             // 添加需要中断的节点（HumanFeedbackNode）
             for (String humanFeedbackNodeUuid : humanFeedbackNodeUuids) {
@@ -199,6 +240,8 @@ public class WorkflowEngine {
             // 只有顶层工作流才更新runtime记录
             if (this.wfRuntimeResp != null) {
                 workflowRuntimeService.updateInput(this.wfRuntimeResp.getId(), wfState);
+            } else if (this.conversationRuntimeResp != null) {
+                conversationWorkflowRuntimeService.updateInput(this.conversationRuntimeResp.getId(), wfState);
             }
 
             CompileNode rootCompileNode = new CompileNode();
@@ -250,6 +293,8 @@ public class WorkflowEngine {
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_WAITING_INPUT);
             if (this.wfRuntimeResp != null) {
                 workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
+            } else if (this.conversationRuntimeResp != null) {
+                conversationWorkflowRuntimeService.updateOutput(conversationRuntimeResp.getId(), wfState);
             }
         } else {
             // 工作流执行完成
@@ -261,6 +306,10 @@ public class WorkflowEngine {
                 AiWorkflowRuntimeEntity updatedRuntime = workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
                 // Entity的getOutputData()返回String类型
                 outputStr = updatedRuntime.getOutputData();
+            } else if (this.conversationRuntimeResp != null) {
+                AiConversationWorkflowRuntimeEntity updatedRuntime = conversationWorkflowRuntimeService.updateOutput(conversationRuntimeResp.getId(), wfState);
+                // Entity的getOutputData()返回String类型
+                outputStr = updatedRuntime.getOutputData();
             } else {
                 // 子工作流：从wfState中获取输出
                 outputStr = wfState.getOutputAsJsonString();
@@ -270,8 +319,26 @@ public class WorkflowEngine {
                 outputStr = "{}";
             }
 
+            // 构建包含runtime元数据的完成事件数据
+            JSONObject completeData = new JSONObject();
+            completeData.put("content", outputStr);
+
+            // 添加runtime信息（用于前端查询执行详情）
+            if (this.wfRuntimeResp != null) {
+                // Workflow独立测试场景
+                completeData.put("runtime_id", this.wfRuntimeResp.getId());
+                completeData.put("runtime_uuid", this.wfRuntimeResp.getRuntimeUuid());
+                completeData.put("workflow_uuid", this.workflow.getWorkflowUuid());
+            } else if (this.conversationRuntimeResp != null) {
+                // AI Chat场景
+                completeData.put("runtime_id", this.conversationRuntimeResp.getId());
+                completeData.put("runtime_uuid", this.conversationRuntimeResp.getRuntimeUuid());
+                completeData.put("workflow_uuid", this.workflow.getWorkflowUuid());
+            }
+            // 子工作流不需要添加runtime信息（复用父runtime，但前端不需要显示子工作流的执行详情按钮）
+
             // 发送完成事件
-            streamHandler.sendComplete(outputStr);
+            streamHandler.sendComplete(completeData.toJSONString());
             InterruptedFlow.RUNTIME_TO_GRAPH.remove(wfState.getUuid());
         }
     }
@@ -311,6 +378,11 @@ public class WorkflowEngine {
             // 因为updateStatus需要查询和更新ai_workflow_runtime表，必须使用租户数据源
             DataSourceHelper.use(this.tenantCode);
             workflowRuntimeService.updateStatus(wfRuntimeResp.getId(), WORKFLOW_PROCESS_STATUS_FAIL, errorMsg);
+        } else if (this.conversationRuntimeResp != null) {
+            // 在更新状态前切换到正确的租户数据源
+            // 因为updateStatus需要查询和更新ai_conversation_workflow_runtime表，必须使用租户数据源
+            DataSourceHelper.use(this.tenantCode);
+            conversationWorkflowRuntimeService.updateStatus(conversationRuntimeResp.getId(), WORKFLOW_PROCESS_STATUS_FAIL, errorMsg);
         }
     }
 
@@ -341,20 +413,38 @@ public class WorkflowEngine {
             // 获取runtime_id：顶层工作流使用wfRuntimeResp.getId()，子工作流需要查询获取
             Long runtimeId;
             if (this.wfRuntimeResp != null) {
-                // 顶层工作流：直接使用wfRuntimeResp
+                // 顶层工作流（Workflow独立测试）：直接使用wfRuntimeResp
                 runtimeId = this.wfRuntimeResp.getId();
+            } else if (this.conversationRuntimeResp != null) {
+                // 顶层工作流（AI Chat调用）：直接使用conversationRuntimeResp
+                runtimeId = this.conversationRuntimeResp.getId();
             } else {
                 // 子工作流：通过wfState.getUuid()查询获取runtime_id（复用父工作流的runtime记录）
-                AiWorkflowRuntimeEntity runtime = workflowRuntimeService.getByUuid(wfState.getUuid());
-                runtimeId = runtime.getId();
+                if (callSource == WorkflowCallSource.AI_CHAT) {
+                    AiConversationWorkflowRuntimeEntity runtime = conversationWorkflowRuntimeService.getByUuid(wfState.getUuid());
+                    runtimeId = runtime.getId();
+                } else {
+                    AiWorkflowRuntimeEntity runtime = workflowRuntimeService.getByUuid(wfState.getUuid());
+                    runtimeId = runtime.getId();
+                }
             }
 
-            AiWorkflowRuntimeNodeVo runtimeNodeVo = workflowRuntimeNodeService.createByState(
-                    userId, wfNode.getId(), runtimeId, nodeState);
-            wfState.getRuntimeNodes().add(runtimeNodeVo);
-
-            // 4. 发送节点运行开始消息
-            streamHandler.sendNodeRun(wfNode.getUuid(), JSONObject.toJSONString(runtimeNodeVo));
+            // 根据callSource创建运行时节点记录
+            Long runtimeNodeId; // 存储节点ID用于后续更新操作
+            if (callSource == WorkflowCallSource.AI_CHAT) {
+                AiConversationWorkflowRuntimeNodeVo nodeVo = conversationWorkflowRuntimeNodeService.createByState(
+                        runtimeId, nodeState, wfNode.getId());
+                runtimeNodeId = nodeVo.getId();
+                // 发送节点运行开始消息
+                streamHandler.sendNodeRun(wfNode.getUuid(), JSONObject.toJSONString(nodeVo));
+            } else {
+                AiWorkflowRuntimeNodeVo nodeVo = workflowRuntimeNodeService.createByState(
+                        userId, wfNode.getId(), runtimeId, nodeState);
+                wfState.getRuntimeNodes().add(nodeVo);
+                runtimeNodeId = nodeVo.getId();
+                // 发送节点运行开始消息
+                streamHandler.sendNodeRun(wfNode.getUuid(), JSONObject.toJSONString(nodeVo));
+            }
 
             // 5. 执行节点，带输入输出回调
             NodeProcessResult processResult = abstractWfNode.process(
@@ -362,22 +452,67 @@ public class WorkflowEngine {
                     (is) -> {
                         // 在回调中设置租户上下文，防止异步执行时上下文丢失
                         DataSourceHelper.use(this.tenantCode);
-                        workflowRuntimeNodeService.updateInput(runtimeNodeVo.getId(), nodeState);
-                        for (NodeIOData input : nodeState.getInputs()) {
-                            streamHandler.sendNodeInput(wfNode.getUuid(), JSONObject.toJSONString(input));
+                        // 根据callSource调用对应的service
+                        if (callSource == WorkflowCallSource.AI_CHAT) {
+                            conversationWorkflowRuntimeNodeService.updateInput(runtimeNodeId, nodeState);
+                        } else {
+                            workflowRuntimeNodeService.updateInput(runtimeNodeId, nodeState);
+                        }
+
+                        // 跳过以下节点的INPUT事件：
+                        // - Start节点：用户输入不需要回显
+                        // - Answer节点：用户输入通过CHUNK事件逐字输出，不需要单独发送JSON格式
+                        // - SubWorkflow节点：子工作流内部会处理输入
+                        // - End节点：结束节点不需要发送INPUT事件
+                        String componentName = wfComponent.getName();
+                        if (!"Start".equals(componentName)
+                            && !"Answer".equals(componentName)
+                            && !"SubWorkflow".equals(componentName)
+                            && !"End".equals(componentName)) {
+                            for (NodeIOData input : nodeState.getInputs()) {
+                                streamHandler.sendNodeInput(wfNode.getUuid(), JSONObject.toJSONString(input));
+                            }
+                        } else {
+                            log.info("跳过NODE_INPUT事件 - componentName: {}（用户输入回显/流式节点/结束节点）", componentName);
                         }
                     },
                     // 输出回调
                     (is) -> {
                         // 在回调中设置租户上下文，防止异步执行时上下文丢失
                         DataSourceHelper.use(this.tenantCode);
-                        workflowRuntimeNodeService.updateOutput(runtimeNodeVo.getId(), nodeState);
+                        // 根据callSource调用对应的service
+                        if (callSource == WorkflowCallSource.AI_CHAT) {
+                            conversationWorkflowRuntimeNodeService.updateOutput(runtimeNodeId, nodeState);
+                        } else {
+                            workflowRuntimeNodeService.updateOutput(runtimeNodeId, nodeState);
+                        }
 
                         // 并行节点内部的节点执行结束后，需要主动向客户端发送输出结果
+                        // 但是对于流式输出节点（Answer组件）和子工作流节点（SubWorkflow组件），不需要发送NODE_OUTPUT：
+                        // - Answer组件：已经通过NODE_CHUNK事件发送了流式内容
+                        // - SubWorkflow组件：子工作流内部的Answer节点已经通过CHUNK事件发送了流式内容
                         String nodeUuid = wfNode.getUuid();
-                        List<NodeIOData> nodeOutputs = nodeState.getOutputs();
-                        for (NodeIOData output : nodeOutputs) {
-                            streamHandler.sendNodeOutput(nodeUuid, JSONObject.toJSONString(output));
+                        String componentName = wfComponent.getName();
+
+                        log.info("WorkflowEngine输出回调 - nodeUuid: {}, componentName: {}, wfComponent.getId: {}",
+                                nodeUuid, componentName, wfComponent.getId());
+
+                        // 跳过以下节点的OUTPUT事件：
+                        // - Start节点：用户输入不需要回显给前端（前端已经显示了用户输入）
+                        // - Answer节点：已经通过NODE_CHUNK事件发送了流式内容
+                        // - SubWorkflow节点：子工作流内部的Answer节点已经通过CHUNK事件发送了流式内容
+                        // - End节点：结束节点的输出是最终结果，不需要单独发送OUTPUT事件
+                        if (!"Start".equals(componentName)
+                            && !"Answer".equals(componentName)
+                            && !"SubWorkflow".equals(componentName)
+                            && !"End".equals(componentName)) {
+                            log.info("发送NODE_OUTPUT事件 - nodeUuid: {}, componentName: {}", nodeUuid, componentName);
+                            List<NodeIOData> nodeOutputs = nodeState.getOutputs();
+                            for (NodeIOData output : nodeOutputs) {
+                                streamHandler.sendNodeOutput(nodeUuid, JSONObject.toJSONString(output));
+                            }
+                        } else {
+                            log.info("跳过NODE_OUTPUT事件 - componentName: {}（用户输入回显/流式输出/结束节点）", componentName);
                         }
                     }
             );
@@ -426,14 +561,37 @@ public class WorkflowEngine {
 
                 if (null != abstractWfNode) {
                     // 找到对应的运行时节点
-                    AiWorkflowRuntimeNodeVo runtimeNodeVo = wfState.getRuntimeNodeByNodeUuid(out.node());
-                    if (null != runtimeNodeVo) {
-                        // 更新运行时节点的输出
-                        workflowRuntimeNodeService.updateOutput(runtimeNodeVo.getId(), abstractWfNode.getState());
-                        wfState.setOutput(abstractWfNode.getState().getOutputs());
+                    // 注意: wfState.getRuntimeNodes()只适用于Workflow独立测试场景
+                    // AI Chat场景下,需要直接根据nodeUuid查找node ID
+                    Long runtimeNodeId = null;
+
+                    if (callSource == WorkflowCallSource.AI_CHAT) {
+                        // AI Chat场景: 由于我们没有存储conversation node到wfState中,
+                        // 这里暂时跳过更新(或者可以通过数据库查询获取node ID)
+                        // TODO: 如果需要在streamingResult中更新AI Chat的节点,需要实现查询逻辑
+                        log.debug("AI Chat场景下streamingResult暂时跳过node更新");
+                    } else {
+                        // Workflow独立测试场景: 使用wfState中的runtime node
+                        AiWorkflowRuntimeNodeVo runtimeNodeVo = wfState.getRuntimeNodeByNodeUuid(out.node());
+                        if (null != runtimeNodeVo) {
+                            runtimeNodeId = runtimeNodeVo.getId();
+                        }
+                    }
+
+                    // 更新运行时节点的输出
+                    if (runtimeNodeId != null) {
+                        if (callSource == WorkflowCallSource.AI_CHAT) {
+                            conversationWorkflowRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
+                        } else {
+                            workflowRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
+                        }
                     } else {
                         log.warn("Can not find runtime node, node uuid:{}", out.node());
                     }
+
+                    // 设置工作流最终输出（适用于所有场景）
+                    // 修复: 将此行移到if块外，确保AI_CHAT场景也能正确设置输出
+                    wfState.setOutput(abstractWfNode.getState().getOutputs());
                 } else {
                     log.warn("Can not find node state,node uuid:{}", out.node());
                 }
@@ -452,6 +610,16 @@ public class WorkflowEngine {
         // 获取 Start 节点的输入定义列表
         List<AiWfNodeIOVo> defList = startNode.getInputConfig().getUserInputs();
         List<NodeIOData> wfInputs = new ArrayList<>();
+
+        // 如果StartNode没有配置输入定义，直接使用传入的userInputs（兼容简单工作流）
+        if (defList == null || defList.isEmpty()) {
+            log.info("StartNode未配置输入定义，直接使用传入的userInputs");
+            for (JSONObject userInput : userInputs) {
+                NodeIOData nodeIOData = WfNodeIODataUtil.createNodeIOData(userInput);
+                wfInputs.add(nodeIOData);
+            }
+            return wfInputs;
+        }
 
         // 遍历每个输入定义,验证用户输入
         for (AiWfNodeIOVo paramDefinition : defList) {

@@ -299,7 +299,19 @@ public class AiConversationService {
     }
 
     public List<AiConversationContentVo> chatList(String conversationId, String userId) {
-        return extAiConversationContentMapper.selectByConversationId(conversationId);
+        List<AiConversationContentVo> result = extAiConversationContentMapper.selectByConversationId(conversationId);
+
+        log.info("【AI-Chat-查询】查询历史消息: conversationId={}, 返回{}条消息", conversationId, result.size());
+
+        // 打印每条消息的runtime_uuid信息
+        for (int i = 0; i < result.size(); i++) {
+            AiConversationContentVo msg = result.get(i);
+            log.info("【AI-Chat-查询】消息[{}]: messageId={}, type={}, runtime_uuid={}, content前20字={}",
+                i, msg.getMessage_id(), msg.getType(), msg.getRuntime_uuid(),
+                msg.getContent() != null && msg.getContent().length() > 20 ? msg.getContent().substring(0, 20) : msg.getContent());
+        }
+
+        return result;
     }
 
     public AiConversationVo update(AIConversationUpdateRequestVo request, String userId) {
@@ -349,6 +361,33 @@ public class AiConversationService {
     public void endConversation(String conversationId, String userId) {
         log.info("对话已结束 - conversationId: {}, userId: {}", conversationId, userId);
     }
+
+    /**
+     * 更新对话的工作流状态
+     *
+     * @param conversationId 对话ID
+     * @param workflowState 工作流状态（IDLE/WORKFLOW_RUNNING/WORKFLOW_WAITING_INPUT）
+     * @param workflowUuid 工作流UUID（可选，IDLE时传null）
+     * @param runtimeUuid 运行时UUID（可选，IDLE/WORKFLOW_RUNNING时传null）
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateWorkflowState(String conversationId, String workflowState,
+                                     String workflowUuid, String runtimeUuid) {
+        AiConversationEntity entity = aiConversationMapper.selectById(conversationId);
+        if (entity == null) {
+            throw new AiBusinessException("对话不存在: " + conversationId);
+        }
+
+        entity.setWorkflowState(workflowState);
+        entity.setCurrentWorkflowUuid(workflowUuid);
+        entity.setCurrentRuntimeUuid(runtimeUuid);
+
+        aiConversationMapper.updateById(entity);
+
+        log.info("更新对话工作流状态: conversationId={}, state={}, workflowUuid={}, runtimeUuid={}",
+                 conversationId, workflowState, workflowUuid, runtimeUuid);
+    }
+
     /**
      * 获取对话历史记录（用于ChatMemory）
      * @param conversationId 对话ID

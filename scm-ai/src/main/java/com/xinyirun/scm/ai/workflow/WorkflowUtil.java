@@ -230,19 +230,25 @@ public class WorkflowUtil {
      */
     private static String extractOriginalUserInput(WfState wfState) {
         if (wfState == null || wfState.getInput() == null) {
+            log.warn("❌ extractOriginalUserInput: wfState或input为null");
             return null;
         }
 
+        log.info("🔍 extractOriginalUserInput: 开始提取用户输入，input数量: {}", wfState.getInput().size());
+
         // 从工作流初始输入中查找var_user_input参数
         for (NodeIOData input : wfState.getInput()) {
+            log.info("🔍 extractOriginalUserInput: 检查input - name: {}, content: {}",
+                input.getName(), input.getContent());
+
             if ("var_user_input".equals(input.getName())) {
                 String value = input.valueToString();
-                log.debug("提取原始用户输入: {}", value);
+                log.info("✅ extractOriginalUserInput: 找到var_user_input，value: {}", value);
                 return value;
             }
         }
 
-        log.debug("未找到var_user_input参数");
+        log.warn("❌ extractOriginalUserInput: 未找到var_user_input参数");
         return null;
     }
 

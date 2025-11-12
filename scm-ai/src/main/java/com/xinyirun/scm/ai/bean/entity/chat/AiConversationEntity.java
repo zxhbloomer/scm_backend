@@ -69,6 +69,24 @@ public class AiConversationEntity implements Serializable {
     @TableField("dbversion")
     private Integer dbversion;
 
+    /**
+     * 当前活跃工作流UUID
+     */
+    @TableField("current_workflow_uuid")
+    private String currentWorkflowUuid;
+
+    /**
+     * 当前工作流运行时UUID(用于恢复执行)
+     */
+    @TableField("current_runtime_uuid")
+    private String currentRuntimeUuid;
+
+    /**
+     * 工作流状态
+     * IDLE-空闲, WORKFLOW_RUNNING-执行中, WORKFLOW_WAITING_INPUT-等待输入
+     */
+    @TableField("workflow_state")
+    private String workflowState;
 
     /**
      * 配置ID

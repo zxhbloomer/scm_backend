@@ -45,6 +45,47 @@ public class ChatResponseVo {
     private Boolean isError = false;
 
     /**
+     * 是否等待用户输入(用于工作流多轮对话)
+     * true: 工作流暂停等待用户输入
+     * false/null: 正常响应
+     *
+     * @since 2025-11-10 工作流多轮对话支持
+     */
+    @Builder.Default
+    private Boolean isWaitingInput = false;
+
+    /**
+     * 是否完成(用于工作流完成判断)
+     * true: 工作流执行完成
+     * false/null: 正常响应或执行中
+     *
+     * @since 2025-11-10 工作流多轮对话支持
+     */
+    @Builder.Default
+    private Boolean isComplete = false;
+
+    /**
+     * 工作流运行时ID(数据库主键,用于查询执行详情)
+     *
+     * @since 2025-11-11 AI-Chat执行详情功能
+     */
+    private Long runtimeId;
+
+    /**
+     * 工作流运行时UUID(用于恢复暂停的工作流)
+     *
+     * @since 2025-11-10 工作流多轮对话支持
+     */
+    private String runtimeUuid;
+
+    /**
+     * 工作流UUID
+     *
+     * @since 2025-11-10 工作流多轮对话支持
+     */
+    private String workflowUuid;
+
+    /**
      * 生成结果内部类
      */
     @Data

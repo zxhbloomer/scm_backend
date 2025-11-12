@@ -10,6 +10,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
+import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowRuntimeService;
@@ -193,7 +194,7 @@ public class WorkflowController {
         // 由于使用了响应式流，必须在主线程获取租户编码后传递给Service层
         String tenantCode = request.getHeader("X-Tenant-ID");
 
-        return workflowStarter.streaming(wfUuid, inputs, tenantCode)
+        return workflowStarter.streaming(wfUuid, inputs, tenantCode, WorkflowCallSource.WORKFLOW_TEST)
                 .onErrorResume(error -> {
                     // 在Flux流中处理错误，防止异常传播到全局异常处理器导致SSE流中断
                     log.error("工作流执行错误 - wfUuid: {}, tenantCode: {}", wfUuid, tenantCode, error);

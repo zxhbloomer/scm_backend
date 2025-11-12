@@ -192,6 +192,22 @@ public class AiConversationVo implements Serializable {
      */
     private StatisticsInfo statistics;
 
+    /**
+     * 当前活跃工作流UUID
+     */
+    private String currentWorkflowUuid;
+
+    /**
+     * 当前工作流运行时UUID
+     */
+    private String currentRuntimeUuid;
+
+    /**
+     * 工作流状态
+     * IDLE-空闲, WORKFLOW_RUNNING-执行中, WORKFLOW_WAITING_INPUT-等待输入
+     */
+    private String workflowState;
+
 
 
     /**

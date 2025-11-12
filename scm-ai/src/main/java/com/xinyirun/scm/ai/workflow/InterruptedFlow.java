@@ -13,10 +13,11 @@ import org.apache.commons.collections4.map.PassiveExpiringMap;
 public class InterruptedFlow {
 
     /**
-     * 10分钟超时
+     * 30分钟超时(KISS优化: 从10分钟延长到30分钟)
+     * 原因: 用户可能需要更长时间思考(查资料/接电话等)
      */
     private static final PassiveExpiringMap.ExpirationPolicy<String, WorkflowEngine> EXPIRATION_POLICY =
-            new PassiveExpiringMap.ConstantTimeToLiveExpirationPolicy<>(60 * 1000 * 10);
+            new PassiveExpiringMap.ConstantTimeToLiveExpirationPolicy<>(60 * 1000 * 30);
 
     /**
      * runtime_uuid -> WorkflowEngine映射

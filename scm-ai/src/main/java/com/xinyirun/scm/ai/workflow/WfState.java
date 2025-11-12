@@ -3,6 +3,7 @@ package com.xinyirun.scm.ai.workflow;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.Getter;
@@ -27,6 +28,11 @@ public class WfState {
     private String tenantCode;
     private String conversationId;
     private String processingNodeUuid;
+
+    /**
+     * 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
+     */
+    private WorkflowCallSource callSource;
 
     /**
      * 工作流流式处理器（用于发送 SSE 事件）

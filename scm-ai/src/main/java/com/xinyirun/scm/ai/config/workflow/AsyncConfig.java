@@ -37,7 +37,7 @@ public class AsyncConfig {
      *
      * @return 配置好的异步任务执行器
      */
-    @Bean(name = "ragTaskExecutor")
+    @Bean(name = "ragTaskExecutor", defaultCandidate = false)
     public Executor ragTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
@@ -86,7 +86,7 @@ public class AsyncConfig {
      *
      * @return 绘图任务执行器
      */
-    @Bean(name = "imagesExecutor")
+    @Bean(name = "imagesExecutor", defaultCandidate = false)
     public Executor imagesExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(3);
@@ -115,8 +115,8 @@ public class AsyncConfig {
      *
      * @return 通用任务执行器
      */
-    @Bean(name = "mainExecutor")
-    public Executor mainExecutor() {
+    @Bean(name = "mainExecutor", defaultCandidate = false)
+    public ThreadPoolTaskExecutor mainExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
         executor.setMaxPoolSize(20);

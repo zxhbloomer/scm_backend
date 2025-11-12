@@ -1,5 +1,7 @@
 package com.xinyirun.scm.ai.workflow;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 工作流流式处理器 - 回调接口
  * 用于WorkflowEngine向Flux发送事件
@@ -7,6 +9,7 @@ package com.xinyirun.scm.ai.workflow;
  * @author zxh
  * @since 2025-10-29
  */
+@Slf4j
 public class WorkflowStreamHandler {
 
     /**
@@ -115,6 +118,7 @@ public class WorkflowStreamHandler {
      * 发送NODE_INPUT事件
      */
     public void sendNodeInput(String nodeUuid, String inputData) {
+        log.info("【SSE发送】NODE_INPUT - nodeUuid: {}, inputData: {}", nodeUuid, inputData);
         callback.onNodeInput(nodeUuid, inputData);
     }
 
@@ -122,6 +126,7 @@ public class WorkflowStreamHandler {
      * 发送NODE_OUTPUT事件
      */
     public void sendNodeOutput(String nodeUuid, String outputData) {
+        log.info("【SSE发送】NODE_OUTPUT - nodeUuid: {}, outputData: {}", nodeUuid, outputData);
         callback.onNodeOutput(nodeUuid, outputData);
     }
 
@@ -129,6 +134,7 @@ public class WorkflowStreamHandler {
      * 发送NODE_CHUNK事件
      */
     public void sendNodeChunk(String nodeUuid, String chunk) {
+        log.debug("【SSE发送】NODE_CHUNK - nodeUuid: {}, chunk length: {}", nodeUuid, chunk != null ? chunk.length() : 0);
         callback.onNodeChunk(nodeUuid, chunk);
     }
 

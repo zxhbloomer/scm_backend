@@ -588,7 +588,7 @@ scm:
 
     # 工作流引擎配置
     workflow:
-      enabled: false
+      enabled: true
       max-concurrent-tasks: 10
       task-timeout: 300000  # 5分钟
 

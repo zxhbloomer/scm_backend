@@ -50,15 +50,16 @@ public interface ExtAiConversationContentMapper {
     @Select("""
         SELECT
             id,
-            message_id AS messageId,
-            conversation_id AS conversationId,
+            message_id,
+            conversation_id,
             type,
             content,
-            model_source_id AS modelSourceId,
-            c_time AS cTime,
-            u_time AS uTime,
-            c_id AS cId,
-            u_id AS uId,
+            runtime_uuid,
+            model_source_id,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
             dbversion
         FROM ai_conversation_content
         WHERE conversation_id = #{conversationId}

@@ -470,4 +470,117 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
     public List<AiWorkflowEntity> getAvailableWorkflows(Long userId) {
         return aiWorkflowMapper.selectAvailableWorkflows(userId);
     }
+
+    // ==================== 智能路由新增方法 (2025-11-10) ====================
+
+    /**
+     * 查询用户可用的工作流 (用于智能路由)
+     *
+     * @param tenantCode 租户编码
+     * @param userId 用户ID
+     * @return 可用工作流Vo列表(含分类名称等扩展信息)
+     */
+    public List<AiWorkflowVo> getAvailableWorkflowsForRouting(String tenantCode, Long userId) {
+        return aiWorkflowMapper.selectAvailableWorkflowsForRouting( userId);
+    }
+
+    /**
+     * 查询用户所有工作流 (包括未发布的,用于管理页面)
+     *
+     * @param tenantCode 租户编码
+     * @param userId 用户ID
+     * @return 用户所有工作流列表
+     */
+    public List<AiWorkflowEntity> getAllUserWorkflows(String tenantCode, Long userId) {
+        return aiWorkflowMapper.selectAllUserWorkflows( userId);
+    }
+
+    /**
+     * 查询默认工作流 (兜底策略)
+     *
+     * @param tenantCode 租户编码
+     * @return 默认工作流
+     */
+    public AiWorkflowEntity getDefaultWorkflow(String tenantCode) {
+        return aiWorkflowMapper.selectDefaultWorkflow();
+    }
+
+    /**
+     * 保存工作流
+     * 如果当前是已发布状态,强制改为未发布
+     *
+     * @param workflow 工作流实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void saveWorkflow(AiWorkflowEntity workflow) {
+        if (workflow.getIsEnable() != null && workflow.getIsEnable()) {
+            workflow.setIsEnable(false);
+        }
+
+        if (workflow.getId() == null) {
+            aiWorkflowMapper.insert(workflow);
+        } else {
+            aiWorkflowMapper.updateById(workflow);
+        }
+    }
+
+    /**
+     * 更新测试运行时间
+     *
+     * @param workflowUuid 工作流UUID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void updateTestTime(String workflowUuid) {
+        AiWorkflowEntity workflow = aiWorkflowMapper.selectByWorkflowUuid(workflowUuid);
+        if (workflow == null) {
+            throw new RuntimeException("工作流不存在: " + workflowUuid);
+        }
+
+        workflow.setLastTestTime(java.time.LocalDateTime.now());
+        aiWorkflowMapper.updateById(workflow);
+    }
+
+    /**
+     * 发布工作流
+     *
+     * @param workflowUuid 工作流UUID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void publishWorkflow(String workflowUuid) {
+        AiWorkflowEntity workflow = aiWorkflowMapper.selectByWorkflowUuid(workflowUuid);
+        if (workflow == null) {
+            throw new RuntimeException("工作流不存在: " + workflowUuid);
+        }
+
+        // 校验: 是否测试过
+        if (workflow.getLastTestTime() == null) {
+            throw new RuntimeException("请先执行测试运行,确认工作流正常后再发布");
+        }
+
+        // 校验: 测试时间是否在更新时间之后
+        if (workflow.getUTime() != null &&
+            workflow.getLastTestTime().isBefore(workflow.getUTime())) {
+            throw new RuntimeException("工作流已修改,请重新测试运行后再发布");
+        }
+
+        // 发布
+        workflow.setIsEnable(true);
+        aiWorkflowMapper.updateById(workflow);
+    }
+
+    /**
+     * 取消发布
+     *
+     * @param workflowUuid 工作流UUID
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void unpublishWorkflow(String workflowUuid) {
+        AiWorkflowEntity workflow = aiWorkflowMapper.selectByWorkflowUuid(workflowUuid);
+        if (workflow == null) {
+            throw new RuntimeException("工作流不存在: " + workflowUuid);
+        }
+
+        workflow.setIsEnable(false);
+        aiWorkflowMapper.updateById(workflow);
+    }
 }
