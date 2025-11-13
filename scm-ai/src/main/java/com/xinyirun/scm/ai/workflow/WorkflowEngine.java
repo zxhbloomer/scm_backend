@@ -433,7 +433,7 @@ public class WorkflowEngine {
             Long runtimeNodeId; // 存储节点ID用于后续更新操作
             if (callSource == WorkflowCallSource.AI_CHAT) {
                 AiConversationWorkflowRuntimeNodeVo nodeVo = conversationWorkflowRuntimeNodeService.createByState(
-                        runtimeId, nodeState, wfNode.getId());
+                        runtimeId, nodeState, wfNode.getId(), this.userId);
                 runtimeNodeId = nodeVo.getId();
                 // 发送节点运行开始消息
                 streamHandler.sendNodeRun(wfNode.getUuid(), JSONObject.toJSONString(nodeVo));

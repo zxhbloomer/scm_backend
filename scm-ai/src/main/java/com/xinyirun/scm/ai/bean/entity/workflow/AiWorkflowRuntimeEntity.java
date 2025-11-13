@@ -76,7 +76,7 @@ public class AiWorkflowRuntimeEntity implements Serializable {
     private String outputData;
 
     /**
-     * 执行状态(1-运行中,2-成功,3-失败)
+     * 执行状态(1-等待中,2-运行中,3-成功,4-失败)
      */
     @TableField("status")
     private Integer status;

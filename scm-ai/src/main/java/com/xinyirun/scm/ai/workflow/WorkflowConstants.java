@@ -32,39 +32,41 @@ public class WorkflowConstants {
     public static final String COMPONENT_UUID_HUMAN_FEEDBACK = "402c0936b00411f0aeeca284340e1cbb";
 
     /**
-     * 节点处理状态-就绪
+     * 节点处理状态-等待中
      */
-    public static final Integer NODE_PROCESS_STATUS_READY = 0;
+    public static final Integer NODE_PROCESS_STATUS_READY = 1;
 
     /**
-     * 节点处理状态-处理中
+     * 节点处理状态-运行中
      */
-    public static final Integer NODE_PROCESS_STATUS_DOING = 1;
+    public static final Integer NODE_PROCESS_STATUS_DOING = 2;
 
     /**
      * 节点处理状态-成功
      */
-    public static final Integer NODE_PROCESS_STATUS_SUCCESS = 2;
+    public static final Integer NODE_PROCESS_STATUS_SUCCESS = 3;
 
     /**
      * 节点处理状态-失败
      */
-    public static final Integer NODE_PROCESS_STATUS_FAIL = 3;
+    public static final Integer NODE_PROCESS_STATUS_FAIL = 4;
 
     /**
-     * 工作流处理状态-就绪
+     * 工作流处理状态-等待中（包括就绪和等待用户输入）
      */
-    public static final Integer WORKFLOW_PROCESS_STATUS_READY = 0;
+    public static final Integer WORKFLOW_PROCESS_STATUS_READY = 1;
 
     /**
      * 工作流处理状态-运行中
      */
-    public static final Integer WORKFLOW_PROCESS_STATUS_RUNNING = 1;
+    public static final Integer WORKFLOW_PROCESS_STATUS_RUNNING = 2;
 
     /**
-     * 工作流处理状态-等待用户输入
+     * 工作流处理状态-等待用户输入（已废弃，使用READY代替）
+     * @deprecated 使用 WORKFLOW_PROCESS_STATUS_READY 代替
      */
-    public static final Integer WORKFLOW_PROCESS_STATUS_WAITING_INPUT = 2;
+    @Deprecated
+    public static final Integer WORKFLOW_PROCESS_STATUS_WAITING_INPUT = 1;
 
     /**
      * 工作流处理状态-成功

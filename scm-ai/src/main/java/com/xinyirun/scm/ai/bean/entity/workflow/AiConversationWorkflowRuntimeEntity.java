@@ -61,7 +61,7 @@ public class AiConversationWorkflowRuntimeEntity {
     private String outputData;
 
     /**
-     * 执行状态(1-运行中,2-成功,3-失败)
+     * 执行状态(1-等待中,2-运行中,3-成功,4-失败)
      */
     @TableField("status")
     private Integer status;
@@ -87,13 +87,13 @@ public class AiConversationWorkflowRuntimeEntity {
     /**
      * 创建人ID
      */
-    @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @TableField(value = "c_id")
     private Long c_id;
 
     /**
      * 修改人ID
      */
-    @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
+    @TableField(value = "u_id")
     private Long u_id;
 
     /**

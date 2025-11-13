@@ -80,25 +80,25 @@ public class AiConversationContentEntity implements Serializable {
     /**
      * 创建时间
      */
-    @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @TableField(value = "c_time")
     private LocalDateTime createTime;
 
     /**
      * 修改时间
      */
-    @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
+    @TableField(value = "u_time")
     private LocalDateTime updateTime;
 
     /**
      * 创建人id
      */
-    @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @TableField(value = "c_id")
     private Long cId;
 
     /**
      * 修改人id
      */
-    @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
+    @TableField(value = "u_id")
     private Long uId;
 
     /**

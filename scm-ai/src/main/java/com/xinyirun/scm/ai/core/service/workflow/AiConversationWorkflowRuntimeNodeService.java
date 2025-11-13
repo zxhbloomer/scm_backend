@@ -85,15 +85,20 @@ public class AiConversationWorkflowRuntimeNodeService extends ServiceImpl<AiConv
      * @param wfRuntimeId 运行实例ID
      * @param state 节点状态
      * @param wfNodeId 节点ID
+     * @param userId 用户ID，用于设置创建人和修改人
      * @return 节点执行记录VO
      */
-    public AiConversationWorkflowRuntimeNodeVo createByState(Long wfRuntimeId, WfNodeState state, Long wfNodeId) {
+    public AiConversationWorkflowRuntimeNodeVo createByState(Long wfRuntimeId, WfNodeState state, Long wfNodeId, Long userId) {
         AiConversationWorkflowRuntimeNodeEntity runtimeNode = new AiConversationWorkflowRuntimeNodeEntity();
         runtimeNode.setRuntimeNodeUuid(state.getUuid());
         runtimeNode.setConversationWorkflowRuntimeId(wfRuntimeId);
         runtimeNode.setNodeId(wfNodeId);
         runtimeNode.setStatus(state.getProcessStatus());
-        // 不设置 c_time, u_time, c_id, u_id, dbversion - 自动填充
+
+        // 设置创建人和修改人ID（使用传入的userId参数）
+        runtimeNode.setC_id(userId);
+        runtimeNode.setU_id(userId);
+
         conversationWorkflowRuntimeNodeMapper.insert(runtimeNode);
 
         // 重新查询获取完整数据

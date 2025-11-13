@@ -76,6 +76,15 @@ public class AiConversationContentService {
             entity.setProviderName("workflow");
             entity.setBaseName("workflow");
 
+            // 设置创建人和修改人ID（使用传入的operatorId参数）
+            entity.setCId(operatorId);
+            entity.setUId(operatorId);
+
+            // 设置创建时间和修改时间
+            LocalDateTime now = LocalDateTime.now();
+            entity.setCreateTime(now);
+            entity.setUpdateTime(now);
+
             // 保存到MySQL
             int result = aiConversationContentMapper.insert(entity);
 
@@ -133,6 +142,15 @@ public class AiConversationContentService {
             entity.setModelSourceId(modelSourceId);
             entity.setProviderName(providerName);
             entity.setBaseName(baseName);
+
+            // 设置创建人和修改人ID（使用传入的operatorId参数）
+            entity.setCId(operatorId);
+            entity.setUId(operatorId);
+
+            // 设置创建时间和修改时间
+            LocalDateTime now = LocalDateTime.now();
+            entity.setCreateTime(now);
+            entity.setUpdateTime(now);
 
             // 1. 保存到MySQL
             int result = aiConversationContentMapper.insert(entity);

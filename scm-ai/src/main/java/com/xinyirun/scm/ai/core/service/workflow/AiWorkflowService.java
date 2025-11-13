@@ -51,24 +51,34 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
     /**
      * 创建工作流
      *
-     * @param title 标题
-     * @param remark 备注
-     * @param isPublic 是否公开(false-私有,true-公开)
+     * @param vo 工作流VO对象(包含title, remark, isPublic及可选的desc, keywords, priority)
      * @return 工作流VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public AiWorkflowVo add(String title, String remark, Boolean isPublic) {
+    public AiWorkflowVo add(AiWorkflowVo vo) {
         Long userId = SecurityUtil.getStaff_id();
         String workflowUuid = UuidUtil.createShort();
 
         AiWorkflowEntity entity = new AiWorkflowEntity();
         entity.setWorkflowUuid(workflowUuid);
-        entity.setTitle(title);
-        entity.setRemark(remark);
-        entity.setIsPublic(isPublic);
+        entity.setTitle(vo.getTitle());
+        entity.setRemark(vo.getRemark());
+        entity.setIsPublic(vo.getIsPublic());
         entity.setIsEnable(true);
         entity.setIsDeleted(false);
         entity.setUserId(userId);
+
+        // 智能路由相关字段(可选)
+        if (vo.getDesc() != null) {
+            entity.setDesc(vo.getDesc());
+        }
+        if (vo.getKeywords() != null) {
+            entity.setKeywords(vo.getKeywords());
+        }
+        if (vo.getPriority() != null) {
+            entity.setPriority(vo.getPriority());
+        }
+
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowMapper.insert(entity);
 
@@ -76,18 +86,18 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         workflowNodeService.createStartNode(entity);
 
         // 转换为VO
-        AiWorkflowVo vo = new AiWorkflowVo();
-        BeanUtils.copyProperties(entity, vo);
+        AiWorkflowVo result = new AiWorkflowVo();
+        BeanUtils.copyProperties(entity, result);
 
         // 填充节点和边信息
-        if (vo.getId() != null) {
-            List<AiWorkflowNodeVo> nodes = workflowNodeService.listDtoByWfId(vo.getId());
-            vo.setNodes(nodes);
-            List<AiWorkflowEdgeVo> edges = workflowEdgeService.listDtoByWfId(vo.getId());
-            vo.setEdges(edges);
+        if (result.getId() != null) {
+            List<AiWorkflowNodeVo> nodes = workflowNodeService.listDtoByWfId(result.getId());
+            result.setNodes(nodes);
+            List<AiWorkflowEdgeVo> edges = workflowEdgeService.listDtoByWfId(result.getId());
+            result.setEdges(edges);
         }
 
-        return vo;
+        return result;
     }
 
     /**
@@ -213,33 +223,47 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
     /**
      * 更新工作流基本信息
      *
-     * @param wfUuid 工作流UUID
-     * @param title 标题
-     * @param remark 备注
-     * @param isPublic 是否公开(false-私有,true-公开)
+     * @param vo 工作流VO对象(包含要更新的字段)
      * @return 更新后的工作流VO
      */
-    public AiWorkflowVo updateBaseInfo(String wfUuid, String title, String remark, Boolean isPublic) {
+    public AiWorkflowVo updateBaseInfo(AiWorkflowVo vo) {
         Long userId = SecurityUtil.getStaff_id();
 
-        if (StringUtils.isAnyBlank(wfUuid, title)) {
+        if (vo == null || StringUtils.isAnyBlank(vo.getWorkflowUuid(), vo.getTitle())) {
             throw new RuntimeException("工作流UUID和标题不能为空");
         }
 
-        AiWorkflowEntity workflow = getOrThrow(wfUuid);
+        AiWorkflowEntity workflow = getOrThrow(vo.getWorkflowUuid());
         if (!workflow.getUserId().equals(userId)) {
             throw new RuntimeException("无权限修改此工作流");
         }
 
         // 更新工作流基本信息（在查询出的实体上直接修改）
-        workflow.setTitle(title);
-        workflow.setRemark(remark);
-        if (isPublic != null) {
-            workflow.setIsPublic(isPublic);
+        workflow.setTitle(vo.getTitle());
+        workflow.setRemark(vo.getRemark());
+        if (vo.getIsPublic() != null) {
+            workflow.setIsPublic(vo.getIsPublic());
         }
+
+        // 智能路由相关字段（允许null，null表示不更新该字段）
+        if (vo.getDesc() != null) {
+            workflow.setDesc(vo.getDesc());
+        }
+        if (vo.getKeywords() != null) {
+            workflow.setKeywords(vo.getKeywords());
+        }
+        if (vo.getPriority() != null) {
+            workflow.setPriority(vo.getPriority());
+        }
+
         aiWorkflowMapper.updateById(workflow);
 
-        return getDtoByUuid(wfUuid);
+        log.info("更新工作流基本信息成功, wfUuid: {}, title: {}, desc长度: {}, keywords: {}, priority: {}",
+                vo.getWorkflowUuid(), vo.getTitle(),
+                vo.getDesc() != null ? vo.getDesc().length() : 0,
+                vo.getKeywords(), vo.getPriority());
+
+        return getDtoByUuid(vo.getWorkflowUuid());
     }
 
     /**

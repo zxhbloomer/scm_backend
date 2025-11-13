@@ -65,7 +65,11 @@ public class AiConversationWorkflowRuntimeService extends ServiceImpl<AiConversa
         runtime.setConversationId(conversationId);
 
         runtime.setStatus(1); // 1-运行中
-        // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
+
+        // 设置创建人和修改人ID（使用传入的userId参数）
+        runtime.setC_id(userId);
+        runtime.setU_id(userId);
+
         conversationWorkflowRuntimeMapper.insert(runtime);
 
         runtime = conversationWorkflowRuntimeMapper.selectById(runtime.getId());
@@ -110,6 +114,11 @@ public class AiConversationWorkflowRuntimeService extends ServiceImpl<AiConversa
         runtime.setConversationId(conversationId);
 
         runtime.setStatus(1); // 1-运行中
+
+        // 设置创建人和修改人ID（使用传入的userId参数）
+        runtime.setC_id(userId);
+        runtime.setU_id(userId);
+
         conversationWorkflowRuntimeMapper.insert(runtime);
 
         runtime = conversationWorkflowRuntimeMapper.selectById(runtime.getId());
@@ -232,60 +241,32 @@ public class AiConversationWorkflowRuntimeService extends ServiceImpl<AiConversa
     }
 
     /**
-     * 根据ID查询运行实例详情(包含工作流名称等完整信息)
-     *
-     * @param runtimeId 运行实例ID
-     * @return 运行实例VO(包含完整信息)
-     */
-    public AiConversationWorkflowRuntimeVo getDetailById(Long runtimeId) {
-        // 查询运行实例
-        AiConversationWorkflowRuntimeEntity runtime = conversationWorkflowRuntimeMapper.selectById(runtimeId);
-        if (runtime == null) {
-            return null;
-        }
-
-        return convertToDetailVo(runtime);
-    }
-
-    /**
      * 根据UUID查询运行实例详情(包含工作流名称等完整信息)
      *
      * @param runtimeUuid 运行实例UUID
      * @return 运行实例VO(包含完整信息)
      */
     public AiConversationWorkflowRuntimeVo getDetailByUuid(String runtimeUuid) {
-        // 使用Mapper的SQL查询方法
-        AiConversationWorkflowRuntimeEntity runtime = conversationWorkflowRuntimeMapper.selectByRuntimeUuid(runtimeUuid);
+        // 使用Mapper的VO查询方法，直接获取包含c_name的VO
+        AiConversationWorkflowRuntimeVo vo = conversationWorkflowRuntimeMapper.selectVoByRuntimeUuid(runtimeUuid);
 
-        if (runtime == null) {
+        if (vo == null) {
             return null;
         }
 
-        return convertToDetailVo(runtime);
+        return convertToDetailVo(vo);
     }
 
     /**
-     * 将运行实例Entity转换为详情VO
+     * 填充VO的扩展字段(工作流名称、执行时长等)
      *
-     * @param runtime 运行实例Entity
+     * @param vo 运行实例VO
      * @return 运行实例VO(包含完整信息)
      */
-    private AiConversationWorkflowRuntimeVo convertToDetailVo(AiConversationWorkflowRuntimeEntity runtime) {
-        // 转换为VO
-        AiConversationWorkflowRuntimeVo vo = new AiConversationWorkflowRuntimeVo();
-        BeanUtils.copyProperties(runtime, vo);
-
-        // 手动转换JSON字段
-        if (StringUtils.isNotBlank(runtime.getInputData())) {
-            vo.setInputData(JSON.parseObject(runtime.getInputData()));
-        }
-        if (StringUtils.isNotBlank(runtime.getOutputData())) {
-            vo.setOutputData(JSON.parseObject(runtime.getOutputData()));
-        }
-
+    private AiConversationWorkflowRuntimeVo convertToDetailVo(AiConversationWorkflowRuntimeVo vo) {
         // 填充工作流名称
-        if (runtime.getWorkflowId() != null) {
-            AiWorkflowEntity workflow = workflowService.getById(runtime.getWorkflowId());
+        if (vo.getWorkflowId() != null) {
+            AiWorkflowEntity workflow = workflowService.getById(vo.getWorkflowId());
             if (workflow != null) {
                 vo.setWorkflow_name(workflow.getTitle());
                 vo.setWorkflowUuid(workflow.getWorkflowUuid());
@@ -293,14 +274,14 @@ public class AiConversationWorkflowRuntimeService extends ServiceImpl<AiConversa
         }
 
         // 计算执行时长(如果有结束时间)
-        if (runtime.getU_time() != null && runtime.getC_time() != null) {
-            long duration = java.time.Duration.between(runtime.getC_time(), runtime.getU_time()).toMillis();
+        if (vo.getU_time() != null && vo.getC_time() != null) {
+            long duration = java.time.Duration.between(vo.getC_time(), vo.getU_time()).toMillis();
             vo.setElapsed_time(duration);
         }
 
         // 设置开始时间和结束时间(使用创建时间和更新时间)
-        vo.setStart_time(runtime.getC_time());
-        vo.setEnd_time(runtime.getU_time());
+        vo.setStart_time(vo.getC_time());
+        vo.setEnd_time(vo.getU_time());
 
         // 填充输入输出数据(确保不为null)
         fillInputOutput(vo);

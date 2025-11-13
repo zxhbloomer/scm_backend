@@ -74,7 +74,7 @@ public class WorkflowController {
     @PostMapping("/add")
     @SysLogAnnotion("新增工作流")
     public ResponseEntity<JsonResultAo<AiWorkflowVo>> add(@RequestBody AiWorkflowVo vo) {
-        AiWorkflowVo result = workflowService.add(vo.getTitle(), vo.getRemark(), vo.getIsPublic());
+        AiWorkflowVo result = workflowService.add(vo);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 
@@ -118,7 +118,7 @@ public class WorkflowController {
     @PostMapping("/base-info/update")
     @SysLogAnnotion("更新工作流基本信息")
     public ResponseEntity<JsonResultAo<AiWorkflowVo>> updateBaseInfo(@RequestBody AiWorkflowVo vo) {
-        AiWorkflowVo result = workflowService.updateBaseInfo(vo.getWorkflowUuid(), vo.getTitle(), vo.getRemark(), vo.getIsPublic());
+        AiWorkflowVo result = workflowService.updateBaseInfo(vo);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 

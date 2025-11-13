@@ -81,13 +81,13 @@ public class AiConversationWorkflowRuntimeNodeEntity {
     /**
      * 创建人ID
      */
-    @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
+    @TableField(value = "c_id")
     private Long c_id;
 
     /**
      * 修改人ID
      */
-    @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
+    @TableField(value = "u_id")
     private Long u_id;
 
     /**

@@ -5,6 +5,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.concurrent.Executor;
 
@@ -111,6 +115,7 @@ public class AsyncConfig {
      *   <li>最大线程数：20 - 高并发时支持更多线程</li>
      *   <li>队列容量：200 - 较大队列容量支持批量任务</li>
      *   <li>线程名前缀：main-async- - 通用任务标识</li>
+     *   <li>TaskDecorator：传播SecurityContext和RequestAttributes到异步线程</li>
      * </ul>
      *
      * @return 通用任务执行器
@@ -126,6 +131,32 @@ public class AsyncConfig {
         executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
+
+        // 设置TaskDecorator，传播SecurityContext和RequestAttributes到异步线程
+        executor.setTaskDecorator(new TaskDecorator() {
+            @Override
+            public Runnable decorate(Runnable runnable) {
+                // 在主线程中获取SecurityContext和RequestAttributes
+                SecurityContext securityContext = SecurityContextHolder.getContext();
+                RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+
+                return () -> {
+                    try {
+                        // 在异步线程中设置SecurityContext和RequestAttributes
+                        SecurityContextHolder.setContext(securityContext);
+                        if (requestAttributes != null) {
+                            RequestContextHolder.setRequestAttributes(requestAttributes);
+                        }
+                        runnable.run();
+                    } finally {
+                        // 清理ThreadLocal，防止内存泄漏
+                        SecurityContextHolder.clearContext();
+                        RequestContextHolder.resetRequestAttributes();
+                    }
+                };
+            }
+        });
+
         executor.initialize();
         return executor;
     }
