@@ -76,7 +76,7 @@ public class ScmWorkflowMessageChatMemory implements ChatMemory {
                             case USER -> new UserMessage(content);
                             case ASSISTANT -> new AssistantMessage(content);
                             case SYSTEM -> new SystemMessage(content);
-                            case TOOL -> new ToolResponseMessage(List.of());
+                            default -> throw new IllegalArgumentException("未知消息类型: " + type);
                         };
                     }).collect(Collectors.toList());
 
