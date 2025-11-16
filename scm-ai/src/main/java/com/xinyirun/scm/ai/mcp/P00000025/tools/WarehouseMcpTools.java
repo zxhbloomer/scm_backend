@@ -2,8 +2,9 @@ package com.xinyirun.scm.ai.mcp.P00000025.tools;
 
 import com.xinyirun.scm.ai.mcp.P00000025.service.WarehouseAiService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
+import org.springaicommunity.mcp.annotation.McpTool;
+import org.springaicommunity.mcp.annotation.McpToolParam;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.alibaba.fastjson2.JSON;
@@ -65,29 +66,32 @@ public class WarehouseMcpTools {
      * @param enableBin 是否启用库位（可选，true/false）
      * @return JSON格式的仓库查询结果
      */
-    @Tool(description = "查询仓库信息，支持按编码、名称、地理位置、状态等多种条件查询仓库列表，用于仓库信息的查找和浏览")
+    @McpTool(description = "查询仓库信息，支持按编码、名称、地理位置、状态等多种条件查询仓库列表，用于仓库信息的查找和浏览")
     public String queryWarehouses(
-            @ToolParam(description = "租户ID，用于数据权限控制") String tenantId,
-            @ToolParam(description = "仓库编码，支持模糊查询，如'WH001'") String code,
-            @ToolParam(description = "仓库名称，支持模糊查询，如'主仓库'") String name,
-            @ToolParam(description = "仓库简称，支持模糊查询") String shortName,
-            @ToolParam(description = "省份，如'上海市'、'江苏省'") String province,
-            @ToolParam(description = "城市，如'浦东新区'、'苏州市'") String city,
-            @ToolParam(description = "仓库状态：ENABLED-启用，DISABLED-停用") String status,
-            @ToolParam(description = "仓库类型，如'成品仓'、'原料仓'等") String warehouseType,
-            @ToolParam(description = "是否启用库区管理，true或false") Boolean enableLocation,
-            @ToolParam(description = "是否启用库位管理，true或false") Boolean enableBin) {
+            @McpToolParam(description = "租户编码，用于数据权限控制") String tenantCode,
+            @McpToolParam(description = "仓库编码，支持模糊查询，如'WH001'") String code,
+            @McpToolParam(description = "仓库名称，支持模糊查询，如'主仓库'") String name,
+            @McpToolParam(description = "仓库简称，支持模糊查询") String shortName,
+            @McpToolParam(description = "省份，如'上海市'、'江苏省'") String province,
+            @McpToolParam(description = "城市，如'浦东新区'、'苏州市'") String city,
+            @McpToolParam(description = "仓库状态：ENABLED-启用，DISABLED-停用") String status,
+            @McpToolParam(description = "仓库类型，如'成品仓'、'原料仓'等") String warehouseType,
+            @McpToolParam(description = "是否启用库区管理，true或false") Boolean enableLocation,
+            @McpToolParam(description = "是否启用库位管理，true或false") Boolean enableBin) {
 
         log.info("MCP工具调用 - 查询仓库信息: 租户={}, 编码={}, 名称={}, 简称={}, 省份={}, 城市={}, 状态={}, 类型={}, 启用库区={}, 启用库位={}",
-                tenantId, code, name, shortName, province, city, status, warehouseType, enableLocation, enableBin);
+                tenantCode, code, name, shortName, province, city, status, warehouseType, enableLocation, enableBin);
 
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             // 调用AI服务执行查询
             Map<String, Object> result = warehouseAiService.queryWarehouses(
                     code, name, shortName, province, city, status, warehouseType, enableLocation, enableBin);
 
             // 添加调用信息
-            result.put("tenantId", tenantId);
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "query_warehouses");
             java.util.Map<String, Object> queryConditions = new java.util.HashMap<>();
             queryConditions.put("code", code != null ? code : "");
@@ -100,19 +104,22 @@ public class WarehouseMcpTools {
             queryConditions.put("enableLocation", enableLocation != null ? enableLocation : "");
             queryConditions.put("enableBin", enableBin != null ? enableBin : "");
             result.put("queryConditions", queryConditions);
-            
+
             // 转换为JSON字符串返回
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 查询仓库信息: 租户={}, 错误={}", tenantId, e.getMessage(), e);
+            log.error("MCP工具异常 - 查询仓库信息: 租户={}, 错误={}", tenantCode, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "查询仓库信息失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "toolName", "query_warehouses",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -131,34 +138,40 @@ public class WarehouseMcpTools {
      * @param warehouseId 仓库ID（必填）
      * @return JSON格式的仓库详细信息
      */
-    @Tool(description = "获取指定仓库的详细信息，包括基础信息、库区库位结构等完整数据")
+    @McpTool(description = "获取指定仓库的详细信息，包括基础信息、库区库位结构等完整数据")
     public String getWarehouseDetail(
-            @ToolParam(description = "租户ID") String tenantId,
-            @ToolParam(description = "仓库ID，数字类型") int warehouseId) {
-        
-        log.info("MCP工具调用 - 获取仓库详细信息: 租户={}, 仓库ID={}", tenantId, warehouseId);
-        
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "仓库ID，数字类型") int warehouseId) {
+
+        log.info("MCP工具调用 - 获取仓库详细信息: 租户={}, 仓库ID={}", tenantCode, warehouseId);
+
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             Map<String, Object> result = warehouseAiService.getWarehouseDetail(warehouseId);
-            
+
             // 添加调用信息
-            result.put("tenantId", tenantId);
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "get_warehouse_detail");
             result.put("warehouseId", warehouseId);
-            
+
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 获取仓库详细信息: 租户={}, 仓库ID={}, 错误={}", 
-                     tenantId, warehouseId, e.getMessage(), e);
+            log.error("MCP工具异常 - 获取仓库详细信息: 租户={}, 仓库ID={}, 错误={}",
+                     tenantCode, warehouseId, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "获取仓库详细信息失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "warehouseId", warehouseId,
                 "toolName", "get_warehouse_detail",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -177,33 +190,39 @@ public class WarehouseMcpTools {
      * @param code 仓库编码（必填，精确匹配）
      * @return JSON格式的仓库信息
      */
-    @Tool(description = "通过仓库编码精确查找仓库信息，用于快速定位特定编码的仓库")
+    @McpTool(description = "通过仓库编码精确查找仓库信息，用于快速定位特定编码的仓库")
     public String findWarehouseByCode(
-            @ToolParam(description = "租户ID") String tenantId,
-            @ToolParam(description = "仓库编码，如'WH001'、'MAIN_STORE'等") String code) {
-        
-        log.info("MCP工具调用 - 按编码查找仓库: 租户={}, 编码={}", tenantId, code);
-        
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "仓库编码，如'WH001'、'MAIN_STORE'等") String code) {
+
+        log.info("MCP工具调用 - 按编码查找仓库: 租户={}, 编码={}", tenantCode, code);
+
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             Map<String, Object> result = warehouseAiService.findWarehouseByCode(code);
-            
-            result.put("tenantId", tenantId);
+
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "find_warehouse_by_code");
             result.put("searchCode", code);
-            
+
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 按编码查找仓库: 租户={}, 编码={}, 错误={}", 
-                     tenantId, code, e.getMessage(), e);
+            log.error("MCP工具异常 - 按编码查找仓库: 租户={}, 编码={}, 错误={}",
+                     tenantCode, code, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "按编码查找仓库失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "searchCode", code,
                 "toolName", "find_warehouse_by_code",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -221,33 +240,39 @@ public class WarehouseMcpTools {
      * @param name 仓库名称（必填，支持模糊匹配）
      * @return JSON格式的匹配仓库列表
      */
-    @Tool(description = "通过仓库名称模糊查找仓库，支持部分名称匹配，用于按名称搜索仓库")
+    @McpTool(description = "通过仓库名称模糊查找仓库，支持部分名称匹配，用于按名称搜索仓库")
     public String findWarehousesByName(
-            @ToolParam(description = "租户ID") String tenantId,
-            @ToolParam(description = "仓库名称，支持部分匹配，如'主仓'、'成品'等") String name) {
-        
-        log.info("MCP工具调用 - 按名称查找仓库: 租户={}, 名称={}", tenantId, name);
-        
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "仓库名称，支持部分匹配，如'主仓'、'成品'等") String name) {
+
+        log.info("MCP工具调用 - 按名称查找仓库: 租户={}, 名称={}", tenantCode, name);
+
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             Map<String, Object> result = warehouseAiService.findWarehousesByName(name);
-            
-            result.put("tenantId", tenantId);
+
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "find_warehouses_by_name");
             result.put("searchName", name);
-            
+
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 按名称查找仓库: 租户={}, 名称={}, 错误={}", 
-                     tenantId, name, e.getMessage(), e);
+            log.error("MCP工具异常 - 按名称查找仓库: 租户={}, 名称={}, 错误={}",
+                     tenantCode, name, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "按名称查找仓库失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "searchName", name,
                 "toolName", "find_warehouses_by_name",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -266,32 +291,38 @@ public class WarehouseMcpTools {
      * @param warehouseId 仓库ID（必填）
      * @return JSON格式的仓库状态信息
      */
-    @Tool(description = "检查仓库的当前状态，包括启用/停用状态，是否可以使用等信息")
+    @McpTool(description = "检查仓库的当前状态，包括启用/停用状态，是否可以使用等信息")
     public String checkWarehouseStatus(
-            @ToolParam(description = "租户ID") String tenantId,
-            @ToolParam(description = "仓库ID") int warehouseId) {
-        
-        log.info("MCP工具调用 - 检查仓库状态: 租户={}, 仓库ID={}", tenantId, warehouseId);
-        
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "仓库ID") int warehouseId) {
+
+        log.info("MCP工具调用 - 检查仓库状态: 租户={}, 仓库ID={}", tenantCode, warehouseId);
+
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             Map<String, Object> result = warehouseAiService.checkWarehouseStatus(warehouseId);
-            
-            result.put("tenantId", tenantId);
+
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "check_warehouse_status");
-            
+
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 检查仓库状态: 租户={}, 仓库ID={}, 错误={}", 
-                     tenantId, warehouseId, e.getMessage(), e);
+            log.error("MCP工具异常 - 检查仓库状态: 租户={}, 仓库ID={}, 错误={}",
+                     tenantCode, warehouseId, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "检查仓库状态失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "warehouseId", warehouseId,
                 "toolName", "check_warehouse_status",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -309,30 +340,36 @@ public class WarehouseMcpTools {
      * @param tenantId 租户ID
      * @return JSON格式的启用仓库列表
      */
-    @Tool(description = "获取所有启用状态的仓库列表，用于查看当前可以使用的仓库")
+    @McpTool(description = "获取所有启用状态的仓库列表，用于查看当前可以使用的仓库")
     public String getAvailableWarehouses(
-            @ToolParam(description = "租户ID") String tenantId) {
-        
-        log.info("MCP工具调用 - 获取可用仓库: 租户={}", tenantId);
-        
+            @McpToolParam(description = "租户编码") String tenantCode) {
+
+        log.info("MCP工具调用 - 获取可用仓库: 租户={}", tenantCode);
+
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             Map<String, Object> result = warehouseAiService.getEnabledWarehouses();
-            
-            result.put("tenantId", tenantId);
+
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "get_available_warehouses");
             result.put("filterDescription", "只显示启用状态的仓库");
-            
+
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 获取可用仓库: 租户={}, 错误={}", tenantId, e.getMessage(), e);
+            log.error("MCP工具异常 - 获取可用仓库: 租户={}, 错误={}", tenantCode, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "获取可用仓库失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "toolName", "get_available_warehouses",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 
@@ -353,17 +390,20 @@ public class WarehouseMcpTools {
      * @param mustEnabled 是否必须启用（可选，默认true）
      * @return JSON格式的仓库推荐结果
      */
-    @Tool(description = "根据指定条件推荐合适的仓库，提供智能化的仓库选择建议")
+    @McpTool(description = "根据指定条件推荐合适的仓库，提供智能化的仓库选择建议")
     public String recommendWarehouses(
-            @ToolParam(description = "租户ID") String tenantId,
-            @ToolParam(description = "需求描述，如'存放成品'、'临时存储'等") String requirement,
-            @ToolParam(description = "偏好的仓库类型") String preferredType,
-            @ToolParam(description = "是否必须启用，true或false") Boolean mustEnabled) {
-        
-        log.info("MCP工具调用 - 仓库推荐: 租户={}, 需求={}, 偏好类型={}, 必须启用={}", 
-                tenantId, requirement, preferredType, mustEnabled);
-        
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "需求描述，如'存放成品'、'临时存储'等") String requirement,
+            @McpToolParam(description = "偏好的仓库类型") String preferredType,
+            @McpToolParam(description = "是否必须启用，true或false") Boolean mustEnabled) {
+
+        log.info("MCP工具调用 - 仓库推荐: 租户={}, 需求={}, 偏好类型={}, 必须启用={}",
+                tenantCode, requirement, preferredType, mustEnabled);
+
         try {
+            // 切换租户数据源
+            DataSourceHelper.use(tenantCode);
+
             // 根据推荐条件查询仓库
             String status = (mustEnabled == null || mustEnabled) ? "ENABLED" : null;
             Map<String, Object> result = warehouseAiService.queryWarehouses(
@@ -377,32 +417,35 @@ public class WarehouseMcpTools {
                     null,              // enableLocation
                     null               // enableBin
             );
-            
+
             // 添加推荐逻辑的结果信息
-            result.put("tenantId", tenantId);
+            result.put("tenantCode", tenantCode);
             result.put("toolName", "recommend_warehouses");
             result.put("recommendationCriteria", Map.of(
                 "requirement", requirement != null ? requirement : "无特殊要求",
                 "preferredType", preferredType != null ? preferredType : "无类型偏好",
                 "mustEnabled", mustEnabled != null ? mustEnabled : true
             ));
-            
+
             // 如果有结果，添加推荐说明
             if ((Boolean) result.get("success") && result.containsKey("warehouses")) {
                 result.put("recommendationNote", "根据您的需求，以下仓库符合条件。建议优先选择启用状态的仓库。");
             }
-            
+
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
-            
+
         } catch (Exception e) {
-            log.error("MCP工具异常 - 仓库推荐: 租户={}, 错误={}", tenantId, e.getMessage(), e);
+            log.error("MCP工具异常 - 仓库推荐: 租户={}, 错误={}", tenantCode, e.getMessage(), e);
             return JSON.toJSONString(Map.of(
                 "success", false,
                 "message", "仓库推荐失败: " + e.getMessage(),
-                "tenantId", tenantId,
+                "tenantCode", tenantCode,
                 "toolName", "recommend_warehouses",
                 "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            // 清理数据源上下文
+            DataSourceHelper.close();
         }
     }
 }
