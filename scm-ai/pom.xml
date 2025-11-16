@@ -76,6 +76,12 @@
             <artifactId>spring-ai-retry</artifactId>
         </dependency>
 
+        <!-- Spring AI MCP Server - 模型上下文协议服务器 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+        </dependency>
+
         <!-- Ollama4j Java客户端 -->
         <dependency>
             <groupId>io.github.ollama4j</groupId>
@@ -130,8 +136,18 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+            <exclusions>
+                <!-- 排除 JUnit 4 -->
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.junit.vintage</groupId>
+                    <artifactId>junit-vintage-engine</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-
         <!-- H2 内存数据库用于测试 -->
         <dependency>
             <groupId>com.h2database</groupId>
