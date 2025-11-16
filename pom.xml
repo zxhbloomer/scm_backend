@@ -74,7 +74,7 @@
         <jeasypoi.version>2.1.6</jeasypoi.version>
         <!--        <knife4j.version>3.0.3</knife4j.version>-->
         <!-- Spring AI 版本管理 -->
-        <spring-ai.version>1.0.3</spring-ai.version>
+        <spring-ai.version>1.1.0</spring-ai.version>
         <spring-ai-alibaba.version>1.0.0.3</spring-ai-alibaba.version>
         <ansj_seg.version>5.1.6</ansj_seg.version>
         <!-- LangGraph4j 版本管理 -->
@@ -130,36 +130,7 @@
                 <artifactId>spring-boot-configuration-processor</artifactId>
                 <version>${project.build.springbootversion}</version>
             </dependency>
-            <!--            <dependency>-->
-            <!--                <groupId>org.springframework.boot</groupId>-->
-            <!--                <artifactId>spring-boot-starter-test</artifactId>-->
-            <!--                <version>${project.build.springbootversion}</version>-->
-            <!--                <scope>test</scope>-->
-            <!--                <exclusions>-->
-            <!--                    <exclusion>-->
-            <!--                        <groupId>junit</groupId>-->
-            <!--                        <artifactId>junit</artifactId>-->
-            <!--                    </exclusion>-->
-            <!--                </exclusions>-->
-            <!--            </dependency>-->
-            <!--            <dependency>-->
-            <!--                <groupId>org.junit.jupiter</groupId>-->
-            <!--                <artifactId>junit-jupiter-engine</artifactId>-->
-            <!--                <version>5.7.1</version>-->
-            <!--                <scope>test</scope>-->
-            <!--            </dependency>-->
-            <!--            <dependency>-->
-            <!--                <groupId>org.junit.jupiter</groupId>-->
-            <!--                <artifactId>junit-jupiter-api</artifactId>-->
-            <!--                <version>5.7.1</version>-->
-            <!--                <scope>test</scope>-->
-            <!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>org.springframework.boot</groupId>-->
-<!--                <artifactId>spring-boot-devtools</artifactId>-->
-<!--                <version>${project.build.springbootversion}</version>-->
-<!--                <optional>true</optional>-->
-<!--            </dependency>-->
+
             <dependency>
                 <groupId>org.springframework.session</groupId>
                 <artifactId>spring-session-data-redis</artifactId>
@@ -898,7 +869,11 @@
                 <artifactId>spring-ai-tika-document-reader</artifactId>
                 <version>${spring-ai.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
