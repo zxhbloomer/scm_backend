@@ -54,7 +54,7 @@ public class WarehouseMcpTools {
      * - "查询上海的仓库"
      * - "查找启用了库位管理的仓库"
      *
-     * @param tenantId 租户ID（必填，用于多租户数据隔离）
+     * @param tenantCode 租户ID（必填，用于多租户数据隔离）
      * @param code 仓库编码（可选，支持模糊匹配）
      * @param name 仓库名称（可选，支持模糊匹配）
      * @param shortName 仓库简称（可选，支持模糊匹配）
@@ -134,7 +134,7 @@ public class WarehouseMcpTools {
      * - "这个仓库有哪些库区库位？"
      * - "仓库ID为5的详细情况"
      * 
-     * @param tenantId 租户ID
+     * @param tenantCode 租户ID
      * @param warehouseId 仓库ID（必填）
      * @return JSON格式的仓库详细信息
      */
@@ -186,7 +186,7 @@ public class WarehouseMcpTools {
      * - "WH-MAIN这个仓库的信息"
      * - "编码为STORE-01的仓库存在吗？"
      * 
-     * @param tenantId 租户ID
+     * @param tenantCode 租户ID
      * @param code 仓库编码（必填，精确匹配）
      * @return JSON格式的仓库信息
      */
@@ -236,7 +236,7 @@ public class WarehouseMcpTools {
      * - "包含'成品'的仓库有哪些？"
      * - "原材料相关的仓库"
      * 
-     * @param tenantId 租户ID
+     * @param tenantCode 租户ID
      * @param name 仓库名称（必填，支持模糊匹配）
      * @return JSON格式的匹配仓库列表
      */
@@ -287,7 +287,7 @@ public class WarehouseMcpTools {
      * - "这个仓库现在能用吗？"
      * - "仓库的启用状态如何？"
      * 
-     * @param tenantId 租户ID
+     * @param tenantCode 租户ID
      * @param warehouseId 仓库ID（必填）
      * @return JSON格式的仓库状态信息
      */
@@ -337,7 +337,7 @@ public class WarehouseMcpTools {
      * - "列出所有启用的仓库"
      * - "当前可用的仓库列表"
      * 
-     * @param tenantId 租户ID
+     * @param tenantCode 租户ID
      * @return JSON格式的启用仓库列表
      */
     @McpTool(description = "获取所有启用状态的仓库列表，用于查看当前可以使用的仓库")
@@ -384,7 +384,7 @@ public class WarehouseMcpTools {
      * - "给我推荐存放成品的仓库"
      * - "需要一个启用状态的仓库"
      * 
-     * @param tenantId 租户ID
+     * @param tenantCode 租户ID
      * @param requirement 需求描述（可选）
      * @param preferredType 偏好类型（可选）
      * @param mustEnabled 是否必须启用（可选，默认true）

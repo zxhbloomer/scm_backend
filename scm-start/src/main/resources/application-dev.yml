@@ -385,6 +385,15 @@ spring:
       image:
         enabled: false
 
+    # MCP Client 配置 - 模型上下文协议客户端
+    mcp:
+      client:
+        # 禁用 MCP Client 工具回调自动配置
+        # 原因: 我们使用自定义的McpToolConfig来处理本地@McpTool注解的工具
+        # 避免与自动配置的mcpToolCallbacks Bean冲突
+        toolcallback:
+          enabled: false
+
 logging:
   level:
     org.springframework.web: Debug

@@ -4,6 +4,8 @@ import com.xinyirun.scm.ai.config.AiModelProvider;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -18,6 +20,7 @@ import org.springframework.context.annotation.Lazy;
  * @CreateTime: 2025-05-27  18:36 (原创建时间)
  * @Migration: 2025-09-21 (迁移到scm-ai)
  * @Update: 2025-01-08 (领域拆分重构)
+ * @Update: 2025-01-17 (集成 MCP Client 工具回调)
  */
 @Configuration
 public class AiChatMemoryConfig {
@@ -59,13 +62,23 @@ public class AiChatMemoryConfig {
      * 使用@Lazy延迟初始化，避免启动时因租户上下文未设置导致无法获取模型配置
      *
      * @param aiModelProvider AI模型提供者，用于获取ChatModel实例
+     * @param toolCallbackProvider MCP Client工具回调提供者（可选，仅在MCP Client启用时注入）
      * @return 配置好的ChatClient实例
      */
     @Lazy
     @Bean("chatDomainChatClient")
-    public ChatClient chatDomainChatClient(AiModelProvider aiModelProvider) {
+    public ChatClient chatDomainChatClient(
+            AiModelProvider aiModelProvider,
+            @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
         ChatModel chatModel = aiModelProvider.getChatModel();
-        return ChatClient.builder(chatModel).build();
+        ChatClient.Builder builder = ChatClient.builder(chatModel);
+
+        // 如果 MCP Client 已启用，注入工具回调
+        if (toolCallbackProvider != null) {
+            builder.defaultToolCallbacks(toolCallbackProvider);
+        }
+
+        return builder.build();
     }
 
     /**
@@ -84,6 +97,7 @@ public class AiChatMemoryConfig {
      * @param aiModelProvider AI模型提供者，用于获取ChatModel实例
      * @param workflowMessageChatMemoryAdvisor Workflow对话历史读取Advisor
      * @param workflowConversationAdvisor Workflow对话保存Advisor
+     * @param toolCallbackProvider MCP Client工具回调提供者（可选，仅在MCP Client启用时注入）
      * @return 配置好的ChatClient实例
      */
     @Lazy
@@ -91,14 +105,21 @@ public class AiChatMemoryConfig {
     public ChatClient workflowDomainChatClient(
             AiModelProvider aiModelProvider,
             MessageChatMemoryAdvisor workflowMessageChatMemoryAdvisor,
-            WorkflowConversationAdvisor workflowConversationAdvisor) {
+            WorkflowConversationAdvisor workflowConversationAdvisor,
+            @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
         ChatModel chatModel = aiModelProvider.getChatModel();
-        return ChatClient.builder(chatModel)
+        ChatClient.Builder builder = ChatClient.builder(chatModel)
                 .defaultAdvisors(
                     workflowMessageChatMemoryAdvisor,  // 读取历史对话
                     workflowConversationAdvisor        // 保存新对话
-                )
-                .build();
+                );
+
+        // 如果 MCP Client 已启用，注入工具回调
+        if (toolCallbackProvider != null) {
+            builder.defaultToolCallbacks(toolCallbackProvider);
+        }
+
+        return builder.build();
     }
 
     /**
@@ -113,12 +134,22 @@ public class AiChatMemoryConfig {
      * 使用@Lazy延迟初始化，避免启动时因租户上下文未设置导致无法获取模型配置
      *
      * @param aiModelProvider AI模型提供者，用于获取ChatModel实例
+     * @param toolCallbackProvider MCP Client工具回调提供者（可选，仅在MCP Client启用时注入）
      * @return 配置好的ChatClient实例
      */
     @Lazy
     @Bean("workflowRoutingChatClient")
-    public ChatClient workflowRoutingChatClient(AiModelProvider aiModelProvider) {
+    public ChatClient workflowRoutingChatClient(
+            AiModelProvider aiModelProvider,
+            @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
         ChatModel chatModel = aiModelProvider.getChatModel();
-        return ChatClient.builder(chatModel).build();
+        ChatClient.Builder builder = ChatClient.builder(chatModel);
+
+        // 如果 MCP Client 已启用，注入工具回调
+        if (toolCallbackProvider != null) {
+            builder.defaultToolCallbacks(toolCallbackProvider);
+        }
+
+        return builder.build();
     }
 }

@@ -208,11 +208,17 @@ public class AiChatBaseService {
         // 运行时传递conversationId、runtimeUuid和originalUserInput参数给Advisors
         // 注意：不再重复添加advisor，因为已在workflowDomainChatClient中配置为defaultAdvisors
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
-            return workflowDomainChatClient
+            ChatClient.ChatClientRequestSpec requestSpec = workflowDomainChatClient
                     .prompt()
                     .system(aiChatOption.getSystem())
-                    .user(aiChatOption.getPrompt())
-                    .advisors(a -> {
+                    .user(aiChatOption.getPrompt());
+
+            // 如果有toolContext，传递给ChatClient
+            if (aiChatOption.getToolContext() != null && !aiChatOption.getToolContext().isEmpty()) {
+                requestSpec.toolContext(aiChatOption.getToolContext());
+            }
+
+            return requestSpec.advisors(a -> {
                         a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
                         a.param(WorkflowConversationAdvisor.RUNTIME_UUID, runtimeUuid);
                         // 传递原始用户输入（用于对话记录，而不是渲染后的prompt）
@@ -222,10 +228,17 @@ public class AiChatBaseService {
                     })
                     .stream();
         }
-        return workflowDomainChatClient
+
+        ChatClient.ChatClientRequestSpec requestSpec = workflowDomainChatClient
                 .prompt()
-                .user(aiChatOption.getPrompt())
-                .advisors(a -> {
+                .user(aiChatOption.getPrompt());
+
+        // 如果有toolContext，传递给ChatClient
+        if (aiChatOption.getToolContext() != null && !aiChatOption.getToolContext().isEmpty()) {
+            requestSpec.toolContext(aiChatOption.getToolContext());
+        }
+
+        return requestSpec.advisors(a -> {
                     a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
                     a.param(WorkflowConversationAdvisor.RUNTIME_UUID, runtimeUuid);
                     // 传递原始用户输入（用于对话记录，而不是渲染后的prompt）

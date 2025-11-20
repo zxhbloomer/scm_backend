@@ -234,11 +234,11 @@ public class WorkflowStarter {
             // 注意: 只有在WORKFLOW_TEST模式下才更新测试时间
             if (callSource == WorkflowCallSource.WORKFLOW_TEST) {
                 try {
-                    workflowService.updateTestTime(workflowUuid);
-                    log.info("工作流测试运行成功,已更新测试时间: workflowUuid={}", workflowUuid);
+                    workflowService.updateTestTime(workflowUuid, tenantCode);
+                    log.info("工作流测试运行成功,已更新测试时间: workflowUuid={}, tenantCode={}", workflowUuid, tenantCode);
                 } catch (Exception testTimeException) {
                     // 更新测试时间失败不影响工作流执行结果
-                    log.error("更新测试时间失败: workflowUuid={}", workflowUuid, testTimeException);
+                    log.error("更新测试时间失败: workflowUuid={}, tenantCode={}", workflowUuid, tenantCode, testTimeException);
                 }
             }
 

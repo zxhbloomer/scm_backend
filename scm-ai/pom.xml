@@ -82,6 +82,12 @@
             <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
         </dependency>
 
+        <!-- Spring AI MCP Client - 模型上下文协议客户端 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-client</artifactId>
+        </dependency>
+
         <!-- Ollama4j Java客户端 -->
         <dependency>
             <groupId>io.github.ollama4j</groupId>

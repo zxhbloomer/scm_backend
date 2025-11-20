@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
 
@@ -176,6 +177,9 @@ public class WorkflowUtil {
                 // 设置 conversationId 并调用 LLM（使用Workflow专用方法）
                 chatOption.setConversationId(conversationId);
                 String runtimeUuid = wfState.getUuid();
+
+                // 设置 toolContext，传递租户编码给 MCP 工具
+                chatOption.setToolContext(Map.of("tenantCode", wfState.getTenantCode()));
 
                 log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}",
                         conversationId, runtimeUuid, originalUserInput);

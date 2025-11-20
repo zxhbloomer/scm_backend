@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowEdgeVo;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowMapper;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -552,9 +553,13 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * 更新测试运行时间
      *
      * @param workflowUuid 工作流UUID
+     * @param tenantCode 租户编码
      */
     @Transactional(rollbackFor = Exception.class)
-    public void updateTestTime(String workflowUuid) {
+    public void updateTestTime(String workflowUuid, String tenantCode) {
+        // 在方法开始时设置租户数据源上下文
+        DataSourceHelper.use(tenantCode);
+
         AiWorkflowEntity workflow = aiWorkflowMapper.selectByWorkflowUuid(workflowUuid);
         if (workflow == null) {
             throw new RuntimeException("工作流不存在: " + workflowUuid);

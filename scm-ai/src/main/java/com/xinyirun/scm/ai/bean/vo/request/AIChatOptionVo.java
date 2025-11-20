@@ -11,6 +11,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * AI聊天选项业务视图对象
@@ -55,6 +56,12 @@ public class AIChatOptionVo implements Serializable {
     private String system;
 
     private String tenantId;
+
+    /**
+     * Tool上下文，用于传递额外信息给工具(如租户编码)
+     */
+    @Schema(description = "Tool上下文")
+    private Map<String, Object> toolContext;
 
     /**
      * 设置提示词并返回当前对象（链式调用）
