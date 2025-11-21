@@ -223,6 +223,7 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
     @Transactional(rollbackFor = Exception.class)
     public void deleteNodes(Long workflowId, List<String> uuids) {
         if (uuids == null || uuids.isEmpty()) {
+            log.warn("deleteNodes 列表为空，跳过删除操作");
             return;
         }
 
@@ -251,10 +252,8 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
                 }
             }
 
-            // 软删除节点（VO转Entity后更新）
-            AiWorkflowNodeEntity entity = aiWorkflowNodeMapper.selectById(node.getId());
-            entity.setIsDeleted(true);
-            aiWorkflowNodeMapper.updateById(entity);
+            // 物理删除节点
+            aiWorkflowNodeMapper.deleteById(node.getId());
         }
     }
 
