@@ -498,8 +498,14 @@ public class AiConversationController {
     private ChatResponseVo convertWorkflowEventToResponse(WorkflowEventVo event) {
         ChatResponseVo.ChatResponseVoBuilder builder = ChatResponseVo.builder();
 
+        // 跳过 NODE_INPUT 和 NODE_OUTPUT 事件的内容提取
+        // 这些事件用于前端实时显示工作流状态，不应累积到最终对话内容中
+        String eventName = event.getEvent();
+        boolean isNodeInputOutput = eventName != null &&
+            (eventName.startsWith("[NODE_INPUT_") || eventName.startsWith("[NODE_OUTPUT_"));
+
         // 设置基础字段
-        if (event.getData() != null) {
+        if (event.getData() != null && !isNodeInputOutput) {
             // 解析event.data JSON获取内容
             try {
                 JSONObject dataJson = JSONObject.parseObject(event.getData());
