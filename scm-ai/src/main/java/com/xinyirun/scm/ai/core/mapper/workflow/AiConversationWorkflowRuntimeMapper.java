@@ -3,9 +3,12 @@ package com.xinyirun.scm.ai.core.mapper.workflow;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiConversationWorkflowRuntimeEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeVo;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 /**
  * AI Chat调用Workflow运行时Mapper
@@ -75,4 +78,29 @@ public interface AiConversationWorkflowRuntimeMapper extends BaseMapper<AiConver
         LIMIT 1
         """)
     AiConversationWorkflowRuntimeVo selectVoByRuntimeUuid(@Param("runtimeUuid") String runtimeUuid);
+
+    /**
+     * 根据conversation_id查询所有运行时实例ID
+     *
+     * @param conversationId 对话ID
+     * @return 运行时实例ID列表
+     */
+    @Select("""
+        SELECT id
+        FROM ai_conversation_workflow_runtime
+        WHERE conversation_id = #{conversationId}
+        """)
+    List<Long> selectIdsByConversationId(@Param("conversationId") String conversationId);
+
+    /**
+     * 根据conversation_id删除所有运行时实例
+     *
+     * @param conversationId 对话ID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_conversation_workflow_runtime
+        WHERE conversation_id = #{conversationId}
+        """)
+    int deleteByConversationId(@Param("conversationId") String conversationId);
 }

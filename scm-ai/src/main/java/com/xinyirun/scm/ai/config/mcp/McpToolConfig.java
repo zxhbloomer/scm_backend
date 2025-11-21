@@ -113,8 +113,8 @@ class McpToolCallbackAdapter {
         // 构建JSON Schema,排除tenantCode参数(LLM看不到它)
         String inputSchema = buildJsonSchemaWithoutTenantCode(method);
 
-        // 处理工具调用:支持ToolContext传递tenantCode
-        // 使用BiFunction<Map, ToolContext, String>支持从ToolContext获取租户编码
+        // 处理工具调用:支持ToolContext传递tenantCode和staffId
+        // 使用BiFunction<Map, ToolContext, String>支持从ToolContext获取租户编码和用户ID
         BiFunction<Map<String, Object>, ToolContext, String> toolFunction =
             (inputMap, toolContext) -> {
                 try {
@@ -129,9 +129,17 @@ class McpToolCallbackAdapter {
                         tenantCode = DataSourceHelper.getCurrentDataSourceName();
                     }
 
-                    // 注入到inputMap,传递给MCP工具方法
+                    // 注入tenantCode到inputMap,传递给MCP工具方法
                     if (tenantCode != null) {
                         inputMap.put("tenantCode", tenantCode);
+                    }
+
+                    // 从ToolContext获取staffId并注入(用于权限查询等需要用户身份的场景)
+                    if (toolContext != null && toolContext.getContext().containsKey("staffId")) {
+                        Object staffId = toolContext.getContext().get("staffId");
+                        if (staffId != null) {
+                            inputMap.put("staffId", staffId);
+                        }
                     }
 
                     Object[] args = extractParameters(inputMap, method);
@@ -150,9 +158,9 @@ class McpToolCallbackAdapter {
     }
 
     /**
-     * 构建JSON Schema,自动排除tenantCode参数
+     * 构建JSON Schema,自动排除tenantCode和staffId参数
      *
-     * tenantCode会被自动注入,无需LLM提供,因此从Schema中移除
+     * tenantCode和staffId会被自动注入,无需LLM提供,因此从Schema中移除
      *
      * @param method @McpTool方法
      * @return JSON Schema字符串
@@ -166,8 +174,9 @@ class McpToolCallbackAdapter {
 
         for (Parameter param : method.getParameters()) {
             if (param.isAnnotationPresent(McpToolParam.class)) {
-                // 跳过tenantCode参数,不加入Schema
-                if ("tenantCode".equals(param.getName())) {
+                // 跳过tenantCode和staffId参数,不加入Schema(由框架自动注入)
+                String paramName = param.getName();
+                if ("tenantCode".equals(paramName) || "staffId".equals(paramName)) {
                     continue;
                 }
 

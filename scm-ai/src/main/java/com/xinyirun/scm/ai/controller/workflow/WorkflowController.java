@@ -194,7 +194,7 @@ public class WorkflowController {
         // 由于使用了响应式流，必须在主线程获取租户编码后传递给Service层
         String tenantCode = request.getHeader("X-Tenant-ID");
 
-        return workflowStarter.streaming(wfUuid, inputs, tenantCode, WorkflowCallSource.WORKFLOW_TEST)
+        return workflowStarter.streaming(wfUuid, inputs, tenantCode, WorkflowCallSource.WORKFLOW_TEST, null)
                 .onErrorResume(error -> {
                     // 在Flux流中处理错误，防止异常传播到全局异常处理器导致SSE流中断
                     log.error("工作流执行错误 - wfUuid: {}, tenantCode: {}", wfUuid, tenantCode, error);

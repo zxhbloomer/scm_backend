@@ -93,9 +93,10 @@ public class WorkflowStarter {
      * @param userInputs 用户输入参数
      * @param tenantCode 租户编码
      * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
+     * @param conversationId 对话ID (AI_CHAT场景必传,WORKFLOW_TEST传null)
      * @return Flux流式响应
      */
-    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode, WorkflowCallSource callSource) {
+    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode, WorkflowCallSource callSource, String conversationId) {
         Long userId = SecurityUtil.getStaff_id();
         String executionId = UUID.randomUUID().toString();
 
@@ -152,7 +153,7 @@ public class WorkflowStarter {
             handlerCache.put(executionId, streamHandler);
 
             // 在FluxSink创建后立即启动异步执行
-            self.asyncRunWorkflow(executionId, workflowUuid, userId, userInputs, tenantCode, callSource);
+            self.asyncRunWorkflow(executionId, workflowUuid, userId, userInputs, tenantCode, callSource, conversationId);
         })
         .subscribeOn(Schedulers.boundedElastic())
         .doFinally(signalType -> {
@@ -167,7 +168,7 @@ public class WorkflowStarter {
     /**
      * 异步执行工作流
      *
-     * 此方法在独立线程池中执行，负责工作流的实际运行。
+     * 此方法在独立线程池中执行,负责工作流的实际运行。
      * 包括数据源切换、配置加载、引擎创建和执行。
      *
      * @param executionId 执行ID
@@ -176,6 +177,7 @@ public class WorkflowStarter {
      * @param userInputs 用户输入参数
      * @param tenantCode 租户编码
      * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
+     * @param conversationId 对话ID (AI_CHAT场景必传,WORKFLOW_TEST场景传null)
      */
     @Async("mainExecutor")
     public void asyncRunWorkflow(String executionId,
@@ -183,7 +185,8 @@ public class WorkflowStarter {
                                  Long userId,
                                  List<JSONObject> userInputs,
                                  String tenantCode,
-                                 WorkflowCallSource callSource) {
+                                 WorkflowCallSource callSource,
+                                 String conversationId) {
         try {
             // 在异步线程中切换到正确的数据源
             DataSourceHelper.use(tenantCode);
@@ -227,8 +230,9 @@ public class WorkflowStarter {
             );
 
             // 在独立线程中执行工作流(不阻塞Flux.create)
-            // 主工作流执行：传递 null 让系统自动生成新的 conversationId
-            workflowEngine.run(userId, userInputs, tenantCode, null);
+            // AI_CHAT场景: 传递真实的conversationId
+            // WORKFLOW_TEST场景: 传递null让系统自动生成新的conversationId
+            workflowEngine.run(userId, userInputs, tenantCode, conversationId);
 
             // 工作流运行成功后,自动更新测试时间
             // 注意: 只有在WORKFLOW_TEST模式下才更新测试时间
@@ -288,20 +292,21 @@ public class WorkflowStarter {
     }
 
     /**
-     * 恢复暂停的工作流（流式响应）
-     * 用于多轮对话场景：工作流暂停等待用户输入后，用户提供输入继续执行
+     * 恢复暂停的工作流(流式响应)
+     * 用于多轮对话场景:工作流暂停等待用户输入后,用户提供输入继续执行
      *
-     * 遵循Spring AI模式：每次HTTP请求创建新Flux，但复用WorkflowEngine
+     * 遵循Spring AI模式:每次HTTP请求创建新Flux,但复用WorkflowEngine
      *
-     * @param runtimeUuid 工作流运行时UUID（从InterruptedFlow.RUNTIME_TO_GRAPH获取）
-     * @param workflowUuid 工作流UUID（用于runtime过期时重启）
+     * @param runtimeUuid 工作流运行时UUID(从InterruptedFlow.RUNTIME_TO_GRAPH获取)
+     * @param workflowUuid 工作流UUID(用于runtime过期时重启)
      * @param userInput 用户提供的输入内容
      * @param tenantId 租户ID
      * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
-     * @return 工作流事件流（Flux<WorkflowEventVo>）
+     * @param conversationId 对话ID (AI_CHAT场景必传,用于runtime过期时重启工作流)
+     * @return 工作流事件流(Flux<WorkflowEventVo>)
      */
     public Flux<WorkflowEventVo> resumeFlowAsFlux(String runtimeUuid, String workflowUuid,
-                                                   String userInput, String tenantId, WorkflowCallSource callSource) {
+                                                   String userInput, String tenantId, WorkflowCallSource callSource, String conversationId) {
         // 从缓存中获取暂停的工作流引擎
         WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
 
@@ -311,7 +316,7 @@ public class WorkflowStarter {
             List<JSONObject> userInputs = List.of(
                 new JSONObject().fluentPut("content", userInput)
             );
-            return streaming(workflowUuid, userInputs, tenantId, callSource);
+            return streaming(workflowUuid, userInputs, tenantId, callSource, conversationId);
         }
 
         // 为本次HTTP请求创建新Flux（Spring AI模式）

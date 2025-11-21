@@ -178,8 +178,11 @@ public class WorkflowUtil {
                 chatOption.setConversationId(conversationId);
                 String runtimeUuid = wfState.getUuid();
 
-                // 设置 toolContext，传递租户编码给 MCP 工具
-                chatOption.setToolContext(Map.of("tenantCode", wfState.getTenantCode()));
+                // 设置 toolContext，传递租户编码和用户ID给 MCP 工具
+                chatOption.setToolContext(Map.of(
+                    "tenantCode", wfState.getTenantCode(),
+                    "staffId", wfState.getUserId()
+                ));
 
                 log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}",
                         conversationId, runtimeUuid, originalUserInput);

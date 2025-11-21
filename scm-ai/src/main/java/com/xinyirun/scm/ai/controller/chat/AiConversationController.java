@@ -304,7 +304,8 @@ public class AiConversationController {
                                 conversation.getCurrentWorkflowUuid(),
                                 request.getPrompt(),
                                 tenantId,
-                                WorkflowCallSource.AI_CHAT
+                                WorkflowCallSource.AI_CHAT,
+                                conversationId
                             );
                         } else {
                             // 场景2B: 新意图,清理旧状态,路由新工作流
@@ -337,7 +338,7 @@ public class AiConversationController {
                                         .fluentPut("value", request.getPrompt())
                                     )
                             );
-                            return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT);
+                            return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId);
                         }
 
                     } else {
@@ -366,7 +367,7 @@ public class AiConversationController {
                                     .fluentPut("value", request.getPrompt())
                                 )
                         );
-                        return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT);
+                        return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId);
                     }
                 })
                 // Step 3: 转换工作流事件为响应格式

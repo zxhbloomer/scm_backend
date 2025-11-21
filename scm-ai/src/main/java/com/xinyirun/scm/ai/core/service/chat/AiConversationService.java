@@ -53,6 +53,8 @@ public class AiConversationService {
     private AiConversationContentRefGraphService refGraphService;
     @Resource
     private AiConversationPresetRelService presetRelService;
+    @Resource
+    private com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
 
     /**
      * 获取默认系统提示词
@@ -179,7 +181,7 @@ public class AiConversationService {
     }
 
     public void delete(String conversationId, String userId) {
-        log.info("开始删除对话，conversationId: {}, userId: {}", conversationId, userId);
+        log.info("开始删除对话,conversationId: {}, userId: {}", conversationId, userId);
 
         // 1. 查询该对话下的所有消息ID列表
         List<String> messageIds = aiConversationContentMapper.selectMessageIdsByConversationId(conversationId);
@@ -193,43 +195,71 @@ public class AiConversationService {
             if (!messageIds.isEmpty()) {
                 // 2. 删除向量引用记录
                 int embeddingCount = refEmbeddingService.deleteByMessageIds(messageIds);
-                log.info("删除对话向量引用，conversationId: {}, 数量: {}", conversationId, embeddingCount);
+                log.info("删除对话向量引用,conversationId: {}, 数量: {}", conversationId, embeddingCount);
 
                 // 3. 删除图谱引用记录
                 int graphCount = refGraphService.deleteByMessageIds(messageIds);
-                log.info("删除对话图谱引用，conversationId: {}, 数量: {}", conversationId, graphCount);
+                log.info("删除对话图谱引用,conversationId: {}, 数量: {}", conversationId, graphCount);
             }
         }
 
         // 4. 删除预设关系
         int presetRelCount = presetRelService.deleteByConversationId(conversationId);
-        log.info("删除对话预设关系，conversationId: {}, 数量: {}", conversationId, presetRelCount);
+        log.info("删除对话预设关系,conversationId: {}, 数量: {}", conversationId, presetRelCount);
 
-        // 5. 删除对话内容
+        // 5. 删除workflow运行记录
+        int workflowCount = conversationWorkflowRuntimeService.deleteByConversationId(conversationId);
+        log.info("删除workflow运行记录,conversationId: {}, 数量: {}", conversationId, workflowCount);
+
+        // 6. 删除对话内容
         int contentCount = aiConversationContentMapper.deleteByConversationId(conversationId);
-        log.info("删除对话内容，conversationId: {}, 数量: {}", conversationId, contentCount);
+        log.info("删除对话内容,conversationId: {}, 数量: {}", conversationId, contentCount);
 
-        // 6. 删除对话记录
+        // 7. 删除对话记录
         aiConversationMapper.deleteById(conversationId);
-        log.info("删除对话完成，conversationId: {}", conversationId);
+        log.info("删除对话完成,conversationId: {}", conversationId);
     }
 
     /**
-     * 清空对话内容（保留对话记录，只删除消息内容）
+     * 清空对话内容(保留对话记录,只删除消息内容)
      * @param conversationId 对话ID
      * @param userId 用户ID
      */
     public void clearConversationContent(String conversationId, String userId) {
         try {
-            // 删除所有对话内容
-            int deletedCount = aiConversationContentMapper.deleteByConversationId(conversationId);
+            log.info("开始清空对话内容,conversationId: {}, userId: {}", conversationId, userId);
 
-            // 记录操作日志
-            log.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, deletedCount);
+            // 1. 查询该对话下的所有消息ID列表
+            List<String> messageIds = aiConversationContentMapper.selectMessageIdsByConversationId(conversationId);
+
+            if (!messageIds.isEmpty()) {
+                // 过滤空白messageId
+                messageIds = messageIds.stream()
+                        .filter(StringUtils::isNotBlank)
+                        .collect(Collectors.toList());
+
+                if (!messageIds.isEmpty()) {
+                    // 2. 删除向量引用记录
+                    int embeddingCount = refEmbeddingService.deleteByMessageIds(messageIds);
+                    log.info("清空对话向量引用,conversationId: {}, 数量: {}", conversationId, embeddingCount);
+
+                    // 3. 删除图谱引用记录
+                    int graphCount = refGraphService.deleteByMessageIds(messageIds);
+                    log.info("清空对话图谱引用,conversationId: {}, 数量: {}", conversationId, graphCount);
+                }
+            }
+
+            // 4. 删除workflow运行记录
+            int workflowCount = conversationWorkflowRuntimeService.deleteByConversationId(conversationId);
+            log.info("清空workflow运行记录,conversationId: {}, 数量: {}", conversationId, workflowCount);
+
+            // 5. 删除对话内容
+            int contentCount = aiConversationContentMapper.deleteByConversationId(conversationId);
+            log.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, contentCount);
 
         } catch (Exception e) {
             log.error("清空对话内容失败", e);
-            throw new AiBusinessException("清空对话内容失败：" + e.getMessage());
+            throw new AiBusinessException("清空对话内容失败:" + e.getMessage());
         }
     }
 

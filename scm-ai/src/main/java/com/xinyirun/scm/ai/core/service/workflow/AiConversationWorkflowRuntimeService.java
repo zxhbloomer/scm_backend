@@ -321,6 +321,43 @@ public class AiConversationWorkflowRuntimeService extends ServiceImpl<AiConversa
     }
 
     /**
+     * 根据对话ID删除所有workflow运行记录(级联删除)
+     *
+     * 删除顺序:
+     * 1. 查询该对话下所有workflow运行实例ID
+     * 2. 批量删除运行节点记录(ai_conversation_workflow_runtime_node)
+     * 3. 删除运行实例主记录(ai_conversation_workflow_runtime)
+     *
+     * @param conversationId 对话ID
+     * @return 删除的运行实例数量
+     */
+    public int deleteByConversationId(String conversationId) {
+        log.info("开始删除对话关联的workflow运行记录: conversationId={}", conversationId);
+
+        // 1. 查询该对话下的所有运行实例ID列表
+        java.util.List<Long> runtimeIds = conversationWorkflowRuntimeMapper.selectIdsByConversationId(conversationId);
+
+        if (runtimeIds.isEmpty()) {
+            log.info("对话没有workflow运行记录: conversationId={}", conversationId);
+            return 0;
+        }
+
+        // 2. 批量删除运行节点记录
+        int totalNodeCount = 0;
+        for (Long runtimeId : runtimeIds) {
+            int nodeCount = conversationWorkflowRuntimeNodeService.deleteByRuntimeId(runtimeId);
+            totalNodeCount += nodeCount;
+        }
+        log.info("删除workflow运行节点记录: conversationId={}, 节点数量={}", conversationId, totalNodeCount);
+
+        // 3. 删除运行实例主记录
+        int runtimeCount = conversationWorkflowRuntimeMapper.deleteByConversationId(conversationId);
+        log.info("删除workflow运行记录: conversationId={}, 实例数量={}", conversationId, runtimeCount);
+
+        return runtimeCount;
+    }
+
+    /**
      * 填充输入输出数据(确保不为null)
      *
      * @param vo 运行时VO
