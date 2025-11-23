@@ -52,7 +52,17 @@ public class PermissionMcpTools {
      * @param pageName 页面名称，支持模糊匹配，如"入库"、"采购订单"
      * @return JSON格式的页面访问权限结果
      */
-    @McpTool(description = "检查用户的页面访问权限，根据页面名称模糊查询用户可访问的页面编码列表。返回匹配的页面编码(page_code)和页面名称，用于后续查询按钮权限")
+    @McpTool(description = """
+       获取用户在指定页面的按钮权限列表，需要传入页面编码(page_code)。
+       返回用户可执行的按钮操作列表，包括perms(权限标识)和descr(权限描述)。
+       严格遵守要求：
+       - 不可以臆想、推测
+       - 不可以过度回复、不可以过度推测
+       - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
+       - 如果找不到相关引用，请说明"未找到相关引用"。
+       - 找不到相关回答，请说明"未找到相关回答"。
+       - 在回答找不到的情况时，不要过多拓展回复和过度回复
+       """)
     public String checkPageAccess(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "员工ID") Long staffId,

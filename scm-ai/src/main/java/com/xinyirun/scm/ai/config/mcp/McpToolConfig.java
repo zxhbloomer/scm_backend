@@ -17,11 +17,17 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import com.xinyirun.scm.ai.workflow.WfNodeState;
+import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 
 /**
  * MCP工具配置类
@@ -113,11 +119,17 @@ class McpToolCallbackAdapter {
         // 构建JSON Schema,排除tenantCode参数(LLM看不到它)
         String inputSchema = buildJsonSchemaWithoutTenantCode(method);
 
-        // 处理工具调用:支持ToolContext传递tenantCode和staffId
+        // 处理工具调用:支持ToolContext传递tenantCode和staffId,并记录MCP调用留痕
         // 使用BiFunction<Map, ToolContext, String>支持从ToolContext获取租户编码和用户ID
         BiFunction<Map<String, Object>, ToolContext, String> toolFunction =
             (inputMap, toolContext) -> {
+                // 1. 记录MCP工具调用开始时间
+                String callStartTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                boolean callSuccess = false;
+                String errorMessage = null;
+
                 try {
+                    // 2. 原有逻辑: 提取 tenantCode 和 staffId
                     // 优先从ToolContext获取tenantCode(通过toolContext()方法传递)
                     String tenantCode = null;
                     if (toolContext != null && toolContext.getContext().containsKey("tenantCode")) {
@@ -142,11 +154,37 @@ class McpToolCallbackAdapter {
                         }
                     }
 
+                    // 3. 执行MCP工具
                     Object[] args = extractParameters(inputMap, method);
                     Object result = method.invoke(bean, args);
+                    callSuccess = true;
                     return result != null ? result.toString() : "执行成功";
                 } catch (Exception e) {
+                    callSuccess = false;
+                    errorMessage = e.getMessage();
                     throw new RuntimeException("MCP工具执行失败: " + e.getMessage(), e);
+                } finally {
+                    // 4. 记录MCP工具调用到 nodeState (无论成功或失败都记录)
+                    if (toolContext != null && toolContext.getContext().containsKey("nodeState")) {
+                        WfNodeState nodeState = (WfNodeState) toolContext.getContext().get("nodeState");
+
+                        // 创建MCP调用记录
+                        Map<String, Object> mcpCallRecord = new HashMap<>();
+                        mcpCallRecord.put("toolName", toolName);
+                        mcpCallRecord.put("description", description);
+                        mcpCallRecord.put("callTime", callStartTime);
+                        mcpCallRecord.put("success", callSuccess);
+                        mcpCallRecord.put("error", errorMessage);
+
+                        // 使用 createByOptions 创建 NodeIOData
+                        NodeIOData mcpCallData = NodeIOData.createByOptions(
+                            "mcp_tool_call_" + System.currentTimeMillis(),  // 唯一key
+                            "MCP工具调用",  // title
+                            mcpCallRecord   // value
+                        );
+
+                        nodeState.getOutputs().add(mcpCallData);
+                    }
                 }
             };
 

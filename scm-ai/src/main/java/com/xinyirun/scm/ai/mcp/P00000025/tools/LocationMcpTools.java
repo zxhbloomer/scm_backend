@@ -60,7 +60,16 @@ public class LocationMcpTools {
      * @param isDefault 是否默认库区（可选，true=默认，false=非默认）
      * @return JSON格式的库区查询结果
      */
-    @McpTool(description = "查询库区信息，支持按仓库、编码、名称、状态等条件查询库区列表，用于库区信息的查找和浏览")
+    @McpTool(description = """
+      查询库区信息，支持按仓库、编码、名称、状态等条件查询库区列表，用于库区信息的查找和浏览
+      严格遵守要求：
+      - 不可以臆想、推测
+      - 不可以过度回复、不可以过度推测
+      - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
+      - 如果找不到相关引用，请说明"未找到相关引用"。
+      - 找不到相关回答，请说明"未找到相关回答"。
+      - 在回答找不到的情况时，不要过多拓展回复和过度回复
+    """)
     public String queryLocations(
             @McpToolParam(description = "租户编码，用于数据权限控制") String tenantCode,
             @McpToolParam(description = "仓库ID，用于查询指定仓库的库区") Integer warehouseId,

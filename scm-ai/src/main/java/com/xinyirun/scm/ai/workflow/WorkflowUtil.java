@@ -159,15 +159,26 @@ public class WorkflowUtil {
                                 DataSourceHelper.use(wfState.getTenantCode());
                             }
 
+                            // ========== 详细日志：打印完整的 ChatResponse（无记忆模式）==========
+                            log.info("========== LLM ChatResponse 详情（无记忆模式）==========");
+                            log.info("Result对象: {}", chatResponse.getResult());
+                            log.info("Metadata对象: {}", chatResponse.getMetadata());
+
+                            // 检查是否有工具调用信息
+                            if (chatResponse.getMetadata() != null) {
+                                log.info("Metadata详细内容: {}", chatResponse.getMetadata());
+                            }
+
                             String content = chatResponse.getResult().getOutput().getText();
                             if (StringUtils.isNotBlank(content)) {
-                                log.debug("LLM chunk: length={}", content.length());
+                                log.info("LLM chunk内容 (长度={}): {}", content.length(), content);
                                 fullResponse.append(content);
 
                                 if (wfState.getStreamHandler() != null) {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
+                            log.info("==========================================");
                         })
                         .blockLast();
             } else {
@@ -178,10 +189,11 @@ public class WorkflowUtil {
                 chatOption.setConversationId(conversationId);
                 String runtimeUuid = wfState.getUuid();
 
-                // 设置 toolContext，传递租户编码和用户ID给 MCP 工具
+                // 设置 toolContext,传递租户编码、用户ID和节点状态给 MCP 工具
                 chatOption.setToolContext(Map.of(
                     "tenantCode", wfState.getTenantCode(),
-                    "staffId", wfState.getUserId()
+                    "staffId", wfState.getUserId(),
+                    "nodeState", nodeState  // 传递节点状态用于记录MCP调用
                 ));
 
                 log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}, callSource: {}",
@@ -195,15 +207,26 @@ public class WorkflowUtil {
                                 DataSourceHelper.use(wfState.getTenantCode());
                             }
 
+                            // ========== 详细日志：打印完整的 ChatResponse（有记忆模式）==========
+                            log.info("========== LLM ChatResponse 详情（有记忆模式）==========");
+                            log.info("Result对象: {}", chatResponse.getResult());
+                            log.info("Metadata对象: {}", chatResponse.getMetadata());
+
+                            // 检查是否有工具调用信息
+                            if (chatResponse.getMetadata() != null) {
+                                log.info("Metadata详细内容: {}", chatResponse.getMetadata());
+                            }
+
                             String content = chatResponse.getResult().getOutput().getText();
                             if (StringUtils.isNotBlank(content)) {
-                                log.debug("LLM chunk: length={}", content.length());
+                                log.info("LLM chunk内容 (长度={}): {}", content.length(), content);
                                 fullResponse.append(content);
 
                                 if (wfState.getStreamHandler() != null) {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
+                            log.info("==========================================");
                         })
                         .blockLast();
 
