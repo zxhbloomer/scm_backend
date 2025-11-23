@@ -62,6 +62,11 @@ public class AiChatBaseService {
     @Qualifier("workflowDomainChatClient")
     private ChatClient workflowDomainChatClient;
 
+    @Lazy
+    @Resource
+    @Qualifier("workflowDomainChatClientNoMcp")
+    private ChatClient workflowDomainChatClientNoMcp;
+
     @Resource
     private AiConversationContentMapper aiConversationContentMapper;
     @Resource
@@ -220,8 +225,18 @@ public class AiChatBaseService {
             log.info("✅ [Dynamic Memory] WORKFLOW_TEST调用,使用workflowMessageChatMemoryAdvisor读取ai_workflow_conversation_content");
         }
 
+        // 根据enableMcpTools标志动态选择ChatClient
+        ChatClient selectedClient;
+        if (Boolean.TRUE.equals(aiChatOption.getEnableMcpTools())) {
+            selectedClient = workflowDomainChatClient;
+            log.info("✅ [MCP Control] 启用MCP工具,使用workflowDomainChatClient");
+        } else {
+            selectedClient = workflowDomainChatClientNoMcp;
+            log.info("✅ [MCP Control] 禁用MCP工具,使用workflowDomainChatClientNoMcp");
+        }
+
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
-            ChatClient.ChatClientRequestSpec requestSpec = workflowDomainChatClient
+            ChatClient.ChatClientRequestSpec requestSpec = selectedClient
                     .prompt()
                     .system(aiChatOption.getSystem())
                     .user(aiChatOption.getPrompt());
@@ -248,7 +263,7 @@ public class AiChatBaseService {
                     .stream();
         }
 
-        ChatClient.ChatClientRequestSpec requestSpec = workflowDomainChatClient
+        ChatClient.ChatClientRequestSpec requestSpec = selectedClient
                 .prompt()
                 .user(aiChatOption.getPrompt());
 

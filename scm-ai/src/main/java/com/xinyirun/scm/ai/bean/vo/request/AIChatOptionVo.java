@@ -64,6 +64,15 @@ public class AIChatOptionVo implements Serializable {
     private Map<String, Object> toolContext;
 
     /**
+     * 是否启用MCP工具自动调用
+     * true: 启用MCP工具(适用于MCP工具节点)
+     * false: 禁用MCP工具(适用于生成回答节点等)
+     * 默认值: false(安全默认值,避免不必要的工具调用)
+     */
+    @Schema(description = "是否启用MCP工具")
+    private Boolean enableMcpTools = false;
+
+    /**
      * 设置提示词并返回当前对象（链式调用）
      *
      * @param prompt 提示词

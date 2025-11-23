@@ -152,4 +152,29 @@ public class AiChatMemoryConfig {
 
         return builder.build();
     }
+
+    /**
+     * 创建工作流领域的ChatClient Bean(无MCP工具版本)
+     * 用于不需要MCP工具调用的场景,如生成回答节点等
+     *
+     * @param aiModelProvider AI模型提供者
+     * @param workflowMessageChatMemoryAdvisor 工作流消息记忆顾问
+     * @param workflowConversationAdvisor 工作流对话顾问
+     * @return ChatClient实例(无MCP工具支持)
+     */
+    @Lazy
+    @Bean("workflowDomainChatClientNoMcp")
+    public ChatClient workflowDomainChatClientNoMcp(
+            AiModelProvider aiModelProvider,
+            MessageChatMemoryAdvisor workflowMessageChatMemoryAdvisor,
+            WorkflowConversationAdvisor workflowConversationAdvisor) {
+        ChatModel chatModel = aiModelProvider.getChatModel();
+
+        return ChatClient.builder(chatModel)
+                .defaultAdvisors(
+                        workflowMessageChatMemoryAdvisor,
+                        workflowConversationAdvisor
+                )
+                .build(); // 不注入toolCallbackProvider,禁用MCP工具自动调用
+    }
 }

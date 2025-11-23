@@ -1,11 +1,13 @@
 package com.xinyirun.scm.ai.workflow;
 
 import cn.hutool.extra.spring.SpringUtil;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.config.memory.ScmWorkflowMessageChatMemory;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
@@ -144,6 +146,12 @@ public class WorkflowUtil {
             chatOption.setModule(modelConfig);
             chatOption.setPrompt(prompt);
 
+            // 节点类型检测:判断是否为MCP工具节点
+            boolean isMcpToolNode = isMcpToolNode(node);
+            chatOption.setEnableMcpTools(isMcpToolNode);
+            log.info("节点类型判断 - 节点UUID: {}, 标题: {}, 是否MCP工具节点: {}",
+                    node.getUuid(), node.getTitle(), isMcpToolNode);
+
             StringBuilder fullResponse = new StringBuilder();
 
             // 降级模式判断: conversationId 为 NULL 时使用无记忆模式
@@ -246,6 +254,43 @@ public class WorkflowUtil {
         } catch (Exception e) {
             log.error("invoke LLM (streaming) failed, conversationId: {}", conversationId, e);
             throw new RuntimeException("LLM 流式调用失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 判断节点是否为MCP工具节点
+     *
+     * 通过查询工作流组件信息,判断节点类型是否为"McpTool"
+     *
+     * @param node 工作流节点对象
+     * @return true-是MCP工具节点, false-不是MCP工具节点
+     */
+    private static boolean isMcpToolNode(AiWorkflowNodeVo node) {
+        if (node == null || node.getWorkflowComponentId() == null) {
+            log.warn("节点或组件ID为null,默认为非MCP工具节点");
+            return false;
+        }
+
+        try {
+            AiWorkflowComponentService componentService = SpringUtil.getBean(AiWorkflowComponentService.class);
+            if (componentService == null) {
+                log.warn("AiWorkflowComponentService not found, 默认为非MCP工具节点");
+                return false;
+            }
+
+            AiWorkflowComponentEntity component = componentService.getById(node.getWorkflowComponentId());
+            if (component == null) {
+                log.warn("组件未找到, componentId: {}, 默认为非MCP工具节点", node.getWorkflowComponentId());
+                return false;
+            }
+
+            boolean isMcpTool = "McpTool".equals(component.getName());
+            log.debug("节点组件类型检测 - componentId: {}, name: {}, isMcpTool: {}",
+                    component.getId(), component.getName(), isMcpTool);
+            return isMcpTool;
+        } catch (Exception e) {
+            log.error("判断节点类型时发生异常, nodeId: {}, 默认为非MCP工具节点", node.getWorkflowComponentId(), e);
+            return false;
         }
     }
 
