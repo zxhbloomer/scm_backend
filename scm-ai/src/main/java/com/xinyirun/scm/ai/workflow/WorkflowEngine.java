@@ -227,6 +227,9 @@ public class WorkflowEngine {
 
             // 工作流运行实例状态
             this.wfState = new WfState(userId, wfInputs, runtimeUuid, tenantCode, conversationId);
+            // 设置工作流信息(用于Start节点记录workflow选择)
+            this.wfState.setWorkflowUuid(workflow.getWorkflowUuid());
+            this.wfState.setWorkflowTitle(workflow.getTitle());
             // 设置流式处理器，供节点使用（如 LLM 流式响应）
             this.wfState.setStreamHandler(streamHandler);
             // 设置调用来源标识，供子工作流节点使用

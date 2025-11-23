@@ -35,6 +35,16 @@ public class WfState {
     private WorkflowCallSource callSource;
 
     /**
+     * 工作流UUID (用于记录LLM选择的workflow)
+     */
+    private String workflowUuid;
+
+    /**
+     * 工作流标题 (用于记录LLM选择的workflow)
+     */
+    private String workflowTitle;
+
+    /**
      * 工作流流式处理器（用于发送 SSE 事件）
      */
     private WorkflowStreamHandler streamHandler;
