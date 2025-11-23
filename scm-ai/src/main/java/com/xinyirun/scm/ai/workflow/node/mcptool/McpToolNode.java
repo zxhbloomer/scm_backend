@@ -57,10 +57,21 @@ public class McpToolNode extends AbstractWfNode {
             String inputText = getFirstInputText();
             String toolInput = config.getToolInput();
 
-            // 如果配置了tool_input,使用它;否则使用上游节点输出
-            String prompt = StringUtils.isNotBlank(toolInput)
-                ? WorkflowUtil.renderTemplate(toolInput, state.getInputs())
-                : inputText;
+            // 构建prompt: 如果配置了tool_input,将其作为系统指令与用户输入组合
+            String prompt;
+            if (StringUtils.isNotBlank(toolInput)) {
+                // 渲染tool_input模板
+                String renderedToolInput = WorkflowUtil.renderTemplate(toolInput, state.getInputs());
+                // 组合: 系统指令 + 用户输入
+                if (StringUtils.isNotBlank(inputText)) {
+                    prompt = renderedToolInput + "\n\n用户问题: " + inputText;
+                } else {
+                    prompt = renderedToolInput;
+                }
+            } else {
+                // 没有配置tool_input,直接使用上游节点输出
+                prompt = inputText;
+            }
 
             if (StringUtils.isBlank(prompt)) {
                 throw new RuntimeException("MCP工具节点缺少输入参数");

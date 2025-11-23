@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.workflow.node.mcptool;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.Data;
 
 /**
@@ -28,6 +29,7 @@ public class McpToolNodeConfig {
      * 支持变量引用: {sys.xxx} {input.xxx}
      * 示例: "查询库位信息,条件: {input.query_condition}"
      */
+    @JSONField(name = "tool_input")
     private String toolInput;
 
     /**
@@ -35,5 +37,6 @@ public class McpToolNodeConfig {
      * 用于Function Calling智能选择和调用MCP工具
      * 默认: gj-deepseek
      */
+    @JSONField(name = "model_name")
     private String modelName;
 }
