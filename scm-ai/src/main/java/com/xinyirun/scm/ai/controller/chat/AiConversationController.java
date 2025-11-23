@@ -393,6 +393,18 @@ public class AiConversationController {
                         );
                     }
                     if (Boolean.TRUE.equals(response.getIsComplete())) {
+                        // 注入累积的LLM输出到done事件响应
+                        String fullContent = aiResponseBuilder.toString();
+                        if (!fullContent.isEmpty()) {
+                            response.setResults(List.of(
+                                ChatResponseVo.Generation.builder()
+                                    .output(ChatResponseVo.AssistantMessage.builder()
+                                        .content(fullContent)
+                                        .build())
+                                    .build()
+                            ));
+                        }
+
                         // 更新2: 工作流完成
                         aiConversationService.updateWorkflowState(
                             conversationId,
@@ -544,6 +556,7 @@ public class AiConversationController {
 
                     // 提取content字段（新格式：done事件的data是JSON对象，包含content和runtime信息）
                     String content = dataJson.getString("content");
+
                     if (content != null) {
                         // 从工作流JSON输出中提取纯文本内容
                         // JSON格式: {"output":{"type":1,"value":"实际文本"}}

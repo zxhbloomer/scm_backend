@@ -184,10 +184,10 @@ public class WorkflowUtil {
                     "staffId", wfState.getUserId()
                 ));
 
-                log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}",
-                        conversationId, runtimeUuid, originalUserInput);
+                log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}, callSource: {}",
+                        conversationId, runtimeUuid, originalUserInput, wfState.getCallSource());
 
-                aiChatBaseService.chatWithWorkflowMemoryStream(chatOption, runtimeUuid, originalUserInput)
+                aiChatBaseService.chatWithWorkflowMemoryStream(chatOption, runtimeUuid, originalUserInput, wfState.getCallSource())
                         .chatResponse()
                         .doOnNext(chatResponse -> {
                             // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失

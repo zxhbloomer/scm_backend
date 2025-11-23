@@ -1,9 +1,8 @@
 package com.xinyirun.scm.ai.core.service.chat;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
-import com.xinyirun.scm.ai.bean.vo.rag.GraphSearchResultVo;
+import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.bean.clickhouse.vo.ai.SLogAiChatVo;
 import com.xinyirun.scm.common.utils.UuidUtil;
@@ -20,9 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * AI对话内容服务
@@ -65,8 +62,8 @@ public class AiConversationContentService {
             AiConversationContentEntity entity = new AiConversationContentEntity();
             entity.setMessageId(UuidUtil.createShort());
             entity.setConversationId(conversationId);
-            // 根据role设置type: 1=USER, 2=ASSISTANT
-            entity.setType(role == 1 ? "USER" : "ASSISTANT");
+            // 根据role设置type: 1=USER, 2=ASSISTANT (使用Spring AI标准小写常量)
+            entity.setType(role == 1 ? AiMessageTypeConstant.MESSAGE_TYPE_USER : AiMessageTypeConstant.MESSAGE_TYPE_ASSISTANT);
             // 移除前导和尾随空白字符，避免Markdown渲染为代码块
             entity.setContent(StringUtils.isNotBlank(content) ? content.trim() : content);
             // 设置运行时UUID（可选）

@@ -55,6 +55,12 @@ public class WorkflowConversationAdvisor implements CallAdvisor, StreamAdvisor {
      */
     public static final String ORIGINAL_USER_INPUT = "ORIGINAL_USER_INPUT";
 
+    /**
+     * 调用来源参数键
+     * 用于区分AI Chat调用和Workflow独立执行，实现领域数据分离
+     */
+    public static final String CALL_SOURCE = "WORKFLOW_CALL_SOURCE";
+
     @Resource
     @Lazy
     private AiWorkflowConversationContentService conversationContentService;
@@ -75,6 +81,16 @@ public class WorkflowConversationAdvisor implements CallAdvisor, StreamAdvisor {
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         log.info("🎯 [WorkflowConversationAdvisor] adviseCall 被调用");
+
+        // 🎯 KISS优化: 增加调用来源判断
+        String callSource = (String) request.context().get(CALL_SOURCE);
+
+        if (com.xinyirun.scm.ai.common.constant.WorkflowCallSource.AI_CHAT.name().equals(callSource)) {
+            log.info("🚫 [WorkflowConversationAdvisor] AI Chat调用Workflow，跳过保存到ai_workflow_conversation_content");
+            return chain.nextCall(request);  // 跳过保存，直接执行调用链
+        }
+
+        log.info("✅ [WorkflowConversationAdvisor] Workflow独立执行，保存到ai_workflow_conversation_content");
 
         // 执行前：保存USER消息
         String conversationId = (String) request.context().get(ChatMemory.CONVERSATION_ID);
@@ -128,6 +144,16 @@ public class WorkflowConversationAdvisor implements CallAdvisor, StreamAdvisor {
     @Override
     public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
         log.info("🎯 [WorkflowConversationAdvisor] adviseStream 被调用");
+
+        // 🎯 KISS优化: 增加调用来源判断
+        String callSource = (String) request.context().get(CALL_SOURCE);
+
+        if (com.xinyirun.scm.ai.common.constant.WorkflowCallSource.AI_CHAT.name().equals(callSource)) {
+            log.info("🚫 [WorkflowConversationAdvisor] AI Chat调用Workflow，跳过保存到ai_workflow_conversation_content");
+            return chain.nextStream(request);  // 跳过保存，直接执行调用链
+        }
+
+        log.info("✅ [WorkflowConversationAdvisor] Workflow独立执行，保存到ai_workflow_conversation_content");
 
         // 执行前：保存USER消息
         String conversationId = (String) request.context().get(ChatMemory.CONVERSATION_ID);

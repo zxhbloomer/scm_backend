@@ -196,17 +196,30 @@ public class AiChatBaseService {
      * @param originalUserInput 原始用户输入（用于对话记录，而不是渲染后的prompt）
      * @return ChatClient.StreamResponseSpec Spring AI的流式响应规格对象，用于接收流式数据
      */
-    public ChatClient.StreamResponseSpec chatWithWorkflowMemoryStream(AIChatOptionVo aiChatOption, String runtimeUuid, String originalUserInput) {
-        // Workflow领域专用，conversationId已包含租户信息，直接使用即可
-        log.info("🚀 [Workflow Memory] 调用chatWithWorkflowMemoryStream - conversationId: {}, runtimeUuid: {}, originalUserInput长度: {}, prompt长度: {}, 是否有system: {}",
+    public ChatClient.StreamResponseSpec chatWithWorkflowMemoryStream(
+            AIChatOptionVo aiChatOption,
+            String runtimeUuid,
+            String originalUserInput,
+            com.xinyirun.scm.ai.common.constant.WorkflowCallSource callSource) {
+
+        log.info("🚀 [Workflow Memory] 调用chatWithWorkflowMemoryStream - conversationId: {}, runtimeUuid: {}, originalUserInput长度: {}, prompt长度: {}, 是否有system: {}, callSource: {}",
                 aiChatOption.getConversationId(),
                 runtimeUuid,
                 originalUserInput != null ? originalUserInput.length() : 0,
                 aiChatOption.getPrompt() != null ? aiChatOption.getPrompt().length() : 0,
-                StringUtils.isNotBlank(aiChatOption.getSystem()));
+                StringUtils.isNotBlank(aiChatOption.getSystem()),
+                callSource);
 
-        // 运行时传递conversationId、runtimeUuid和originalUserInput参数给Advisors
-        // 注意：不再重复添加advisor，因为已在workflowDomainChatClient中配置为defaultAdvisors
+        // 根据callSource动态选择Memory Advisor
+        MessageChatMemoryAdvisor selectedMemoryAdvisor;
+        if (com.xinyirun.scm.ai.common.constant.WorkflowCallSource.AI_CHAT.equals(callSource)) {
+            selectedMemoryAdvisor = chatMessageChatMemoryAdvisor;  // AI Chat → 读取 ai_conversation_content
+            log.info("✅ [Dynamic Memory] AI_CHAT调用,使用chatMessageChatMemoryAdvisor读取ai_conversation_content");
+        } else {
+            selectedMemoryAdvisor = workflowMessageChatMemoryAdvisor;  // Workflow独立执行 → 读取 ai_workflow_conversation_content
+            log.info("✅ [Dynamic Memory] WORKFLOW_TEST调用,使用workflowMessageChatMemoryAdvisor读取ai_workflow_conversation_content");
+        }
+
         if (StringUtils.isNotBlank(aiChatOption.getSystem())) {
             ChatClient.ChatClientRequestSpec requestSpec = workflowDomainChatClient
                     .prompt()
@@ -219,11 +232,17 @@ public class AiChatBaseService {
             }
 
             return requestSpec.advisors(a -> {
+                        // 使用动态选择的Memory Advisor
+                        a.advisors(selectedMemoryAdvisor);
                         a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
                         a.param(WorkflowConversationAdvisor.RUNTIME_UUID, runtimeUuid);
                         // 传递原始用户输入（用于对话记录，而不是渲染后的prompt）
                         if (StringUtils.isNotBlank(originalUserInput)) {
                             a.param(WorkflowConversationAdvisor.ORIGINAL_USER_INPUT, originalUserInput);
+                        }
+                        // 传递调用来源
+                        if (callSource != null) {
+                            a.param(WorkflowConversationAdvisor.CALL_SOURCE, callSource.name());
                         }
                     })
                     .stream();
@@ -239,11 +258,17 @@ public class AiChatBaseService {
         }
 
         return requestSpec.advisors(a -> {
+                    // 使用动态选择的Memory Advisor
+                    a.advisors(selectedMemoryAdvisor);
                     a.param(ChatMemory.CONVERSATION_ID, aiChatOption.getConversationId());
                     a.param(WorkflowConversationAdvisor.RUNTIME_UUID, runtimeUuid);
                     // 传递原始用户输入（用于对话记录，而不是渲染后的prompt）
                     if (StringUtils.isNotBlank(originalUserInput)) {
                         a.param(WorkflowConversationAdvisor.ORIGINAL_USER_INPUT, originalUserInput);
+                    }
+                    // 传递调用来源
+                    if (callSource != null) {
+                        a.param(WorkflowConversationAdvisor.CALL_SOURCE, callSource.name());
                     }
                 })
                 .stream();

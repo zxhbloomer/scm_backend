@@ -50,7 +50,13 @@ public class PermissionAiService {
                 result.put("_aiHint", "找到唯一匹配页面，请展示页面信息(page_code和page_name)，并主动询问用户：'是否需要查询该页面的按钮权限？'");
             } else {
                 result.put("message", "找到" + pages.size() + "个匹配页面");
-                result.put("_aiHint", "找到多个页面，请以编号列表展示所有页面(显示page_code和page_name)，无法确定用户所指的是那个页面，请求用户指定一个页面，可以查找相应的页面权限？");
+                result.put("_aiHint",
+                        """ 
+                        找到多个页面，请以列表清单，展示所有前10个页面(显示page_code和page_name)。
+                        因为无法确定用户所指的是那个页面，请求用户指定一个页面，可以查找相应的页面权限,
+                        不展示过多的数据，更不能展示具体每个页面的权限，在这里要求用户给出选择，才能进行下一步，查询该页面的权限。
+                        """
+                                );
             }
 
         } catch (Exception e) {
@@ -60,7 +66,7 @@ public class PermissionAiService {
             result.put("error", e.getClass().getSimpleName());
             result.put("_aiHint", "查询出错，请安抚用户并建议稍后重试，或联系系统管理员");
         }
-
+        log.debug("权限查询AI服务mcp,提示词：{}",result.toString());
         return result;
     }
 
