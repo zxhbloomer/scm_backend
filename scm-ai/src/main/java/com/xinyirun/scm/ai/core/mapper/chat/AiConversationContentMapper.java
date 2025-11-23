@@ -40,4 +40,16 @@ public interface AiConversationContentMapper extends BaseMapper<AiConversationCo
         WHERE conversation_id = #{conversationId}
         """)
     List<String> selectMessageIdsByConversationId(@Param("conversationId") String conversationId);
+
+    /**
+     * 根据消息ID(message_id字段)物理删除单条消息记录
+     *
+     * @param messageId 消息ID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_conversation_content
+        WHERE message_id = #{messageId}
+        """)
+    int deleteByMessageId(@Param("messageId") String messageId);
 }

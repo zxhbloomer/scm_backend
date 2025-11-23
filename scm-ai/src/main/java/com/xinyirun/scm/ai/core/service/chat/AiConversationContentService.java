@@ -226,6 +226,24 @@ public class AiConversationContentService {
     }
 
     /**
+     * 根据消息ID删除单条消息记录
+     *
+     * @param messageId 消息ID (对应数据库message_id字段)
+     * @return 是否删除成功
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteByMessageId(String messageId) {
+        try {
+            int result = aiConversationContentMapper.deleteByMessageId(messageId);
+            log.info("删除对话消息成功, message_id: {}, result: {}", messageId, result);
+            return result > 0;
+        } catch (Exception e) {
+            log.error("删除对话消息失败, message_id: {}", messageId, e);
+            throw new RuntimeException("删除对话消息失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * 根据对话ID删除对话历史记录
      *
      * @param conversationId 对话ID

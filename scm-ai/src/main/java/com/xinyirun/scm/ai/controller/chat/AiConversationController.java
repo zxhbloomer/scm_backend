@@ -245,6 +245,31 @@ public class AiConversationController {
     }
 
     /**
+     * 删除AI Chat聊天消息记录
+     *
+     * @param messageId 消息ID
+     * @return 删除结果
+     */
+    @DeleteMapping(value = "/message/{messageId}")
+    @Operation(summary = "删除聊天消息", description = "物理删除AI Chat聊天消息记录")
+    public ResponseEntity<String> deleteMessage(@PathVariable String messageId) {
+        try {
+            log.info("删除AI Chat聊天消息: messageId={}", messageId);
+
+            boolean success = aiConversationContentService.deleteByMessageId(messageId);
+
+            if (success) {
+                return ResponseEntity.ok("删除成功");
+            } else {
+                return ResponseEntity.status(500).body("删除失败");
+            }
+        } catch (Exception e) {
+            log.error("删除AI Chat聊天消息失败: messageId={}", messageId, e);
+            return ResponseEntity.status(500).body("删除失败: " + e.getMessage());
+        }
+    }
+
+    /**
      * AI流式聊天
      * ai chat 入口 (支持工作流路由+智能意图判断)
      */
