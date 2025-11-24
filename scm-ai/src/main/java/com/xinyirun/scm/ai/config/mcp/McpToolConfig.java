@@ -127,6 +127,7 @@ class McpToolCallbackAdapter {
                 String callStartTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
                 boolean callSuccess = false;
                 String errorMessage = null;
+                Object result = null;  // ✅ 在try块之前声明,供finally块使用
 
                 try {
                     // 2. 原有逻辑: 提取 tenantCode 和 staffId
@@ -156,7 +157,7 @@ class McpToolCallbackAdapter {
 
                     // 3. 执行MCP工具
                     Object[] args = extractParameters(inputMap, method);
-                    Object result = method.invoke(bean, args);
+                    result = method.invoke(bean, args);  // ✅ 去掉Object声明,使用外层变量
                     callSuccess = true;
                     return result != null ? result.toString() : "执行成功";
                 } catch (Exception e) {
@@ -175,6 +176,26 @@ class McpToolCallbackAdapter {
                         mcpCallRecord.put("callTime", callStartTime);
                         mcpCallRecord.put("success", callSuccess);
                         mcpCallRecord.put("error", errorMessage);
+
+                        // ✅ 关键修复: 添加工具的实际返回值
+                        // 如果工具返回的是JSON字符串,解析为Map对象;否则保持原样
+                        if (result != null && callSuccess) {
+                            try {
+                                String resultStr = result.toString();
+                                // 尝试解析JSON字符串为Map
+                                if (resultStr.startsWith("{") && resultStr.endsWith("}")) {
+                                    Map<String, Object> resultMap = JSON.parseObject(resultStr, Map.class);
+                                    // 将解析后的Map合并到mcpCallRecord根级别
+                                    mcpCallRecord.putAll(resultMap);
+                                } else {
+                                    // 非JSON格式,直接存储字符串
+                                    mcpCallRecord.put("resultValue", resultStr);
+                                }
+                            } catch (Exception e) {
+                                // JSON解析失败,保存原始字符串
+                                mcpCallRecord.put("resultValue", result.toString());
+                            }
+                        }
 
                         // 使用 createByOptions 创建 NodeIOData
                         NodeIOData mcpCallData = NodeIOData.createByOptions(

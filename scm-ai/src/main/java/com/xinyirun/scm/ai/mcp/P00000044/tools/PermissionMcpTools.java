@@ -79,7 +79,7 @@ public class PermissionMcpTools {
 
             result.put("tenantCode", tenantCode);
             result.put("staffId", staffId);
-            result.put("toolName", "check_page_access");
+            // ❌ 删除: result.put("toolName", "check_page_access"); - toolName由框架管理
             result.put("searchName", pageName);
 
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
@@ -132,7 +132,7 @@ public class PermissionMcpTools {
 
             result.put("tenantCode", tenantCode);
             result.put("staffId", staffId);
-            result.put("toolName", "get_page_button_permissions");
+            // ❌ 删除: result.put("toolName", "get_page_button_permissions"); - toolName由框架管理
 
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
 
@@ -196,7 +196,7 @@ public class PermissionMcpTools {
 
             result.put("tenantCode", tenantCode);
             result.put("staffId", staffId);
-            result.put("toolName", "get_page_menu_paths");
+            // ❌ 删除: result.put("toolName", "get_page_menu_paths"); - toolName由框架管理
 
             return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
 
@@ -258,7 +258,7 @@ public class PermissionMcpTools {
 
             result.put("tenantCode", tenantCode);
             result.put("staffId", staffId);
-            result.put("toolName", "open_page");
+            // ❌ 删除: result.put("toolName", "open_page"); - toolName由框架管理
 
             String jsonResult = JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
             log.info("【DEBUG-openPage】MCP工具返回: {}", jsonResult);
