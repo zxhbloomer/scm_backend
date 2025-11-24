@@ -43,7 +43,10 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 
@@ -399,7 +402,8 @@ public class AiConversationController {
                 .map(event -> convertWorkflowEventToResponse(event))
 
                 // Step 4: KISS优化2 - 只在workflow事件响应时更新状态(2次)
-                .doOnNext(response -> {
+                // 注意：使用map而非doOnNext，确保response修改在发送前完成
+                .map(response -> {
                     // 累积AI回复内容（用于保存到数据库）
                     if (response.getResults() != null && !response.getResults().isEmpty()) {
                         ChatResponseVo.Generation generation = response.getResults().get(0);
@@ -459,14 +463,21 @@ public class AiConversationController {
 
                                 // 保存AI回复（ROLE=2，关联runtime_uuid）
                                 // aiResponseBuilder累积的内容已经是纯文本（done事件中已提取）
-                                aiConversationContentService.saveContent(
+                                var aiContentVo = aiConversationContentService.saveContent(
                                     conversationId,
                                     2, // ROLE=2表示AI
                                     finalAiResponse,
                                     operatorId,
                                     runtimeUuid // 传递运行时UUID
                                 );
-                                log.info("【AI-Chat-保存】AI消息已保存, runtimeUuid={}", runtimeUuid);
+                                // 将AI消息ID设置到响应中，供前端更新本地消息ID
+                                if (aiContentVo != null && aiContentVo.getMessage_id() != null) {
+                                    response.setMessageId(aiContentVo.getMessage_id());
+                                    log.info("【AI-Chat-保存】AI消息已保存, messageId={}, runtimeUuid={}",
+                                        aiContentVo.getMessage_id(), runtimeUuid);
+                                } else {
+                                    log.info("【AI-Chat-保存】AI消息已保存, runtimeUuid={}", runtimeUuid);
+                                }
 
                                 log.info("对话内容已保存: conversationId={}, userPrompt={}, aiResponse={}",
                                     conversationId,
@@ -478,6 +489,7 @@ public class AiConversationController {
                             log.error("保存对话内容失败: conversationId={}", conversationId, e);
                         }
                     }
+                    return response; // 返回修改后的response
                 })
 
                 // Step 5: 错误和资源管理(统一处理)
@@ -536,11 +548,47 @@ public class AiConversationController {
     private ChatResponseVo convertWorkflowEventToResponse(WorkflowEventVo event) {
         ChatResponseVo.ChatResponseVoBuilder builder = ChatResponseVo.builder();
 
+        // NODE_OUTPUT事件特殊处理：提取MCP工具返回值
+        String eventName = event.getEvent();
+        boolean isNodeOutput = eventName != null && eventName.startsWith("[NODE_OUTPUT_");
+        boolean isNodeInput = eventName != null && eventName.startsWith("[NODE_INPUT_");
+
+        if (isNodeOutput && event.getData() != null) {
+            // 解析NODE_OUTPUT事件,查找MCP工具调用结果
+            try {
+                JSONObject dataJson = JSONObject.parseObject(event.getData());
+                String name = dataJson.getString("name");
+
+                // 检查是否是MCP工具调用结果 (name格式: mcp_tool_call_xxx)
+                if (name != null && name.startsWith("mcp_tool_call_")) {
+                    JSONObject content = dataJson.getJSONObject("content");
+                    if (content != null && content.getInteger("type") == 3) {
+                        // type=3表示MCP工具调用
+                        JSONObject value = content.getJSONObject("value");
+                        String toolName = value.getString("toolName");  // ← 修正:从value中获取toolName
+
+                        log.info("【MCP工具结果】检测到MCP工具调用: toolName={}, value={}", toolName, value);
+
+                        // 将MCP工具结果添加到response中
+                        List<Map<String, Object>> mcpResults = new ArrayList<>();
+                        Map<String, Object> toolResult = new HashMap<>();
+                        toolResult.put("toolName", toolName);
+                        toolResult.put("result", value);
+                        mcpResults.add(toolResult);
+                        builder.mcpToolResults(mcpResults);
+
+                        // NODE_OUTPUT事件不生成文本内容
+                        return builder.build();
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("解析NODE_OUTPUT事件中的MCP工具结果失败", e);
+            }
+        }
+
         // 跳过 NODE_INPUT 和 NODE_OUTPUT 事件的内容提取
         // 这些事件用于前端实时显示工作流状态，不应累积到最终对话内容中
-        String eventName = event.getEvent();
-        boolean isNodeInputOutput = eventName != null &&
-            (eventName.startsWith("[NODE_INPUT_") || eventName.startsWith("[NODE_OUTPUT_"));
+        boolean isNodeInputOutput = isNodeInput || isNodeOutput;
 
         // 设置基础字段
         if (event.getData() != null && !isNodeInputOutput) {

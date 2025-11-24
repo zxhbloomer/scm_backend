@@ -86,6 +86,22 @@ public class ChatResponseVo {
     private String workflowUuid;
 
     /**
+     * AI消息ID(数据库message_id字段)
+     * 用于前端在完成后更新本地消息ID,支持删除等操作
+     *
+     * @since 2025-11-24 消息删除功能修复
+     */
+    private String messageId;
+
+    /**
+     * MCP工具调用结果列表(用于传递工具返回的特殊指令,如openPage)
+     * 格式: [{"toolName":"PermissionMcpTools.openPage", "result":{...JSON...}}]
+     *
+     * @since 2025-11-24 MCP页面跳转功能
+     */
+    private List<java.util.Map<String, Object>> mcpToolResults;
+
+    /**
      * 生成结果内部类
      */
     @Data

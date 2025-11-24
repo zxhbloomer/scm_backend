@@ -103,6 +103,8 @@ public class AiConversationContentService {
 
                 AiConversationContentVo vo = new AiConversationContentVo();
                 BeanUtils.copyProperties(entity, vo);
+                // 手动设置message_id（因为Entity字段名是messageId，VO字段名是message_id，BeanUtils不会自动拷贝）
+                vo.setMessage_id(entity.getMessageId());
                 return vo;
             }
 
@@ -170,6 +172,8 @@ public class AiConversationContentService {
 
                 AiConversationContentVo vo = new AiConversationContentVo();
                 BeanUtils.copyProperties(entity, vo);
+                // 手动设置message_id（因为Entity字段名是messageId，VO字段名是message_id，BeanUtils不会自动拷贝）
+                vo.setMessage_id(entity.getMessageId());
                 return vo;
             }
 
