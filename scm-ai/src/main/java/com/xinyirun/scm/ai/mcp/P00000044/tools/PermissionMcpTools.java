@@ -20,6 +20,7 @@ import java.util.Map;
  * 主要功能包括：
  * 1. 页面访问权限查询 - 根据页面名称查询用户可访问的页面编码
  * 2. 按钮权限查询 - 根据页面编码查询用户的按钮操作权限
+ * 3. 菜单路径查询 - 根据页面编码查询用户可访问的菜单路径
  *
  * 设计原则：
  * - 所有工具都是只读操作，不进行数据修改
@@ -145,6 +146,135 @@ public class PermissionMcpTools {
                     "staffId", staffId,
                     "pageCode", pageCode,
                     "toolName", "get_page_button_permissions",
+                    "error", e.getClass().getSimpleName()
+            ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            DataSourceHelper.close();
+        }
+    }
+
+    /**
+     * 获取用户可访问的页面菜单路径
+     *
+     * 根据页面编码查询用户有权访问的所有菜单路径。
+     * 同一个页面可能在不同菜单位置下有多个路径。
+     *
+     * 使用场景：
+     * - "P00000013页面在哪个菜单下？"
+     * - "如何访问出库计划页面？"
+     * - "这个页面的菜单路径是什么？"
+     *
+     * @param tenantCode 租户编码（框架自动注入）
+     * @param staffId 员工ID（框架自动注入）
+     * @param pageCode 页面编码，如"P00000013"、"P00000001"
+     * @return JSON格式的菜单路径列表
+     */
+    @McpTool(description = """
+       获取用户可访问的页面菜单路径，需要传入页面编码(page_code)。
+       返回用户可访问的所有菜单路径，包括page_code、name、meta_title、path。
+       同一个页面可能在不同菜单位置有多个路径，会返回所有可用路径。
+       严格遵守要求：
+       - 不可以臆想、推测
+       - 不可以过度回复、不可以过度推测
+       - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
+       - 如果找不到相关引用，请说明"未找到相关引用"
+       - 找不到相关回答，请说明"未找到相关回答"
+       - 在回答找不到的情况时，不要过多拓展回复和过度回复
+       """)
+    public String getPageMenuPaths(
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "员工ID") Long staffId,
+            @McpToolParam(description = "页面编码，如'P00000013'、'P00000001'等，可从checkPageAccess结果中获取") String pageCode) {
+
+        log.info("MCP工具调用 - 获取页面菜单路径: 租户={}, 员工ID={}, 页面编码={}",
+                tenantCode, staffId, pageCode);
+
+        try {
+            DataSourceHelper.use(tenantCode);
+
+            Map<String, Object> result = permissionAiService.getPageMenuPaths(staffId, pageCode);
+
+            result.put("tenantCode", tenantCode);
+            result.put("staffId", staffId);
+            result.put("toolName", "get_page_menu_paths");
+
+            return JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
+
+        } catch (Exception e) {
+            log.error("MCP工具异常 - 获取页面菜单路径: 租户={}, 页面编码={}, 错误={}",
+                    tenantCode, pageCode, e.getMessage(), e);
+            return JSON.toJSONString(Map.of(
+                    "success", false,
+                    "message", "获取页面菜单路径失败: " + e.getMessage(),
+                    "tenantCode", tenantCode,
+                    "staffId", staffId,
+                    "pageCode", pageCode,
+                    "toolName", "get_page_menu_paths",
+                    "error", e.getClass().getSimpleName()
+            ), JSONWriter.Feature.PrettyFormat);
+        } finally {
+            DataSourceHelper.close();
+        }
+    }
+
+    /**
+     * 打开指定URL的页面
+     *
+     * 根据提供的页面路径,生成前端可识别的页面跳转指令。
+     * 返回JSON格式的响应,包含action和url信息。
+     *
+     * 使用场景：
+     * - "帮我打开入库单页面"
+     * - "跳转到采购订单列表"
+     * - "显示库存报表"
+     *
+     * @param tenantCode 租户编码（框架自动注入）
+     * @param staffId 员工ID（框架自动注入）
+     * @param pagePath 页面路径,如"/20_master/goods"、"/10_system/user"
+     * @return JSON格式的页面跳转指令
+     */
+    @McpTool(description = """
+       生成打开指定页面的跳转指令,需要传入页面路径(page_path)。
+       返回包含action='openPage'和url的JSON指令,供前端执行页面跳转。
+       通常在查询到页面菜单路径后调用,将path传入此工具。
+       严格遵守要求：
+       - 不可以臆想、推测页面路径
+       - 页面路径必须从getPageMenuPaths工具的返回结果中获取
+       - 如果未查询到有效的页面路径,请说明"未找到可访问的页面路径"
+       - 不可以过度回复、不可以过度推测
+       """)
+    public String openPage(
+            @McpToolParam(description = "租户编码") String tenantCode,
+            @McpToolParam(description = "员工ID") Long staffId,
+            @McpToolParam(description = "页面路径,如'/20_master/goods'、'/10_system/user',必须从getPageMenuPaths结果中获取") String pagePath) {
+
+        log.info("MCP工具调用 - 打开页面: 租户={}, 员工ID={}, 页面路径={}",
+                tenantCode, staffId, pagePath);
+
+        try {
+            DataSourceHelper.use(tenantCode);
+
+            Map<String, Object> result = permissionAiService.generateOpenPageInstruction(staffId, pagePath);
+
+            result.put("tenantCode", tenantCode);
+            result.put("staffId", staffId);
+            result.put("toolName", "open_page");
+
+            String jsonResult = JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
+            log.info("【DEBUG-openPage】MCP工具返回: {}", jsonResult);
+
+            return jsonResult;
+
+        } catch (Exception e) {
+            log.error("MCP工具异常 - 打开页面: 租户={}, 页面路径={}, 错误={}",
+                    tenantCode, pagePath, e.getMessage(), e);
+            return JSON.toJSONString(Map.of(
+                    "success", false,
+                    "message", "打开页面失败: " + e.getMessage(),
+                    "tenantCode", tenantCode,
+                    "staffId", staffId,
+                    "pagePath", pagePath,
+                    "toolName", "open_page",
                     "error", e.getClass().getSimpleName()
             ), JSONWriter.Feature.PrettyFormat);
         } finally {

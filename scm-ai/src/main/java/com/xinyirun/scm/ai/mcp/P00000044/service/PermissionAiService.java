@@ -107,4 +107,88 @@ public class PermissionAiService {
 
         return result;
     }
+
+    /**
+     * 根据页面编码查询用户可访问的菜单路径
+     *
+     * @param staffId 员工ID
+     * @param pageCode 页面编码
+     * @return 查询结果,包含菜单路径列表
+     */
+    public Map<String, Object> getPageMenuPaths(Long staffId, String pageCode) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            List<Map<String, Object>> paths = permissionAiMapper.findMenuPathsByPageCode(staffId, pageCode);
+
+            result.put("success", true);
+            result.put("pageCode", pageCode);
+            result.put("count", paths.size());
+            result.put("paths", paths);
+
+            // 根据结果生成不同的 AI 处理指令
+            if (paths.isEmpty()) {
+                result.put("message", "未找到该页面的菜单路径或用户无访问权限");
+                result.put("_aiHint", "用户没有该页面的访问权限或页面编码不存在，请友好告知并建议：1)检查页面编码是否正确 2)联系管理员确认权限");
+            } else if (paths.size() == 1) {
+                result.put("message", "找到1个菜单路径");
+                result.put("_aiHint", "找到唯一菜单路径，请展示：page_code、name(或meta_title)和path，让用户知道该页面在哪个菜单路径下");
+            } else {
+                result.put("message", "找到" + paths.size() + "个菜单路径");
+                result.put("_aiHint", "该页面在多个不同菜单位置下，请以列表形式展示所有路径(显示page_code、name/meta_title、path)，询问用户需要访问哪个路径");
+            }
+
+        } catch (Exception e) {
+            log.error("查询菜单路径失败: staffId={}, pageCode={}", staffId, pageCode, e);
+            result.put("success", false);
+            result.put("message", "查询菜单路径失败: " + e.getMessage());
+            result.put("error", e.getClass().getSimpleName());
+            result.put("_aiHint", "查询出错，请安抚用户并建议稍后重试，或联系系统管理员");
+        }
+
+        return result;
+    }
+
+    /**
+     * 生成打开页面的跳转指令
+     *
+     * 根据提供的页面路径,生成前端可识别的页面跳转指令
+     *
+     * @param staffId 员工ID
+     * @param pagePath 页面路径,如"/20_master/goods"、"/10_system/user"
+     * @return 包含跳转指令的Map
+     */
+    public Map<String, Object> generateOpenPageInstruction(Long staffId, String pagePath) {
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            // 验证路径格式
+            if (pagePath == null || pagePath.trim().isEmpty()) {
+                result.put("success", false);
+                result.put("message", "页面路径不能为空");
+                result.put("_aiHint", "页面路径无效,请先使用getPageMenuPaths工具查询有效路径");
+                return result;
+            }
+
+            // 生成跳转指令
+            result.put("success", true);
+            result.put("action", "openPage");
+            result.put("url", pagePath);
+            result.put("target", "_self");
+            result.put("message", "页面跳转指令已生成");
+            result.put("_aiHint", "已生成页面跳转指令,前端将自动打开该页面");
+
+            log.info("生成页面跳转指令成功: staffId={}, pagePath={}", staffId, pagePath);
+            log.info("【DEBUG-openPage】返回JSON: {}", result);
+
+        } catch (Exception e) {
+            log.error("生成页面跳转指令失败: staffId={}, pagePath={}", staffId, pagePath, e);
+            result.put("success", false);
+            result.put("message", "生成页面跳转指令失败: " + e.getMessage());
+            result.put("error", e.getClass().getSimpleName());
+            result.put("_aiHint", "生成跳转指令出错,请检查页面路径格式");
+        }
+
+        return result;
+    }
 }
