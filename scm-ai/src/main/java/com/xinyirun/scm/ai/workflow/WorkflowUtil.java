@@ -14,6 +14,7 @@ import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -185,12 +186,16 @@ public class WorkflowUtil {
                 chatOption.setConversationId(conversationId);
                 String runtimeUuid = wfState.getUuid();
 
-                // 设置 toolContext,传递租户编码、用户ID和节点状态给 MCP 工具
-                chatOption.setToolContext(Map.of(
-                    "tenantCode", wfState.getTenantCode(),
-                    "staffId", wfState.getUserId(),
-                    "nodeState", nodeState  // 传递节点状态用于记录MCP调用
-                ));
+                // 设置 toolContext,传递租户编码、用户ID、节点状态和页面上下文给 MCP 工具
+                Map<String, Object> toolContextMap = new HashMap<>();
+                toolContextMap.put("tenantCode", wfState.getTenantCode());
+                toolContextMap.put("staffId", wfState.getUserId());
+                toolContextMap.put("nodeState", nodeState);  // 传递节点状态用于记录MCP调用
+                // 传递页面上下文给MCP工具(用于回答"我现在在哪个页面"等问题)
+                if (wfState.getPageContext() != null) {
+                    toolContextMap.put("pageContext", wfState.getPageContext());
+                }
+                chatOption.setToolContext(toolContextMap);
 
                 log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}, callSource: {}",
                         conversationId, runtimeUuid, originalUserInput, wfState.getCallSource());
