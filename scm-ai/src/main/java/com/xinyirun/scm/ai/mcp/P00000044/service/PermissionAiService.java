@@ -52,7 +52,7 @@ public class PermissionAiService {
                 result.put("message", "找到" + pages.size() + "个匹配页面");
                 result.put("_aiHint",
                         """ 
-                        找到多个页面，请以列表清单，展示所有前10个页面(显示page_code和page_name)。
+                        找到多个页面，请以列表清单（markdown格式），展示所有前10个页面(显示page_code和page_name)。
                         因为无法确定用户所指的是那个页面，请求用户指定一个页面，可以查找相应的页面权限,
                         不展示过多的数据，更不能展示具体每个页面的权限，在这里要求用户给出选择，才能进行下一步，查询该页面的权限。
                         """
@@ -94,7 +94,13 @@ public class PermissionAiService {
                 result.put("_aiHint", "用户在该页面没有任何按钮权限，请友好告知并建议联系管理员申请所需权限");
             } else {
                 result.put("message", "找到" + buttons.size() + "个按钮权限");
-                result.put("_aiHint", "请以清晰的列表形式展示用户拥有的按钮权限，每个权限显示perms(权限标识)和descr(权限描述)，帮助用户理解自己能执行哪些操作");
+                result.put("_aiHint", """ 
+                        判断用户是否需要展示权限列表清单：
+                        1、如果有必要展示权限列表清单，必须以清晰的列表形式（markdown格式）展示用户拥有的按钮权限，每个权限显示perms(权限标识)和descr(权限描述)，帮助用户理解自己能执行哪些操作")
+                        2、如果没有必要展示权限列表，就告知用户您拥有xx权限，可以进行xx操作。
+                        如：您拥有保存权限，可以新增采购合同
+                        """
+                        );
             }
 
         } catch (Exception e) {

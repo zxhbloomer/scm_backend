@@ -61,6 +61,7 @@ public class LocationMcpTools {
      * @return JSON格式的库区查询结果
      */
     @McpTool(description = """
+      P00000025
       查询库区信息，支持按仓库、编码、名称、状态等条件查询库区列表，用于库区信息的查找和浏览
       严格遵守要求：
       - 不可以臆想、推测

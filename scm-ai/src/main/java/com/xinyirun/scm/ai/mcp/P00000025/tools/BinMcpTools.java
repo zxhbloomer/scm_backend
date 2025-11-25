@@ -64,6 +64,7 @@ public class BinMcpTools {
      * @return JSON格式的库位查询结果
      */
     @McpTool(description = """
+      P00000025
       查询库位信息，支持按仓库、库区、编码、状态等条件查询库位列表，用于库位信息的查找和浏览
       严格遵守要求：
       - 不可以臆想、推测

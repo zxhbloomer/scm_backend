@@ -234,6 +234,7 @@ public class PermissionMcpTools {
      * @return JSON格式的页面跳转指令
      */
     @McpTool(description = """
+       P00000044
        生成打开指定页面的跳转指令,需要传入页面路径(page_path)。
        返回包含action='openPage'和url的JSON指令,供前端执行页面跳转。
        通常在查询到页面菜单路径后调用,将path传入此工具。
@@ -242,6 +243,7 @@ public class PermissionMcpTools {
        - 页面路径必须从getPageMenuPaths工具的返回结果中获取
        - 如果未查询到有效的页面路径,请说明"未找到可访问的页面路径"
        - 不可以过度回复、不可以过度推测
+       - 找到数据，返回包含action='openPage'和url的JSON指令,供前端执行页面跳转。
        """)
     public String openPage(
             @McpToolParam(description = "租户编码") String tenantCode,

@@ -67,6 +67,7 @@ public class WarehouseMcpTools {
      * @return JSON格式的仓库查询结果
      */
     @McpTool(description = """
+      P00000025
       查询仓库信息，支持按编码、名称、地理位置、状态等多种条件查询仓库列表，用于仓库信息的查找和浏览
       严格遵守要求：
       - 不可以臆想、推测
