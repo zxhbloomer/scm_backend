@@ -97,6 +97,21 @@ public class WorkflowStarter {
      * @return Flux流式响应
      */
     public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode, WorkflowCallSource callSource, String conversationId) {
+        return streaming(workflowUuid, userInputs, tenantCode, callSource, conversationId, null);
+    }
+
+    /**
+     * 流式执行工作流（带页面上下文）
+     *
+     * @param workflowUuid 工作流UUID
+     * @param userInputs 用户输入参数
+     * @param tenantCode 租户编码
+     * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
+     * @param conversationId 对话ID (AI_CHAT场景必传,WORKFLOW_TEST传null)
+     * @param pageContext 页面上下文(用于MCP工具)
+     * @return Flux流式响应
+     */
+    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode, WorkflowCallSource callSource, String conversationId, Map<String, Object> pageContext) {
         Long userId = SecurityUtil.getStaff_id();
         String executionId = UUID.randomUUID().toString();
 
@@ -153,7 +168,7 @@ public class WorkflowStarter {
             handlerCache.put(executionId, streamHandler);
 
             // 在FluxSink创建后立即启动异步执行
-            self.asyncRunWorkflow(executionId, workflowUuid, userId, userInputs, tenantCode, callSource, conversationId);
+            self.asyncRunWorkflow(executionId, workflowUuid, userId, userInputs, tenantCode, callSource, conversationId, pageContext);
         })
         .subscribeOn(Schedulers.boundedElastic())
         .doFinally(signalType -> {
@@ -178,6 +193,7 @@ public class WorkflowStarter {
      * @param tenantCode 租户编码
      * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
      * @param conversationId 对话ID (AI_CHAT场景必传,WORKFLOW_TEST场景传null)
+     * @param pageContext 页面上下文(用于MCP工具)
      */
     @Async("mainExecutor")
     public void asyncRunWorkflow(String executionId,
@@ -186,7 +202,8 @@ public class WorkflowStarter {
                                  List<JSONObject> userInputs,
                                  String tenantCode,
                                  WorkflowCallSource callSource,
-                                 String conversationId) {
+                                 String conversationId,
+                                 Map<String, Object> pageContext) {
         try {
             // 在异步线程中切换到正确的数据源
             DataSourceHelper.use(tenantCode);
@@ -228,6 +245,11 @@ public class WorkflowStarter {
                     conversationWorkflowRuntimeService,
                     conversationWorkflowRuntimeNodeService
             );
+
+            // 设置页面上下文(用于MCP工具)
+            if (pageContext != null) {
+                workflowEngine.setPageContext(pageContext);
+            }
 
             // 在独立线程中执行工作流(不阻塞Flux.create)
             // AI_CHAT场景: 传递真实的conversationId

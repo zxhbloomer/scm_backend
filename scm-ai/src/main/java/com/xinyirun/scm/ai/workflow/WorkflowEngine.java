@@ -68,6 +68,11 @@ public class WorkflowEngine {
     private AiConversationWorkflowRuntimeVo conversationRuntimeResp;
 
     /**
+     * 页面上下文 (前端传递的当前页面信息，用于MCP工具)
+     */
+    private Map<String, Object> pageContext;
+
+    /**
      * 父工作流的runtime_uuid（用于子工作流复用）
      * null表示顶层工作流，非null表示子工作流
      */
@@ -92,6 +97,14 @@ public class WorkflowEngine {
      */
     public void setStreamHandler(WorkflowStreamHandler handler) {
         this.streamHandler = handler;
+    }
+
+    /**
+     * 设置页面上下文（用于MCP工具获取当前页面信息）
+     * @param pageContext 页面上下文
+     */
+    public void setPageContext(Map<String, Object> pageContext) {
+        this.pageContext = pageContext;
     }
 
     /**
@@ -234,6 +247,10 @@ public class WorkflowEngine {
             this.wfState.setStreamHandler(streamHandler);
             // 设置调用来源标识，供子工作流节点使用
             this.wfState.setCallSource(this.callSource);
+            // 设置页面上下文，供MCP工具使用
+            if (this.pageContext != null) {
+                this.wfState.setPageContext(this.pageContext);
+            }
 
             // 添加需要中断的节点（HumanFeedbackNode）
             for (String humanFeedbackNodeUuid : humanFeedbackNodeUuids) {

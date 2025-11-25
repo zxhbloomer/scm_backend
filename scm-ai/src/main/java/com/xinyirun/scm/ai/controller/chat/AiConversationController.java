@@ -306,6 +306,9 @@ public class AiConversationController {
         String tenantId = conversationId.split("::", 2)[0];
         request.setTenantId(tenantId);
 
+        // 获取页面上下文(用于MCP工具)
+        Map<String, Object> pageContext = request.getPageContext();
+
         // 捕获用户问题和AI回复内容（用于最终保存到数据库）
         String userPrompt = request.getPrompt();
         StringBuilder aiResponseBuilder = new StringBuilder();
@@ -378,7 +381,7 @@ public class AiConversationController {
                                 request.getPrompt(),
                                 null
                             );
-                            return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId);
+                            return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId, pageContext);
                         }
 
                     } else {
@@ -405,7 +408,7 @@ public class AiConversationController {
                             request.getPrompt(),
                             null
                         );
-                        return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId);
+                        return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId, pageContext);
                     }
                 })
                 // Step 3: 转换工作流事件为响应格式
@@ -912,9 +915,10 @@ public class AiConversationController {
             String workflowUuid = request.getWorkflowUuid();
             String userInput = request.getUserInput();
             List<String> fileUrls = request.getFileUrls();
+            Map<String, String> pageContext = request.getPageContext();
 
-            log.info("【Workflow Slash Command】执行workflow命令, userId: {}, conversationId: {}, workflowUuid: {}, userInput: {}, fileUrls: {}",
-                userId, conversationId, workflowUuid, userInput, fileUrls);
+            log.info("【Workflow Slash Command】执行workflow命令, userId: {}, conversationId: {}, workflowUuid: {}, userInput: {}, fileUrls: {}, pageContext: {}",
+                userId, conversationId, workflowUuid, userInput, fileUrls, pageContext);
 
             // 查询workflow和开始节点配置
             AiWorkflowVo workflow = aiWorkflowService.getDtoByUuid(workflowUuid);
@@ -934,13 +938,20 @@ public class AiConversationController {
                 fileUrls
             );
 
-            // 调用workflow执行引擎
+            // 转换pageContext为Map<String, Object>类型
+            Map<String, Object> pageContextMap = null;
+            if (pageContext != null) {
+                pageContextMap = new HashMap<>(pageContext);
+            }
+
+            // 调用workflow执行引擎（带pageContext参数）
             Flux<WorkflowEventVo> workflowEvents = workflowStarter.streaming(
                 workflowUuid,
                 workflowInputs,
                 DataSourceHelper.getCurrentDataSourceName(),
                 WorkflowCallSource.AI_CHAT,
-                conversationId
+                conversationId,
+                pageContextMap
             );
 
             // 累积AI回复内容（用于注入到done事件）
@@ -1092,6 +1103,10 @@ public class AiConversationController {
         private String workflowUuid;
         private String userInput;
         private List<String> fileUrls;
+        /**
+         * 当前页面上下文（用于MCP工具回答"我在哪个页面"等问题）
+         */
+        private Map<String, String> pageContext;
     }
 
 }

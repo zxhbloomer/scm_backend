@@ -155,6 +155,14 @@ class McpToolCallbackAdapter {
                         }
                     }
 
+                    // 从ToolContext获取pageContext并注入(用于获取用户当前页面信息的场景)
+                    if (toolContext != null && toolContext.getContext().containsKey("pageContext")) {
+                        Object pageContext = toolContext.getContext().get("pageContext");
+                        if (pageContext != null) {
+                            inputMap.put("pageContext", pageContext);
+                        }
+                    }
+
                     // 3. 执行MCP工具
                     Object[] args = extractParameters(inputMap, method);
                     result = method.invoke(bean, args);  // ✅ 去掉Object声明,使用外层变量
@@ -217,9 +225,9 @@ class McpToolCallbackAdapter {
     }
 
     /**
-     * 构建JSON Schema,自动排除tenantCode和staffId参数
+     * 构建JSON Schema,自动排除tenantCode、staffId和pageContext参数
      *
-     * tenantCode和staffId会被自动注入,无需LLM提供,因此从Schema中移除
+     * 这些参数会被自动从ToolContext注入,无需LLM提供,因此从Schema中移除
      *
      * @param method @McpTool方法
      * @return JSON Schema字符串
@@ -233,9 +241,9 @@ class McpToolCallbackAdapter {
 
         for (Parameter param : method.getParameters()) {
             if (param.isAnnotationPresent(McpToolParam.class)) {
-                // 跳过tenantCode和staffId参数,不加入Schema(由框架自动注入)
+                // 跳过tenantCode、staffId和pageContext参数,不加入Schema(由框架自动注入)
                 String paramName = param.getName();
-                if ("tenantCode".equals(paramName) || "staffId".equals(paramName)) {
+                if ("tenantCode".equals(paramName) || "staffId".equals(paramName) || "pageContext".equals(paramName)) {
                     continue;
                 }
 

@@ -53,4 +53,11 @@ public class AIChatRequestVo implements Serializable {
 
     private String tenantId;
 
+    /**
+     * 页面上下文信息 (用于MCP工具获取当前页面信息)
+     * 前端传递的当前页面上下文，包含page_code、title、path等
+     */
+    @Schema(description = "页面上下文信息(可选)")
+    private java.util.Map<String, Object> pageContext;
+
 }

@@ -45,6 +45,11 @@ public class WfState {
     private String workflowTitle;
 
     /**
+     * 页面上下文 (前端传递的当前页面信息，用于MCP工具)
+     */
+    private Map<String, Object> pageContext;
+
+    /**
      * 工作流流式处理器（用于发送 SSE 事件）
      */
     private WorkflowStreamHandler streamHandler;
