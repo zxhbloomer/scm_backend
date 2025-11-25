@@ -22,7 +22,14 @@ import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
 import com.xinyirun.scm.ai.core.service.workflow.WorkflowRoutingService;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeService;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeNodeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowNodeService;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeInputConfigVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
 import com.xinyirun.scm.ai.workflow.WorkflowStarter;
+import lombok.Data;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
@@ -90,6 +97,12 @@ public class AiConversationController {
 
     @Resource
     private AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
+
+    @Resource
+    private AiWorkflowService aiWorkflowService;
+
+    @Resource
+    private AiWorkflowNodeService workflowNodeService;
 
     /**
      * Feature Toggle: 工作流路由功能开关
@@ -357,14 +370,13 @@ public class AiConversationController {
                                 }
                             }
 
-                            List<JSONObject> userInputs = List.of(
-                                new JSONObject()
-                                    .fluentPut("name", "var_user_input")
-                                    .fluentPut("content", new JSONObject()
-                                        .fluentPut("type", 1)
-                                        .fluentPut("title", "用户输入")
-                                        .fluentPut("value", request.getPrompt())
-                                    )
+                            // 动态构建输入参数（根据目标workflow的开始节点配置）
+                            AiWorkflowVo targetWorkflow = aiWorkflowService.getDtoByUuid(newWorkflowUuid);
+                            AiWorkflowNodeVo startNode = workflowNodeService.getStartNode(targetWorkflow.getId());
+                            List<JSONObject> userInputs = buildWorkflowInputsFromConfig(
+                                startNode.getInputConfig(),
+                                request.getPrompt(),
+                                null
                             );
                             return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId);
                         }
@@ -385,15 +397,13 @@ public class AiConversationController {
                             }
                         }
 
-                        // KISS优化2: 不预更新状态,直接执行工作流
-                        List<JSONObject> userInputs = List.of(
-                            new JSONObject()
-                                .fluentPut("name", "var_user_input")
-                                .fluentPut("content", new JSONObject()
-                                    .fluentPut("type", 1)
-                                    .fluentPut("title", "用户输入")
-                                    .fluentPut("value", request.getPrompt())
-                                )
+                        // 动态构建输入参数（根据目标workflow的开始节点配置）
+                        AiWorkflowVo targetWorkflow = aiWorkflowService.getDtoByUuid(workflowUuid);
+                        AiWorkflowNodeVo startNode = workflowNodeService.getStartNode(targetWorkflow.getId());
+                        List<JSONObject> userInputs = buildWorkflowInputsFromConfig(
+                            startNode.getInputConfig(),
+                            request.getPrompt(),
+                            null
                         );
                         return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId);
                     }
@@ -590,8 +600,12 @@ public class AiConversationController {
         // 这些事件用于前端实时显示工作流状态，不应累积到最终对话内容中
         boolean isNodeInputOutput = isNodeInput || isNodeOutput;
 
-        // 设置基础字段
-        if (event.getData() != null && !isNodeInputOutput) {
+        // done事件的content字段包含工作流输出JSON结构，不应作为文本内容累积
+        // 真正的文本内容已通过NODE_CHUNK事件累积到aiResponseBuilder
+        boolean isDoneEvent = "done".equals(event.getEvent());
+
+        // 设置基础字段（排除NODE_INPUT/OUTPUT和done事件）
+        if (event.getData() != null && !isNodeInputOutput && !isDoneEvent) {
             // 解析event.data JSON获取内容
             try {
                 JSONObject dataJson = JSONObject.parseObject(event.getData());
@@ -620,38 +634,18 @@ public class AiConversationController {
         ChatResponseVo response = builder.build();
 
         // 标记特殊事件并提取runtime信息
-        if ("done".equals(event.getEvent())) {
+        if (isDoneEvent) {
             response.setIsComplete(true);
-            // 尝试从event.data中提取runtime信息和content
+            // 尝试从event.data中提取runtime信息
             if (event.getData() != null) {
                 try {
                     JSONObject dataJson = JSONObject.parseObject(event.getData());
 
-                    // 提取content字段（新格式：done事件的data是JSON对象，包含content和runtime信息）
-                    String content = dataJson.getString("content");
+                    // done事件的content字段包含工作流输出JSON（如{"output":{"type":1,"value":"..."}}）
+                    // 不应作为文本内容累积，真正的文本内容通过NODE_CHUNK事件累积
+                    // 已在第607行的条件判断中排除done事件的content提取
 
-                    if (content != null) {
-                        // 从工作流JSON输出中提取纯文本内容
-                        // JSON格式: {"output":{"type":1,"value":"实际文本"}}
-                        try {
-                            JSONObject contentJson = JSONObject.parseObject(content);
-                            if (contentJson.containsKey("output")) {
-                                JSONObject output = contentJson.getJSONObject("output");
-                                if (output != null && output.containsKey("value")) {
-                                    content = output.getString("value");
-                                    log.debug("从done事件的工作流JSON输出中提取文本: {}", content);
-                                }
-                            }
-                        } catch (Exception e) {
-                            // 如果content不是JSON格式(普通Chat),直接使用原始内容
-                            log.debug("done事件content不是JSON格式,使用原始内容");
-                        }
-
-                        // 更新response中的content（已提取纯文本）
-                        response.getResults().get(0).getOutput().setContent(content);
-                    }
-
-                    // 提取runtime信息
+                    // 只提取runtime信息
                     String runtimeUuid = dataJson.getString("runtime_uuid");
                     Long runtimeId = dataJson.getLong("runtime_id");
                     String workflowUuid = dataJson.getString("workflow_uuid");
@@ -862,6 +856,242 @@ public class AiConversationController {
             default:
                 return "LLM";
         }
+    }
+
+    // ==================== Workflow Slash Command 接口 (2025-11-24) ====================
+
+    /**
+     * 获取可用的workflow列表（用于斜杠命令下拉选择）
+     *
+     * @return 可用workflow列表
+     */
+    @GetMapping(value = "/workflow/available")
+    @Operation(summary = "获取可用workflow列表")
+    @SysLogAnnotion("获取可用workflow列表")
+    public ResponseEntity<List<Map<String, Object>>> getAvailableWorkflows() {
+        try {
+            Long userId = SecurityUtil.getStaff_id();
+
+            // 查询可用的workflow列表
+            List<AiWorkflowVo> workflows = aiWorkflowService.getAvailableWorkflowsForRouting(
+                DataSourceHelper.getCurrentDataSourceName(),
+                userId
+            );
+
+            // 转换为简化的VO结构（前端只需要 workflowUuid, title, desc）
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (AiWorkflowVo wf : workflows) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("workflowUuid", wf.getWorkflowUuid());
+                item.put("title", wf.getTitle());
+                item.put("desc", wf.getDesc());
+                result.add(item);
+            }
+
+            log.info("【Workflow Slash Command】获取可用workflow列表成功, userId: {}, 数量: {}", userId, result.size());
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("【Workflow Slash Command】获取可用workflow列表失败", e);
+            throw new AiBusinessException("获取可用workflow列表失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 执行workflow命令（斜杠命令触发）
+     *
+     * @param request 包含 conversationId, workflowUuid, userInput, fileUrls
+     * @return SSE流式响应
+     */
+    @PostMapping(value = "/workflow/execute", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "执行workflow命令")
+    @SysLogAnnotion("执行workflow命令")
+    public Flux<ChatResponseVo> executeWorkflowCommand(@Validated @RequestBody WorkflowCommandRequest request) {
+        try {
+            Long userId = SecurityUtil.getStaff_id();
+            String conversationId = request.getConversationId();
+            String workflowUuid = request.getWorkflowUuid();
+            String userInput = request.getUserInput();
+            List<String> fileUrls = request.getFileUrls();
+
+            log.info("【Workflow Slash Command】执行workflow命令, userId: {}, conversationId: {}, workflowUuid: {}, userInput: {}, fileUrls: {}",
+                userId, conversationId, workflowUuid, userInput, fileUrls);
+
+            // 查询workflow和开始节点配置
+            AiWorkflowVo workflow = aiWorkflowService.getDtoByUuid(workflowUuid);
+            if (workflow == null) {
+                throw new RuntimeException("Workflow not found: " + workflowUuid);
+            }
+
+            AiWorkflowNodeVo startNode = workflowNodeService.getStartNode(workflow.getId());
+            if (startNode == null || startNode.getInputConfig() == null) {
+                throw new RuntimeException("开始节点配置不存在");
+            }
+
+            // 动态构建workflow输入参数（根据开始节点配置）
+            List<JSONObject> workflowInputs = buildWorkflowInputsFromConfig(
+                startNode.getInputConfig(),
+                userInput,
+                fileUrls
+            );
+
+            // 调用workflow执行引擎
+            Flux<WorkflowEventVo> workflowEvents = workflowStarter.streaming(
+                workflowUuid,
+                workflowInputs,
+                DataSourceHelper.getCurrentDataSourceName(),
+                WorkflowCallSource.AI_CHAT,
+                conversationId
+            );
+
+            // 累积AI回复内容（用于注入到done事件）
+            StringBuilder aiResponseBuilder = new StringBuilder();
+            log.info("【Workflow Slash Command-调试】创建StringBuilder用于累积内容");
+
+            // 转换为ChatResponseVo流,并累积内容注入done事件
+            return workflowEvents
+                .map(event -> {
+                    log.info("【Workflow Slash Command-调试】收到WorkflowEventVo, event={}, data长度={}",
+                        event.getEvent(), event.getData() != null ? event.getData().length() : 0);
+                    return convertWorkflowEventToResponse(event);
+                })
+                .map(response -> {
+                    log.info("【Workflow Slash Command-调试】进入map处理response, isComplete={}, results={}",
+                        response.getIsComplete(),
+                        response.getResults() != null ? response.getResults().size() : 0);
+
+                    // 累积LLM输出内容
+                    if (response.getResults() != null && !response.getResults().isEmpty()) {
+                        ChatResponseVo.Generation generation = response.getResults().get(0);
+                        if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
+                            String content = generation.getOutput().getContent();
+                            aiResponseBuilder.append(content);
+                            log.info("【Workflow Slash Command-调试】累积内容chunk, length={}, 当前总长度={}",
+                                content.length(), aiResponseBuilder.length());
+                        }
+                    }
+
+                    // 在done事件中注入累积的完整内容（与/chat/stream保持一致）
+                    if (Boolean.TRUE.equals(response.getIsComplete())) {
+                        log.info("【Workflow Slash Command-调试】检测到done事件, 准备注入累积内容");
+                        String fullContent = aiResponseBuilder.toString();
+                        log.info("【Workflow Slash Command-调试】累积内容总长度={}, 内容预览={}",
+                            fullContent.length(),
+                            fullContent.length() > 50 ? fullContent.substring(0, 50) + "..." : fullContent);
+
+                        if (!fullContent.isEmpty()) {
+                            response.setResults(List.of(
+                                ChatResponseVo.Generation.builder()
+                                    .output(ChatResponseVo.AssistantMessage.builder()
+                                        .content(fullContent)
+                                        .build())
+                                    .build()
+                            ));
+                            log.info("【Workflow Slash Command】done事件已注入累积内容, length={}", fullContent.length());
+                        } else {
+                            log.warn("【Workflow Slash Command-调试】累积内容为空,未注入");
+                        }
+                    }
+
+                    return response;
+                })
+                .doOnComplete(() -> {
+                    log.info("【Workflow Slash Command】workflow执行完成, workflowUuid: {}, conversationId: {}, 最终累积内容长度={}",
+                        workflowUuid, conversationId, aiResponseBuilder.length());
+                })
+                .doOnError(error -> {
+                    log.error("【Workflow Slash Command】workflow执行失败, workflowUuid: {}, conversationId: {}",
+                        workflowUuid, conversationId, error);
+                });
+
+        } catch (Exception e) {
+            log.error("【Workflow Slash Command】执行workflow命令失败", e);
+            // 使用ChatResponseVo的嵌套结构构建错误响应
+            ChatResponseVo errorResponse = ChatResponseVo.builder()
+                .results(List.of(
+                    ChatResponseVo.Generation.builder()
+                        .output(ChatResponseVo.AssistantMessage.builder()
+                            .content("执行workflow失败: " + e.getMessage())
+                            .messageType(AiMessageTypeConstant.MESSAGE_TYPE_ASSISTANT)
+                            .build())
+                        .build()
+                ))
+                .isComplete(true)
+                .build();
+            return Flux.just(errorResponse);
+        }
+    }
+
+    /**
+     * 根据开始节点配置动态构建workflow输入参数
+     *
+     * @param inputConfig 开始节点的输入配置
+     * @param userInput 用户文本输入
+     * @param fileUrls 用户上传的文件URL列表
+     * @return workflow输入参数列表
+     */
+    private List<JSONObject> buildWorkflowInputsFromConfig(
+        AiWfNodeInputConfigVo inputConfig,
+        String userInput,
+        List<String> fileUrls
+    ) {
+        List<JSONObject> workflowInputs = new ArrayList<>();
+
+        if (inputConfig.getUserInputs() == null || inputConfig.getUserInputs().isEmpty()) {
+            log.warn("开始节点没有配置userInputs");
+            return workflowInputs;
+        }
+
+        for (AiWfNodeIOVo userInputDef : inputConfig.getUserInputs()) {
+            Integer type = userInputDef.getType();
+            String name = userInputDef.getName();
+            String title = userInputDef.getTitle();
+            Boolean required = userInputDef.getRequired();
+
+            // 类型1: TEXT文本输入
+            if (type != null && type == 1 && StringUtils.isNotBlank(userInput)) {
+                JSONObject input = new JSONObject();
+                input.put("name", name);  // 动态使用配置的参数名
+
+                JSONObject content = new JSONObject();
+                content.put("type", 1);
+                content.put("value", userInput);
+                content.put("title", title != null ? title : "用户输入");
+                input.put("content", content);
+                input.put("required", required != null ? required : false);
+
+                workflowInputs.add(input);
+                log.info("【动态参数】添加TEXT输入: name={}, value={}", name, userInput);
+            }
+
+            // 类型4: FILES文件输入
+            if (type != null && type == 4 && fileUrls != null && !fileUrls.isEmpty()) {
+                JSONObject input = new JSONObject();
+                input.put("name", name);  // 动态使用配置的参数名
+
+                JSONObject content = new JSONObject();
+                content.put("type", 4);
+                content.put("value", fileUrls);
+                content.put("title", title != null ? title : "用户上传文件");
+                input.put("content", content);
+                input.put("required", required != null ? required : false);
+
+                workflowInputs.add(input);
+                log.info("【动态参数】添加FILES输入: name={}, fileCount={}", name, fileUrls.size());
+            }
+        }
+
+        return workflowInputs;
+    }
+
+    /**
+     * Workflow命令请求参数
+     */
+    @Data
+    public static class WorkflowCommandRequest {
+        private String conversationId;
+        private String workflowUuid;
+        private String userInput;
+        private List<String> fileUrls;
     }
 
 }

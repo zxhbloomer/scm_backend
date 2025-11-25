@@ -419,7 +419,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
     }
 
     /**
-     * 软删除工作流
+     * 删除工作流（物理删除）
      *
      * @param uuid 工作流UUID
      */
@@ -431,9 +431,8 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
             throw new RuntimeException("无权限删除此工作流");
         }
 
-        // 软删除工作流（在查询出的实体上直接修改）
-        workflow.setIsDeleted(true);
-        aiWorkflowMapper.updateById(workflow);
+        // 物理删除工作流
+        aiWorkflowMapper.deleteById(workflow.getId());
     }
 
     /**
