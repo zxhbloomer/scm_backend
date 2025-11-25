@@ -167,26 +167,14 @@ public class WorkflowUtil {
                                 DataSourceHelper.use(wfState.getTenantCode());
                             }
 
-                            // ========== 详细日志：打印完整的 ChatResponse（无记忆模式）==========
-                            log.info("========== LLM ChatResponse 详情（无记忆模式）==========");
-                            log.info("Result对象: {}", chatResponse.getResult());
-                            log.info("Metadata对象: {}", chatResponse.getMetadata());
-
-                            // 检查是否有工具调用信息
-                            if (chatResponse.getMetadata() != null) {
-                                log.info("Metadata详细内容: {}", chatResponse.getMetadata());
-                            }
-
                             String content = chatResponse.getResult().getOutput().getText();
                             if (StringUtils.isNotBlank(content)) {
-                                log.info("LLM chunk内容 (长度={}): {}", content.length(), content);
                                 fullResponse.append(content);
 
                                 if (wfState.getStreamHandler() != null) {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
-                            log.info("==========================================");
                         })
                         .blockLast();
             } else {
@@ -215,26 +203,14 @@ public class WorkflowUtil {
                                 DataSourceHelper.use(wfState.getTenantCode());
                             }
 
-                            // ========== 详细日志：打印完整的 ChatResponse（有记忆模式）==========
-                            log.info("========== LLM ChatResponse 详情（有记忆模式）==========");
-                            log.info("Result对象: {}", chatResponse.getResult());
-                            log.info("Metadata对象: {}", chatResponse.getMetadata());
-
-                            // 检查是否有工具调用信息
-                            if (chatResponse.getMetadata() != null) {
-                                log.info("Metadata详细内容: {}", chatResponse.getMetadata());
-                            }
-
                             String content = chatResponse.getResult().getOutput().getText();
                             if (StringUtils.isNotBlank(content)) {
-                                log.info("LLM chunk内容 (长度={}): {}", content.length(), content);
                                 fullResponse.append(content);
 
                                 if (wfState.getStreamHandler() != null) {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
-                            log.info("==========================================");
                         })
                         .blockLast();
 
@@ -297,8 +273,11 @@ public class WorkflowUtil {
     /**
      * 提取原始用户输入
      *
-     * 从工作流初始输入中提取var_user_input参数的值。
+     * 从工作流初始输入中提取TEXT类型参数的值（动态查找第一个TEXT输入）。
      * 这是用户在开始节点输入的原始内容，用于保存到对话历史记录中。
+     *
+     * 注意：不再硬编码参数名"var_user_input"，而是动态查找type=1(TEXT)的第一个参数。
+     * 这样支持用户自定义开始节点的参数名。
      *
      * @param wfState 工作流状态对象
      * @return 原始用户输入字符串，如果未找到则返回null
@@ -311,19 +290,20 @@ public class WorkflowUtil {
 
         log.info("🔍 extractOriginalUserInput: 开始提取用户输入，input数量: {}", wfState.getInput().size());
 
-        // 从工作流初始输入中查找var_user_input参数
+        // 动态查找第一个TEXT类型(type=1)的输入参数
         for (NodeIOData input : wfState.getInput()) {
-            log.info("🔍 extractOriginalUserInput: 检查input - name: {}, content: {}",
-                input.getName(), input.getContent());
+            log.info("🔍 extractOriginalUserInput: 检查input - name: {}, contentType: {}",
+                input.getName(), input.getContent() != null ? input.getContent().getType() : null);
 
-            if ("var_user_input".equals(input.getName())) {
+            // 判断是否为TEXT类型(type=1)
+            if (input.getContent() != null && Integer.valueOf(1).equals(input.getContent().getType())) {
                 String value = input.valueToString();
-                log.info("✅ extractOriginalUserInput: 找到var_user_input，value: {}", value);
+                log.info("✅ extractOriginalUserInput: 找到TEXT类型输入(name={}), value: {}", input.getName(), value);
                 return value;
             }
         }
 
-        log.warn("❌ extractOriginalUserInput: 未找到var_user_input参数");
+        log.warn("❌ extractOriginalUserInput: 未找到TEXT类型的输入参数");
         return null;
     }
 
