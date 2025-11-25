@@ -20,5 +20,12 @@ public enum WorkflowCallSource {
      * AI Chat调用Workflow
      * <p>数据保存到: ai_conversation_workflow_runtime, ai_conversation_workflow_runtime_node</p>
      */
-    AI_CHAT
+    AI_CHAT,
+
+    /**
+     * AI Chat Orchestrator调用Workflow
+     * <p>Orchestrator-Workers模式中Worker执行Workflow</p>
+     * <p>数据保存到: ai_conversation_workflow_runtime, ai_conversation_workflow_runtime_node</p>
+     */
+    AI_CHAT_ORCHESTRATOR
 }

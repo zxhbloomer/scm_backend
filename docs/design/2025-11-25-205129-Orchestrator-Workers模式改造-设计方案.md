@@ -13,11 +13,12 @@
 **✅ 值得做** - 真实业务需求 + 简洁技术方案 + 零破坏性改造
 
 ### 关键指标
-- **代码量**: ~180行核心代码
+- **代码量**: ~200行核心代码
 - **复杂度**: 2层缩进,4个核心概念
 - **破坏性**: 零(完全向后兼容)
 - **开发工时**: 3.5小时(2.5h开发 + 1h测试)
 - **业务价值**: 解锁MCP+Workflow混合调用,支持复杂任务分解
+- **动态特性**: Workflow在前端页面创建后立即可用,无需重启应用
 
 ---
 
@@ -267,8 +268,8 @@ private String orchestrateAndExecute(String userInput, Long userId) {
 private String executeWorker(SubTask task, Long userId) {
     try {
         if ("workflow".equals(task.type())) {
-            // 执行workflow
-            WorkflowToolCallback callback = workflowToolCallbackMap.get(task.target());
+            // ✅ 动态查询数据库获取workflow
+            WorkflowToolCallback callback = workflowCallbackService.getCallback(task.target());
             if (callback == null) {
                 return "{\"success\": false, \"error\": \"Workflow not found: " + task.target() + "\"}";
             }
@@ -278,7 +279,7 @@ private String executeWorker(SubTask task, Long userId) {
             );
 
         } else if ("mcp".equals(task.type())) {
-            // 执行MCP Tool
+            // ✅ MCP工具从静态Map获取(启动时注册,不会运行时增删)
             ToolCallback mcpCallback = mcpToolCallbackMap.get(task.target());
             if (mcpCallback == null) {
                 return "{\"success\": false, \"error\": \"MCP Tool not found: " + task.target() + "\"}";
@@ -357,34 +358,7 @@ public ChatClient orchestratorChatClient(ChatModel chatModel) {
 }
 
 /**
- * 初始化WorkflowToolCallback映射表
- */
-@Bean
-public Map<String, WorkflowToolCallback> workflowToolCallbackMap(
-        List<AiWorkflowEntity> workflows,
-        WorkflowStarter workflowStarter) {
-
-    Map<String, WorkflowToolCallback> map = new HashMap<>();
-
-    for (AiWorkflowEntity workflow : workflows) {
-        if (workflow.getIsEnable() == 1 && workflow.getIsDeleted() == 0) {
-            WorkflowToolCallback callback = new WorkflowToolCallback(
-                workflow.getWorkflowUuid(),
-                workflow.getTitle(),
-                workflow.getDesc(),
-                workflow.getInputConfig(),  // 使用workflow的inputConfig作为schema
-                workflowStarter
-            );
-            map.put(workflow.getWorkflowUuid(), callback);
-        }
-    }
-
-    log.info("初始化WorkflowToolCallback映射表完成, 共{}个workflow", map.size());
-    return map;
-}
-
-/**
- * 初始化MCP ToolCallback映射表
+ * 初始化MCP ToolCallback映射表(启动时加载)
  */
 @Bean
 public Map<String, ToolCallback> mcpToolCallbackMap(ToolCallbackProvider mcpToolCallbackProvider) {
@@ -399,6 +373,101 @@ public Map<String, ToolCallback> mcpToolCallbackMap(ToolCallbackProvider mcpTool
     return map;
 }
 ```
+
+#### 4. WorkflowToolCallbackService - 动态Workflow包装服务
+
+**职责**: 动态查询数据库,实时创建WorkflowToolCallback
+
+**创建位置**: `scm-ai/src/main/java/com/xinyirun/scm/ai/core/workflow/orchestrator/WorkflowToolCallbackService.java`
+
+```java
+/**
+ * Workflow动态包装服务
+ *
+ * 设计理念:
+ * - 不使用缓存,每次都查询数据库获取最新workflow配置
+ * - 用户在前端页面创建workflow后,立即可在AI Chat中使用
+ * - 无需重启应用,真正的动态发现和包装
+ *
+ * @author zzxxhh
+ * @since 2025-11-25
+ */
+@Service
+@Slf4j
+public class WorkflowToolCallbackService {
+
+    @Autowired
+    private AiWorkflowService workflowService;
+
+    @Autowired
+    private WorkflowStarter workflowStarter;
+
+    /**
+     * 获取单个workflow的ToolCallback(每次都查数据库)
+     *
+     * @param workflowUuid workflow唯一标识
+     * @return WorkflowToolCallback对象,如果workflow不存在或未启用则返回null
+     */
+    public WorkflowToolCallback getCallback(String workflowUuid) {
+        // 查询数据库获取最新workflow配置
+        AiWorkflowEntity workflow = workflowService.lambdaQuery()
+            .eq(AiWorkflowEntity::getWorkflowUuid, workflowUuid)
+            .eq(AiWorkflowEntity::getIsDeleted, 0)
+            .eq(AiWorkflowEntity::getIsEnable, 1)
+            .one();
+
+        if (workflow == null) {
+            log.warn("Workflow不存在或未启用: workflowUuid={}", workflowUuid);
+            return null;
+        }
+
+        // 临时创建ToolCallback对象
+        return new WorkflowToolCallback(
+            workflow.getWorkflowUuid(),
+            workflow.getTitle(),
+            workflow.getDesc(),
+            workflow.getInputConfig(),
+            workflowStarter
+        );
+    }
+
+    /**
+     * 获取所有启用的workflow列表(给Orchestrator的prompt用)
+     *
+     * 用途: Orchestrator需要知道当前系统中有哪些可用的workflow,
+     *      才能正确分解任务并指定target
+     *
+     * @return ToolCallback列表
+     */
+    public List<ToolCallback> getAllCallbacks() {
+        // 查询所有启用的workflow
+        List<AiWorkflowEntity> workflows = workflowService.lambdaQuery()
+            .eq(AiWorkflowEntity::getIsDeleted, 0)
+            .eq(AiWorkflowEntity::getIsEnable, 1)
+            .list();
+
+        log.info("查询到{}个启用的workflow", workflows.size());
+
+        // 转换为ToolCallback列表
+        return workflows.stream()
+            .map(w -> new WorkflowToolCallback(
+                w.getWorkflowUuid(),
+                w.getTitle(),
+                w.getDesc(),
+                w.getInputConfig(),
+                workflowStarter
+            ))
+            .collect(Collectors.toList());
+    }
+}
+```
+
+**设计要点**:
+- ✅ **真正动态**: 每次调用都查询数据库,获取最新配置
+- ✅ **立即可用**: 前端创建workflow后,立即可在AI Chat中使用
+- ✅ **无需重启**: 不依赖启动时加载,运行时动态发现
+- ✅ **极简实现**: 只有40行代码,无缓存复杂度
+- ✅ **数据实时**: workflow配置修改后立即生效
 
 ---
 
@@ -528,9 +597,10 @@ public OrchestratorFinalResponse processWithOrchestrator(...) {
 | `OrchestratorResponse.java` | 新建 | 10行 | Record类,Orchestrator响应 |
 | `OrchestratorFinalResponse.java` | 新建 | 10行 | Record类,最终响应 |
 | `WorkflowToolCallback.java` | 新建 | 80行 | Workflow的ToolCallback包装 |
+| `WorkflowToolCallbackService.java` | 新建 | 40行 | 动态Workflow包装服务 |
 | `WorkflowRoutingService.java` | 修改 | +50行 | 新增orchestrateAndExecute方法 |
-| `AiChatConfig.java` | 修改 | +30行 | 注册orchestratorChatClient Bean |
-| **总计** | - | **~180行** | - |
+| `AiChatConfig.java` | 修改 | +20行 | 注册orchestratorChatClient Bean |
+| **总计** | - | **~220行** | - |
 
 ### 实施步骤
 
@@ -551,6 +621,16 @@ public OrchestratorFinalResponse processWithOrchestrator(...) {
 - 处理Flux异步阻塞(`blockLast()`)
 - 动态构建inputSchema(从workflow的inputConfig读取)
 - 错误处理和日志追踪
+
+#### Phase 2.5: WorkflowToolCallbackService实现 (~20分钟)
+
+**创建位置**: `scm-ai/src/main/java/com/xinyirun/scm/ai/core/workflow/orchestrator/WorkflowToolCallbackService.java`
+
+**关键实现点**:
+- 实现`getCallback(String workflowUuid)`方法,动态查询数据库
+- 实现`getAllCallbacks()`方法,返回所有启用的workflow列表
+- 添加日志追踪
+- 极简实现,无缓存逻辑
 
 #### Phase 3: WorkflowRoutingService改造 (~40分钟)
 
@@ -596,10 +676,11 @@ public OrchestratorFinalResponse processWithOrchestrator(...) {
 |---|---|---|
 | Phase 1: 数据结构创建 | 0.2h | 3个简单record类 |
 | Phase 2: WorkflowToolCallback实现 | 0.5h | 核心包装逻辑 |
+| Phase 2.5: WorkflowToolCallbackService实现 | 0.3h | 动态服务实现 |
 | Phase 3: WorkflowRoutingService改造 | 0.7h | 集成到现有路由 |
 | Phase 4: ChatClient配置 | 0.3h | Bean注册和配置 |
 | Phase 5: 测试验证 | 1.0h | 单元测试+集成测试+E2E |
-| **总计** | **2.7h** | **约3小时** |
+| **总计** | **3.0h** | **约3小时** |
 
 ---
 
@@ -659,5 +740,6 @@ public OrchestratorFinalResponse processWithOrchestrator(...) {
 
 **文档状态**: ✅ 设计完成,待实施
 **预期工时**: 3小时开发 + 1小时测试
-**风险等级**: 🟢 低 (零破坏性 + 简洁实现)
+**风险等级**: 🟢 低 (零破坏性 + 简洁实现 + 动态发现)
 **推荐度**: ⭐⭐⭐⭐⭐ (5/5星)
+**核心亮点**: 🚀 Workflow在前端页面创建后立即可用,无需重启应用

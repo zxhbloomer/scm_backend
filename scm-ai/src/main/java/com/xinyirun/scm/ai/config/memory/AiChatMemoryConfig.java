@@ -4,11 +4,15 @@ import com.xinyirun.scm.ai.config.AiModelProvider;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * AI聊天记忆配置类
@@ -176,5 +180,58 @@ public class AiChatMemoryConfig {
                         workflowConversationAdvisor
                 )
                 .build(); // 不注入toolCallbackProvider,禁用MCP工具自动调用
+    }
+
+    /**
+     * Orchestrator专用ChatClient
+     *
+     * <p>用于Orchestrator-Workers模式的任务分解LLM调用,配置为:</p>
+     * <ul>
+     *   <li>无历史记忆: 任务分解基于当前输入,不需要对话上下文</li>
+     *   <li>无MCP工具: Orchestrator只负责任务分解,不直接调用工具</li>
+     *   <li>结构化输出: 返回OrchestratorResponse格式(analysis + tasks列表)</li>
+     * </ul>
+     *
+     * 使用@Lazy延迟初始化,避免启动时因租户上下文未设置导致无法获取模型配置
+     *
+     * @param aiModelProvider AI模型提供者,用于获取ChatModel实例
+     * @return 配置好的ChatClient实例
+     */
+    @Lazy
+    @Bean("orchestratorChatClient")
+    public ChatClient orchestratorChatClient(AiModelProvider aiModelProvider) {
+        ChatModel chatModel = aiModelProvider.getChatModel();
+        return ChatClient.builder(chatModel).build();
+    }
+
+    /**
+     * MCP工具回调Map
+     *
+     * <p>将所有MCP工具包装为Map,供Orchestrator-Workers模式的Worker执行时使用</p>
+     * <ul>
+     *   <li>Key: 工具名称(ToolDefinition.name())</li>
+     *   <li>Value: ToolCallback实例</li>
+     * </ul>
+     *
+     * 注意: 此Map仅包含MCP工具,不包含Workflow
+     * Workflow通过WorkflowToolCallbackService动态查询,不在此Map中
+     *
+     * @param toolCallbackProvider MCP Client工具回调提供者(可选,仅在MCP Client启用时注入)
+     * @return MCP工具的Map,如果MCP未启用则返回空Map
+     */
+    @Bean("mcpToolCallbackMap")
+    public Map<String, ToolCallback> mcpToolCallbackMap(
+            @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
+        if (toolCallbackProvider == null) {
+            return new HashMap<>();
+        }
+
+        // 将ToolCallbackProvider的所有工具转换为Map
+        Map<String, ToolCallback> map = new HashMap<>();
+        for (ToolCallback callback : toolCallbackProvider.getToolCallbacks()) {
+            String toolName = callback.getToolDefinition().name();
+            map.put(toolName, callback);
+        }
+        return map;
     }
 }
