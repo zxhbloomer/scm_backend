@@ -395,7 +395,15 @@ public class AiConversationService {
     /**
      * 更新对话的工作流状态
      *
-     * @param conversationId 对话ID
+     * <p>此方法支持在异步上下文中调用,会自动从conversationId解析tenantCode并设置数据源</p>
+     *
+     * <p>conversationId格式说明:</p>
+     * <ul>
+     *   <li>Chat领域: tenantCode::conversationUUID (2段)</li>
+     *   <li>Workflow领域: tenantCode::workflowUuid::userId (3段)</li>
+     * </ul>
+     *
+     * @param conversationId 对话ID(格式: tenantCode::xxx 或 tenantCode::xxx::xxx)
      * @param workflowState 工作流状态（IDLE/WORKFLOW_RUNNING/WORKFLOW_WAITING_INPUT）
      * @param workflowUuid 工作流UUID（可选，IDLE时传null）
      * @param runtimeUuid 运行时UUID（可选，IDLE/WORKFLOW_RUNNING时传null）
@@ -403,6 +411,16 @@ public class AiConversationService {
     @Transactional(rollbackFor = Exception.class)
     public void updateWorkflowState(String conversationId, String workflowState,
                                      String workflowUuid, String runtimeUuid) {
+        // 从conversationId解析tenantCode并设置数据源
+        // conversationId格式: tenantCode::xxx 或 tenantCode::xxx::xxx
+        if (StringUtils.isNotBlank(conversationId) && conversationId.contains("::")) {
+            String tenantCode = conversationId.split("::", 2)[0];
+            if (StringUtils.isNotBlank(tenantCode)) {
+                DataSourceHelper.use(tenantCode);
+                log.debug("updateWorkflowState: 从conversationId解析tenantCode={}", tenantCode);
+            }
+        }
+
         AiConversationEntity entity = aiConversationMapper.selectById(conversationId);
         if (entity == null) {
             throw new AiBusinessException("对话不存在: " + conversationId);

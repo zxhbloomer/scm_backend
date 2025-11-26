@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import jakarta.annotation.PostConstruct;
 
 
 /**
@@ -70,6 +71,11 @@ import java.util.concurrent.TimeoutException;
 @RestController
 @RequestMapping(value = "/api/v1/ai/conversation")
 public class AiConversationController {
+
+    @PostConstruct
+    public void init() {
+        log.info("【AiConversationController】初始化完成, enableWorkflowRouting={}", enableWorkflowRouting);
+    }
 
     @Resource
     private AiConversationService aiConversationService;
@@ -293,11 +299,17 @@ public class AiConversationController {
     @Operation(summary = "流式聊天 (支持工作流路由+智能意图判断)")
     @SysLogAnnotion("AI流式聊天")
     public Flux<ChatResponseVo> chatStream(@Validated @RequestBody AIChatRequestVo request) {
+        log.info("【chatStream】入口, enableWorkflowRouting={}, prompt={}",
+                 enableWorkflowRouting, request.getPrompt());
+
         // Feature Toggle: 工作流路由功能开关
         if (!enableWorkflowRouting) {
+            log.info("【chatStream】走原有逻辑(工作流未启用)");
             // 工作流功能未启用，走原有逻辑
             return chatStreamWithoutWorkflow(request);
         }
+
+        log.info("【chatStream】进入工作流路由模式");
 
         // 获取用户上下文（外层变量，供闭包捕获）
         String conversationId = request.getConversationId();
@@ -350,9 +362,9 @@ public class AiConversationController {
                                 tenantId,
                                 WorkflowCallSource.AI_CHAT,
                                 conversationId
-                            );
+                            ).map(event -> convertWorkflowEventToResponse(event));
                         } else {
-                            // 场景2B: 新意图,清理旧状态,路由新工作流
+                            // 场景2B: 新意图,清理旧状态,使用Orchestrator-Workers模式路由新工作流
                             aiConversationService.updateWorkflowState(
                                 conversationId,
                                 WorkflowStateConstant.STATE_IDLE,
@@ -360,68 +372,40 @@ public class AiConversationController {
                                 null
                             );
 
-                            String newWorkflowUuid = workflowRoutingService.route(
+                            // 使用新的routeAndExecute方法(Orchestrator-Workers模式)
+                            return workflowRoutingService.routeAndExecute(
                                 request.getPrompt(),
                                 operatorId,
-                                null
+                                tenantId,
+                                conversationId,
+                                pageContext,
+                                null  // specifiedWorkflowUuid为null,走Orchestrator-Workers模式
                             );
-
-                            if (newWorkflowUuid == null) {
-                                newWorkflowUuid = getFallbackWorkflowUuid(operatorId);
-                                if (newWorkflowUuid == null) {
-                                    return Flux.error(new AiBusinessException("没有可用的工作流"));
-                                }
-                            }
-
-                            // 动态构建输入参数（根据目标workflow的开始节点配置）
-                            AiWorkflowVo targetWorkflow = aiWorkflowService.getDtoByUuid(newWorkflowUuid);
-                            AiWorkflowNodeVo startNode = workflowNodeService.getStartNode(targetWorkflow.getId());
-                            List<JSONObject> userInputs = buildWorkflowInputsFromConfig(
-                                startNode.getInputConfig(),
-                                request.getPrompt(),
-                                null
-                            );
-                            return workflowStarter.streaming(newWorkflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId, pageContext);
                         }
 
                     } else {
-                        // 场景1：新请求 - 路由到工作流
-                        String workflowUuid = workflowRoutingService.route(
+                        // 场景1：新请求 - 使用Orchestrator-Workers模式路由并执行
+                        return workflowRoutingService.routeAndExecute(
                             request.getPrompt(),
                             operatorId,
-                            null
+                            tenantId,
+                            conversationId,
+                            pageContext,
+                            null  // specifiedWorkflowUuid为null,走Orchestrator-Workers模式
                         );
-
-                        if (workflowUuid == null) {
-                            // 获取兜底工作流
-                            workflowUuid = getFallbackWorkflowUuid(operatorId);
-                            if (workflowUuid == null) {
-                                return Flux.error(new AiBusinessException("没有可用的工作流"));
-                            }
-                        }
-
-                        // 动态构建输入参数（根据目标workflow的开始节点配置）
-                        AiWorkflowVo targetWorkflow = aiWorkflowService.getDtoByUuid(workflowUuid);
-                        AiWorkflowNodeVo startNode = workflowNodeService.getStartNode(targetWorkflow.getId());
-                        List<JSONObject> userInputs = buildWorkflowInputsFromConfig(
-                            startNode.getInputConfig(),
-                            request.getPrompt(),
-                            null
-                        );
-                        return workflowStarter.streaming(workflowUuid, userInputs, tenantId, WorkflowCallSource.AI_CHAT, conversationId, pageContext);
                     }
                 })
-                // Step 3: 转换工作流事件为响应格式
-                .map(event -> convertWorkflowEventToResponse(event))
-
-                // Step 4: KISS优化2 - 只在workflow事件响应时更新状态(2次)
+                // Step 3: KISS优化2 - 只在workflow事件响应时更新状态(2次)
                 // 注意：使用map而非doOnNext，确保response修改在发送前完成
                 .map(response -> {
                     // 累积AI回复内容（用于保存到数据库）
-                    if (response.getResults() != null && !response.getResults().isEmpty()) {
-                        ChatResponseVo.Generation generation = response.getResults().get(0);
-                        if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
-                            aiResponseBuilder.append(generation.getOutput().getContent());
+                    // 【修复】只累积中间chunk的内容，isComplete=true时响应已包含完整内容
+                    if (!Boolean.TRUE.equals(response.getIsComplete())) {
+                        if (response.getResults() != null && !response.getResults().isEmpty()) {
+                            ChatResponseVo.Generation generation = response.getResults().get(0);
+                            if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
+                                aiResponseBuilder.append(generation.getOutput().getContent());
+                            }
                         }
                     }
 
@@ -435,16 +419,17 @@ public class AiConversationController {
                         );
                     }
                     if (Boolean.TRUE.equals(response.getIsComplete())) {
-                        // 注入累积的LLM输出到done事件响应
-                        String fullContent = aiResponseBuilder.toString();
-                        if (!fullContent.isEmpty()) {
-                            response.setResults(List.of(
-                                ChatResponseVo.Generation.builder()
-                                    .output(ChatResponseVo.AssistantMessage.builder()
-                                        .content(fullContent)
-                                        .build())
-                                    .build()
-                            ));
+                        // 【修复】isComplete响应中已包含完整内容，直接使用而不是累积的内容
+                        String fullContent = "";
+                        if (response.getResults() != null && !response.getResults().isEmpty()) {
+                            ChatResponseVo.Generation generation = response.getResults().get(0);
+                            if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
+                                fullContent = generation.getOutput().getContent();
+                            }
+                        }
+                        // 如果isComplete响应没有内容，才使用累积的内容（兼容旧逻辑）
+                        if (fullContent.isEmpty()) {
+                            fullContent = aiResponseBuilder.toString();
                         }
 
                         // 更新2: 工作流完成
@@ -457,7 +442,7 @@ public class AiConversationController {
 
                         // 保存对话内容到数据库
                         try {
-                            String finalAiResponse = aiResponseBuilder.toString();
+                            String finalAiResponse = fullContent;
                             String runtimeUuid = response.getRuntimeUuid(); // 获取运行时UUID
 
                             log.info("【AI-Chat-保存】准备保存对话内容: conversationId={}, runtimeUuid={}, userPrompt长度={}, aiResponse长度={}",
