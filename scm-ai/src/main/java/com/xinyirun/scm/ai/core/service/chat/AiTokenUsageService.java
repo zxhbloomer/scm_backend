@@ -1,14 +1,15 @@
 package com.xinyirun.scm.ai.core.service.chat;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.statistics.AiTokenUsageEntity;
-import com.xinyirun.scm.ai.bean.vo.statistics.AiTokenUsageVo;
+import com.xinyirun.scm.ai.bean.entity.workflow.AiConversationRuntimeEntity;
+import com.xinyirun.scm.ai.bean.vo.chat.NodeTokenUsageVo;
 import com.xinyirun.scm.ai.core.mapper.statistics.AiTokenUsageMapper;
+import com.xinyirun.scm.ai.core.mapper.workflow.AiConversationRuntimeMapper;
+import com.xinyirun.scm.ai.core.mapper.workflow.AiConversationRuntimeNodeMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,11 +36,18 @@ public class AiTokenUsageService {
     @Resource
     private AiTokenUsageMapper aiTokenUsageMapper;
 
+    @Resource
+    private AiConversationRuntimeMapper conversationRuntimeMapper;
+
+    @Resource
+    private AiConversationRuntimeNodeMapper conversationRuntimeNodeMapper;
+
     /**
      * 异步记录Token使用情况
      *
      * @param conversationId 对话ID
-     * @param conversationContentId 关联的消息ID（ASSISTANT消息ID）
+     * @param serialType 业务类型(表名): ai_conversation_runtime_node/ai_workflow_runtime_node/ai_knowledge_base_qa
+     * @param serialId 业务记录ID(对应表的主键或UUID)
      * @param modelSourceId 模型源ID
      * @param userId 用户ID
      * @param aiProvider AI提供商
@@ -50,10 +58,11 @@ public class AiTokenUsageService {
      * @param responseTime 响应时间
      */
     @Transactional(rollbackFor = Exception.class)
-    public void recordTokenUsageAsync(String conversationId, String conversationContentId, String modelSourceId, String userId,
+    public void recordTokenUsageAsync(String conversationId, String serialType, String serialId,
+                                      String modelSourceId, String userId,
                                       String aiProvider, String aiModelType,
-                                     Long promptTokens, Long completionTokens, Boolean success,
-                                     Long responseTime) {
+                                      Long promptTokens, Long completionTokens, Boolean success,
+                                      Long responseTime) {
         try {
             // 创建Token使用记录
             AiTokenUsageEntity entity = new AiTokenUsageEntity();
@@ -63,7 +72,8 @@ public class AiTokenUsageService {
 
             // 设置基本信息字段
             entity.setConversationId(conversationId);
-            entity.setConversationContentId(conversationContentId);
+            entity.setSerialType(serialType);
+            entity.setSerialId(serialId);
             entity.setModelSourceId(modelSourceId);
             entity.setUserId(userId);
 
@@ -85,16 +95,124 @@ public class AiTokenUsageService {
             entity.setTokenUnitPrice(java.math.BigDecimal.ZERO);
             entity.setCost(java.math.BigDecimal.ZERO);
 
-            // ai_config_id字段暂时保持null，后续根据业务需要设置
+            // ai_config_id 设置为 modelSourceId（两者都指向 ai_model_config.id）
+            entity.setAiConfigId(modelSourceId);
+
+            // 手动设置c_id和u_id（异步线程无Spring Security Context，自动填充无法获取用户ID）
+            Long userIdLong = null;
+            if (StringUtils.hasText(userId)) {
+                try {
+                    userIdLong = Long.parseLong(userId);
+                } catch (NumberFormatException e) {
+                    log.warn("userId转换Long失败: {}", userId);
+                }
+            }
+            entity.setC_id(userIdLong);
+            entity.setU_id(userIdLong);
+
+            // 手动设置c_time和u_time（异步线程保险起见手动设置）
+            LocalDateTime now = LocalDateTime.now();
+            entity.setC_time(now);
+            entity.setU_time(now);
 
             int result = aiTokenUsageMapper.insert(entity);
             if (result > 0) {
-                log.debug("记录Token使用情况成功, conversationId: {}, userId: {}, totalTokens: {}",
-                        conversationId, userId, entity.getTotalTokens());
+                log.debug("记录Token使用情况成功, conversationId: {}, serialType: {}, serialId: {}, userId: {}, totalTokens: {}",
+                        conversationId, serialType, serialId, userId, (promptTokens + completionTokens));
             }
         } catch (Exception e) {
-            log.error("记录Token使用情况失败, conversationId: {}, userId: {}, tenant: {}",
-                    conversationId, userId, e);
+            log.error("记录Token使用情况失败, conversationId: {}, serialType: {}, serialId: {}, userId: {}",
+                    conversationId, serialType, serialId, userId, e);
+        }
+    }
+
+    /**
+     * 根据runtime_uuid获取总Token消耗
+     *
+     * @param runtimeUuid 运行实例UUID
+     * @return 总Token数,如果无记录返回null
+     */
+    public Long getTotalTokensByRuntimeUuid(String runtimeUuid) {
+        try {
+            // 1. 根据runtime_uuid查询runtime_id
+            AiConversationRuntimeEntity runtime = conversationRuntimeMapper.selectOne(
+                    new LambdaQueryWrapper<AiConversationRuntimeEntity>()
+                            .eq(AiConversationRuntimeEntity::getRuntimeUuid, runtimeUuid)
+                            .last("LIMIT 1")
+            );
+
+            if (runtime == null) {
+                log.warn("📊【Token统计】未找到runtime记录: runtimeUuid={}", runtimeUuid);
+                return null;
+            }
+
+            // 2. 查询该runtime下所有节点的ID列表
+            List<Long> nodeIds = conversationRuntimeNodeMapper.selectIdsByRuntimeId(runtime.getId());
+
+            if (nodeIds == null || nodeIds.isEmpty()) {
+                log.debug("📊【Token统计】runtime无节点记录: runtimeId={}", runtime.getId());
+                return null;
+            }
+
+            // 3. 聚合查询Token总数
+            // 将nodeIds转换为String列表(serial_id是varchar类型)
+            List<String> serialIds = nodeIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.toList());
+
+            // 使用MyBatis-Plus聚合查询
+            // 注意: SQL别名必须使用驼峰命名(totalTokens),以匹配Entity字段名
+            QueryWrapper<AiTokenUsageEntity> queryWrapper = new QueryWrapper<>();
+            queryWrapper.select("SUM(total_tokens) as totalTokens")
+                    .eq("serial_type", "ai_conversation_runtime_node")
+                    .in("serial_id", serialIds);
+
+            AiTokenUsageEntity result = aiTokenUsageMapper.selectOne(queryWrapper);
+
+            Long totalTokens = (result != null && result.getTotalTokens() != null) ? result.getTotalTokens() : null;
+
+            log.debug("📊【Token统计】runtime总Token: runtimeUuid={}, nodeCount={}, totalTokens={}",
+                    runtimeUuid, nodeIds.size(), totalTokens);
+
+            return totalTokens;
+        } catch (Exception e) {
+            log.error("📊【Token统计失败】runtimeUuid={}, error={}", runtimeUuid, e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 根据节点ID获取Token消耗详情
+     *
+     * @param nodeId 节点ID
+     * @return Token消耗VO,如果无记录返回null
+     */
+    public NodeTokenUsageVo getNodeTokenUsage(Long nodeId) {
+        try {
+            AiTokenUsageEntity entity = aiTokenUsageMapper.selectOne(
+                    new LambdaQueryWrapper<AiTokenUsageEntity>()
+                            .eq(AiTokenUsageEntity::getSerialType, "ai_conversation_runtime_node")
+                            .eq(AiTokenUsageEntity::getSerialId, String.valueOf(nodeId))
+                            .last("LIMIT 1")
+            );
+
+            if (entity == null) {
+                log.debug("📊【Token统计】节点无Token记录: nodeId={}", nodeId);
+                return null;
+            }
+
+            NodeTokenUsageVo vo = new NodeTokenUsageVo();
+            vo.setPromptTokens(entity.getPromptTokens());
+            vo.setCompletionTokens(entity.getCompletionTokens());
+            vo.setTotalTokens(entity.getTotalTokens());
+
+            log.debug("📊【Token统计】节点Token: nodeId={}, promptTokens={}, completionTokens={}, totalTokens={}",
+                    nodeId, vo.getPromptTokens(), vo.getCompletionTokens(), vo.getTotalTokens());
+
+            return vo;
+        } catch (Exception e) {
+            log.error("📊【Token统计失败】nodeId={}, error={}", nodeId, e.getMessage(), e);
+            return null;
         }
     }
 
