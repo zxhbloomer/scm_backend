@@ -34,8 +34,18 @@ public class AiTokenUsageEntity implements Serializable {
     @TableField("model_source_id")
     private String modelSourceId;
 
-    @TableField("conversation_content_id")
-    private String conversationContentId;
+    /**
+     * 业务类型(表名)
+     * 可选值: ai_conversation_runtime_node, ai_workflow_runtime_node, ai_knowledge_base_qa
+     */
+    @TableField("serial_type")
+    private String serialType;
+
+    /**
+     * 业务记录ID(对应表的主键或UUID)
+     */
+    @TableField("serial_id")
+    private String serialId;
 
     @TableField("provider_name")
     private String providerName;
@@ -71,16 +81,16 @@ public class AiTokenUsageEntity implements Serializable {
     private String aiConfigId;
 
     @TableField(value = "c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    private LocalDateTime createTime;
+    private LocalDateTime c_time;
 
     @TableField(value = "u_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
+    private LocalDateTime u_time;
 
     @TableField(value = "c_id", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)
-    private Long cId;
+    private Long c_id;
 
     @TableField(value = "u_id", fill = FieldFill.INSERT_UPDATE)
-    private Long uId;
+    private Long u_id;
 
     @TableField("dbversion")
     private Integer dbversion;

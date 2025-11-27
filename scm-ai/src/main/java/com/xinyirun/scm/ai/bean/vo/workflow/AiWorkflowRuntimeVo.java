@@ -27,11 +27,6 @@ public class AiWorkflowRuntimeVo {
     private String runtimeUuid;
 
     /**
-     * 工作流ID
-     */
-    private Long workflowId;
-
-    /**
      * 工作流UUID
      */
     private String workflowUuid;

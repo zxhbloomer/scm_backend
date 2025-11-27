@@ -1,6 +1,6 @@
 package com.xinyirun.scm.ai.mcp.P00000044.service;
 
-import com.xinyirun.scm.ai.core.mapper.mcp.PermissionAiMapper;
+import com.xinyirun.scm.ai.mcp.P00000044.mapper.PermissionAiMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

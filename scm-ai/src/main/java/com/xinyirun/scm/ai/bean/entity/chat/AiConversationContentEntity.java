@@ -54,7 +54,7 @@ public class AiConversationContentEntity implements Serializable {
     private String content;
 
     /**
-     * 运行时UUID，关联 ai_conversation_workflow_runtime.runtime_uuid
+     * 运行时UUID，关联 ai_conversation_runtime.runtime_uuid
      */
     @TableField("runtime_uuid")
     private String runtimeUuid;

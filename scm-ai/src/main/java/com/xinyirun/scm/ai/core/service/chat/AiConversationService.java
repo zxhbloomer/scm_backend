@@ -48,13 +48,7 @@ public class AiConversationService {
     @Resource
     private ExtAiConversationContentMapper extAiConversationContentMapper;
     @Resource
-    private AiConversationContentRefEmbeddingService refEmbeddingService;
-    @Resource
-    private AiConversationContentRefGraphService refGraphService;
-    @Resource
-    private AiConversationPresetRelService presetRelService;
-    @Resource
-    private com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
+    private com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeService conversationRuntimeService;
 
     /**
      * 获取默认系统提示词
@@ -183,39 +177,15 @@ public class AiConversationService {
     public void delete(String conversationId, String userId) {
         log.info("开始删除对话,conversationId: {}, userId: {}", conversationId, userId);
 
-        // 1. 查询该对话下的所有消息ID列表
-        List<String> messageIds = aiConversationContentMapper.selectMessageIdsByConversationId(conversationId);
-
-        if (!messageIds.isEmpty()) {
-            // 过滤空白messageId
-            messageIds = messageIds.stream()
-                    .filter(StringUtils::isNotBlank)
-                    .collect(Collectors.toList());
-
-            if (!messageIds.isEmpty()) {
-                // 2. 删除向量引用记录
-                int embeddingCount = refEmbeddingService.deleteByMessageIds(messageIds);
-                log.info("删除对话向量引用,conversationId: {}, 数量: {}", conversationId, embeddingCount);
-
-                // 3. 删除图谱引用记录
-                int graphCount = refGraphService.deleteByMessageIds(messageIds);
-                log.info("删除对话图谱引用,conversationId: {}, 数量: {}", conversationId, graphCount);
-            }
-        }
-
-        // 4. 删除预设关系
-        int presetRelCount = presetRelService.deleteByConversationId(conversationId);
-        log.info("删除对话预设关系,conversationId: {}, 数量: {}", conversationId, presetRelCount);
-
-        // 5. 删除workflow运行记录
-        int workflowCount = conversationWorkflowRuntimeService.deleteByConversationId(conversationId);
+        // 1. 删除workflow运行记录
+        int workflowCount = conversationRuntimeService.deleteByConversationId(conversationId);
         log.info("删除workflow运行记录,conversationId: {}, 数量: {}", conversationId, workflowCount);
 
-        // 6. 删除对话内容
+        // 2. 删除对话内容
         int contentCount = aiConversationContentMapper.deleteByConversationId(conversationId);
         log.info("删除对话内容,conversationId: {}, 数量: {}", conversationId, contentCount);
 
-        // 7. 删除对话记录
+        // 3. 删除对话记录
         aiConversationMapper.deleteById(conversationId);
         log.info("删除对话完成,conversationId: {}", conversationId);
     }
@@ -227,38 +197,21 @@ public class AiConversationService {
      */
     public void clearConversationContent(String conversationId, String userId) {
         try {
-            log.info("开始清空对话内容,conversationId: {}, userId: {}", conversationId, userId);
+            log.info("🧹【清空对话】开始清空对话内容 - conversationId: {}, userId: {}", conversationId, userId);
 
-            // 1. 查询该对话下的所有消息ID列表
-            List<String> messageIds = aiConversationContentMapper.selectMessageIdsByConversationId(conversationId);
+            // 1. 删除workflow运行记录(包括ai_conversation_runtime和ai_conversation_runtime_node)
+            int workflowCount = conversationRuntimeService.deleteByConversationId(conversationId);
+            log.info("🧹【清空对话】步骤1-删除workflow运行记录完成 - conversationId: {}, 删除runtime数量: {}", conversationId, workflowCount);
 
-            if (!messageIds.isEmpty()) {
-                // 过滤空白messageId
-                messageIds = messageIds.stream()
-                        .filter(StringUtils::isNotBlank)
-                        .collect(Collectors.toList());
-
-                if (!messageIds.isEmpty()) {
-                    // 2. 删除向量引用记录
-                    int embeddingCount = refEmbeddingService.deleteByMessageIds(messageIds);
-                    log.info("清空对话向量引用,conversationId: {}, 数量: {}", conversationId, embeddingCount);
-
-                    // 3. 删除图谱引用记录
-                    int graphCount = refGraphService.deleteByMessageIds(messageIds);
-                    log.info("清空对话图谱引用,conversationId: {}, 数量: {}", conversationId, graphCount);
-                }
-            }
-
-            // 4. 删除workflow运行记录
-            int workflowCount = conversationWorkflowRuntimeService.deleteByConversationId(conversationId);
-            log.info("清空workflow运行记录,conversationId: {}, 数量: {}", conversationId, workflowCount);
-
-            // 5. 删除对话内容
+            // 2. 删除对话内容(ai_conversation_content)
             int contentCount = aiConversationContentMapper.deleteByConversationId(conversationId);
-            log.info("对话内容已清空 - conversationId: {}, deletedCount: {}", conversationId, contentCount);
+            log.info("🧹【清空对话】步骤2-删除对话内容完成 - conversationId: {}, 删除content数量: {}", conversationId, contentCount);
+
+            log.info("🧹【清空对话】全部完成 - conversationId: {}, 删除runtime: {}, 删除content: {}",
+                    conversationId, workflowCount, contentCount);
 
         } catch (Exception e) {
-            log.error("清空对话内容失败", e);
+            log.error("🧹【清空对话】失败 - conversationId: {}, error: {}", conversationId, e.getMessage(), e);
             throw new AiBusinessException("清空对话内容失败:" + e.getMessage());
         }
     }
@@ -293,7 +246,8 @@ public class AiConversationService {
      * 该方法与Spring AI框架集成，用于记录实际的Token消耗
      *
      * @param conversationId 对话ID
-     * @param conversationContentId ASSISTANT消息ID（关联ai_conversation_content表）
+     * @param serialType 业务类型(表名): ai_conversation_runtime_node/ai_workflow_runtime_node/ai_knowledge_base_qa
+     * @param serialId 业务记录ID(对应表的主键或UUID)
      * @param userId 用户ID
      * @param aiProvider AI提供商
      * @param modelSourceId 模型源ID
@@ -301,26 +255,27 @@ public class AiConversationService {
      * @param promptTokens 输入Token数
      * @param completionTokens 输出Token数
      */
-    public void recordTokenUsageFromSpringAI(String conversationId, String conversationContentId, String userId,
+    public void recordTokenUsageFromSpringAI(String conversationId, String serialType, String serialId, String userId,
                                             String aiProvider, String modelSourceId, String modelType,
                                             Long promptTokens, Long completionTokens) {
         try {
             // 直接使用传入的modelSourceId，无需查找
             aiTokenUsageService.recordTokenUsageAsync(
                     conversationId,
-                    conversationContentId, // ASSISTANT消息ID
+                    serialType,            // 业务类型
+                    serialId,              // 业务记录ID
                     modelSourceId,         // 模型源ID
                     userId,
                     aiProvider,
-                    modelType,     // 使用真正的模型类型
+                    modelType,             // 使用真正的模型类型
                     promptTokens,
                     completionTokens,
                     true, // success
                     0L    // responseTime
             );
 
-            log.info("流式聊天回调Token使用记录 - conversationId: {}, userId: {}, modelSourceId: {}, modelType: {}, tokens: {}",
-                    conversationId, userId, modelSourceId, modelType, (promptTokens + completionTokens));
+            log.info("流式聊天回调Token使用记录 - conversationId: {}, serialType: {}, serialId: {}, userId: {}, tokens: {}",
+                    conversationId, serialType, serialId, userId, (promptTokens + completionTokens));
 
         } catch (Exception e) {
             log.error("流式聊天回调Token使用记录失败", e);

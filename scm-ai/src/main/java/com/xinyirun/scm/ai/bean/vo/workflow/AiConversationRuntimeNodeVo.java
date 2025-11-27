@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
  * @since 2025-11-11
  */
 @Data
-public class AiConversationWorkflowRuntimeNodeVo {
+public class AiConversationRuntimeNodeVo {
 
     /**
      * 主键ID
@@ -86,4 +86,19 @@ public class AiConversationWorkflowRuntimeNodeVo {
      * 数据版本(乐观锁)
      */
     private Integer dbversion;
+
+    /**
+     * 输入Token数(从ai_token_usage查询)
+     */
+    private Long promptTokens;
+
+    /**
+     * 输出Token数(从ai_token_usage查询)
+     */
+    private Long completionTokens;
+
+    /**
+     * 总Token数(从ai_token_usage查询)
+     */
+    private Long totalTokens;
 }

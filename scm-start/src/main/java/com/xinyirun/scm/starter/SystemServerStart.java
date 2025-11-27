@@ -53,6 +53,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "com.xinyirun.scm.core.bpm.mapper",
         // AI模块Mapper扫描 - 包含core.mapper包及子包
         "com.xinyirun.scm.ai.core.mapper",
+        // AI MCP工具Mapper扫描 - 包含mcp模块下的mapper
+        "com.xinyirun.scm.ai.mcp.**.mapper"
             })
 @EnableAsync(proxyTargetClass=true)
 // 启用spring retry

@@ -1,4 +1,4 @@
-package com.xinyirun.scm.ai.core.mapper.mcp;
+package com.xinyirun.scm.ai.mcp.P00000044.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,12 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 权限查询Mapper
+ * 权限查询AI Mapper
  *
- * 提供用户页面权限和按钮权限的数据库查询
- *
- * RBAC权限模型:
- * staff_id → m_staff_org → m_role_position → s_role → m_permission_role → m_permission → m_permission_pages → m_permission_operation
+ * 提供权限相关的数据库查询方法,供MCP工具使用
  *
  * @author zzxxhh
  * @since 2025-11-21

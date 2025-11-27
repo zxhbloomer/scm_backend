@@ -187,21 +187,35 @@ public class AiChatMemoryConfig {
      *
      * <p>用于Orchestrator-Workers模式的任务分解LLM调用,配置为:</p>
      * <ul>
-     *   <li>无历史记忆: 任务分解基于当前输入,不需要对话上下文</li>
+     *   <li>支持多轮对话记忆: 通过chatMessageChatMemoryAdvisor读取历史对话上下文</li>
      *   <li>无MCP工具: Orchestrator只负责任务分解,不直接调用工具</li>
      *   <li>结构化输出: 返回OrchestratorResponse格式(analysis + tasks列表)</li>
      * </ul>
      *
+     * <p>运行时需要通过advisors()传递conversationId参数:</p>
+     * <pre>
+     * orchestratorChatClient.prompt()
+     *     .user(prompt)
+     *     .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+     *     .call()
+     *     .entity(OrchestratorResponse.class);
+     * </pre>
+     *
      * 使用@Lazy延迟初始化,避免启动时因租户上下文未设置导致无法获取模型配置
      *
      * @param aiModelProvider AI模型提供者,用于获取ChatModel实例
+     * @param chatMessageChatMemoryAdvisor Chat领域对话历史读取Advisor(复用现有memory)
      * @return 配置好的ChatClient实例
      */
     @Lazy
     @Bean("orchestratorChatClient")
-    public ChatClient orchestratorChatClient(AiModelProvider aiModelProvider) {
+    public ChatClient orchestratorChatClient(
+            AiModelProvider aiModelProvider,
+            MessageChatMemoryAdvisor chatMessageChatMemoryAdvisor) {
         ChatModel chatModel = aiModelProvider.getChatModel();
-        return ChatClient.builder(chatModel).build();
+        return ChatClient.builder(chatModel)
+                .defaultAdvisors(chatMessageChatMemoryAdvisor)  // 支持多轮对话记忆
+                .build();
     }
 
     /**

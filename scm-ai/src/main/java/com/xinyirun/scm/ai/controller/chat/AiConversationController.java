@@ -2,8 +2,8 @@ package com.xinyirun.scm.ai.controller.chat;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
-import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeVo;
-import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationRuntimeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationRuntimeNodeVo;
 import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.common.constant.WorkflowStateConstant;
 import com.xinyirun.scm.ai.common.exception.AiBusinessException;
@@ -20,8 +20,8 @@ import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
 import com.xinyirun.scm.ai.core.service.workflow.WorkflowRoutingService;
-import com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeService;
-import com.xinyirun.scm.ai.core.service.workflow.AiConversationWorkflowRuntimeNodeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeNodeService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowNodeService;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
@@ -99,10 +99,10 @@ public class AiConversationController {
     private WorkflowRoutingService workflowRoutingService;
 
     @Resource
-    private AiConversationWorkflowRuntimeNodeService conversationWorkflowRuntimeNodeService;
+    private AiConversationRuntimeNodeService conversationRuntimeNodeService;
 
     @Resource
-    private AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
+    private AiConversationRuntimeService conversationRuntimeService;
 
     @Resource
     private AiWorkflowService aiWorkflowService;
@@ -189,6 +189,12 @@ public class AiConversationController {
 
     /**
      * 清空对话内容
+     *
+     * 注意：此API会删除:
+     * 1. ai_conversation_runtime 表中的运行记录
+     * 2. ai_conversation_runtime_node 表中的节点记录
+     * 3. ai_conversation_content 表中的消息记录
+     * 但保留 ai_conversation 表中的对话主记录
      */
     @PostMapping(value = "/clear/{conversationId}")
     @Operation(summary = "清空对话内容")
@@ -197,7 +203,9 @@ public class AiConversationController {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : "system";
 
+        log.info("🧹【API-清空对话】收到清空对话请求 - conversationId: {}, userId: {}", conversationId, userId);
         aiConversationService.clearConversationContent(conversationId, userId);
+        log.info("🧹【API-清空对话】清空对话完成 - conversationId: {}", conversationId);
         return ResponseEntity.ok().build();
     }
 
@@ -224,10 +232,10 @@ public class AiConversationController {
     @GetMapping(value = "/workflow/runtime/{runtimeUuid}")
     @Operation(summary = "获取AI Chat工作流运行时详情")
     @SysLogAnnotion("获取AI Chat工作流运行时详情")
-    public ResponseEntity<AiConversationWorkflowRuntimeVo> getRuntimeDetail(@PathVariable String runtimeUuid) {
+    public ResponseEntity<AiConversationRuntimeVo> getRuntimeDetail(@PathVariable String runtimeUuid) {
         try {
             log.info("【AI-Chat-Runtime详情】查询runtime详情, runtimeUuid: {}", runtimeUuid);
-            AiConversationWorkflowRuntimeVo runtime = conversationWorkflowRuntimeService.getDetailByUuid(runtimeUuid);
+            AiConversationRuntimeVo runtime = conversationRuntimeService.getDetailByUuid(runtimeUuid);
             if (runtime == null) {
                 throw new AiBusinessException("工作流运行时实例不存在: " + runtimeUuid);
             }
@@ -247,18 +255,18 @@ public class AiConversationController {
     @GetMapping(value = "/workflow/runtime/nodes/{runtimeUuid}")
     @Operation(summary = "获取AI Chat工作流执行详情")
     @SysLogAnnotion("获取AI Chat工作流执行详情")
-    public ResponseEntity<List<AiConversationWorkflowRuntimeNodeVo>> listRuntimeNodes(@PathVariable String runtimeUuid) {
+    public ResponseEntity<List<AiConversationRuntimeNodeVo>> listRuntimeNodes(@PathVariable String runtimeUuid) {
         try {
             log.info("【AI-Chat-Runtime节点】查询runtime节点列表, runtimeUuid: {}", runtimeUuid);
 
             // 先根据UUID查询runtime,获取ID
-            AiConversationWorkflowRuntimeVo runtime = conversationWorkflowRuntimeService.getDetailByUuid(runtimeUuid);
+            AiConversationRuntimeVo runtime = conversationRuntimeService.getDetailByUuid(runtimeUuid);
             if (runtime == null) {
                 throw new AiBusinessException("工作流运行时实例不存在: " + runtimeUuid);
             }
 
-            List<AiConversationWorkflowRuntimeNodeVo> nodes =
-                conversationWorkflowRuntimeNodeService.listByWfRuntimeId(runtime.getId());
+            List<AiConversationRuntimeNodeVo> nodes =
+                conversationRuntimeNodeService.listByWfRuntimeId(runtime.getId());
             return ResponseEntity.ok(nodes);
         } catch (Exception e) {
             log.error("获取AI Chat工作流执行详情失败, runtimeUuid: {}", runtimeUuid, e);
@@ -269,24 +277,30 @@ public class AiConversationController {
     /**
      * 删除AI Chat聊天消息记录
      *
+     * 注意：此API只删除ai_conversation_content表中的单条消息记录
+     * 不会删除ai_conversation_runtime和ai_conversation_runtime_node表的数据
+     * 如需清空整个对话，请使用 POST /clear/{conversationId}
+     *
      * @param messageId 消息ID
      * @return 删除结果
      */
     @DeleteMapping(value = "/message/{messageId}")
-    @Operation(summary = "删除聊天消息", description = "物理删除AI Chat聊天消息记录")
+    @Operation(summary = "删除聊天消息", description = "物理删除AI Chat聊天消息记录(只删除单条消息)")
     public ResponseEntity<String> deleteMessage(@PathVariable String messageId) {
         try {
-            log.info("删除AI Chat聊天消息: messageId={}", messageId);
+            log.info("🗑️【API-删除单条消息】收到删除请求 - messageId: {} (注意: 此操作只删除ai_conversation_content中的单条记录)", messageId);
 
             boolean success = aiConversationContentService.deleteByMessageId(messageId);
 
             if (success) {
+                log.info("🗑️【API-删除单条消息】删除成功 - messageId: {}", messageId);
                 return ResponseEntity.ok("删除成功");
             } else {
+                log.warn("🗑️【API-删除单条消息】删除失败 - messageId: {}", messageId);
                 return ResponseEntity.status(500).body("删除失败");
             }
         } catch (Exception e) {
-            log.error("删除AI Chat聊天消息失败: messageId={}", messageId, e);
+            log.error("🗑️【API-删除单条消息】删除异常 - messageId: {}", messageId, e);
             return ResponseEntity.status(500).body("删除失败: " + e.getMessage());
         }
     }
@@ -778,7 +792,8 @@ public class AiConversationController {
 
                                                 aiConversationService.recordTokenUsageFromSpringAI(
                                                         request.getConversationId(),
-                                                        null,                              // conversationContentId (ASSISTANT消息ID，在此处为null)
+                                                        "ai_conversation_runtime_node",    // serial_type: AI Chat场景
+                                                        null,                              // serial_id: 无Workflow runtime时为null
                                                         String.valueOf(userId),            // 将userId转换为String
                                                         selectedModel.getProvider(),       // AI提供商
                                                         selectedModel.getId().toString(),  // 模型源ID

@@ -6,17 +6,17 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * AI Chat调用Workflow节点执行实体
+ * AI Chat调用Workflow运行时实体
  *
- * <p>用于存储AI Chat调用Workflow时的节点执行数据</p>
- * <p>与ai_workflow_runtime_node表结构完全一致,但数据独立存储</p>
+ * <p>用于存储AI Chat调用Workflow时的运行时实例数据</p>
+ * <p>与ai_workflow_runtime表结构完全一致,但数据独立存储</p>
  *
  * @author SCM-AI团队
  * @since 2025-11-11
  */
 @Data
-@TableName("ai_conversation_workflow_runtime_node")
-public class AiConversationWorkflowRuntimeNodeEntity {
+@TableName("ai_conversation_runtime")
+public class AiConversationRuntimeEntity {
 
     /**
      * 主键ID
@@ -25,31 +25,31 @@ public class AiConversationWorkflowRuntimeNodeEntity {
     private Long id;
 
     /**
-     * 运行时节点UUID(业务主键)
+     * 运行时UUID(业务主键)
      */
-    @TableField("runtime_node_uuid")
-    private String runtimeNodeUuid;
+    @TableField("runtime_uuid")
+    private String runtimeUuid;
 
     /**
-     * AI Chat工作流运行时ID(关联ai_conversation_workflow_runtime表)
+     * 对话ID,格式:tenantId::uuid,关联ai_conversation表
      */
-    @TableField("conversation_workflow_runtime_id")
-    private Long conversationWorkflowRuntimeId;
+    @TableField("conversation_id")
+    private String conversationId;
 
     /**
-     * 节点ID
+     * 执行用户ID
      */
-    @TableField("node_id")
-    private Long nodeId;
+    @TableField("user_id")
+    private Long userId;
 
     /**
-     * 节点输入数据(JSON格式)
+     * 输入数据(JSON格式)
      */
     @TableField("input_data")
     private String inputData;
 
     /**
-     * 节点输出数据(JSON格式)
+     * 输出数据(JSON格式)
      */
     @TableField("output_data")
     private String outputData;

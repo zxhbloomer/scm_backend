@@ -10,11 +10,15 @@ import java.util.List;
  *
  * @param analysis      任务理解和分解策略(Orchestrator的分析)
  * @param workerResults Workers的执行结果列表(字符串格式,通常是JSON)
+ * @param runtimeUuid   运行时UUID(用于前端显示执行详情icon)
+ * @param runtimeId     运行时记录ID(ai_conversation_runtime.id,用于Token记录关联)
  *
  * @author zzxxhh
  * @since 2025-11-25
  */
 public record OrchestratorFinalResponse(
     String analysis,
-    List<String> workerResults
+    List<String> workerResults,
+    String runtimeUuid,
+    Long runtimeId
 ) {}

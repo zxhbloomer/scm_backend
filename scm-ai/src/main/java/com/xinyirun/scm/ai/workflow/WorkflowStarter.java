@@ -75,10 +75,10 @@ public class WorkflowStarter {
     private AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
 
     @Resource
-    private AiConversationWorkflowRuntimeService conversationWorkflowRuntimeService;
+    private AiConversationRuntimeService conversationRuntimeService;
 
     @Resource
-    private AiConversationWorkflowRuntimeNodeService conversationWorkflowRuntimeNodeService;
+    private AiConversationRuntimeNodeService conversationRuntimeNodeService;
 
     @Resource(name = "mainExecutor")
     private ThreadPoolTaskExecutor mainExecutor;
@@ -242,8 +242,8 @@ public class WorkflowStarter {
                     callSource,
                     workflowRuntimeService,
                     workflowRuntimeNodeService,
-                    conversationWorkflowRuntimeService,
-                    conversationWorkflowRuntimeNodeService
+                    conversationRuntimeService,
+                    conversationRuntimeNodeService
             );
 
             // 设置页面上下文(用于MCP工具)
@@ -548,8 +548,8 @@ public class WorkflowStarter {
                     callSource,
                     workflowRuntimeService,
                     workflowRuntimeNodeService,
-                    conversationWorkflowRuntimeService,
-                    conversationWorkflowRuntimeNodeService,
+                    conversationRuntimeService,
+                    conversationRuntimeNodeService,
                     parentRuntimeUuid  // 传递父runtime_uuid，子工作流将复用此UUID
             );
 

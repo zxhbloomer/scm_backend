@@ -3,6 +3,7 @@ package com.xinyirun.scm.ai.workflow.orchestrator;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.workflow.WorkflowStarter;
+import com.xinyirun.scm.ai.workflow.enums.WfIODataTypeEnum;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ToolContext;
@@ -120,7 +121,15 @@ public class WorkflowToolCallback {
      * 将Map<String,Object>转换为List<JSONObject>格式
      *
      * WorkflowStarter.streaming()需要List<JSONObject>作为用户输入
-     * 每个JSONObject代表一个输入项,包含name和value字段
+     * 每个JSONObject代表一个输入项,格式必须符合WfNodeIODataUtil.createNodeIOData()的要求:
+     * {
+     *   "name": "参数名",
+     *   "content": {
+     *     "type": 1,      // 1=文本类型(WfIODataTypeEnum.TEXT)
+     *     "title": "参数标题",
+     *     "value": "实际值"
+     *   }
+     * }
      *
      * @param inputMap LLM传递的参数Map
      * @return 转换后的List<JSONObject>
@@ -135,8 +144,18 @@ public class WorkflowToolCallback {
         for (Map.Entry<String, Object> entry : inputMap.entrySet()) {
             JSONObject input = new JSONObject();
             input.put("name", entry.getKey());
-            input.put("value", entry.getValue());
+
+            // 构建content对象,符合WfNodeIODataUtil.createNodeIOData()的要求
+            JSONObject content = new JSONObject();
+            // TEXT类型(WfIODataTypeEnum.TEXT)
+            content.put("type", WfIODataTypeEnum.TEXT.getValue());
+            content.put("title", entry.getKey());
+            content.put("value", entry.getValue());
+
+            input.put("content", content);
             userInputs.add(input);
+
+            log.debug("【WorkflowToolCallback】参数转换: name={}, value={}", entry.getKey(), entry.getValue());
         }
 
         return userInputs;

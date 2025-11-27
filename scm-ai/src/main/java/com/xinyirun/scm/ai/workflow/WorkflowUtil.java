@@ -2,17 +2,20 @@ package com.xinyirun.scm.ai.workflow;
 
 import cn.hutool.extra.spring.SpringUtil;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
+import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
-import com.xinyirun.scm.ai.config.memory.ScmWorkflowMessageChatMemory;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
+import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.chat.metadata.Usage;
 
 import java.util.HashMap;
 import java.util.List;
@@ -112,6 +115,7 @@ public class WorkflowUtil {
      *   <li>使用 chatWithMemoryStream() 调用 LLM（带记忆）</li>
      *   <li>LLM 调用后保存 ASSISTANT 消息</li>
      *   <li>降级模式: conversationId 为 NULL 时使用 chatStream()（无记忆）</li>
+     *   <li>记录Token使用量到ai_token_usage表</li>
      * </ul>
      *
      * @param wfState 工作流状态对象
@@ -132,6 +136,10 @@ public class WorkflowUtil {
                 originalUserInput != null ? originalUserInput.length() : 0,
                 StringUtils.isNotBlank(prompt) ? prompt.length() : 0);
 
+        // 用于捕获最终Usage(Token使用量)
+        final Usage[] finalUsage = {null};
+        final long startTime = System.currentTimeMillis();
+
         try {
             AIChatRequestVo request = new AIChatRequestVo();
             request.setAiType("LLM");
@@ -141,7 +149,7 @@ public class WorkflowUtil {
                 throw new RuntimeException("AiChatBaseService not found in Spring context");
             }
 
-            var modelConfig = aiChatBaseService.getModule(request, null);
+            AiModelConfigVo modelConfig = aiChatBaseService.getModule(request, null);
 
             AIChatOptionVo chatOption = new AIChatOptionVo();
             chatOption.setModule(modelConfig);
@@ -176,6 +184,15 @@ public class WorkflowUtil {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
+
+                            // 累积Usage信息（通常在最后一个响应中包含完整Usage）
+                            if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+                                finalUsage[0] = chatResponse.getMetadata().getUsage();
+                            }
+                        })
+                        .doOnComplete(() -> {
+                            // 在完成时记录Token使用量
+                            recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
                         })
                         .blockLast();
             } else {
@@ -216,6 +233,15 @@ public class WorkflowUtil {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
+
+                            // 累积Usage信息（通常在最后一个响应中包含完整Usage）
+                            if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+                                finalUsage[0] = chatResponse.getMetadata().getUsage();
+                            }
+                        })
+                        .doOnComplete(() -> {
+                            // 在完成时记录Token使用量
+                            recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
                         })
                         .blockLast();
 
@@ -235,6 +261,79 @@ public class WorkflowUtil {
         } catch (Exception e) {
             log.error("invoke LLM (streaming) failed, conversationId: {}", conversationId, e);
             throw new RuntimeException("LLM 流式调用失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 记录工作流节点的Token使用量
+     *
+     * @param wfState 工作流状态
+     * @param node 工作流节点定义
+     * @param usage Spring AI返回的Usage对象
+     * @param modelConfig 模型配置
+     * @param startTime 开始时间戳
+     */
+    private static void recordWorkflowTokenUsage(WfState wfState, AiWorkflowNodeVo node,
+                                                   Usage usage, AiModelConfigVo modelConfig, long startTime) {
+        if (usage == null) {
+            log.warn("【Workflow-Token】Usage为null,跳过记录: nodeUuid={}", node.getUuid());
+            return;
+        }
+
+        try {
+            // 设置租户上下文（doOnComplete回调中可能丢失上下文）
+            if (wfState.getTenantCode() != null) {
+                DataSourceHelper.use(wfState.getTenantCode());
+            }
+
+            // 从wfState获取运行时节点信息
+            AiWorkflowRuntimeNodeVo runtimeNode = wfState.getRuntimeNodeByNodeUuid(node.getUuid());
+            String serialId = null;
+            if (runtimeNode != null && runtimeNode.getId() != null) {
+                serialId = String.valueOf(runtimeNode.getId());
+            }
+
+            if (serialId == null) {
+                log.warn("【Workflow-Token】RuntimeNodeId为null,使用nodeUuid作为serialId: nodeUuid={}", node.getUuid());
+                serialId = node.getUuid();  // 降级使用nodeUuid
+            }
+
+            String conversationId = wfState.getConversationId();
+            Long userId = wfState.getUserId();
+
+            // 获取token数量
+            Long promptTokens = usage.getPromptTokens() != null ? usage.getPromptTokens().longValue() : 0L;
+            Long completionTokens = usage.getCompletionTokens() != null ? usage.getCompletionTokens().longValue() : 0L;
+            Long responseTime = System.currentTimeMillis() - startTime;
+
+            // 获取AiTokenUsageService
+            AiTokenUsageService tokenUsageService = SpringUtil.getBean(AiTokenUsageService.class);
+            if (tokenUsageService == null) {
+                log.error("【Workflow-Token】AiTokenUsageService not found in Spring context");
+                return;
+            }
+
+            // 记录token使用
+            tokenUsageService.recordTokenUsageAsync(
+                    conversationId,                             // conversationId (可能为null)
+                    "ai_workflow_runtime_node",                 // serial_type
+                    serialId,                                   // serial_id
+                    modelConfig.getId().toString(),             // modelSourceId
+                    String.valueOf(userId),                     // userId
+                    modelConfig.getProvider(),                  // aiProvider
+                    modelConfig.getModelName(),                 // aiModelType
+                    promptTokens,                               // promptTokens
+                    completionTokens,                           // completionTokens
+                    true,                                       // success
+                    responseTime                                // responseTime
+            );
+
+            log.info("【Workflow-Token】记录成功: nodeUuid={}, serialId={}, tokens={}/{}/{}, responseTime={}ms",
+                    node.getUuid(), serialId, promptTokens, completionTokens, (promptTokens + completionTokens), responseTime);
+
+        } catch (Exception e) {
+            log.error("【Workflow-Token】记录失败: nodeUuid={}", node.getUuid(), e);
+            // 记录失败不抛出异常,避免影响workflow执行
         }
     }
 
