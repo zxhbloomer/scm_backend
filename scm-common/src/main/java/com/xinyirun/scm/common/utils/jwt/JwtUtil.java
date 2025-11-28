@@ -102,11 +102,6 @@ public class JwtUtil {
 //        String str_prod = getUserStringByToken(token_prod, secret);
 //        System.out.println("test:"+str_test);
 //        System.out.println("prod:"+str_prod);
-        TestBean bean = new TestBean();
-        bean.setCode("test");
-        bean.setTime(LocalDateTime.now());
-        JSON.toJSON(bean);
-        System.out.println(JSON.toJSON(bean));
     }
 
     @Data
