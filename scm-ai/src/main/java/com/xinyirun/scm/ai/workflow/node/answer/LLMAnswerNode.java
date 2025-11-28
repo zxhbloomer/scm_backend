@@ -13,9 +13,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 
 /**
- * 工作流LLM回答节点
+ * 工作流LLM大模型节点
  *
- * 此节点负责调用LLM模型生成回答。
+ * 此节点负责调用LLM模型生成大模型回答。
  * 支持模板化提示词和流式回复。
  */
 @Slf4j

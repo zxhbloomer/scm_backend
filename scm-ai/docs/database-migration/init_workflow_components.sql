@@ -11,9 +11,9 @@ VALUES (REPLACE(UUID(), '-', ''), 'Start', '开始', NULL, '流程由此开始',
 INSERT INTO ai_workflow_component (component_uuid, name, title, icon, remark, display_order, is_enable, is_deleted)
 VALUES (REPLACE(UUID(), '-', ''), 'End', '结束', NULL, '流程由此结束', 2, 1, 0);
 
--- 3. 生成回答 (Answer - LLM)
+-- 3. 大模型 (Answer - LLM)
 INSERT INTO ai_workflow_component (component_uuid, name, title, icon, remark, display_order, is_enable, is_deleted)
-VALUES (REPLACE(UUID(), '-', ''), 'Answer', '生成回答', NULL, '调用大语言模型回答问题', 3, 1, 0);
+VALUES (REPLACE(UUID(), '-', ''), 'Answer', '大模型', NULL, '调用大语言模型回答问题', 3, 1, 0);
 
 -- 4. 文档提取 (DocumentExtractor)
 INSERT INTO ai_workflow_component (component_uuid, name, title, icon, remark, display_order, is_enable, is_deleted)
