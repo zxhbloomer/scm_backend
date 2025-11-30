@@ -93,15 +93,23 @@
             <groupId>io.github.ollama4j</groupId>
             <artifactId>ollama4j</artifactId>
         </dependency>
-        <!-- LangGraph4j - 工作流编排引擎(基于DAG) -->
+        <!-- Spring AI Alibaba Graph - 工作流编排引擎(基于DAG) -->
         <dependency>
-            <groupId>org.bsc.langgraph4j</groupId>
-            <artifactId>langgraph4j-core</artifactId>
+            <groupId>com.alibaba.cloud.ai</groupId>
+            <artifactId>spring-ai-alibaba-graph-core</artifactId>
+            <exclusions>
+                <!-- 排除旧版本MCP SDK，避免与Spring AI 1.1.0的MCP SDK 0.16.0冲突 -->
+                <exclusion>
+                    <groupId>io.modelcontextprotocol.sdk</groupId>
+                    <artifactId>mcp</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
+        <!-- MCP SDK - 由父pom统一管理版本 -->
         <dependency>
-            <groupId>org.bsc.langgraph4j</groupId>
-            <artifactId>langgraph4j-langchain4j</artifactId>
+            <groupId>io.modelcontextprotocol.sdk</groupId>
+            <artifactId>mcp</artifactId>
         </dependency>
 
         <!-- ModelMapper -->

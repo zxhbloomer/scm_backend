@@ -5,7 +5,7 @@ import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.bsc.langgraph4j.state.AgentState;
+import com.alibaba.cloud.ai.graph.OverAllState;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -20,16 +20,23 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.NODE_PROCESS_STATUS
 /**
  * 工作流节点实例状态
  *
+ * <p>使用组合模式包装OverAllState（final类不能继承）</p>
+ *
  * @author zxh
  * @since 2025-10-21
  */
 @Setter
 @Getter
-@ToString(callSuper = true)
-public class WfNodeState extends AgentState implements Serializable {
+@ToString
+public class WfNodeState implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
+
+    /**
+     * 内部状态容器（委托模式）
+     */
+    private final OverAllState state;
 
     private String uuid = UuidUtil.createShort();
     private Integer processStatus = NODE_PROCESS_STATUS_READY;
@@ -38,16 +45,37 @@ public class WfNodeState extends AgentState implements Serializable {
     private List<NodeIOData> outputs = new ArrayList<>();
 
     /**
-     * Constructs an AgentState with the given initial data.
+     * 构造函数
      *
-     * @param initData the initial data for the agent state
+     * @param initData 初始数据
      */
     public WfNodeState(Map<String, Object> initData) {
-        super(initData);
+        this.state = new OverAllState(initData);
     }
 
     public WfNodeState() {
-        super(Map.of());
+        this.state = new OverAllState(Map.of());
+    }
+
+    /**
+     * 委托方法：获取数据Map
+     */
+    public Map<String, Object> data() {
+        return state.data();
+    }
+
+    /**
+     * 委托方法：获取指定key的值
+     */
+    public <T> Optional<T> value(String key) {
+        return state.value(key);
+    }
+
+    /**
+     * 获取内部OverAllState实例
+     */
+    public OverAllState getOverAllState() {
+        return state;
     }
 
     public Optional<NodeIOData> getDefaultInput() {

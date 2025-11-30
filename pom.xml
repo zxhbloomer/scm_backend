@@ -75,10 +75,9 @@
         <!--        <knife4j.version>3.0.3</knife4j.version>-->
         <!-- Spring AI 版本管理 -->
         <spring-ai.version>1.1.0</spring-ai.version>
-        <spring-ai-alibaba.version>1.0.0.3</spring-ai-alibaba.version>
+        <spring-ai-alibaba.version>1.0.0.4</spring-ai-alibaba.version>
+        <mcp.sdk.version>0.16.0</mcp.sdk.version>
         <ansj_seg.version>5.1.6</ansj_seg.version>
-        <!-- LangGraph4j 版本管理 -->
-        <langgraph4j.version>1.7.2</langgraph4j.version>
     </properties>
 
     <dependencyManagement>
@@ -894,6 +893,19 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- Spring AI Alibaba Graph - 工作流编排引擎(基于DAG) -->
+            <dependency>
+                <groupId>com.alibaba.cloud.ai</groupId>
+                <artifactId>spring-ai-alibaba-graph-core</artifactId>
+                <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+
+            <!-- MCP SDK - 模型上下文协议SDK，与Spring AI 1.1.0配套 -->
+            <dependency>
+                <groupId>io.modelcontextprotocol.sdk</groupId>
+                <artifactId>mcp</artifactId>
+                <version>${mcp.sdk.version}</version>
+            </dependency>
 
             <!-- Ollama4j Java客户端 -->
             <dependency>
@@ -926,18 +938,6 @@
                 <groupId>com.clickhouse</groupId>
                 <artifactId>client-v2</artifactId>
                 <version>0.9.2</version>
-            </dependency>
-            <!-- LangGraph4j - 工作流编排引擎(基于DAG) -->
-            <dependency>
-                <groupId>org.bsc.langgraph4j</groupId>
-                <artifactId>langgraph4j-core</artifactId>
-                <version>${langgraph4j.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.bsc.langgraph4j</groupId>
-                <artifactId>langgraph4j-langchain4j</artifactId>
-                <version>${langgraph4j.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

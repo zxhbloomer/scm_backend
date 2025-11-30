@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.workflow;
 
+import com.alibaba.cloud.ai.graph.exception.GraphStateException;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.*;
 import com.xinyirun.scm.ai.bean.vo.workflow.*;
@@ -14,32 +15,29 @@ import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.bsc.async.AsyncGenerator;
-import org.bsc.langgraph4j.*;
-import org.bsc.langgraph4j.checkpoint.MemorySaver;
-import org.bsc.langgraph4j.serializer.std.ObjectStreamStateSerializer;
-import org.bsc.langgraph4j.state.StateSnapshot;
-import org.bsc.langgraph4j.streaming.StreamingOutput;
+
+import com.alibaba.cloud.ai.graph.*;
+import com.alibaba.cloud.ai.graph.async.AsyncGenerator;
+import static com.alibaba.cloud.ai.graph.StateGraph.END;
+import static com.alibaba.cloud.ai.graph.StateGraph.START;
+import static com.alibaba.cloud.ai.graph.action.AsyncEdgeAction.edge_async;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.*;
-import static org.bsc.langgraph4j.StateGraph.END;
-import static org.bsc.langgraph4j.StateGraph.START;
-import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
-import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 /**
  * 工作流执行引擎
  *
- * <p>基于LangGraph4j实现DAG工作流执行</p>
+ * <p>基于Spring AI Alibaba Graph实现DAG工作流执行</p>
  *
  * @author zxh
  * @since 2025-10-21
  */
 @Slf4j
 public class WorkflowEngine {
-    private CompiledGraph<WfNodeState> app;
+    private CompiledGraph app;
     private final AiWorkflowEntity workflow;
     private WorkflowStreamHandler streamHandler;
     private final List<AiWorkflowComponentEntity> components;
@@ -51,9 +49,8 @@ public class WorkflowEngine {
     private final AiConversationRuntimeService conversationRuntimeService;
     private final AiConversationRuntimeNodeService conversationRuntimeNodeService;
 
-    private final ObjectStreamStateSerializer<WfNodeState> stateSerializer = new ObjectStreamStateSerializer<>(WfNodeState::new);
-    private final Map<String, List<StateGraph<WfNodeState>>> stateGraphNodes = new HashMap<>();
-    private final Map<String, List<StateGraph<WfNodeState>>> stateGraphEdges = new HashMap<>();
+    private final Map<String, List<StateGraph>> stateGraphNodes = new HashMap<>();
+    private final Map<String, List<StateGraph>> stateGraphEdges = new HashMap<>();
     private final Map<String, String> rootToSubGraph = new HashMap<>();
     private final Map<String, GraphCompileNode> nodeToParallelBranch = new HashMap<>();
 
@@ -267,18 +264,15 @@ public class WorkflowEngine {
             buildCompileNode(rootCompileNode, startNode);
 
             // 主状态图
-            StateGraph<WfNodeState> mainStateGraph = new StateGraph<>(stateSerializer);
+            StateGraph mainStateGraph = new StateGraph();
             this.wfState.addEdge(START, startNode.getUuid());
 
             // 构建包括所有节点的状态图
             buildStateGraph(null, mainStateGraph, rootCompileNode);
 
-            MemorySaver saver = new MemorySaver();
-            CompileConfig compileConfig = CompileConfig.builder()
-                    .checkpointSaver(saver)
-                    .interruptBefore(wfState.getInterruptNodes().toArray(String[]::new))
-                    .build();
-            app = mainStateGraph.compile(compileConfig);
+            // 编译状态图 (移除MemorySaver和interruptBefore配置)
+            // interruptBefore功能通过wfState.getInterruptNodes()在runNode中手动处理
+            app = mainStateGraph.compile();
             RunnableConfig invokeConfig = RunnableConfig.builder().build();
             exe(invokeConfig, false);
         } catch (Exception e) {
@@ -291,18 +285,28 @@ public class WorkflowEngine {
         // 在执行前显式设置租户上下文，防止异步执行中上下文丢失
         DataSourceHelper.use(this.tenantCode);
 
-        // 不使用langgraph4j state的update相关方法，无需传入input
-        AsyncGenerator<NodeOutput<WfNodeState>> outputs = app.stream(resume ? null : Map.of(), invokeConfig);
+        // 使用Spring AI Alibaba Graph的流式API
+        AsyncGenerator<NodeOutput> outputs;
+        try {
+            outputs = app.stream(resume ? null : Map.of(), invokeConfig);
+        } catch (Exception e) {
+            throw new RuntimeException("工作流执行失败", e);
+        }
         streamingResult(wfState, outputs);
 
-        StateSnapshot<WfNodeState> stateSnapshot = app.getState(invokeConfig);
-        String nextNode = stateSnapshot.config().nextNode().orElse("");
+        // 检查是否需要中断 (移除StateSnapshot,改为检查interruptNodes集合)
+        // 找出还未执行的中断节点(HumanFeedbackNode)
+        String nextInterruptNode = wfState.getInterruptNodes().stream()
+                .filter(nodeUuid -> wfState.getCompletedNodes().stream()
+                        .noneMatch(completedNode -> completedNode.getNode().getUuid().equals(nodeUuid)))
+                .findFirst()
+                .orElse(null);
 
-        // 还有下个节点，表示进入中断状态，等待用户输入后继续执行
-        if (StringUtils.isNotBlank(nextNode) && !nextNode.equalsIgnoreCase(END)) {
-            String intTip = getHumanFeedbackTip(nextNode);
+        if (nextInterruptNode != null) {
+            // 还有未执行的中断节点，进入等待用户输入状态
+            String intTip = getHumanFeedbackTip(nextInterruptNode);
             // 将等待输入信息发送到客户端（通过NODE_WAIT_FEEDBACK_BY事件）
-            streamHandler.sendNodeWaitFeedback(nextNode, intTip);
+            streamHandler.sendNodeWaitFeedback(nextInterruptNode, intTip);
             InterruptedFlow.RUNTIME_TO_GRAPH.put(wfState.getUuid(), this);
 
             // 更新状态（只有顶层工作流才更新runtime记录）
@@ -413,8 +417,18 @@ public class WorkflowEngine {
         Map<String, Object> resultMap = new HashMap<>();
         try {
             // 在异步线程中重新设置数据源上下文
-            // LangGraph4j创建的新线程无法继承ThreadLocal的数据源上下文
+            // StateGraph异步执行时创建的新线程无法继承ThreadLocal的数据源上下文
             DataSourceHelper.use(this.tenantCode);
+
+            // 检查是否是中断节点且未resume (替代interruptBefore机制)
+            // 如果是首次遇到HumanFeedbackNode,直接返回空结果,不执行节点
+            if (wfState.getInterruptNodes().contains(wfNode.getUuid())
+                    && !nodeState.data().containsKey(HUMAN_FEEDBACK_KEY)) {
+                log.info("检测到中断节点(HumanFeedbackNode),跳过执行: {}", wfNode.getUuid());
+                // 返回空结果,让workflow暂停在此节点之前
+                resultMap.put("name", wfNode.getTitle());
+                return resultMap;
+            }
 
             // 1. 找到对应的组件
             AiWorkflowComponentEntity wfComponent = components.stream()
@@ -552,65 +566,57 @@ public class WorkflowEngine {
     /**
      * 流式输出结果
      *
-     * @param wfState    工作流状态
-     * @param outputs    输出
+     * @param wfState 工作流状态
+     * @param outputs 输出AsyncGenerator流
      */
-    private void streamingResult(WfState wfState, AsyncGenerator<NodeOutput<WfNodeState>> outputs) {
+    private void streamingResult(WfState wfState, AsyncGenerator<NodeOutput> outputs) {
         // 在流式处理中显式设置租户上下文，防止异步迭代器中上下文丢失
         DataSourceHelper.use(this.tenantCode);
 
-        for (NodeOutput<WfNodeState> out : outputs) {
-            if (out instanceof StreamingOutput<WfNodeState> streamingOutput) {
-                String node = streamingOutput.node();
-                String chunk = streamingOutput.chunk();
-                log.info("node:{},chunk:{}", node, chunk);
-                sendNodeChunk(node, chunk);
-            } else {
-                // 在异步迭代过程中再次设置租户上下文，防止线程切换导致上下文丢失
-                DataSourceHelper.use(this.tenantCode);
+        // 使用for循环迭代AsyncGenerator
+        for (NodeOutput out : outputs) {
+            // 在异步迭代过程中再次设置租户上下文，防止线程切换导致上下文丢失
+            DataSourceHelper.use(this.tenantCode);
 
-                // 找到对应的 abstractWfNode
-                AbstractWfNode abstractWfNode = wfState.getCompletedNodes().stream()
-                        .filter(item -> item.getNode().getUuid().endsWith(out.node()))
-                        .findFirst()
-                        .orElse(null);
+            // 找到对应的 abstractWfNode
+            AbstractWfNode abstractWfNode = wfState.getCompletedNodes().stream()
+                    .filter(item -> item.getNode().getUuid().endsWith(out.node()))
+                    .findFirst()
+                    .orElse(null);
 
-                if (null != abstractWfNode) {
-                    // 找到对应的运行时节点
-                    // 注意: wfState.getRuntimeNodes()只适用于Workflow独立测试场景
-                    // AI Chat场景下,需要直接根据nodeUuid查找node ID
-                    Long runtimeNodeId = null;
+            if (null != abstractWfNode) {
+                // 找到对应的运行时节点
+                // 注意: wfState.getRuntimeNodes()只适用于Workflow独立测试场景
+                // AI Chat场景下,需要直接根据nodeUuid查找node ID
+                Long runtimeNodeId = null;
 
-                    if (callSource == WorkflowCallSource.AI_CHAT) {
-                        // AI Chat场景: 由于我们没有存储conversation node到wfState中,
-                        // 这里暂时跳过更新(或者可以通过数据库查询获取node ID)
-                        // TODO: 如果需要在streamingResult中更新AI Chat的节点,需要实现查询逻辑
-                        log.debug("AI Chat场景下streamingResult暂时跳过node更新");
-                    } else {
-                        // Workflow独立测试场景: 使用wfState中的runtime node
-                        AiWorkflowRuntimeNodeVo runtimeNodeVo = wfState.getRuntimeNodeByNodeUuid(out.node());
-                        if (null != runtimeNodeVo) {
-                            runtimeNodeId = runtimeNodeVo.getId();
-                        }
-                    }
-
-                    // 更新运行时节点的输出
-                    if (runtimeNodeId != null) {
-                        if (callSource == WorkflowCallSource.AI_CHAT) {
-                            conversationRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
-                        } else {
-                            workflowRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
-                        }
-                    } else {
-                        log.warn("Can not find runtime node, node uuid:{}", out.node());
-                    }
-
-                    // 设置工作流最终输出（适用于所有场景）
-                    // 修复: 将此行移到if块外，确保AI_CHAT场景也能正确设置输出
-                    wfState.setOutput(abstractWfNode.getState().getOutputs());
+                if (callSource == WorkflowCallSource.AI_CHAT) {
+                    // AI Chat场景: 由于我们没有存储conversation node到wfState中,
+                    // 这里暂时跳过更新(或者可以通过数据库查询获取node ID)
+                    log.debug("AI Chat场景下streamingResult暂时跳过node更新");
                 } else {
-                    log.warn("Can not find node state,node uuid:{}", out.node());
+                    // Workflow独立测试场景: 使用wfState中的runtime node
+                    AiWorkflowRuntimeNodeVo runtimeNodeVo = wfState.getRuntimeNodeByNodeUuid(out.node());
+                    if (null != runtimeNodeVo) {
+                        runtimeNodeId = runtimeNodeVo.getId();
+                    }
                 }
+
+                // 更新运行时节点的输出
+                if (runtimeNodeId != null) {
+                    if (callSource == WorkflowCallSource.AI_CHAT) {
+                        conversationRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
+                    } else {
+                        workflowRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
+                    }
+                } else {
+                    log.warn("Can not find runtime node, node uuid:{}", out.node());
+                }
+
+                // 设置工作流最终输出（适用于所有场景）
+                wfState.setOutput(abstractWfNode.getState().getOutputs());
+            } else {
+                log.warn("Can not find node state,node uuid:{}", out.node());
             }
         }
     }
@@ -786,7 +792,7 @@ public class WorkflowEngine {
      * @param compileNode         当前节点
      * @throws GraphStateException 状态图异常
      */
-    private void buildStateGraph(CompileNode upstreamCompileNode, StateGraph<WfNodeState> stateGraph, CompileNode compileNode) throws GraphStateException {
+    private void buildStateGraph(CompileNode upstreamCompileNode, StateGraph stateGraph, CompileNode compileNode) throws GraphStateException {
         log.info("buildStateGraph,upstreamCompileNode:{},node:{}", upstreamCompileNode, compileNode.getId());
         String stateGraphNodeUuid = compileNode.getId();
 
@@ -801,7 +807,7 @@ public class WorkflowEngine {
                 String existSubGraphId = rootToSubGraph.get(rootId);
 
                 if (StringUtils.isBlank(existSubGraphId)) {
-                    StateGraph<WfNodeState> subgraph = new StateGraph<>(stateSerializer);
+                    StateGraph subgraph = new StateGraph();
                     addNodeToStateGraph(subgraph, rootId);
                     addEdgeToStateGraph(subgraph, START, rootId);
 
@@ -901,8 +907,8 @@ public class WorkflowEngine {
      * @param stateGraphNodeUuid 节点UUID
      * @throws GraphStateException 状态图异常
      */
-    private void addNodeToStateGraph(StateGraph<WfNodeState> stateGraph, String stateGraphNodeUuid) throws GraphStateException {
-        List<StateGraph<WfNodeState>> stateGraphList = stateGraphNodes.computeIfAbsent(stateGraphNodeUuid, k -> new ArrayList<>());
+    private void addNodeToStateGraph(StateGraph stateGraph, String stateGraphNodeUuid) throws GraphStateException {
+        List<StateGraph> stateGraphList = stateGraphNodes.computeIfAbsent(stateGraphNodeUuid, k -> new ArrayList<>());
         boolean exist = stateGraphList.stream().anyMatch(item -> item == stateGraph);
         if (exist) {
             log.info("state graph node exist,stateGraphNodeUuid:{}", stateGraphNodeUuid);
@@ -911,7 +917,13 @@ public class WorkflowEngine {
 
         log.info("addNodeToStateGraph,node uuid:{}", stateGraphNodeUuid);
         AiWorkflowNodeVo wfNode = getNodeByUuid(stateGraphNodeUuid);
-        stateGraph.addNode(stateGraphNodeUuid, node_async((state) -> runNode(wfNode, state)));
+        // 使用Spring AI Alibaba的AsyncNodeAction方式添加节点
+        // 注意：OverAllState是final类，WfNodeState使用组合模式包装
+        stateGraph.addNode(stateGraphNodeUuid, state -> CompletableFuture.supplyAsync(() -> {
+            // 从OverAllState创建WfNodeState（复制data数据）
+            WfNodeState nodeState = new WfNodeState(state.data());
+            return runNode(wfNode, nodeState);
+        }));
         stateGraphList.add(stateGraph);
 
         // 记录人机交互节点
@@ -924,9 +936,9 @@ public class WorkflowEngine {
         }
     }
 
-    private void addEdgeToStateGraph(StateGraph<WfNodeState> stateGraph, String source, String target) throws GraphStateException {
+    private void addEdgeToStateGraph(StateGraph stateGraph, String source, String target) throws GraphStateException {
         String key = source + "_" + target;
-        List<StateGraph<WfNodeState>> stateGraphList = stateGraphEdges.computeIfAbsent(key, k -> new ArrayList<>());
+        List<StateGraph> stateGraphList = stateGraphEdges.computeIfAbsent(key, k -> new ArrayList<>());
         boolean exist = stateGraphList.stream().anyMatch(item -> item == stateGraph);
         if (exist) {
             log.info("state graph edge exist,source:{},target:{}", source, target);
@@ -969,7 +981,7 @@ public class WorkflowEngine {
         }
     }
 
-    public CompiledGraph<WfNodeState> getApp() {
+    public CompiledGraph getApp() {
         return app;
     }
 }
