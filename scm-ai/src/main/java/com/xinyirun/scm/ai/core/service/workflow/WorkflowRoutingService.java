@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowRouteDecision;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
+import com.xinyirun.scm.ai.core.adapter.WorkflowEventAdapter;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiConversationRuntimeMapper;
@@ -97,6 +98,9 @@ public class WorkflowRoutingService {
     @Lazy
     @Resource
     private com.xinyirun.scm.ai.core.service.chat.AiChatBaseService aiChatBaseService;
+
+    @Resource
+    private WorkflowEventAdapter workflowEventAdapter;
 
     /**
      * 智能路由：根据用户输入选择最合适的工作流
@@ -846,6 +850,84 @@ public class WorkflowRoutingService {
             context.put("pageContext", pageContext);
         }
         return new ToolContext(context);
+    }
+
+    /**
+     * 恢复暂停的工作流执行
+     *
+     * 从 AiConversationController 迁移的逻辑
+     *
+     * @param runtimeUuid 运行时UUID
+     * @param workflowUuid 工作流UUID
+     * @param userInput 用户输入
+     * @param tenantCode 租户编码
+     * @param conversationId 会话ID
+     * @return Flux<ChatResponseVo> 流式响应
+     */
+    public Flux<ChatResponseVo> resumeWorkflow(
+            String runtimeUuid,
+            String workflowUuid,
+            String userInput,
+            String tenantCode,
+            String conversationId) {
+
+        log.info("【resumeWorkflow】恢复工作流执行, runtimeUuid={}, workflowUuid={}, conversationId={}, userInput={}",
+                runtimeUuid, workflowUuid, conversationId, userInput);
+
+        return workflowStarter.resumeFlowAsFlux(
+            runtimeUuid,
+            workflowUuid,
+            userInput,
+            tenantCode,
+            WorkflowCallSource.AI_CHAT,
+            conversationId
+        )
+        .doOnError(e -> log.error("【resumeWorkflow】恢复工作流失败: runtimeUuid={}, workflowUuid={}, error={}",
+            runtimeUuid, workflowUuid, e.getMessage(), e))
+        .map(event -> workflowEventAdapter.convert(event));
+    }
+
+    /**
+     * 判断用户输入是继续当前工作流还是新意图
+     *
+     * 从 AiConversationController.isInputContinuation() 迁移
+     *
+     * @param userInput 用户输入
+     * @param currentWorkflowUuid 当前工作流UUID
+     * @param userId 用户ID
+     * @return true-继续当前工作流, false-新意图需要路由
+     */
+    public boolean isInputContinuation(String userInput, String currentWorkflowUuid, Long userId) {
+        // 策略1: 明确的继续关键词 (支持中英文,大小写不敏感)
+        // 使用contains方式,避免正则表达式对中文的处理问题
+        String normalizedInput = userInput.trim().toLowerCase();
+        if (normalizedInput.contains("继续") ||
+            normalizedInput.contains("continue") ||
+            normalizedInput.equals("是") ||
+            normalizedInput.equals("好") ||
+            normalizedInput.equals("确认") ||
+            normalizedInput.equalsIgnoreCase("ok") ||
+            normalizedInput.equalsIgnoreCase("yes")) {
+            log.info("【isInputContinuation】策略1命中: 继续关键词, userInput={}", userInput);
+            return true;
+        }
+
+        // 策略2: 短输入(<=10字符),可能是具体值(订单号/数量等)
+        // 说明: 10个字符足够输入一个短订单号或简单回复,但不足以表达新意图
+        final int SHORT_INPUT_THRESHOLD = 10;
+        if (userInput.length() <= SHORT_INPUT_THRESHOLD) {
+            log.info("【isInputContinuation】策略2命中: 短输入({}字符), userInput={}", userInput.length(), userInput);
+            return true;
+        }
+
+        // 策略3: 路由判断 - 是否匹配到新工作流
+        String newWorkflowUuid = route(userInput, userId, null);
+
+        // 没有匹配新工作流,或匹配的还是当前工作流 → 继续
+        boolean isContinuation = newWorkflowUuid == null || newWorkflowUuid.equals(currentWorkflowUuid);
+        log.info("【isInputContinuation】策略3判断: newWorkflowUuid={}, currentWorkflowUuid={}, isContinuation={}",
+            newWorkflowUuid, currentWorkflowUuid, isContinuation);
+        return isContinuation;
     }
 
     /**

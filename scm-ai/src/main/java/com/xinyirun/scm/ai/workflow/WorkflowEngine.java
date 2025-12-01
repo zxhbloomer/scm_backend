@@ -51,8 +51,6 @@ public class WorkflowEngine {
 
     private final Map<String, List<StateGraph>> stateGraphNodes = new HashMap<>();
     private final Map<String, List<StateGraph>> stateGraphEdges = new HashMap<>();
-    private final Map<String, String> rootToSubGraph = new HashMap<>();
-    private final Map<String, GraphCompileNode> nodeToParallelBranch = new HashMap<>();
 
     private Long userId;
     private String tenantCode;
@@ -257,18 +255,12 @@ public class WorkflowEngine {
                 conversationRuntimeService.updateInput(this.conversationRuntimeResp.getId(), wfState);
             }
 
-            CompileNode rootCompileNode = new CompileNode();
-            rootCompileNode.setId(startNode.getUuid());
-
-            // 构建整棵树
-            buildCompileNode(rootCompileNode, startNode);
-
             // 主状态图
             StateGraph mainStateGraph = new StateGraph();
-            this.wfState.addEdge(START, startNode.getUuid());
 
-            // 构建包括所有节点的状态图
-            buildStateGraph(null, mainStateGraph, rootCompileNode);
+            // 简化版：直接构建StateGraph，让Spring AI Alibaba框架自动处理并行分叉和汇聚
+            // 不再使用CompileNode中间层，直接遍历边数据构建图
+            buildStateGraph(mainStateGraph, startNode);
 
             // 编译状态图 (移除MemorySaver和interruptBefore配置)
             // interruptBefore功能通过wfState.getInterruptNodes()在runNode中手动处理
@@ -740,164 +732,125 @@ public class WorkflowEngine {
         return Pair.of(startNode, endNodes);
     }
 
-    private void buildCompileNode(CompileNode parentNode, AiWorkflowNodeVo node) {
-        log.info("buildByNode, parentNode:{}, node:{},name:{}", parentNode.getId(), node.getUuid(), node.getTitle());
-        CompileNode newNode;
-        List<String> upstreamNodeUuids = getUpstreamNodeUuids(node.getUuid());
+    /**
+     * 简化版buildStateGraph - 直接遍历边数据构建StateGraph
+     * 让Spring AI Alibaba框架自动处理并行分叉和汇聚
+     *
+     * @param stateGraph 状态图
+     * @param startNode  开始节点
+     * @throws GraphStateException 状态图异常
+     */
+    private void buildStateGraph(StateGraph stateGraph, AiWorkflowNodeVo startNode) throws GraphStateException {
+        // 1. 添加所有节点到StateGraph
+        for (AiWorkflowNodeVo node : wfNodes) {
+            addNodeToStateGraph(stateGraph, node.getUuid());
+        }
 
-        if (upstreamNodeUuids.isEmpty()) {
-            log.error("节点{}没有上游节点", node.getUuid());
-            newNode = parentNode;
-        } else if (upstreamNodeUuids.size() == 1) {
-            String upstreamUuid = upstreamNodeUuids.get(0);
-            boolean pointToParallel = pointToParallelBranch(upstreamUuid);
+        // 2. 添加START到开始节点的边
+        stateGraph.addEdge(START, startNode.getUuid());
+        wfState.addEdge(START, startNode.getUuid());
 
-            if (pointToParallel) {
-                String rootId = node.getUuid();
-                GraphCompileNode graphCompileNode = getOrCreateGraphCompileNode(rootId);
-                appendToNextNodes(parentNode, graphCompileNode);
-                newNode = graphCompileNode;
-            } else if (parentNode instanceof GraphCompileNode graphCompileNode) {
-                newNode = CompileNode.builder().id(node.getUuid()).conditional(false).nextNodes(new ArrayList<>()).build();
-                graphCompileNode.appendToLeaf(newNode);
-            } else {
-                newNode = CompileNode.builder().id(node.getUuid()).conditional(false).nextNodes(new ArrayList<>()).build();
-                appendToNextNodes(parentNode, newNode);
+        // 3. 收集条件分支节点（有带sourceHandle的出边）
+        Set<String> conditionalSourceNodes = new HashSet<>();
+        for (AiWorkflowEdgeEntity edge : wfEdges) {
+            if (StringUtils.isNotBlank(edge.getSourceHandle())) {
+                conditionalSourceNodes.add(edge.getSourceNodeUuid());
             }
-        } else {
-            newNode = CompileNode.builder().id(node.getUuid()).conditional(false).nextNodes(new ArrayList<>()).build();
-            GraphCompileNode parallelBranch = nodeToParallelBranch.get(parentNode.getId());
-            appendToNextNodes(Objects.requireNonNullElse(parallelBranch, parentNode), newNode);
         }
 
-        if (null == newNode) {
-            log.error("节点{}不存在", node.getUuid());
-            return;
+        // 4. 遍历所有边，添加到StateGraph
+        // Spring AI Alibaba会自动处理：
+        // - 同源多目标 → 并行分叉（自动创建ParallelNode）
+        // - 多源同目标 → 汇聚（自动等待所有上游完成）
+        for (AiWorkflowEdgeEntity edge : wfEdges) {
+            String source = edge.getSourceNodeUuid();
+            String target = edge.getTargetNodeUuid();
+
+            // 跳过条件分支边（有sourceHandle），由processConditionalEdges单独处理
+            if (StringUtils.isNotBlank(edge.getSourceHandle())) {
+                continue;
+            }
+
+            // 跳过条件分支节点的普通边（这些节点的所有出边都由条件边处理）
+            if (conditionalSourceNodes.contains(source)) {
+                continue;
+            }
+
+            // 普通边：直接添加
+            addEdgeToStateGraph(stateGraph, source, target);
         }
 
-        List<String> downstreamUuids = getDownstreamNodeUuids(node.getUuid());
-        for (String downstream : downstreamUuids) {
-            Optional<AiWorkflowNodeVo> n = wfNodes.stream()
-                    .filter(item -> item.getUuid().equals(downstream))
-                    .findFirst();
-            n.ifPresent(workflowNode -> buildCompileNode(newNode, workflowNode));
+        // 5. 处理条件分支节点
+        processConditionalEdges(stateGraph);
+
+        // 6. 找到所有结束节点，添加到END的边
+        for (AiWorkflowNodeVo node : wfNodes) {
+            if (isEndNode(node)) {
+                addEdgeToStateGraph(stateGraph, node.getUuid(), END);
+            }
         }
     }
 
     /**
-     * 构建完整的stategraph
+     * 处理条件分支边
      *
-     * @param upstreamCompileNode 上游节点
-     * @param stateGraph          当前状态图
-     * @param compileNode         当前节点
+     * @param stateGraph 状态图
      * @throws GraphStateException 状态图异常
      */
-    private void buildStateGraph(CompileNode upstreamCompileNode, StateGraph stateGraph, CompileNode compileNode) throws GraphStateException {
-        log.info("buildStateGraph,upstreamCompileNode:{},node:{}", upstreamCompileNode, compileNode.getId());
-        String stateGraphNodeUuid = compileNode.getId();
+    private void processConditionalEdges(StateGraph stateGraph) throws GraphStateException {
+        // 找出所有条件分支节点（有带sourceHandle的出边）
+        Map<String, List<AiWorkflowEdgeEntity>> conditionalEdgesMap = new HashMap<>();
 
-        if (null == upstreamCompileNode) {
-            addNodeToStateGraph(stateGraph, stateGraphNodeUuid);
-            addEdgeToStateGraph(stateGraph, START, compileNode.getId());
-        } else {
-            if (compileNode instanceof GraphCompileNode graphCompileNode) {
-                String stateGraphId = graphCompileNode.getId();
-                CompileNode root = graphCompileNode.getRoot();
-                String rootId = root.getId();
-                String existSubGraphId = rootToSubGraph.get(rootId);
-
-                if (StringUtils.isBlank(existSubGraphId)) {
-                    StateGraph subgraph = new StateGraph();
-                    addNodeToStateGraph(subgraph, rootId);
-                    addEdgeToStateGraph(subgraph, START, rootId);
-
-                    for (CompileNode child : root.getNextNodes()) {
-                        buildStateGraph(root, subgraph, child);
-                    }
-
-                    addEdgeToStateGraph(subgraph, graphCompileNode.getTail().getId(), END);
-                    stateGraph.addNode(stateGraphId, subgraph.compile());
-                    rootToSubGraph.put(rootId, stateGraphId);
-                    stateGraphNodeUuid = stateGraphId;
-                } else {
-                    stateGraphNodeUuid = existSubGraphId;
-                }
-            } else {
-                addNodeToStateGraph(stateGraph, stateGraphNodeUuid);
-            }
-
-            // ConditionalEdge 的创建另外处理
-            if (Boolean.FALSE.equals(upstreamCompileNode.getConditional())) {
-                addEdgeToStateGraph(stateGraph, upstreamCompileNode.getId(), stateGraphNodeUuid);
+        for (AiWorkflowEdgeEntity edge : wfEdges) {
+            if (StringUtils.isNotBlank(edge.getSourceHandle())) {
+                conditionalEdgesMap
+                    .computeIfAbsent(edge.getSourceNodeUuid(), k -> new ArrayList<>())
+                    .add(edge);
             }
         }
 
-        List<CompileNode> nextNodes = compileNode.getNextNodes();
-        if (nextNodes.size() > 1) {
-            boolean conditional = nextNodes.stream().noneMatch(item -> item instanceof GraphCompileNode);
-            compileNode.setConditional(conditional);
+        // 为每个条件分支节点添加ConditionalEdge
+        for (Map.Entry<String, List<AiWorkflowEdgeEntity>> entry : conditionalEdgesMap.entrySet()) {
+            String sourceUuid = entry.getKey();
+            List<AiWorkflowEdgeEntity> conditionalEdges = entry.getValue();
 
-            for (CompileNode nextNode : nextNodes) {
-                buildStateGraph(compileNode, stateGraph, nextNode);
+            // 构建条件映射
+            Map<String, String> mappings = new HashMap<>();
+            for (AiWorkflowEdgeEntity edge : conditionalEdges) {
+                mappings.put(edge.getTargetNodeUuid(), edge.getTargetNodeUuid());
             }
 
-            // 节点是"条件分支"或"分类"的情况下不支持并行执行，所以直接使用条件ConditionalEdge
-            if (conditional) {
-                List<String> targets = nextNodes.stream().map(CompileNode::getId).toList();
-                Map<String, String> mappings = new HashMap<>();
-                for (String target : targets) {
-                    mappings.put(target, target);
-                }
-                stateGraph.addConditionalEdges(
-                        stateGraphNodeUuid,
-                        edge_async(state -> state.data().get("next").toString()),
-                        mappings
-                );
-            }
-        } else if (nextNodes.size() == 1) {
-            for (CompileNode nextNode : nextNodes) {
-                buildStateGraph(compileNode, stateGraph, nextNode);
-            }
-        } else {
-            addEdgeToStateGraph(stateGraph, stateGraphNodeUuid, END);
+            // 添加条件边
+            stateGraph.addConditionalEdges(
+                sourceUuid,
+                edge_async(state -> state.data().get("next").toString()),
+                mappings
+            );
         }
     }
 
-    private GraphCompileNode getOrCreateGraphCompileNode(String rootId) {
-        GraphCompileNode exist = nodeToParallelBranch.get(rootId);
-        if (null == exist) {
-            GraphCompileNode graphCompileNode = new GraphCompileNode();
-            graphCompileNode.setId("parallel_" + rootId);
-            graphCompileNode.setRoot(CompileNode.builder().id(rootId).conditional(false).nextNodes(new ArrayList<>()).build());
-            nodeToParallelBranch.put(rootId, graphCompileNode);
-            exist = graphCompileNode;
+    /**
+     * 判断是否是结束节点（End组件或没有出边的节点）
+     *
+     * @param node 节点
+     * @return true表示是结束节点
+     */
+    private boolean isEndNode(AiWorkflowNodeVo node) {
+        // 检查是否是End组件
+        AiWorkflowComponentEntity component = components.stream()
+            .filter(c -> c.getId().equals(node.getWorkflowComponentId()))
+            .findFirst()
+            .orElse(null);
+
+        if (component != null && "End".equals(component.getName())) {
+            return true;
         }
-        return exist;
-    }
 
-    private List<String> getUpstreamNodeUuids(String nodeUuid) {
-        return this.wfEdges.stream()
-                .filter(edge -> edge.getTargetNodeUuid().equals(nodeUuid))
-                .map(AiWorkflowEdgeEntity::getSourceNodeUuid)
-                .toList();
-    }
+        // 检查是否没有出边
+        boolean hasOutEdge = wfEdges.stream()
+            .anyMatch(edge -> edge.getSourceNodeUuid().equals(node.getUuid()));
 
-    private List<String> getDownstreamNodeUuids(String nodeUuid) {
-        return this.wfEdges.stream()
-                .filter(edge -> edge.getSourceNodeUuid().equals(nodeUuid))
-                .map(AiWorkflowEdgeEntity::getTargetNodeUuid)
-                .toList();
-    }
-
-    // 判断节点是否属于子图
-    private boolean pointToParallelBranch(String nodeUuid) {
-        int edgeCount = 0;
-        for (AiWorkflowEdgeEntity edge : this.wfEdges) {
-            if (edge.getSourceNodeUuid().equals(nodeUuid) && StringUtils.isBlank(edge.getSourceHandle())) {
-                edgeCount = edgeCount + 1;
-            }
-        }
-        return edgeCount > 1;
+        return !hasOutEdge;
     }
 
     /**
@@ -957,28 +910,12 @@ public class WorkflowEngine {
                 .orElseThrow(() -> new RuntimeException("未找到节点: " + nodeUuid));
     }
 
-    private void appendToNextNodes(CompileNode compileNode, CompileNode newNode) {
-        boolean exist = compileNode.getNextNodes().stream().anyMatch(item -> item.getId().equals(newNode.getId()));
-        if (!exist) {
-            compileNode.getNextNodes().add(newNode);
-        }
-    }
-
     private String getHumanFeedbackTip(String nextNode) {
         return wfNodes.stream()
                 .filter(node -> node.getUuid().equals(nextNode))
                 .findFirst()
                 .map(node -> "等待用户输入: " + node.getTitle())
                 .orElse("等待用户输入");
-    }
-
-    // 发送节点输出块（用于流式输出）
-    private void sendNodeChunk(String nodeUuid, String chunk) {
-        try {
-            streamHandler.sendNodeChunk(nodeUuid, chunk);
-        } catch (Exception e) {
-            log.error("发送节点输出块失败,nodeUuid:{}", nodeUuid, e);
-        }
     }
 
     public CompiledGraph getApp() {

@@ -62,6 +62,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
 
         AiWorkflowRuntimeEntity runtime = new AiWorkflowRuntimeEntity();
         runtime.setRuntimeUuid(UuidUtil.createShort());
+        runtime.setWorkflowId(workflowId);
         runtime.setUserId(userId);
 
         // 生成对话ID,用于多轮对话上下文管理
@@ -109,6 +110,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
 
         AiWorkflowRuntimeEntity runtime = new AiWorkflowRuntimeEntity();
         runtime.setRuntimeUuid(UuidUtil.createShort());
+        runtime.setWorkflowId(workflowId);
         runtime.setUserId(userId);
 
         // 使用传入的conversationId（继承父工作流的对话上下文）
