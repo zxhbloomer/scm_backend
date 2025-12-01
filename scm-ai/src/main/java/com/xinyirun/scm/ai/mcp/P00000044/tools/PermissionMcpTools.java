@@ -54,16 +54,10 @@ public class PermissionMcpTools {
      * @return JSON格式的页面访问权限结果
      */
     @McpTool(description = """
-       获取用户在指定页面的按钮权限列表，需要传入页面编码(page_code)。
-       返回用户可执行的按钮操作列表，包括perms(权限标识)和descr(权限描述)。
-       严格遵守要求：
-       - 不可以臆想、推测
-       - 不可以过度回复、不可以过度推测
-       - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
-       - 如果找不到相关引用，请说明"未找到相关引用"。
-       - 找不到相关回答，请说明"未找到相关回答"。
-       - 在回答找不到的情况时，不要过多拓展回复和过度回复
-       """)
+        P00000044
+        根据页面名称模糊查询用户可访问的页面列表，需要传入页面名称(page_name)。
+        返回匹配的页面列表，包括page_code(页面编码)、name(页面名称)、meta_title(页面标题)
+        """)
     public String checkPageAccess(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "员工ID") Long staffId,
@@ -116,7 +110,11 @@ public class PermissionMcpTools {
      * @param pageCode 页面编码，如"P00000011"、"P00000001"
      * @return JSON格式的按钮权限列表
      */
-    @McpTool(description = "获取用户在指定页面的按钮权限列表，需要传入页面编码(page_code)。返回用户可执行的按钮操作列表，包括perms(权限标识)和descr(权限描述)")
+    @McpTool(description = """
+        P00000044
+        获取用户在指定页面的按钮权限列表，需要传入页面编码(page_code)。
+        返回用户可执行的按钮操作列表，包括perms(权限标识)和descr(权限描述)
+        """)
     public String getPageButtonPermissions(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "员工ID") Long staffId,
@@ -170,17 +168,11 @@ public class PermissionMcpTools {
      * @return JSON格式的菜单路径列表
      */
     @McpTool(description = """
-       获取用户可访问的页面菜单路径，需要传入页面编码(page_code)。
-       返回用户可访问的所有菜单路径，包括page_code、name、meta_title、path。
-       同一个页面可能在不同菜单位置有多个路径，会返回所有可用路径。
-       严格遵守要求：
-       - 不可以臆想、推测
-       - 不可以过度回复、不可以过度推测
-       - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
-       - 如果找不到相关引用，请说明"未找到相关引用"
-       - 找不到相关回答，请说明"未找到相关回答"
-       - 在回答找不到的情况时，不要过多拓展回复和过度回复
-       """)
+        P00000044
+        获取用户可访问的页面菜单路径，需要传入页面编码(page_code)。
+        返回用户可访问的所有菜单路径，包括page_code、name、meta_title、path。
+        同一个页面可能在不同菜单位置有多个路径
+        """)
     public String getPageMenuPaths(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "员工ID") Long staffId,
@@ -234,17 +226,11 @@ public class PermissionMcpTools {
      * @return JSON格式的页面跳转指令
      */
     @McpTool(description = """
-       P00000044
-       生成打开指定页面的跳转指令,需要传入页面路径(page_path)。
-       返回包含action='openPage'和url的JSON指令,供前端执行页面跳转。
-       通常在查询到页面菜单路径后调用,将path传入此工具。
-       严格遵守要求：
-       - 不可以臆想、推测页面路径
-       - 页面路径必须从getPageMenuPaths工具的返回结果中获取
-       - 如果未查询到有效的页面路径,请说明"未找到可访问的页面路径"
-       - 不可以过度回复、不可以过度推测
-       - 找到数据，返回包含action='openPage'和url的JSON指令,供前端执行页面跳转。
-       """)
+        P00000044
+        生成打开指定页面的跳转指令，需要传入页面路径(page_path)。
+        返回包含action='openPage'和url的JSON指令，供前端执行页面跳转。
+        页面路径必须从getPageMenuPaths工具的返回结果中获取
+        """)
     public String openPage(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "员工ID") Long staffId,

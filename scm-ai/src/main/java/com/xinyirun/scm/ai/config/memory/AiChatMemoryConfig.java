@@ -112,7 +112,20 @@ public class AiChatMemoryConfig {
             WorkflowConversationAdvisor workflowConversationAdvisor,
             @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
         ChatModel chatModel = aiModelProvider.getChatModel();
+
+        // MCP工具使用的全局约束提示词
+        String mcpToolSystemPrompt = """
+            在使用MCP工具时，请严格遵守以下要求：
+            1. 不可以臆想、推测数据，必须基于工具返回的实际结果
+            2. 不可以过度回复、不可以过度推测
+            3. 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
+            4. 如果找不到相关引用，请说明"未找到相关引用"
+            5. 找不到相关回答，请说明"未找到相关回答"
+            6. 在回答找不到的情况时，不要过多拓展回复和过度回复
+            """;
+
         ChatClient.Builder builder = ChatClient.builder(chatModel)
+                .defaultSystem(mcpToolSystemPrompt)  // MCP工具全局约束
                 .defaultAdvisors(
                     workflowMessageChatMemoryAdvisor,  // 读取历史对话
                     workflowConversationAdvisor        // 保存新对话

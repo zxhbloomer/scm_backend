@@ -61,16 +61,9 @@ public class LocationMcpTools {
      * @return JSON格式的库区查询结果
      */
     @McpTool(description = """
-      P00000025
-      查询库区信息，支持按仓库、编码、名称、状态等条件查询库区列表，用于库区信息的查找和浏览
-      严格遵守要求：
-      - 不可以臆想、推测
-      - 不可以过度回复、不可以过度推测
-      - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
-      - 如果找不到相关引用，请说明"未找到相关引用"。
-      - 找不到相关回答，请说明"未找到相关回答"。
-      - 在回答找不到的情况时，不要过多拓展回复和过度回复
-    """)
+        P00000025
+        查询库区信息，支持按仓库、编码、名称、状态等条件查询库区列表，用于库区信息的查找和浏览
+        """)
     public String queryLocations(
             @McpToolParam(description = "租户编码，用于数据权限控制") String tenantCode,
             @McpToolParam(description = "仓库ID，用于查询指定仓库的库区") Integer warehouseId,
@@ -131,7 +124,10 @@ public class LocationMcpTools {
      * @param locationId 库区ID（必填）
      * @return JSON格式的库区详细信息
      */
-    @McpTool(description = "获取指定库区的详细信息，包括基础信息和关联的库位统计数据")
+    @McpTool(description = """
+        P00000025
+        获取指定库区的详细信息，包括基础信息和关联的库位统计数据
+        """)
     public String getLocationDetail(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "库区ID，数字类型") int locationId) {
@@ -181,7 +177,10 @@ public class LocationMcpTools {
      * @param warehouseId 仓库ID（必填）
      * @return JSON格式的库区列表
      */
-    @McpTool(description = "查询指定仓库下的所有库区，用于查看仓库的库区布局")
+    @McpTool(description = """
+        P00000025
+        查询指定仓库下的所有库区，用于查看仓库的库区布局
+        """)
     public String queryLocationsByWarehouse(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "仓库ID，数字类型") int warehouseId) {
@@ -232,7 +231,10 @@ public class LocationMcpTools {
      * @param warehouseId 仓库ID（可选，0表示不限定仓库）
      * @return JSON格式的库区信息
      */
-    @McpTool(description = "通过库区编码精确查找库区信息，用于快速定位特定编码的库区")
+    @McpTool(description = """
+        P00000025
+        通过库区编码精确查找库区信息，用于快速定位特定编码的库区
+        """)
     public String findLocationByCode(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "库区编码，如'LOC001'、'A-ZONE'等") String code,
@@ -287,7 +289,10 @@ public class LocationMcpTools {
      * @param warehouseId 仓库ID（可选，null表示不限定仓库）
      * @return JSON格式的匹配库区列表
      */
-    @McpTool(description = "通过库区名称模糊查找库区，支持部分名称匹配，用于按名称搜索库区")
+    @McpTool(description = """
+        P00000025
+        通过库区名称模糊查找库区，支持部分名称匹配，用于按名称搜索库区
+        """)
     public String findLocationsByName(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "库区名称，支持部分匹配，如'A区'、'成品'等") String name,

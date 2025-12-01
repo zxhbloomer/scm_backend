@@ -64,16 +64,9 @@ public class BinMcpTools {
      * @return JSON格式的库位查询结果
      */
     @McpTool(description = """
-      P00000025
-      查询库位信息，支持按仓库、库区、编码、状态等条件查询库位列表，用于库位信息的查找和浏览
-      严格遵守要求：
-      - 不可以臆想、推测
-      - 不可以过度回复、不可以过度推测
-      - 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
-      - 如果找不到相关引用，请说明"未找到相关引用"。
-      - 找不到相关回答，请说明"未找到相关回答"。
-      - 在回答找不到的情况时，不要过多拓展回复和过度回复
-    """)
+        P00000025
+        查询库位信息，支持按仓库、库区、编码、状态等条件查询库位列表，用于库位信息的查找和浏览
+        """)
     public String queryBins(
             @McpToolParam(description = "租户编码，用于数据权限控制") String tenantCode,
             @McpToolParam(description = "仓库ID，用于查询指定仓库的库位") Integer warehouseId,
@@ -138,7 +131,10 @@ public class BinMcpTools {
      * @param binId 库位ID（必填）
      * @return JSON格式的库位详细信息
      */
-    @McpTool(description = "获取指定库位的详细信息，包括基础信息、货品信息和库存数据")
+    @McpTool(description = """
+        P00000025
+        获取指定库位的详细信息，包括基础信息、货品信息和库存数据
+        """)
     public String getBinDetail(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "库位ID，数字类型") int binId) {
@@ -188,7 +184,10 @@ public class BinMcpTools {
      * @param locationId 库区ID（必填）
      * @return JSON格式的库位列表
      */
-    @McpTool(description = "查询指定库区下的所有库位，用于查看库区的库位布局")
+    @McpTool(description = """
+        P00000025
+        查询指定库区下的所有库位，用于查看库区的库位布局
+        """)
     public String queryBinsByLocation(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "库区ID，数字类型") int locationId) {
@@ -238,7 +237,10 @@ public class BinMcpTools {
      * @param warehouseId 仓库ID（必填）
      * @return JSON格式的库位列表
      */
-    @McpTool(description = "查询指定仓库下的所有库位，用于查看仓库的全部库位")
+    @McpTool(description = """
+        P00000025
+        查询指定仓库下的所有库位，用于查看仓库的全部库位
+        """)
     public String queryBinsByWarehouse(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "仓库ID，数字类型") int warehouseId) {
@@ -290,7 +292,10 @@ public class BinMcpTools {
      * @param locationId 库区ID（可选，0表示不限定库区）
      * @return JSON格式的库位信息
      */
-    @McpTool(description = "通过库位编码精确查找库位信息，用于快速定位特定编码的库位")
+    @McpTool(description = """
+        P00000025
+        通过库位编码精确查找库位信息，用于快速定位特定编码的库位
+        """)
     public String findBinByCode(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "库位编码，如'BIN001'、'A01-01-01'等") String code,
@@ -350,7 +355,10 @@ public class BinMcpTools {
      * @param locationId 库区ID（可选，不指定则查询所有库区）
      * @return JSON格式的可用库位列表
      */
-    @McpTool(description = "获取可用库位列表（空闲且启用的库位），用于入库时查找可用库位")
+    @McpTool(description = """
+        P00000025
+        获取可用库位列表（空闲且启用的库位），用于入库时查找可用库位
+        """)
     public String getAvailableBins(
             @McpToolParam(description = "租户编码") String tenantCode,
             @McpToolParam(description = "仓库ID（可选），不指定则查询所有仓库") Integer warehouseId,

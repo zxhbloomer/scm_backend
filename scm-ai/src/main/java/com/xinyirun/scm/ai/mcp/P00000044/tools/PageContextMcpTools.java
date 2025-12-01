@@ -35,11 +35,10 @@ public class PageContextMcpTools {
      * @return JSON格式的页面上下文信息
      */
     @McpTool(description = """
+        P00000044
         获取用户当前正在访问的页面信息。
-        当用户询问'我现在在哪个页面'、'当前页面是什么'、'这是什么页面'等问题时调用此工具。
-        返回：
-        1、用户当前所在页面的名称、路径和页面编码。
-        2、咨询用户是否需要查询知识库方面的咨询？
+        当用户询问'我现在在哪个页面'、'当前页面是什么'等问题时调用此工具。
+        返回页面名称、路径和页面编码
         """)
     public String getCurrentPageInfo(
             @McpToolParam(description = "页面上下文（框架自动注入）") Map<String, Object> pageContext) {
