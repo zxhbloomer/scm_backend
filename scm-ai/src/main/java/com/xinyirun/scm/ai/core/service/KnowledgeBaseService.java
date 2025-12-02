@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
  * 知识库管理 Service
  *
  * <p>负责知识库的全生命周期管理，包括创建、更新、删除、文档管理和索引</p>
- * <p>技术架构：MySQL(元数据) + Elasticsearch(向量索引) + Neo4j(知识图谱)</p>
+ * <p>技术架构：MySQL(元数据) + Elasticsearch(向量索引)</p>
  *
  * @author SCM AI Team
  * @since 2025-10-03
@@ -64,13 +64,10 @@ public class KnowledgeBaseService {
     private final IMStaffService staffService;
     private final com.xinyirun.scm.core.system.service.sys.file.ISFileService sFileService;
     private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
-    private final Neo4jGraphIndexingService neo4jGraphIndexingService;
-    private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper graphSegmentMapper;
     private final AiModelConfigService aiModelConfigService;
     private final com.xinyirun.scm.ai.core.mapper.config.AiModelConfigMapper aiModelConfigMapper;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaMapper qaMapper;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefEmbeddingMapper qaRefEmbeddingMapper;
-    private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefGraphMapper qaRefGraphMapper;
 
     /**
      * Redis key: 用户索引进行中标识
@@ -317,7 +314,7 @@ public class KnowledgeBaseService {
     /**
      * 索引指定文档列表
      *
-     * <p>通过RabbitMQ异步处理索引任务，支持向量索引和图谱索引</p>
+     * <p>通过RabbitMQ异步处理索引任务，支持向量索引</p>
      *
      * <p>实现方式：</p>
      * <ul>
@@ -505,20 +502,17 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 物理删除知识库（级联删除MySQL、Elasticsearch、Neo4j三处数据）
+     * 物理删除知识库（级联删除MySQL、Elasticsearch数据）
      * <p>SCM系统统一使用物理删除</p>
      *
      * <p>删除顺序（按依赖关系反向删除）：</p>
      * <ol>
      *   <li>查询知识库是否存在</li>
-     *   <li>删除Neo4j图谱数据（WHERE kb_uuid = ?）</li>
      *   <li>删除Elasticsearch向量数据（WHERE kb_uuid = ?）</li>
      *   <li>删除MySQL数据（按依赖关系）：
      *     <ul>
      *       <li>qa_ref_embedding表（问答向量引用）</li>
-     *       <li>qa_ref_graph表（问答图谱引用）</li>
      *       <li>qa表（问答记录）</li>
-     *       <li>graph_segment表</li>
      *       <li>item表</li>
      *       <li>knowledge_base主表</li>
      *     </ul>
@@ -539,16 +533,7 @@ public class KnowledgeBaseService {
             return false;
         }
 
-        // 2. 删除Neo4j图谱数据
-        try {
-            String deleteResult = neo4jGraphIndexingService.deleteKnowledgeBaseGraph(uuid);
-            log.info("删除Neo4j图谱数据, kb_uuid: {}, 删除结果: {}", uuid, deleteResult);
-        } catch (Exception e) {
-            log.error("删除Neo4j图谱数据失败, kb_uuid: {}", uuid, e);
-            throw new RuntimeException("删除图谱数据失败: " + e.getMessage(), e);
-        }
-
-        // 3. 删除Elasticsearch向量数据
+        // 2. 删除Elasticsearch向量数据
         try {
             long deletedVectors = embeddingRepository.deleteByKbUuid(uuid);
             log.info("删除Elasticsearch向量数据, kb_uuid: {}, 删除数量: {}", uuid, deletedVectors);
@@ -564,21 +549,12 @@ public class KnowledgeBaseService {
             int deletedQaRefEmbeddingCount = (deletedQaRefEmbedding != null) ? deletedQaRefEmbedding : 0;
             log.info("删除问答向量引用数据, kb_uuid: {}, 删除数量: {}", uuid, deletedQaRefEmbeddingCount);
 
-            // 4.2 删除问答图谱引用数据（依赖qa表）
-            Integer deletedQaRefGraph = qaRefGraphMapper.deleteByKbUuid(uuid);
-            int deletedQaRefGraphCount = (deletedQaRefGraph != null) ? deletedQaRefGraph : 0;
-            log.info("删除问答图谱引用数据, kb_uuid: {}, 删除数量: {}", uuid, deletedQaRefGraphCount);
-
-            // 4.3 删除问答记录
+            // 4.2 删除问答记录
             Integer deletedQa = qaMapper.deleteByKbUuid(uuid);
             int deletedQaCount = (deletedQa != null) ? deletedQa : 0;
             log.info("删除问答记录, kb_uuid: {}, 删除数量: {}", uuid, deletedQaCount);
 
-            // 4.4 删除graph segment数据
-            int deletedSegments = graphSegmentMapper.deleteByKbUuid(uuid);
-            log.info("删除graph segment数据, kb_uuid: {}, 删除数量: {}", uuid, deletedSegments);
-
-            // 4.5 删除item数据
+            // 4.3 删除item数据
             int deletedItems = itemMapper.deleteByKbUuid(uuid);
             log.info("删除item数据, kb_uuid: {}, 删除数量: {}", uuid, deletedItems);
 

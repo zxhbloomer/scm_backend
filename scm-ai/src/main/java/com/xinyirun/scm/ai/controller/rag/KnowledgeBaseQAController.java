@@ -4,12 +4,10 @@ import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseQaVo;
 import com.xinyirun.scm.ai.bean.vo.rag.QaRefEmbeddingVo;
-import com.xinyirun.scm.ai.bean.vo.rag.RefGraphVo;
 import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.core.service.RagService;
 import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
-import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
@@ -47,7 +45,6 @@ public class KnowledgeBaseQAController {
     private final RagService ragService;
     private final AiKnowledgeBaseQaService aiKnowledgeBaseQaService;
     private final VectorRetrievalService vectorRetrievalService;
-    private final AiKnowledgeBaseQaRefGraphService aiKnowledgeBaseQaRefGraphService;
 
     /**
      * 创建知识库问答记录
@@ -161,21 +158,6 @@ public class KnowledgeBaseQAController {
             @PathVariable String uuid) {
 
         List<QaRefEmbeddingVo> result = vectorRetrievalService.listRefEmbeddings(uuid);
-
-        return ResponseEntity.ok().body(ResultUtil.OK(result));
-    }
-
-    /**
-     * 查询问答的图谱引用
-     *
-     * @param uuid 问答记录UUID
-     * @return 图谱引用（包含vertices实体列表、edges关系列表、entitiesFromQuestion从问题提取的实体）
-     */
-    @GetMapping("/graph-ref/{uuid}")
-    @Operation(summary = "查询问答的图谱引用")
-    @SysLogAnnotion("查询问答图谱引用")
-    public ResponseEntity<JsonResultAo<RefGraphVo>> graphRef(@PathVariable String uuid) {
-        RefGraphVo result = aiKnowledgeBaseQaRefGraphService.getByQaUuid(uuid);
 
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }

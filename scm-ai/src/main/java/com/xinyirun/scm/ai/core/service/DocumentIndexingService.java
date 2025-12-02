@@ -23,14 +23,13 @@ import java.util.List;
  * 文档索引主服务
  *
  * <p>功能说明：</p>
- * <p>协调文档解析、向量索引、图谱索引的完整流程</p>
+ * <p>协调文档解析、向量索引的完整流程</p>
  *
  * <p>核心流程：</p>
  * <ol>
  *   <li>从URL解析文档内容 - DocumentParsingService</li>
  *   <li>保存文档内容到MySQL - 更新remark字段</li>
  *   <li>向量化索引 - ElasticsearchIndexingService（embedding索引）</li>
- *   <li>图谱化索引 - Neo4jGraphIndexingService（graphical索引）</li>
  *   <li>更新索引状态 - 更新embedding_status字段</li>
  * </ol>
  *
@@ -50,14 +49,9 @@ import java.util.List;
 public class DocumentIndexingService {
 
     /**
-     * 索引类型：向量索引（Elasticsearch）
+     * 索引类型:向量索引(Elasticsearch)
      */
     public static final String INDEX_TYPE_EMBEDDING = "embedding";
-
-    /**
-     * 索引类型：图谱索引（Neo4j）
-     */
-    public static final String INDEX_TYPE_GRAPHICAL = "graphical";
 
     @Autowired
     private AiKnowledgeBaseMapper kbMapper;
@@ -72,9 +66,6 @@ public class DocumentIndexingService {
     private ElasticsearchIndexingService elasticsearchIndexingService;
 
     @Autowired
-    private Neo4jGraphIndexingService neo4jGraphIndexingService;
-
-    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
     /**
@@ -84,7 +75,7 @@ public class DocumentIndexingService {
      * <ul>
      *   <li>MQ消费者接收消息</li>
      *   <li>调用DocumentIndexingService.processDocument</li>
-     *   <li>根据indexTypes分别调用ElasticsearchIndexingService和Neo4jGraphIndexingService</li>
+     *   <li>调用ElasticsearchIndexingService进行向量索引</li>
      * </ul>
      *
      * <p>技术说明：</p>
@@ -124,7 +115,8 @@ public class DocumentIndexingService {
                             .eq(AiKnowledgeBaseItemEntity::getItemUuid, itemUuid)
             );
             if (item == null) {
-                throw new RuntimeException("文档项不存在: " + itemUuid);
+                log.warn("文档项不存在（可能已被删除），跳过索引处理: {}", itemUuid);
+                return; // 优雅退出，不抛异常
             }
 
             // 3. 解析文档内容
@@ -158,17 +150,6 @@ public class DocumentIndexingService {
                 itemMapper.updateById(doneItem);
 
                 log.info("向量索引完成，item_uuid: {}, 文本段数: {}", itemUuid, segmentCount);
-            }
-
-            // 5. 执行图谱索引
-            if (indexTypes.contains(INDEX_TYPE_GRAPHICAL)) {
-                log.info("开始图谱索引，item_uuid: {}", itemUuid);
-                String result = neo4jGraphIndexingService.ingestDocument(kb, item);
-                String[] counts = result.split(",");
-                int entityCount = Integer.parseInt(counts[0]);
-                int relationCount = Integer.parseInt(counts[1]);
-
-                log.info("图谱索引完成，item_uuid: {}, 实体: {}, 关系: {}", itemUuid, entityCount, relationCount);
             }
 
             log.info("文档索引处理完成，item_uuid: {}", itemUuid);
@@ -230,7 +211,6 @@ public class DocumentIndexingService {
      * <p>删除步骤：</p>
      * <ol>
      *   <li>删除Elasticsearch中的向量索引</li>
-     *   <li>删除Neo4j中的图谱数据</li>
      *   <li>更新MySQL中的索引状态</li>
      * </ol>
      *
@@ -257,12 +237,6 @@ public class DocumentIndexingService {
                 }
 
                 log.info("向量索引删除完成，item_uuid: {}", itemUuid);
-            }
-
-            // 2. 删除图谱索引
-            if (indexTypes.contains(INDEX_TYPE_GRAPHICAL)) {
-                neo4jGraphIndexingService.deleteDocumentGraph(itemUuid);
-                log.info("图谱索引删除完成，item_uuid: {}", itemUuid);
             }
 
             log.info("文档索引删除完成，item_uuid: {}", itemUuid);

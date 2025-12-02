@@ -26,7 +26,6 @@ import java.util.Map;
  * <ul>
  *   <li>接收文档删除后的清理任务</li>
  *   <li>删除Elasticsearch中的向量数据</li>
- *   <li>删除Neo4j中的图谱数据（实体、关系、文本段）</li>
  * </ul>
  *
  * <p>队列配置：</p>

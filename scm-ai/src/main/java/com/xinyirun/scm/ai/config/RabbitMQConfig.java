@@ -46,7 +46,7 @@ public class RabbitMQConfig {
 
     /**
      * 文档删除队列
-     * 用于异步处理文档在 Elasticsearch 和 Neo4j 中的删除操作
+     * 用于异步处理文档在 Elasticsearch 中的删除操作
      *
      * @return 文档删除队列
      */
@@ -59,7 +59,7 @@ public class RabbitMQConfig {
 
     /**
      * 知识库删除队列
-     * 用于异步处理知识库级联删除操作（包括所有文档、向量和图谱数据）
+     * 用于异步处理知识库级联删除操作（包括所有文档和向量数据）
      *
      * @return 知识库删除队列
      */

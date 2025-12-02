@@ -87,11 +87,6 @@ public class AiKnowledgeBaseQaVo {
     private List<RefEmbeddingVo> embeddingRefs;
 
     /**
-     * 图谱引用
-     */
-    private RefGraphVo graphRef;
-
-    /**
      * 创建时间（时间戳毫秒）
      */
     private Long createTime;

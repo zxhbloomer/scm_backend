@@ -2,7 +2,6 @@ package com.xinyirun.scm.mqconsumer.business.ai;
 
 import com.rabbitmq.client.Channel;
 import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
-import com.xinyirun.scm.ai.core.repository.neo4j.EntityRepository;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
@@ -29,7 +28,6 @@ import java.util.Map;
  * <ul>
  *   <li>接收知识库删除后的清理任务</li>
  *   <li>删除Elasticsearch中所有相关向量数据</li>
- *   <li>删除Neo4j中所有相关图谱数据（实体、关系、文本段）</li>
  * </ul>
  *
  * <p>队列配置：</p>
@@ -49,7 +47,6 @@ public class KbDeletionConsumer extends BaseMqConsumer {
 
     private final SLogMqConsumerClickHouseService consumerService;
     private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
-    private final EntityRepository entityRepository;
 
     private MqSenderAo mqSenderAo;
 
@@ -83,18 +80,7 @@ public class KbDeletionConsumer extends BaseMqConsumer {
             long deletedEmbeddings = embeddingRepository.deleteByKbUuid(kb_uuid);
             log.info("删除Elasticsearch向量数据成功，kb_uuid: {}, 删除数量: {}", kb_uuid, deletedEmbeddings);
 
-            // 3. 从kb_uuid中提取tenant_code（格式：tenant_code::uuid）
-            String tenant_code = kb_uuid != null && kb_uuid.contains("::")
-                ? kb_uuid.split("::", 2)[0]
-                : "";
-
-            // 4. 删除Neo4j中的所有实体数据（使用DETACH DELETE会级联删除关系）
-            // 注意：DETACH DELETE会自动删除实体的所有关系，无需单独删除关系
-            Integer deletedEntities = entityRepository.deleteByKbUuidAndTenantId(kb_uuid, tenant_code);
-            log.info("删除Neo4j实体数据成功（含级联关系），kb_uuid: {}, tenant_code: {}, 删除数量: {}",
-                kb_uuid, tenant_code, deletedEntities);
-
-            // 5. TODO: 删除文件存储中的所有物理文件（如果需要）
+            // 3. TODO: 删除文件存储中的所有物理文件（如果需要）
             // fileService.deleteKnowledgeBaseFiles(kb_uuid);
 
             log.info("知识库数据清理完成，kb_uuid: {}", kb_uuid);

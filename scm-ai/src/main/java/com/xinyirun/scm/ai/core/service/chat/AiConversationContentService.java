@@ -275,40 +275,4 @@ public class AiConversationContentService {
         }
     }
 
-    /**
-     * 保存对话内容（包含模型信息和RAG引用记录）
-     *
-     * 注意: RAG引用功能已被移除,此方法仅保存基础对话内容
-     *
-     * @param conversationId 对话ID
-     * @param type 内容类型（USER/ASSISTANT）
-     * @param content 内容
-     * @param modelSourceId 模型源ID
-     * @param providerName AI提供商名称
-     * @param baseName 基础模型名称
-     * @param operatorId 操作员ID
-     * @param embeddingScores 向量检索结果Map（已废弃,不再使用）
-     * @param kbId 知识库ID（已废弃,不再使用）
-     * @param entitiesFromQuestion 从问题中提取的实体JSON（已废弃,不再使用）
-     * @param graphFromStore 从图数据库检索的图谱JSON（已废弃,不再使用）
-     * @param entityCount 实体数量（已废弃,不再使用）
-     * @param relationCount 关系数量（已废弃,不再使用）
-     * @return 保存的对话内容VO
-     * @deprecated RAG引用功能已移除,建议直接调用saveConversationContent()
-     */
-    @Deprecated
-    @Transactional(rollbackFor = Exception.class)
-    public AiConversationContentVo saveConversationContentWithReferences(
-            String conversationId, String type, String content,
-            String modelSourceId, String providerName, String baseName, Long operatorId,
-            Map<String, Double> embeddingScores,
-            String kbId, String entitiesFromQuestion, String graphFromStore,
-            Integer entityCount, Integer relationCount) {
-
-        log.warn("【已废弃】saveConversationContentWithReferences方法调用,RAG引用功能已移除,仅保存基础对话内容");
-        // 仅保存基础对话内容,忽略RAG相关参数
-        return saveConversationContent(
-                conversationId, type, content, modelSourceId, providerName, baseName, operatorId);
-    }
-
 }
