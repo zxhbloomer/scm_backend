@@ -74,6 +74,16 @@ public class AiKnowledgeBaseItemVo {
     private LocalDateTime embeddingStatusChangeTime;
 
     /**
+     * 图谱化状态(1-待处理,2-处理中,3-已完成,4-失败)
+     */
+    private Integer graphicalStatus;
+
+    /**
+     * 图谱化状态变更时间
+     */
+    private LocalDateTime graphicalStatusChangeTime;
+
+    /**
      * 创建时间
      */
     private LocalDateTime c_time;

@@ -313,4 +313,32 @@ public final class AiConstant {
      * 说明：向量化完成后触发，定时任务扫描并更新embedding_count和item_count
      */
     public static final String KB_STATISTIC_RECALCULATE_SIGNAL = "ai:kb:statistic:recalculate";
+
+    // ==================== 图谱提取常量（Microsoft GraphRAG）====================
+
+    /**
+     * 图谱实体类型（基于Microsoft GraphRAG标准）
+     * <p>定义了LLM提取时支持的实体类型：组织、人物、地理位置、事件</p>
+     */
+    public static final String[] GRAPH_ENTITY_TYPES = {"organization", "person", "geo", "event"};
+
+    /**
+     * 图谱数据分隔符 - 字段分隔符
+     * <p>用于分隔实体/关系的各个属性字段</p>
+     * <p>示例：("entity"&lt;|&gt;张三&lt;|&gt;person&lt;|&gt;项目经理)</p>
+     */
+    public static final String GRAPH_TUPLE_DELIMITER = "<|>";
+
+    /**
+     * 图谱数据分隔符 - 记录分隔符
+     * <p>用于分隔不同的实体/关系记录</p>
+     * <p>示例：entity1##entity2##relation1</p>
+     */
+    public static final String GRAPH_RECORD_DELIMITER = "##";
+
+    /**
+     * 图谱数据分隔符 - 完成标记
+     * <p>LLM输出完成时的标记，表示图谱提取结束</p>
+     */
+    public static final String GRAPH_COMPLETION_DELIMITER = "<|COMPLETE|>";
 }

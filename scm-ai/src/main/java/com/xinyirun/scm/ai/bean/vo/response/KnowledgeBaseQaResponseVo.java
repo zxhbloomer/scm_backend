@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.bean.vo.response;
 
 import com.xinyirun.scm.ai.bean.vo.rag.QaRefEmbeddingVo;
+import com.xinyirun.scm.ai.bean.vo.rag.QaRefGraphVo;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -10,7 +11,7 @@ import java.util.List;
  * 知识库问答响应VO
  *
  * <p>包含完整的RAG问答结果数据，用于返回给前端展示</p>
- * <p>数据包括：问题、答案、Token统计、向量引用等完整信息</p>
+ * <p>数据包括：问题、答案、Token统计、向量引用、图谱引用等完整信息</p>
  *
  * @author zxh
  * @since 2025-10-12
@@ -120,6 +121,12 @@ public class KnowledgeBaseQaResponseVo implements Serializable {
      * 包含召回的向量片段及其分数
      */
     private List<QaRefEmbeddingVo> embeddingRefs;
+
+    /**
+     * 图谱推理引用列表
+     * 包含召回的图谱片段及其相关性评分
+     */
+    private List<QaRefGraphVo> graphRefs;
 
     /**
      * 总Token消耗

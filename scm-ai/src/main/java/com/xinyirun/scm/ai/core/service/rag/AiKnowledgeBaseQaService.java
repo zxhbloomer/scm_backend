@@ -10,6 +10,7 @@ import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaMapper;
+import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefGraphMapper;
 import com.xinyirun.scm.ai.core.service.KnowledgeBaseService;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.RequiredArgsConstructor;

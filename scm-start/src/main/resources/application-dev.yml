@@ -283,6 +283,15 @@ spring:
     connection-timeout: 1s
     socket-timeout: 30s
 
+  # Neo4j配置 - 用于知识图谱存储
+  neo4j:
+    uri: neo4j://127.0.0.1:7687
+    authentication:
+      username: neo4j
+      password: Password123
+    connection-timeout: 30s
+    max-connection-pool-size: 50
+
   #   OAuth2 Client/Login配置
   security:
     oauth2:

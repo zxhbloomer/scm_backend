@@ -8,6 +8,7 @@ import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefEmbeddingService;
+import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
 import com.xinyirun.scm.ai.core.util.TokenCalculator;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
@@ -50,7 +51,11 @@ public class RagService {
     @Resource
     private VectorRetrievalService vectorRetrievalService;
     @Resource
+    private GraphRetrievalService graphRetrievalService;
+    @Resource
     private AiKnowledgeBaseQaRefEmbeddingService qaRefEmbeddingService;
+    @Resource
+    private AiKnowledgeBaseQaRefGraphService qaRefGraphService;
     @Resource
     private AiModelConfigService aiModelConfigService;
 
@@ -65,6 +70,7 @@ public class RagService {
      * <ol>
      *   <li>查询QA记录和知识库配置</li>
      *   <li>向量检索 - VectorRetrievalService.searchSimilarDocuments()</li>
+     *   <li>图谱检索 - GraphRetrievalService.searchRelatedEntities()</li>
      *   <li>构建RAG增强Prompt - 将检索结果注入到提示词中</li>
      *   <li>ChatModel流式生成 - Spring AI ChatModel.stream()</li>
      *   <li>保存完整答案、引用记录、Token统计</li>
@@ -169,11 +175,36 @@ public class RagService {
                         question, kbUuid, effectiveMaxResults, effectiveMinScore);
                 log.info("向量检索完成，结果数: {}", vectorResults.size());
 
-                // 3.2. 【严格模式判断点2】检索结果为空检查
-                boolean vectorEmpty = vectorResults == null || vectorResults.isEmpty();
+                // 3.2 图谱检索
+                log.info("========== 开始图谱检索 ==========");
+                log.info("图谱检索参数: question=[{}], kbUuid=[{}], tenantCode=[{}], maxResults=[{}]",
+                        question, kbUuid, tenantCode, effectiveMaxResults);
 
-                if (vectorEmpty) {
-                    log.warn("RAG检索结果为空：向量检索={}", vectorResults != null ? vectorResults.size() : 0);
+                List<GraphSearchResultVo> graphResults = graphRetrievalService.searchRelatedEntities(
+                        question, kbUuid, tenantCode, effectiveMaxResults);
+
+                log.info("========== 图谱检索完成 ==========");
+                log.info("图谱检索结果数: {}", graphResults.size());
+                if (!graphResults.isEmpty()) {
+                    log.info("图谱检索返回的实体:");
+                    graphResults.forEach(result -> {
+                        log.info("  - 实体: {} (类型:{}, 关系数:{}, 分数:{})",
+                                result.getEntityName(),
+                                result.getEntityType(),
+                                result.getRelations() != null ? result.getRelations().size() : 0,
+                                result.getScore());
+                    });
+                } else {
+                    log.warn("⚠️ 图谱检索未返回任何结果");
+                }
+
+                // 3.3. 【严格模式判断点2】检索结果为空检查
+                boolean vectorEmpty = vectorResults == null || vectorResults.isEmpty();
+                boolean graphEmpty = graphResults == null || graphResults.isEmpty();
+
+                if (vectorEmpty && graphEmpty) {
+                    log.warn("RAG检索结果为空：向量检索={}, 图谱检索={}", vectorResults != null ? vectorResults.size() : 0,
+                            graphResults != null ? graphResults.size() : 0);
 
                     // 严格模式下直接返回错误
                     if (Integer.valueOf(1).equals(knowledgeBase.getIsStrict())) {
@@ -193,7 +224,7 @@ public class RagService {
                 }
 
                 // 4. 构建RAG增强的Messages
-                List<Message> ragMessages = buildRagMessages(question, vectorResults, knowledgeBase);
+                List<Message> ragMessages = buildRagMessages(question, vectorResults, graphResults, knowledgeBase);
                 log.info("RAG Messages构建完成，消息数: {}", ragMessages.size());
 
                 // 4.5. ✅ 添加温度参数支持
@@ -273,8 +304,17 @@ public class RagService {
                                     log.info("保存embedding引用记录，数量: {}", embeddingScores.size());
                                 }
 
+                                // 6.4 保存graph引用记录
+                                if (!graphResults.isEmpty()) {
+                                    RefGraphVo graphRef = buildRefGraphVo(graphResults);
+                                    qaRefGraphService.saveRefGraphs(qaUuid, graphRef, userId);
+                                    log.info("保存graph引用记录，vertices: {}, edges: {}",
+                                            graphRef.getVertices().size(), graphRef.getEdges().size());
+                                }
+
                                 // 7. 清除检索缓存（避免内存泄漏）
                                 vectorRetrievalService.clearScoreCache();
+                                graphRetrievalService.clearScoreCache();
 
                                 // 发送完成响应
                                 fluxSink.next(ChatResponseVo.createCompleteResponse(fullAnswer, "rag-model"));
@@ -319,16 +359,22 @@ public class RagService {
      * [1] 文本段内容1...
      * [2] 文本段内容2...
      *
+     * === 图谱检索结果 ===
+     * 实体：实体1、实体2...
+     * 关系：实体1-关系-实体2...
+     *
      * 【用户问题】
      * 问题内容...
      * </pre>
      *
      * @param question 用户问题
      * @param vectorResults 向量检索结果
+     * @param graphResults 图谱检索结果
      * @param knowledgeBase 知识库配置
      * @return 结构化的消息列表（SystemMessage + UserMessage）
      */
     private List<Message> buildRagMessages(String question, List<VectorSearchResultVo> vectorResults,
+                                            List<GraphSearchResultVo> graphResults,
                                             AiKnowledgeBaseVo knowledgeBase) {
         List<Message> messages = new ArrayList<>();
 
@@ -360,11 +406,94 @@ public class RagService {
             }
         }
 
+        // 图谱检索结果
+        if (!graphResults.isEmpty()) {
+            userMessageBuilder.append("=== 图谱检索结果 ===\n");
+
+            // 提取实体
+            userMessageBuilder.append("实体：");
+            String entities = graphResults.stream()
+                    .map(GraphSearchResultVo::getEntityName)
+                    .distinct()
+                    .collect(Collectors.joining("、"));
+            userMessageBuilder.append(entities).append("\n");
+
+            // 提取关系
+            userMessageBuilder.append("关系：\n");
+            for (GraphSearchResultVo result : graphResults) {
+                if (result.getRelations() != null && !result.getRelations().isEmpty()) {
+                    for (GraphRelationVo relation : result.getRelations()) {
+                        userMessageBuilder.append("  - ")
+                                .append(relation.getSourceEntityName())
+                                .append(" [").append(relation.getRelationType()).append("] ")
+                                .append(relation.getTargetEntityName())
+                                .append("\n");
+                    }
+                }
+            }
+            userMessageBuilder.append("\n");
+        }
+
         // 用户问题
         userMessageBuilder.append("【用户问题】\n").append(question).append("\n");
 
         messages.add(new UserMessage(userMessageBuilder.toString()));
 
         return messages;
+    }
+
+    /**
+     * 从图谱检索结果构建RefGraphVo（用于保存引用记录）
+     *
+     * @param graphResults 图谱检索结果
+     * @return RefGraphVo对象
+     */
+    private RefGraphVo buildRefGraphVo(List<GraphSearchResultVo> graphResults) {
+        // 提取所有实体（去重）
+        Map<String, RefGraphVo.GraphVertexVo> vertexMap = new HashMap<>();
+        for (GraphSearchResultVo result : graphResults) {
+            if (!vertexMap.containsKey(result.getEntityId())) {
+                RefGraphVo.GraphVertexVo vertex = RefGraphVo.GraphVertexVo.builder()
+                        .id(result.getEntityId())
+                        .name(result.getEntityName())
+                        .type(result.getEntityType())
+                        .description(result.getDescription())
+                        .build();
+                vertexMap.put(result.getEntityId(), vertex);
+            }
+        }
+
+        // 提取所有关系（去重）
+        Map<String, RefGraphVo.GraphEdgeVo> edgeMap = new HashMap<>();
+        for (GraphSearchResultVo result : graphResults) {
+            if (result.getRelations() != null) {
+                for (GraphRelationVo relation : result.getRelations()) {
+                    String edgeKey = relation.getSourceEntityId() + "-" + relation.getTargetEntityId();
+                    if (!edgeMap.containsKey(edgeKey)) {
+                        RefGraphVo.GraphEdgeVo edge = RefGraphVo.GraphEdgeVo.builder()
+                                .id(relation.getRelationId())
+                                .name(relation.getRelationType())
+                                .description(relation.getDescription())
+                                .source(relation.getSourceEntityId())
+                                .target(relation.getTargetEntityId())
+                                .build();
+                        edgeMap.put(edgeKey, edge);
+                    }
+                }
+            }
+        }
+
+        // 提取从问题中识别出的实体名称（从图谱检索结果推断）
+        List<String> entitiesFromQuestion = graphResults.stream()
+                .filter(r -> r.getScore() != null && r.getScore() >= 0.8)
+                .map(GraphSearchResultVo::getEntityName)
+                .distinct()
+                .collect(Collectors.toList());
+
+        return RefGraphVo.builder()
+                .vertices(vertexMap.values().stream().collect(Collectors.toList()))
+                .edges(edgeMap.values().stream().collect(Collectors.toList()))
+                .entitiesFromQuestion(entitiesFromQuestion)
+                .build();
     }
 }

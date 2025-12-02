@@ -115,6 +115,18 @@ public class AiKnowledgeBaseItemEntity {
     private LocalDateTime embeddingStatusChangeTime;
 
     /**
+     * 图谱化状态(1-待处理,2-处理中,3-已完成,4-失败)
+     */
+    @TableField("graphical_status")
+    private Integer graphicalStatus;
+
+    /**
+     * 图谱化状态变更时间
+     */
+    @TableField("graphical_status_change_time")
+    private LocalDateTime graphicalStatusChangeTime;
+
+    /**
      * 创建时间
      */
     @TableField(value="c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

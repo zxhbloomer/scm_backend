@@ -49,6 +49,7 @@ public class DocumentProcessingService {
     private final SFileInfoMapper sFileInfoMapper;
     private final ISFileService sFileService;
     private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
+    private final Neo4jGraphIndexingService neo4jGraphIndexingService;
 
     /**
      * 单文档上传（给Controller调用）
@@ -213,7 +214,7 @@ public class DocumentProcessingService {
     }
 
     /**
-     * 物理删除知识项（包含MySQL、Elasticsearch数据）
+     * 物理删除知识项（包含MySQL、Elasticsearch、Neo4j三处数据）
      * <p>SCM系统统一使用物理删除</p>
      *
      * @param uuid 知识项UUID
@@ -252,7 +253,16 @@ public class DocumentProcessingService {
             throw new RuntimeException("删除向量数据失败: " + e.getMessage(), e);
         }
 
-        // 4. 删除MySQL记录（物理删除）
+        // 4. 删除Neo4j图谱数据
+        try {
+            String deleteResult = neo4jGraphIndexingService.deleteDocumentGraph(uuid);
+            log.info("删除Neo4j图谱数据, uuid: {}, 删除结果: {}", uuid, deleteResult);
+        } catch (Exception e) {
+            log.error("删除Neo4j图谱数据失败, uuid: {}", uuid, e);
+            throw new RuntimeException("删除图谱数据失败: " + e.getMessage(), e);
+        }
+
+        // 5. 删除MySQL记录（物理删除）
         int result = itemMapper.deleteById(entity.getId());
         boolean success = result > 0;
 
@@ -321,8 +331,8 @@ public class DocumentProcessingService {
         // 4. 如果需要立即索引，批量调用索引方法
         if (Boolean.TRUE.equals(indexAfterUpload) && !itemUuids.isEmpty()) {
             log.info("批量创建完成，开始触发索引任务，数量: {}", itemUuids.size());
-            // 默认索引类型：embedding（向量化）
-            List<String> indexTypes = Arrays.asList("embedding");
+            // 默认索引类型：embedding（向量化）和 graphical（图谱化）
+            List<String> indexTypes = Arrays.asList("embedding", "graphical");
             knowledgeBaseService.indexItems(itemUuids, indexTypes);
         }
 

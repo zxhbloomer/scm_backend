@@ -44,4 +44,20 @@ public class KnowledgeRetrievalNodeConfig {
      */
     @JsonProperty("default_response")
     private String defaultResponse;
+
+    /**
+     * 是否启用图谱检索
+     * <p>默认false，仅使用向量检索，保持向后兼容</p>
+     * <p>设置为true时，同时执行向量检索和图谱检索，合并结果</p>
+     */
+    @JsonProperty("enable_graph_retrieval")
+    private Boolean enableGraphRetrieval;
+
+    /**
+     * 图谱检索使用的模型名称
+     * <p>仅当enableGraphRetrieval=true时生效</p>
+     * <p>用于控制图谱实体提取使用的LLM模型</p>
+     */
+    @JsonProperty("graph_model_name")
+    private String graphModelName;
 }
