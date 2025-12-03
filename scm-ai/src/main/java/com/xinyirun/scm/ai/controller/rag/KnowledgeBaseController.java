@@ -193,17 +193,6 @@ public class KnowledgeBaseController {
     }
 
     /**
-     * 星标切换
-     */
-    @PostMapping("/star/toggle")
-    @Operation(summary = "星标切换")
-    @SysLogAnnotion("切换知识库星标")
-    public ResponseEntity<JsonResultAo<Boolean>> toggleStar(@RequestParam @NotBlank String kbUuid) {
-        boolean result = knowledgeBaseService.toggleStar(kbUuid);
-        return ResponseEntity.ok().body(ResultUtil.OK(result));
-    }
-
-    /**
      * 批量创建知识项（从前端上传的文件数组）
      */
     @PostMapping("/item/batch-create")

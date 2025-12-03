@@ -6,7 +6,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
-import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseStarEntity;
 import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
@@ -15,7 +14,6 @@ import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorIndexingService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
-import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseStarService;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqMessageAo;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
@@ -58,7 +56,6 @@ public class KnowledgeBaseService {
     private final AiKnowledgeBaseItemMapper itemMapper;
     private final ScmMqProducer scmMqProducer;
     private final DocumentParsingService documentParsingService;
-    private final AiKnowledgeBaseStarService starService;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
     private final IMStaffService staffService;
@@ -598,76 +595,6 @@ public class KnowledgeBaseService {
             log.error("删除MySQL数据失败, kb_uuid: {}", uuid, e);
             throw new RuntimeException("删除MySQL数据失败: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * 收藏/取消收藏
-     *
-     * <p>功能流程：</p>
-     * <ol>
-     *   <li>查询知识库是否存在</li>
-     *   <li>检查当前用户是否已收藏</li>
-     *   <li>未收藏：创建收藏记录，star_count+1</li>
-     *   <li>已收藏：删除收藏记录，star_count-1</li>
-     * </ol>
-     *
-     * @param kbId 知识库ID
-     * @return true表示已收藏，false表示已取消收藏
-     */
-    @Transactional(rollbackFor = Exception.class)
-    public boolean toggleStar(String kbId) {
-        // 1. 查询知识库
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getId, kbId);
-        AiKnowledgeBaseEntity knowledgeBase = knowledgeBaseMapper.selectOne(wrapper);
-
-        if (knowledgeBase == null) {
-            throw new RuntimeException("知识库不存在，id: " + kbId);
-        }
-
-        // 2. 获取当前用户ID
-        String currentUserId = SecurityUtil.getStaff_id().toString();
-
-        boolean star;
-        // 3. 查询是否已收藏
-        AiKnowledgeBaseStarEntity oldRecord = starService.getRecord(currentUserId, kbId);
-
-        if (oldRecord == null) {
-            // 4. 未收藏，创建收藏记录
-            AiKnowledgeBaseStarEntity starRecord = new AiKnowledgeBaseStarEntity();
-            starRecord.setId(UuidUtil.createShort());
-            starRecord.setKbId(kbId);
-            starRecord.setUserId(currentUserId);
-            starRecord.setCreateTime(System.currentTimeMillis());
-            starRecord.setCreateUser(SecurityUtil.getAppJwtBaseBo().getUsername());
-            starService.save(starRecord);
-
-            star = true;
-            log.info("用户收藏知识库，userId: {}, kbId: {}", currentUserId, kbId);
-        } else {
-            // 5. 已收藏，删除收藏记录
-            starService.removeById(oldRecord.getId());
-            star = false;
-            log.info("用户取消收藏知识库，userId: {}, kbId: {}", currentUserId, kbId);
-        }
-
-        // 6. 更新知识库的star_count（使用 selectById + updateById 模式）
-        Integer currentStarCount = knowledgeBase.getStarCount();
-        if (currentStarCount == null) {
-            currentStarCount = 0;
-        }
-        int newStarCount = star ? currentStarCount + 1 : Math.max(0, currentStarCount - 1);
-
-        // 先查询完整实体
-        AiKnowledgeBaseEntity updateEntity = knowledgeBaseMapper.selectById(knowledgeBase.getId());
-        // 修改字段
-        updateEntity.setStarCount(newStarCount);
-        // 更新
-        knowledgeBaseMapper.updateById(updateEntity);
-
-        log.info("更新知识库收藏数，kbId: {}, oldCount: {}, newCount: {}", kbId, currentStarCount, newStarCount);
-
-        return star;
     }
 
 }
