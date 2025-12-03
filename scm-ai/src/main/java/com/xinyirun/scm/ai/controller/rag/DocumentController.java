@@ -41,8 +41,9 @@ public class DocumentController {
     @SysLogAnnotion("创建或更新文档")
     public ResponseEntity<JsonResultAo<AiKnowledgeBaseItemVo>> saveOrUpdate(
             @Valid @RequestBody AiKnowledgeBaseItemVo vo,
-            @RequestParam(defaultValue = "false") Boolean indexAfterCreate) {
-        AiKnowledgeBaseItemVo result = documentProcessingService.saveOrUpdate(vo, indexAfterCreate);
+            @RequestParam(defaultValue = "false") Boolean indexAfterCreate,
+            @RequestParam(defaultValue = "false") Boolean indexAfterEdit) {
+        AiKnowledgeBaseItemVo result = documentProcessingService.saveOrUpdate(vo, indexAfterCreate, indexAfterEdit);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 
@@ -79,7 +80,7 @@ public class DocumentController {
     @PostMapping("/del/{uuid}")
     @Operation(summary = "删除文档")
     @SysLogAnnotion("删除文档")
-    public ResponseEntity<JsonResultAo<Boolean>> softDelete(@PathVariable String uuid) {
+    public ResponseEntity<JsonResultAo<Boolean>> delete(@PathVariable String uuid) {
         boolean result = documentProcessingService.delete(uuid);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }

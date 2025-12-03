@@ -6,7 +6,7 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
-import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchIndexingService;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorIndexingService;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.common.utils.spring.SpringUtils;
 import com.xinyirun.scm.quartz.util.ScheduleUtils;
@@ -29,7 +29,7 @@ import java.util.List;
  * <ol>
  *   <li>从URL解析文档内容 - DocumentParsingService</li>
  *   <li>保存文档内容到MySQL - 更新remark字段</li>
- *   <li>向量化索引 - ElasticsearchIndexingService（embedding索引）</li>
+ *   <li>向量化索引 - MilvusVectorIndexingService（embedding索引）</li>
  *   <li>图谱化索引 - Neo4jGraphIndexingService（graphical索引）</li>
  *   <li>更新索引状态 - 更新embedding_status字段</li>
  * </ol>
@@ -50,7 +50,7 @@ import java.util.List;
 public class DocumentIndexingService {
 
     /**
-     * 索引类型：向量索引（Elasticsearch）
+     * 索引类型：向量索引（Milvus）
      */
     public static final String INDEX_TYPE_EMBEDDING = "embedding";
 
@@ -69,7 +69,7 @@ public class DocumentIndexingService {
     private DocumentParsingService documentParsingService;
 
     @Autowired
-    private ElasticsearchIndexingService elasticsearchIndexingService;
+    private MilvusVectorIndexingService milvusVectorIndexingService;
 
     @Autowired
     private Neo4jGraphIndexingService neo4jGraphIndexingService;
@@ -84,7 +84,7 @@ public class DocumentIndexingService {
      * <ul>
      *   <li>MQ消费者接收消息</li>
      *   <li>调用DocumentIndexingService.processDocument</li>
-     *   <li>根据indexTypes分别调用ElasticsearchIndexingService和Neo4jGraphIndexingService</li>
+     *   <li>根据indexTypes分别调用MilvusVectorIndexingService和Neo4jGraphIndexingService</li>
      * </ul>
      *
      * <p>技术说明：</p>
@@ -149,7 +149,7 @@ public class DocumentIndexingService {
                 itemMapper.updateById(item);
 
                 // 4.2 执行向量化
-                int segmentCount = elasticsearchIndexingService.ingestDocument(kb, item);
+                int segmentCount = milvusVectorIndexingService.ingestDocument(kb, item);
 
                 // 4.3 向量化成功：重新查询并更新状态为"已完成"
                 AiKnowledgeBaseItemEntity doneItem = itemMapper.selectById(item.getId());
@@ -229,7 +229,7 @@ public class DocumentIndexingService {
      *
      * <p>删除步骤：</p>
      * <ol>
-     *   <li>删除Elasticsearch中的向量索引</li>
+     *   <li>删除Milvus中的向量索引</li>
      *   <li>删除Neo4j中的图谱数据</li>
      *   <li>更新MySQL中的索引状态</li>
      * </ol>
@@ -243,7 +243,7 @@ public class DocumentIndexingService {
 
             // 1. 删除向量索引
             if (indexTypes.contains(INDEX_TYPE_EMBEDDING)) {
-                elasticsearchIndexingService.deleteDocumentEmbeddings(itemUuid);
+                milvusVectorIndexingService.deleteDocumentEmbeddings(itemUuid);
 
                 // 更新向量化状态为待处理（1=待处理）
                 AiKnowledgeBaseItemEntity item = itemMapper.selectOne(

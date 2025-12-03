@@ -423,7 +423,7 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      *
      * @param uuid 工作流UUID
      */
-    public void softDelete(String uuid) {
+    public void delete(String uuid) {
         Long userId = SecurityUtil.getStaff_id();
 
         AiWorkflowEntity workflow = getOrThrow(uuid);

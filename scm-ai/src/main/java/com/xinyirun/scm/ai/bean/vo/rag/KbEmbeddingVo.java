@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * 知识库文档向量嵌入VO类
  *
- * <p>用于展示Elasticsearch中存储的文档向量数据</p>
+ * <p>用于展示Milvus中存储的文档向量数据</p>
  *
  * @author SCM-AI重构团队
  * @since 2025-10-09
@@ -14,7 +14,7 @@ import lombok.Data;
 public class KbEmbeddingVo {
 
     /**
-     * Elasticsearch文档ID
+     * Milvus文档ID
      */
     private String id;
 

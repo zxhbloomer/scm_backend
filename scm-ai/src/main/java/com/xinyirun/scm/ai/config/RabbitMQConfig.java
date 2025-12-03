@@ -46,7 +46,7 @@ public class RabbitMQConfig {
 
     /**
      * 文档删除队列
-     * 用于异步处理文档在 Elasticsearch 和 Neo4j 中的删除操作
+     * 用于异步处理文档在 Milvus 和 Neo4j 中的删除操作
      *
      * @return 文档删除队列
      */

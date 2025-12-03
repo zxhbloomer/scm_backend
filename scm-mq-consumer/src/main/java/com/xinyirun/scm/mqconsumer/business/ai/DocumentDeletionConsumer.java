@@ -1,7 +1,7 @@
 package com.xinyirun.scm.mqconsumer.business.ai;
 
 import com.rabbitmq.client.Channel;
-import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorIndexingService;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
 import com.xinyirun.scm.clickhouse.service.mq.SLogMqConsumerClickHouseService;
 import com.xinyirun.scm.framework.utils.mq.MessageUtil;
@@ -25,7 +25,7 @@ import java.util.Map;
  * <p>功能：</p>
  * <ul>
  *   <li>接收文档删除后的清理任务</li>
- *   <li>删除Elasticsearch中的向量数据</li>
+ *   <li>删除Milvus中的向量数据</li>
  *   <li>删除Neo4j中的图谱数据（实体、关系、文本段）</li>
  * </ul>
  *
@@ -45,7 +45,7 @@ import java.util.Map;
 public class DocumentDeletionConsumer extends BaseMqConsumer {
 
     private final SLogMqConsumerClickHouseService consumerService;
-    private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
+    private final MilvusVectorIndexingService milvusVectorIndexingService;
 
     private MqSenderAo mqSenderAo;
 
@@ -78,9 +78,9 @@ public class DocumentDeletionConsumer extends BaseMqConsumer {
 
             log.info("开始清理文档数据，item_uuid: {}, kb_uuid: {}", item_uuid, kb_uuid);
 
-            // 2. 删除Elasticsearch中的向量数据
-            long deletedEmbeddings = embeddingRepository.deleteByKbItemUuid(item_uuid);
-            log.info("删除Elasticsearch向量数据成功，item_uuid: {}, 删除数量: {}", item_uuid, deletedEmbeddings);
+            // 2. 删除Milvus中的向量数据
+            int deletedEmbeddings = milvusVectorIndexingService.deleteDocumentEmbeddings(item_uuid);
+            log.info("删除Milvus向量数据成功，item_uuid: {}, 删除结果: {}", item_uuid, deletedEmbeddings);
 
             log.info("文档数据清理完成，item_uuid: {}", item_uuid);
 

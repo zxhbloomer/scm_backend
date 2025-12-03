@@ -277,11 +277,6 @@ spring:
 #        type: com.alibaba.druid.pool.xa.DruidXADataSource
 #        driverClassName: com.mysql.cj.jdbc.Driver
 #        druid:
-  # Elasticsearch配置
-  elasticsearch:
-    uris: http://127.0.0.1:9200
-    connection-timeout: 1s
-    socket-timeout: 30s
 
   # Neo4j配置 - 用于知识图谱存储
   neo4j:
@@ -367,8 +362,18 @@ spring:
     # 禁用自动配置（所有AI配置从数据库 ai_config 表读取）
     model:
       embedding: none  # 禁用embedding自动配置
+    # Milvus向量存储配置
     vectorstore:
-      enabled: false   # 禁用向量存储自动配置
+      milvus:
+        client:
+          host: localhost
+          port: 19530
+        collection-name: kb_vectors
+        database-name: default
+        embedding-dimension: 1024
+        index-type: HNSW
+        metric-type: COSINE
+        initialize-schema: true
 
     # 禁用OpenAI自动配置（保留依赖但不自动创建Bean）
     openai:

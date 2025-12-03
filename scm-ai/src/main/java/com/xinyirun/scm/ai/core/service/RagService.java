@@ -5,7 +5,7 @@ import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.rag.*;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.config.AiModelProvider;
-import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorRetrievalService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefEmbeddingService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
@@ -49,7 +49,7 @@ public class RagService {
     @Resource
     private KnowledgeBaseService knowledgeBaseService;
     @Resource
-    private VectorRetrievalService vectorRetrievalService;
+    private MilvusVectorRetrievalService vectorRetrievalService;
     @Resource
     private GraphRetrievalService graphRetrievalService;
     @Resource
@@ -171,7 +171,7 @@ public class RagService {
                         kbUuid, effectiveMaxResults, effectiveMinScore);
 
                 // 3.1 向量检索
-                List<VectorSearchResultVo> vectorResults = vectorRetrievalService.searchSimilarDocuments(
+                final List<VectorSearchResultVo> vectorResults = vectorRetrievalService.searchSimilarDocuments(
                         question, kbUuid, effectiveMaxResults, effectiveMinScore);
                 log.info("向量检索完成，结果数: {}", vectorResults.size());
 
@@ -297,11 +297,10 @@ public class RagService {
                                 log.info("QA记录已更新，promptTokens: {}, answerTokens: {}",
                                         promptTokens, answerTokens);
 
-                                // 6.3 保存embedding引用记录
-                                Map<String, Double> embeddingScores = vectorRetrievalService.getAllCachedScores();
-                                if (!embeddingScores.isEmpty()) {
-                                    qaRefEmbeddingService.saveRefEmbeddings(qaUuid, embeddingScores, userId);
-                                    log.info("保存embedding引用记录，数量: {}", embeddingScores.size());
+                                // 6.3 保存embedding引用记录（包含文本内容，避免后续查询Milvus）
+                                if (!vectorResults.isEmpty()) {
+                                    qaRefEmbeddingService.saveRefEmbeddings(qaUuid, vectorResults, userId);
+                                    log.info("保存embedding引用记录，数量: {}", vectorResults.size());
                                 }
 
                                 // 6.4 保存graph引用记录
@@ -463,19 +462,31 @@ public class RagService {
             }
         }
 
-        // 提取所有关系（去重）
+        // 提取所有关系（去重），同时补充target实体到vertexMap
         Map<String, RefGraphVo.GraphEdgeVo> edgeMap = new HashMap<>();
         for (GraphSearchResultVo result : graphResults) {
             if (result.getRelations() != null) {
                 for (GraphRelationVo relation : result.getRelations()) {
-                    String edgeKey = relation.getSourceEntityId() + "-" + relation.getTargetEntityId();
+                    // 补充：将关系中的target实体添加到vertexMap（如果不存在）
+                    String targetId = relation.getTargetEntityId();
+                    if (!vertexMap.containsKey(targetId)) {
+                        RefGraphVo.GraphVertexVo targetVertex = RefGraphVo.GraphVertexVo.builder()
+                                .id(targetId)
+                                .name(relation.getTargetEntityName())
+                                .type(relation.getTargetEntityType())
+                                .description(relation.getTargetDescription())
+                                .build();
+                        vertexMap.put(targetId, targetVertex);
+                    }
+
+                    String edgeKey = relation.getSourceEntityId() + "-" + targetId;
                     if (!edgeMap.containsKey(edgeKey)) {
                         RefGraphVo.GraphEdgeVo edge = RefGraphVo.GraphEdgeVo.builder()
                                 .id(relation.getRelationId())
                                 .name(relation.getRelationType())
                                 .description(relation.getDescription())
                                 .source(relation.getSourceEntityId())
-                                .target(relation.getTargetEntityId())
+                                .target(targetId)
                                 .build();
                         edgeMap.put(edgeKey, edge);
                     }

@@ -7,7 +7,7 @@ import com.xinyirun.scm.ai.core.event.GraphIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.event.VectorIndexCompletedEvent;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
-import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchIndexingService;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorIndexingService;
 import com.xinyirun.scm.ai.core.service.Neo4jGraphIndexingService;
 import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,7 @@ public class KnowledgeBaseStatisticsService {
     private AiKnowledgeBaseMapper kbMapper;
 
     @Autowired
-    private ElasticsearchIndexingService esService;
+    private MilvusVectorIndexingService milvusService;
 
     @Autowired
     private Neo4jGraphIndexingService neo4jService;
@@ -127,7 +127,7 @@ public class KnowledgeBaseStatisticsService {
             Long item_count = itemMapper.countByKbUuidAndEmbeddingStatus(kb_uuid, 3);
 
             // 统计向量段数量
-            long segment_count = esService.countSegmentsByKbUuid(kb_uuid);
+            long segment_count = milvusService.countSegmentsByKbUuid(kb_uuid);
 
             // 统计图谱元素数量
             Map<String, Long> graphStats = neo4jService.countGraphElementsByKbUuid(kb_uuid);

@@ -208,6 +208,8 @@ public class GraphRetrievalService {
                                 .sourceEntityName(entity.getEntityName())
                                 .targetEntityId(targetEntity.getEntityUuid())
                                 .targetEntityName(targetEntity.getEntityName())
+                                .targetEntityType(targetEntity.getEntityType())
+                                .targetDescription(targetEntity.getEntityMetadata())
                                 .weight(strength != null ? strength.doubleValue() : 0.5)
                                 .build();
                     })
@@ -381,6 +383,8 @@ public class GraphRetrievalService {
                                 .sourceEntityName(entity.getEntityName())
                                 .targetEntityId(targetEntity.getEntityUuid())
                                 .targetEntityName(targetEntity.getEntityName())
+                                .targetEntityType(targetEntity.getEntityType())
+                                .targetDescription(targetEntity.getEntityMetadata())
                                 .weight(strength != null ? strength.doubleValue() : 0.5)
                                 .build();
                     })

@@ -10,7 +10,7 @@ import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
-import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorIndexingService;
 import com.xinyirun.scm.bean.entity.sys.file.SFileEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.bean.system.vo.sys.file.SFileInfoVo;
@@ -48,8 +48,9 @@ public class DocumentProcessingService {
     private final SFileMapper sFileMapper;
     private final SFileInfoMapper sFileInfoMapper;
     private final ISFileService sFileService;
-    private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
+    private final MilvusVectorIndexingService milvusVectorIndexingService;
     private final Neo4jGraphIndexingService neo4jGraphIndexingService;
+    private final DocumentIndexingService documentIndexingService;
 
     /**
      * 单文档上传（给Controller调用）
@@ -82,10 +83,11 @@ public class DocumentProcessingService {
      *
      * @param vo 知识项VO
      * @param indexAfterCreate 新增后是否立即索引
+     * @param indexAfterEdit 编辑后是否立即重建索引（删除旧索引并重建）
      * @return 保存后的知识项VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public AiKnowledgeBaseItemVo saveOrUpdate(AiKnowledgeBaseItemVo vo, Boolean indexAfterCreate) {
+    public AiKnowledgeBaseItemVo saveOrUpdate(AiKnowledgeBaseItemVo vo, Boolean indexAfterCreate, Boolean indexAfterEdit) {
         // 根据 kbUuid 查询知识库，获取 kbId
         if (vo.getKbUuid() == null || vo.getKbUuid().isEmpty()) {
             log.error("kbUuid不能为空");
@@ -140,6 +142,20 @@ public class DocumentProcessingService {
 
             // 返回更新后的实体
             BeanUtils.copyProperties(existEntity, vo);
+        }
+
+        // 如果是编辑且需要立即索引，先删除旧索引再重建
+        if (!isNewItem && Boolean.TRUE.equals(indexAfterEdit)) {
+            log.info("编辑知识点完成，开始删除旧索引并重建，itemUuid: {}", itemUuid);
+            List<String> indexTypes = Arrays.asList("embedding", "graphical");
+
+            // 1. 删除旧索引数据（同步阻塞）
+            documentIndexingService.deleteDocumentIndex(itemUuid, indexTypes);
+            log.info("旧索引删除完成，itemUuid: {}", itemUuid);
+
+            // 2. 触发重建索引任务（异步MQ）
+            knowledgeBaseService.indexItems(Arrays.asList(itemUuid), indexTypes);
+            log.info("重建索引任务已提交，itemUuid: {}", itemUuid);
         }
 
         // 如果是新增且需要立即索引，触发索引任务
@@ -214,7 +230,7 @@ public class DocumentProcessingService {
     }
 
     /**
-     * 物理删除知识项（包含MySQL、Elasticsearch、Neo4j三处数据）
+     * 物理删除知识项（包含MySQL、Milvus、Neo4j三处数据）
      * <p>SCM系统统一使用物理删除</p>
      *
      * @param uuid 知识项UUID
@@ -244,12 +260,12 @@ public class DocumentProcessingService {
             }
         }
 
-        // 3. 删除Elasticsearch向量数据
+        // 3. 删除Milvus向量数据
         try {
-            long deletedCount = embeddingRepository.deleteByKbItemUuid(uuid);
-            log.info("删除Elasticsearch向量数据, uuid: {}, 删除数量: {}", uuid, deletedCount);
+            int deletedCount = milvusVectorIndexingService.deleteDocumentEmbeddings(uuid);
+            log.info("删除Milvus向量数据, uuid: {}, 删除结果: {}", uuid, deletedCount);
         } catch (Exception e) {
-            log.error("删除Elasticsearch向量数据失败, uuid: {}", uuid, e);
+            log.error("删除Milvus向量数据失败, uuid: {}", uuid, e);
             throw new RuntimeException("删除向量数据失败: " + e.getMessage(), e);
         }
 

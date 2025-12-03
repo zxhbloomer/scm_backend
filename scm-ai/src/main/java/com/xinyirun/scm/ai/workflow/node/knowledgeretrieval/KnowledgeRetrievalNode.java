@@ -7,7 +7,7 @@ import com.xinyirun.scm.ai.bean.vo.rag.GraphSearchResultVo;
 import com.xinyirun.scm.ai.bean.vo.rag.VectorSearchResultVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.core.service.GraphRetrievalService;
-import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorRetrievalService;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.WfState;
@@ -27,7 +27,7 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARA
  * 工作流知识检索节点
  *
  * 此节点负责从知识库中检索相关文档内容。
- * 使用向量检索技术，从Elasticsearch中检索与用户问题最相似的文本段。
+ * 使用向量检索技术，从Milvus中检索与用户问题最相似的文本段。
  *
  * 核心流程：
  * 1. 从配置中获取知识库UUID、检索参数
@@ -82,8 +82,8 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
         StringBuilder resp = new StringBuilder();
 
         try {
-            // 获取VectorRetrievalService实例
-            VectorRetrievalService vectorRetrievalService = SpringUtil.getBean(VectorRetrievalService.class);
+            // 获取MilvusVectorRetrievalService实例
+            MilvusVectorRetrievalService vectorRetrievalService = SpringUtil.getBean(MilvusVectorRetrievalService.class);
 
             // 1. 调用向量检索服务
             List<VectorSearchResultVo> searchResults = vectorRetrievalService.searchSimilarDocuments(

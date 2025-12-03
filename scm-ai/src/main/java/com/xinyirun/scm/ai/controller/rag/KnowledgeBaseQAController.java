@@ -8,7 +8,7 @@ import com.xinyirun.scm.ai.bean.vo.rag.RefGraphVo;
 import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
 import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.core.service.RagService;
-import com.xinyirun.scm.ai.core.service.elasticsearch.VectorRetrievalService;
+import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefEmbeddingService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaRefGraphService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseQaService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
@@ -46,7 +46,7 @@ public class KnowledgeBaseQAController {
 
     private final RagService ragService;
     private final AiKnowledgeBaseQaService aiKnowledgeBaseQaService;
-    private final VectorRetrievalService vectorRetrievalService;
+    private final AiKnowledgeBaseQaRefEmbeddingService qaRefEmbeddingService;
     private final AiKnowledgeBaseQaRefGraphService aiKnowledgeBaseQaRefGraphService;
 
     /**
@@ -132,18 +132,18 @@ public class KnowledgeBaseQAController {
     }
 
     /**
-     * 删除问答记录（软删除）
+     * 删除问答记录
      *
      * @param uuid 问答记录UUID
      * @return 是否成功
      */
     @PostMapping("/del/{uuid}")
-    @Operation(summary = "删除问答记录（软删除）")
+    @Operation(summary = "删除问答记录")
     @SysLogAnnotion("删除问答记录")
     public ResponseEntity<JsonResultAo<Boolean>> del(@PathVariable String uuid) {
         Long userId = SecurityUtil.getStaff_id();
 
-        boolean result = aiKnowledgeBaseQaService.softDelete(uuid, userId);
+        boolean result = aiKnowledgeBaseQaService.delete(uuid, userId);
 
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
@@ -152,7 +152,7 @@ public class KnowledgeBaseQAController {
      * 查询问答的向量引用
      *
      * @param uuid 问答记录UUID
-     * @return 向量引用列表（包含embedding_id、score、文本内容）
+     * @return 向量引用列表（包含embedding_id、score、文本内容，直接从MySQL返回）
      */
     @GetMapping("/embedding-ref/{uuid}")
     @Operation(summary = "查询问答的向量引用")
@@ -160,7 +160,7 @@ public class KnowledgeBaseQAController {
     public ResponseEntity<JsonResultAo<List<QaRefEmbeddingVo>>> embeddingRef(
             @PathVariable String uuid) {
 
-        List<QaRefEmbeddingVo> result = vectorRetrievalService.listRefEmbeddings(uuid);
+        List<QaRefEmbeddingVo> result = qaRefEmbeddingService.listRefEmbeddingsForDisplay(uuid);
 
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }

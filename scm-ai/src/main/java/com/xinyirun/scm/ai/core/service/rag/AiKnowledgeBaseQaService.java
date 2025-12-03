@@ -32,6 +32,8 @@ import org.springframework.stereotype.Service;
 public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMapper, AiKnowledgeBaseQaEntity> {
 
     private final KnowledgeBaseService knowledgeBaseService;
+    private final AiKnowledgeBaseQaRefEmbeddingService qaRefEmbeddingService;
+    private final AiKnowledgeBaseQaRefGraphService qaRefGraphService;
 
     /**
      * 创建知识库问答记录（基础方法）
@@ -169,17 +171,17 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
     }
 
     /**
-     * 软删除问答记录
+     * 删除问答记录（物理删除）
+     *
+     * <p>同时删除关联的向量引用和图谱引用记录</p>
      *
      * @param qaUuid 问答记录UUID
      * @param userId 用户ID（权限校验）
      * @return 是否成功
      */
-    public boolean softDelete(String qaUuid, Long userId) {
-        // 查询问答记录（校验权限）
+    public boolean delete(String qaUuid, Long userId) {
         LambdaQueryWrapper<AiKnowledgeBaseQaEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AiKnowledgeBaseQaEntity::getUuid, qaUuid);
-        queryWrapper.eq(AiKnowledgeBaseQaEntity::getIsDeleted, 0);
         AiKnowledgeBaseQaEntity exist = this.getOne(queryWrapper);
 
         if (exist == null) {
@@ -194,10 +196,14 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
             throw new RuntimeException("无权删除他人的问答记录");
         }
 
-        // 软删除
-        exist.setIsDeleted(1);
-        exist.setUpdateTime(System.currentTimeMillis());
-        boolean success = this.updateById(exist);
+        // 先删除关联的引用记录
+        int embeddingCount = qaRefEmbeddingService.deleteByQaRecordId(qaUuid);
+        int graphCount = qaRefGraphService.deleteByQaRecordId(qaUuid);
+        log.debug("删除问答关联数据，qaUuid: {}, embedding引用: {}, graph引用: {}",
+                qaUuid, embeddingCount, graphCount);
+
+        // 再删除主表记录
+        boolean success = this.removeById(exist.getId());
 
         if (success) {
             log.info("删除问答记录成功，qaUuid: {}, userId: {}", qaUuid, userId);
@@ -207,34 +213,34 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
     }
 
     /**
-     * 清空当前用户的所有问答记录
+     * 清空当前用户的所有问答记录（物理删除）
+     *
+     * <p>同时删除关联的向量引用和图谱引用记录</p>
      *
      * @param userId 用户ID
      * @return 是否成功
      */
     public boolean clearByCurrentUser(Long userId) {
-        // 查询所有未删除的记录
         LambdaQueryWrapper<AiKnowledgeBaseQaEntity> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(AiKnowledgeBaseQaEntity::getUserId, userId);
-        queryWrapper.eq(AiKnowledgeBaseQaEntity::getIsDeleted, 0);
-        java.util.List<AiKnowledgeBaseQaEntity> records = this.list(queryWrapper);
+        long count = this.count(queryWrapper);
 
-        if (records.isEmpty()) {
+        if (count == 0) {
             log.info("用户没有问答记录需要清空，userId: {}", userId);
             return true;
         }
 
-        // 逐个更新为已删除状态
-        long currentTime = System.currentTimeMillis();
-        for (AiKnowledgeBaseQaEntity record : records) {
-            record.setIsDeleted(1);
-            record.setUpdateTime(currentTime);
-        }
+        // 先删除关联的引用记录（按用户ID删除）
+        int embeddingCount = qaRefEmbeddingService.deleteByUserId(userId);
+        int graphCount = qaRefGraphService.deleteByUserId(userId);
+        log.info("清空用户关联数据，userId: {}, embedding引用: {}, graph引用: {}",
+                userId, embeddingCount, graphCount);
 
-        boolean success = this.updateBatchById(records);
+        // 再删除主表记录
+        boolean success = this.remove(queryWrapper);
 
         if (success) {
-            log.info("清空用户问答记录成功，userId: {}, 清空数量: {}", userId, records.size());
+            log.info("清空用户问答记录成功，userId: {}, 清空数量: {}", userId, count);
         }
 
         return success;

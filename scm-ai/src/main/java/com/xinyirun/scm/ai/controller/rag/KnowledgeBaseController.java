@@ -148,7 +148,7 @@ public class KnowledgeBaseController {
     @PostMapping("/del/{uuid}")
     @Operation(summary = "删除知识库")
     @SysLogAnnotion("删除知识库")
-    public ResponseEntity<JsonResultAo<Boolean>> softDelete(@PathVariable String uuid) {
+    public ResponseEntity<JsonResultAo<Boolean>> delete(@PathVariable String uuid) {
         boolean result = knowledgeBaseService.delete(uuid);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }

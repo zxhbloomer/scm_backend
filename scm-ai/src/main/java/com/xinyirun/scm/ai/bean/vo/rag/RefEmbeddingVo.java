@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class RefEmbeddingVo {
 
     /**
-     * Elasticsearch文档ID
+     * Milvus向量文档ID（对应Milvus的doc_id字段）
      */
     private String embeddingId;
 

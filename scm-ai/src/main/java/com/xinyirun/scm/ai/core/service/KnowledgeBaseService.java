@@ -13,7 +13,7 @@ import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.common.constant.AiConstant;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseItemMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
-import com.xinyirun.scm.ai.core.repository.elasticsearch.AiKnowledgeBaseEmbeddingRepository;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorIndexingService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.rag.AiKnowledgeBaseStarService;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqMessageAo;
@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
  * 知识库管理 Service
  *
  * <p>负责知识库的全生命周期管理，包括创建、更新、删除、文档管理和索引</p>
- * <p>技术架构：MySQL(元数据) + Elasticsearch(向量索引) + Neo4j(知识图谱)</p>
+ * <p>技术架构：MySQL(元数据) + Milvus(向量索引) + Neo4j(知识图谱)</p>
  *
  * @author SCM AI Team
  * @since 2025-10-03
@@ -63,7 +63,7 @@ public class KnowledgeBaseService {
     private final ObjectMapper objectMapper;
     private final IMStaffService staffService;
     private final com.xinyirun.scm.core.system.service.sys.file.ISFileService sFileService;
-    private final AiKnowledgeBaseEmbeddingRepository embeddingRepository;
+    private final MilvusVectorIndexingService milvusVectorIndexingService;
     private final Neo4jGraphIndexingService neo4jGraphIndexingService;
     private final com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseGraphSegmentMapper graphSegmentMapper;
     private final AiModelConfigService aiModelConfigService;
@@ -505,14 +505,14 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 物理删除知识库（级联删除MySQL、Elasticsearch、Neo4j三处数据）
+     * 物理删除知识库（级联删除MySQL、Milvus、Neo4j三处数据）
      * <p>SCM系统统一使用物理删除</p>
      *
      * <p>删除顺序（按依赖关系反向删除）：</p>
      * <ol>
      *   <li>查询知识库是否存在</li>
      *   <li>删除Neo4j图谱数据（WHERE kb_uuid = ?）</li>
-     *   <li>删除Elasticsearch向量数据（WHERE kb_uuid = ?）</li>
+     *   <li>删除Milvus向量数据（WHERE kb_uuid = ?）</li>
      *   <li>删除MySQL数据（按依赖关系）：
      *     <ul>
      *       <li>qa_ref_embedding表（问答向量引用）</li>
@@ -548,12 +548,12 @@ public class KnowledgeBaseService {
             throw new RuntimeException("删除图谱数据失败: " + e.getMessage(), e);
         }
 
-        // 3. 删除Elasticsearch向量数据
+        // 3. 删除Milvus向量数据
         try {
-            long deletedVectors = embeddingRepository.deleteByKbUuid(uuid);
-            log.info("删除Elasticsearch向量数据, kb_uuid: {}, 删除数量: {}", uuid, deletedVectors);
+            int deletedVectors = milvusVectorIndexingService.deleteKnowledgeBaseEmbeddings(uuid);
+            log.info("删除Milvus向量数据, kb_uuid: {}, 删除数量: {}", uuid, deletedVectors);
         } catch (Exception e) {
-            log.error("删除Elasticsearch向量数据失败, kb_uuid: {}", uuid, e);
+            log.error("删除Milvus向量数据失败, kb_uuid: {}", uuid, e);
             throw new RuntimeException("删除向量数据失败: " + e.getMessage(), e);
         }
 

@@ -65,6 +65,18 @@ public class GraphRelationVo implements Serializable {
     private String targetEntityName;
 
     /**
+     * 目标实体类型
+     * 用于buildRefGraphVo时构建完整的target顶点信息
+     */
+    private String targetEntityType;
+
+    /**
+     * 目标实体描述
+     * 用于buildRefGraphVo时构建完整的target顶点信息
+     */
+    private String targetDescription;
+
+    /**
      * 关系权重（0-1）
      * scm-ai扩展字段
      */

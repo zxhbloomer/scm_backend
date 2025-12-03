@@ -79,24 +79,6 @@ public class AiKnowledgeBaseItemEntity {
     private Long sourceFileUploadTime;
 
     /**
-     * 标题向量数据
-     */
-    @TableField("title_vector")
-    private String titleVector;
-
-    /**
-     * 简介向量数据
-     */
-    @TableField("brief_vector")
-    private String briefVector;
-
-    /**
-     * 备注向量数据
-     */
-    @TableField("remark_vector")
-    private String remarkVector;
-
-    /**
      * 向量化模型
      */
     @TableField("embedding_model")

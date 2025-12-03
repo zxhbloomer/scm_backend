@@ -230,52 +230,10 @@ CREATE TABLE `ai_draw_comment` (
 
 
 -- =====================================================
--- 3. AI搜索模块 (AI Search Module) - 2张表
+-- 3. MCP工具集成模块 (MCP Module) - 2张表
 -- =====================================================
 
--- 3.1 AI搜索记录表
-DROP TABLE IF EXISTS `ai_search_record`;
-CREATE TABLE `ai_search_record` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `search_uuid` VARCHAR(100) NOT NULL COMMENT '搜索UUID',
-  `question` VARCHAR(2000) NOT NULL DEFAULT '' COMMENT '用户的原始问题',
-  `search_engine_response` JSON COMMENT '搜索引擎的响应内容(JSON)',
-  `prompt` TEXT COMMENT 'LLM的提示词',
-  `prompt_tokens` INT NOT NULL DEFAULT 0 COMMENT '提示词消耗的token数量',
-  `answer` TEXT COMMENT 'LLM的响应',
-  `answer_tokens` INT NOT NULL DEFAULT 0 COMMENT 'LLM响应消耗的token数量',
-  `user_id` BIGINT NOT NULL DEFAULT 0 COMMENT '用户ID',
-  `ai_model_id` BIGINT NOT NULL DEFAULT 0 COMMENT 'AI模型ID',
-  `c_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-  `u_time` DATETIME DEFAULT NULL COMMENT '修改时间',
-  `c_id` BIGINT DEFAULT NULL COMMENT '创建人ID',
-  `u_id` BIGINT DEFAULT NULL COMMENT '修改人ID',
-  `dbversion` INT DEFAULT 0 COMMENT '数据版本，乐观锁使用',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_ai_search_record_uuid` (`search_uuid`),
-  KEY `idx_ai_search_record_user` (`user_id`),
-  KEY `idx_ai_search_record_model` (`ai_model_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI搜索记录表';
-
--- 3.2 AI搜索向量表 (注意: scm-ai使用Elasticsearch存储向量,此表可选)
--- 如果使用Elasticsearch,此表可以不创建
-DROP TABLE IF EXISTS `ai_search_embedding`;
-CREATE TABLE `ai_search_embedding` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `embedding_uuid` VARCHAR(100) NOT NULL COMMENT '向量UUID',
-  `text` TEXT COMMENT '文本内容',
-  `metadata` JSON COMMENT '元数据(JSON)',
-  `c_time` DATETIME DEFAULT NULL COMMENT '创建时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_ai_search_embedding_uuid` (`embedding_uuid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI搜索向量表(向量数据实际存储在Elasticsearch)';
-
-
--- =====================================================
--- 4. MCP工具集成模块 (MCP Module) - 2张表
--- =====================================================
-
--- 4.1 MCP服务器模板表
+-- 3.1 MCP服务器模板表
 DROP TABLE IF EXISTS `ai_mcp`;
 CREATE TABLE `ai_mcp` (
   `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',

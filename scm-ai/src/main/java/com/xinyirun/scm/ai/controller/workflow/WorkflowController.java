@@ -149,7 +149,7 @@ public class WorkflowController {
     @PostMapping("/del/{uuid}")
     @SysLogAnnotion("删除工作流")
     public ResponseEntity<JsonResultAo<Boolean>> delete(@PathVariable String uuid) {
-        workflowService.softDelete(uuid);
+        workflowService.delete(uuid);
         return ResponseEntity.ok().body(ResultUtil.OK(true));
     }
 

@@ -35,7 +35,7 @@ public class QaRefEmbeddingVo implements Serializable {
     private String qaRecordId;
 
     /**
-     * 向量ID（Elasticsearch文档ID）
+     * Milvus向量文档ID（对应Milvus的doc_id字段）
      */
     private String embeddingId;
 
@@ -45,7 +45,7 @@ public class QaRefEmbeddingVo implements Serializable {
     private Double score;
 
     /**
-     * 文本内容（从Elasticsearch查询）
+     * 文本内容（从Milvus查询）
      */
     private String content;
 

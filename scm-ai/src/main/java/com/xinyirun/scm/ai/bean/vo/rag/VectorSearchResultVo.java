@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,8 +24,8 @@ public class VectorSearchResultVo implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Elasticsearch文档ID
-     * 
+     * Milvus向量文档ID（对应Milvus的doc_id字段）
+     * 用于唯一标识Milvus中的一条向量记录
      */
     private String embeddingId;
 

@@ -54,22 +54,6 @@
             <artifactId>spring-ai-starter-model-openai</artifactId>
         </dependency>
 
-        <!-- Spring AI向量存储支持 - Elasticsearch（暂时注释掉，避免EmbeddingModel依赖问题） -->
-        <!--
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-starter-vector-store-elasticsearch</artifactId>
-        </dependency>
-        -->
-
-        <!-- Spring AI RAG支持（暂时注释掉，依赖向量存储） -->
-        <!--
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-advisors-vector-store</artifactId>
-        </dependency>
-        -->
-
         <!-- Spring AI重试机制 -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
@@ -183,10 +167,16 @@
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
         </dependency>
-        <!-- Elasticsearch数据支持 - 用于向量存储和知识库检索 -->
+        <!-- Milvus向量数据库支持 - 用于向量存储和知识库检索 -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-elasticsearch</artifactId>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-vector-store-milvus</artifactId>
+        </dependency>
+
+        <!-- Milvus Java SDK -->
+        <dependency>
+            <groupId>io.milvus</groupId>
+            <artifactId>milvus-sdk-java</artifactId>
         </dependency>
 
         <!-- Neo4j数据支持 - 用于知识图谱存储和关系查询 -->

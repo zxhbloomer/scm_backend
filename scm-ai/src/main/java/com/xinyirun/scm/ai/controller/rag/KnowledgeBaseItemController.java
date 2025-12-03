@@ -2,7 +2,7 @@ package com.xinyirun.scm.ai.controller.rag;
 
 import com.xinyirun.scm.ai.bean.vo.rag.KbEmbeddingVo;
 import com.xinyirun.scm.ai.bean.vo.rag.KbGraphVo;
-import com.xinyirun.scm.ai.core.service.elasticsearch.ElasticsearchQueryService;
+import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorRetrievalService;
 import com.xinyirun.scm.ai.core.service.neo4j.Neo4jQueryService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
@@ -42,7 +42,7 @@ public class KnowledgeBaseItemController {
     private static final Long DEFAULT_MAX_ID = Long.MAX_VALUE;
 
     @Resource
-    private ElasticsearchQueryService elasticsearchQueryService;
+    private MilvusVectorRetrievalService milvusVectorRetrievalService;
 
     @Resource
     private Neo4jQueryService neo4jQueryService;
@@ -66,7 +66,7 @@ public class KnowledgeBaseItemController {
             @Parameter(description = "每页大小")
             @RequestParam(defaultValue = "20") @NotNull @Min(1) Integer pageSize) {
 
-        List<KbEmbeddingVo> result = elasticsearchQueryService.listEmbeddings(itemUuid, currentPage, pageSize);
+        List<KbEmbeddingVo> result = milvusVectorRetrievalService.listEmbeddings(itemUuid, currentPage, pageSize);
         return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  * AI知识库问答记录-向量引用实体类
  *
  * <p>对应数据库表：ai_knowledge_base_qa_ref_embedding</p>
- * <p>用于记录RAG问答时，从Elasticsearch向量数据库中召回的文档片段引用关系</p>
+ * <p>用于记录RAG问答时，从Milvus向量数据库中召回的文档片段引用关系</p>
  *
  * @author zxh
  * @since 2025-10-12
@@ -38,7 +38,8 @@ public class AiKnowledgeBaseQaRefEmbeddingEntity implements Serializable {
     private String qaRecordId;
 
     /**
-     * 向量ID（Elasticsearch文档ID）
+     * Milvus向量文档ID（对应Milvus的doc_id字段）
+     * 用于关联Milvus中存储的向量和文本内容
      */
     @TableField("embedding_id")
     private String embeddingId;
@@ -48,6 +49,13 @@ public class AiKnowledgeBaseQaRefEmbeddingEntity implements Serializable {
      */
     @TableField("score")
     private Double score;
+
+    /**
+     * 向量检索的文本内容
+     * RAG问答时保存，避免后续查询Milvus
+     */
+    @TableField("content")
+    private String content;
 
     /**
      * 提问用户ID

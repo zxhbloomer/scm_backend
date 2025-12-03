@@ -20,6 +20,7 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
+import org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 
@@ -28,9 +29,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 // 表示通过aop框架暴露该代理对象,AopContext能够访问
 @SpringBootApplication(
-    exclude = { 
+    exclude = {
         DataSourceAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class
+        org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration.class,
+        // 禁用Spring AI Milvus自动配置，使用自定义MilvusVectorStoreConfig
+        MilvusVectorStoreAutoConfiguration.class
     },
     scanBasePackages = {
             "com.xinyirun.scm.*",

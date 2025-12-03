@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 知识库问答-向量引用 Mapper接口
  *
- * <p>用于管理问答记录与Elasticsearch向量引用的关联关系</p>
+ * <p>用于管理问答记录与Milvus向量引用的关联关系</p>
  * <p>记录RAG检索时召回的向量片段及其相似度分数</p>
  *
  * @author zxh
