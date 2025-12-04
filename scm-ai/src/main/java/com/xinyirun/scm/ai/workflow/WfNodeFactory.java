@@ -18,6 +18,7 @@ import com.xinyirun.scm.ai.workflow.node.mcptool.McpToolNode;
 import com.xinyirun.scm.ai.workflow.node.subworkflow.SubWorkflowNode;
 import com.xinyirun.scm.ai.workflow.node.switcher.SwitcherNode;
 import com.xinyirun.scm.ai.workflow.node.template.TemplateNode;
+import com.xinyirun.scm.ai.workflow.node.tempknowledgebase.TempKnowledgeBaseNode;
 
 /**
  * 工作流节点工厂类
@@ -73,6 +74,8 @@ public class WfNodeFactory {
             wfNode = new SubWorkflowNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("McpTool".equals(componentName)) {
             wfNode = new McpToolNode(wfComponent, nodeDefinition, wfState, nodeState);
+        } else if ("TempKnowledgeBase".equals(componentName)) {
+            wfNode = new TempKnowledgeBaseNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("End".equals(componentName)) {
             wfNode = new EndNode(wfComponent, nodeDefinition, wfState, nodeState);
         }
