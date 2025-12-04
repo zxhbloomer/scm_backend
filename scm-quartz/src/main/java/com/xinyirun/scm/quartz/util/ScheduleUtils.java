@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xinyirun.scm.bean.entity.quartz.SJobEntity;
 import com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo;
 import com.xinyirun.scm.bean.system.bo.tenant.manager.quartz.SJobManagerBo;
+import com.xinyirun.scm.bean.system.vo.business.ai.TempKbCleanupParamVo;
 import com.xinyirun.scm.bean.system.vo.quartz.SJobVo;
 import com.xinyirun.scm.common.constant.ScheduleConstants;
 import com.xinyirun.scm.common.exception.job.TaskException;
@@ -156,6 +157,79 @@ public class ScheduleUtils {
 
         job.setJob_serial_type("ai_kb_statistics");
         job.setJob_serial_id(0L); // 全局任务，不关联具体业务ID
+
+        // 写入租户库
+        SJobEntity entity = (SJobEntity) BeanUtilsSupport.copyProperties(job, SJobEntity.class);
+        SpringUtils.getBean(ISJobQuartzService.class).save(entity);
+        job.setId(entity.getId());
+
+        // 写入Master库（关键：包含tenant_code）
+        job.setTenant_job_id(entity.getId());
+        SpringUtils.getBean(ISJobManagerQuartzService.class).insert(job);
+
+        // 创建调度任务（SimpleTrigger单次执行）
+        return createScheduleJobSimpleTrigger(scheduler, job);
+    }
+
+    /**
+     * 创建临时知识库清理任务
+     *
+     * 业务场景：当用户创建临时知识库时，立即创建一个2小时后执行的清理任务
+     * 任务类型：SimpleTrigger单次执行
+     * 执行逻辑：删除指定的临时知识库及其关联数据（items、segments、Milvus、Neo4j）
+     *
+     * 设计理念：
+     * 1. 每个临时知识库创建一个专属任务（不是全局Cron）
+     * 2. 任务参数包含kbUuid，精准删除，无需查询
+     * 3. 任务执行后自动失效（is_effected=0）
+     *
+     * @param scheduler Quartz调度器
+     * @param tenantCode 租户code
+     * @param kbUuid 临时知识库UUID
+     * @param kbId 临时知识库ID（用于job_serial_id）
+     * @return 是否创建成功
+     * @throws SchedulerException 调度异常
+     */
+    public static boolean createJobTempKbCleanup(
+            Scheduler scheduler,
+            String tenantCode,
+            String kbUuid,
+            Long kbId
+    ) throws SchedulerException {
+
+        SJobManagerBo job = new SJobManagerBo();
+
+        // 任务名包含kbUuid，确保唯一性
+        job.setJob_name(SchedulerConstants.TEMP_KB_CLEANUP.JOB_NAME + "-" + kbUuid);
+        job.setJob_group_type(SchedulerConstants.TEMP_KB_CLEANUP.JOB_GROUP_TYPE);
+        job.setJob_desc(SchedulerConstants.TEMP_KB_CLEANUP.JOB_DESC + " - " + kbUuid);
+        job.setMisfire_policy(SchedulerConstants.TEMP_KB_CLEANUP.MISFIRE_POLICY);
+        job.setConcurrent(SchedulerConstants.TEMP_KB_CLEANUP.CONCURRENT);
+        job.setIs_cron(SchedulerConstants.TEMP_KB_CLEANUP.IS_CRON);
+        job.setIs_del(SchedulerConstants.TEMP_KB_CLEANUP.IS_DEL);
+        job.setIs_effected(SchedulerConstants.TEMP_KB_CLEANUP.IS_EFFECTED);
+        job.setNext_fire_time(LocalDateTime.now().plusHours(2)); // 2小时后执行
+        job.setClass_name(SchedulerConstants.TEMP_KB_CLEANUP.CLASS_NAME);
+        job.setMethod_name(SchedulerConstants.TEMP_KB_CLEANUP.METHOD_NAME);
+        job.setParam_class(SchedulerConstants.TEMP_KB_CLEANUP.PARAM_CLASS);
+
+        // 设置租户code（关键：AbstractQuartzJob会自动切换数据源）
+        job.setTenant_code(tenantCode);
+
+        // 构建参数对象（JSON格式）
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            TempKbCleanupParamVo paramVo = new TempKbCleanupParamVo();
+            paramVo.setKbUuid(kbUuid);
+            paramVo.setTenantCode(tenantCode);
+            job.setParam_data(objectMapper.writeValueAsString(paramVo));
+        } catch (Exception e) {
+            log.error("构建临时知识库清理任务参数失败，kbUuid: {}", kbUuid, e);
+            throw new SchedulerException("参数序列化失败", e);
+        }
+
+        job.setJob_serial_type("ai_temp_kb_cleanup");
+        job.setJob_serial_id(kbId); // 关联临时知识库ID
 
         // 写入租户库
         SJobEntity entity = (SJobEntity) BeanUtilsSupport.copyProperties(job, SJobEntity.class);

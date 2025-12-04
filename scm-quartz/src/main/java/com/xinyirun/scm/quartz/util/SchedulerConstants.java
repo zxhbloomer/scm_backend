@@ -68,4 +68,22 @@ public class SchedulerConstants {
         public static final String METHOD_NAME = "updateStatistics";
         public static final String PARAM_CLASS = "com.xinyirun.scm.bean.system.vo.business.ai.KnowledgeBaseStatisticsParamVo";
     }
+
+    /**
+     * AI临时知识库清理
+     */
+    public static class TEMP_KB_CLEANUP {
+        public static final String JOB_NAME = "临时知识库清理";
+        public static final String JOB_GROUP_TYPE = DictConstant.DICT_SYS_JOB_GROUP_TYPE_AI_TEMP_KB_CLEANUP;
+        public static final String JOB_DESC = "清理过期的临时知识库及其关联数据";
+        // 0=默认,1=立即触发执行,2=触发一次执行,3=不触发立即执行
+        public static final String MISFIRE_POLICY = "2"; // 触发一次执行
+        public static final Boolean CONCURRENT = false;
+        public static final Boolean IS_CRON = false; // 使用SimpleTrigger单次执行
+        public static final Boolean IS_DEL = false;
+        public static final Boolean IS_EFFECTED = true;
+        public static final String CLASS_NAME = "com.xinyirun.scm.ai.core.service.milvus.TempKnowledgeBaseCleanupService";
+        public static final String METHOD_NAME = "cleanupTempKnowledgeBase";
+        public static final String PARAM_CLASS = "com.xinyirun.scm.bean.system.vo.business.ai.TempKbCleanupParamVo";
+    }
 }
