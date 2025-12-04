@@ -20,12 +20,15 @@ import com.xinyirun.scm.bean.system.vo.master.user.MStaffVo;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
+import com.xinyirun.scm.common.utils.spring.SpringUtils;
 import com.xinyirun.scm.core.system.service.master.user.IMStaffService;
 import com.xinyirun.scm.mq.rabbitmq.enums.MQEnum;
 import com.xinyirun.scm.mq.rabbitmq.producer.ScmMqProducer;
+import com.xinyirun.scm.quartz.util.ScheduleUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.quartz.Scheduler;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -116,6 +119,27 @@ public class KnowledgeBaseService {
 
             log.info("新增知识库成功，kbUuid: {}, title: {}",
                      entity.getKbUuid(), entity.getTitle());
+
+            // 如果是临时知识库，创建2小时后的自动清理任务
+            if (entity.getIs_temp() != null && entity.getIs_temp() == 1) {
+                try {
+                    Scheduler scheduler = SpringUtils.getBean(Scheduler.class);
+                    boolean created = ScheduleUtils.createJobTempKbCleanup(
+                            scheduler,
+                            tenantCode,
+                            entity.getKbUuid(),
+                            Long.parseLong(entity.getId())
+                    );
+                    if (created) {
+                        log.info("临时知识库清理任务已创建: kbUuid={}, 将在2小时后执行",
+                                entity.getKbUuid());
+                    }
+                } catch (Exception e) {
+                    // 任务创建失败不影响主流程，记录错误日志
+                    log.error("创建临时知识库清理任务失败: kbUuid={}, error={}",
+                            entity.getKbUuid(), e.getMessage(), e);
+                }
+            }
 
             // 返回插入后的实体
             BeanUtils.copyProperties(entity, vo);

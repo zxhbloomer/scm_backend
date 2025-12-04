@@ -347,8 +347,16 @@ public class DocumentProcessingService {
         // 4. 如果需要立即索引，批量调用索引方法
         if (Boolean.TRUE.equals(indexAfterUpload) && !itemUuids.isEmpty()) {
             log.info("批量创建完成，开始触发索引任务，数量: {}", itemUuids.size());
-            // 默认索引类型：embedding（向量化）和 graphical（图谱化）
-            List<String> indexTypes = Arrays.asList("embedding", "graphical");
+            // 根据知识库类型决定索引类型
+            // 临时知识库只进行向量索引，正式知识库进行向量+图谱双索引
+            List<String> indexTypes;
+            if (kb.getIsTemp() != null && kb.getIsTemp() == 1) {
+                indexTypes = Arrays.asList("embedding");  // 临时知识库：仅向量索引
+                log.info("临时知识库，仅进行向量索引: kbUuid={}", kbUuid);
+            } else {
+                indexTypes = Arrays.asList("embedding", "graphical");  // 正式知识库：向量+图谱
+                log.info("正式知识库，进行向量和图谱双索引: kbUuid={}", kbUuid);
+            }
             knowledgeBaseService.indexItems(itemUuids, indexTypes);
         }
 
@@ -382,5 +390,19 @@ public class DocumentProcessingService {
             sFileInfoEntity.setTimestamp(fileInfo.getTimestamp());// 上传时间（支持版本）
             sFileInfoMapper.insert(sFileInfoEntity);
         }
+    }
+
+    /**
+     * 获取itemMapper（供MCP工具使用）
+     */
+    public AiKnowledgeBaseItemMapper getItemMapper() {
+        return itemMapper;
+    }
+
+    /**
+     * 获取sFileService（供MCP工具使用）
+     */
+    public ISFileService getSFileService() {
+        return sFileService;
     }
 }

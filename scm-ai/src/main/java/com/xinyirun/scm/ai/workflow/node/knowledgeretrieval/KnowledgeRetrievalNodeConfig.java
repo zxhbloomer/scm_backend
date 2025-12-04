@@ -60,4 +60,32 @@ public class KnowledgeRetrievalNodeConfig {
      */
     @JsonProperty("graph_model_name")
     private String graphModelName;
+
+    /**
+     * 查询关键词模板
+     * <p>支持使用 ${变量名} 语法引用输入变量</p>
+     * <p>为空时自动使用上游节点的默认输出作为查询关键词,保持向后兼容</p>
+     * <p>示例: ${input} 表示引用上个节点的执行结果</p>
+     */
+    @JsonProperty("query_template")
+    private String queryTemplate;
+
+    /**
+     * 是否使用临时知识库
+     * <p>默认false,使用永久知识库,保持向后兼容</p>
+     * <p>设置为true时,表示使用上游临时知识库节点创建的临时知识库</p>
+     * <p>前端通过检测上游节点类型自动设置此字段</p>
+     */
+    @JsonProperty("is_temp_kb")
+    private Boolean isTempKb;
+
+    /**
+     * 临时知识库节点UUID
+     * <p>当isTempKb=true时有效</p>
+     * <p>用于前端验证上游临时知识库节点是否仍然存在</p>
+     * <p>格式:节点的uuid字段(如:1234567890)</p>
+     * <p>前端通过X6 graph事件监听维护此字段</p>
+     */
+    @JsonProperty("temp_kb_node_uuid")
+    private String tempKbNodeUuid;
 }

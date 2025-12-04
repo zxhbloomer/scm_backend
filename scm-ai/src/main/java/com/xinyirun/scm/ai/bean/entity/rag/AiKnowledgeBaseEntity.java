@@ -155,6 +155,18 @@ public class AiKnowledgeBaseEntity {
     private Integer itemCount;
 
     /**
+     * 是否临时知识库（0-否，1-是）
+     */
+    @TableField("is_temp")
+    private Integer is_temp;
+
+    /**
+     * 过期时间（仅临时知识库有值）
+     */
+    @TableField("expire_time")
+    private LocalDateTime expire_time;
+
+    /**
      * 创建时间
      */
     @TableField(value="c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

@@ -11,6 +11,7 @@ import com.xinyirun.scm.ai.core.service.milvus.MilvusVectorRetrievalService;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.WfState;
+import com.xinyirun.scm.ai.workflow.WorkflowUtil;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import com.xinyirun.scm.common.exception.system.BusinessException;
@@ -52,10 +53,39 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
         }
 
         String kbUuid = nodeConfig.getKnowledgeBaseUuid();
+
+        // 检查是否使用临时知识库
+        if (Boolean.TRUE.equals(nodeConfig.getIsTempKb())) {
+            log.info("使用临时知识库,临时知识库节点UUID: {}, 变量引用: {}",
+                    nodeConfig.getTempKbNodeUuid(), kbUuid);
+        }
+
+        // 如果是变量引用(格式:{nodeUuid_paramName}),进行变量渲染
+        if (kbUuid.startsWith("{") && kbUuid.endsWith("}")) {
+            String originalKbUuid = kbUuid;
+            kbUuid = WorkflowUtil.renderTemplate(kbUuid, state.getInputs());
+            log.info("渲染临时知识库变量引用: {} -> {}", originalKbUuid, kbUuid);
+
+            // 验证渲染后的知识库UUID
+            if (StringUtils.isBlank(kbUuid)) {
+                throw new BusinessException("知识库UUID不能为空(变量引用解析失败,请确保上游临时知识库节点已执行)");
+            }
+        }
+
         log.info("KnowledgeRetrievalNode config: {}", nodeConfig);
 
-        // 获取输入文本
-        String textInput = getFirstInputText();
+        // 获取查询关键词(支持模板渲染)
+        String textInput;
+        if (StringUtils.isNotBlank(nodeConfig.getQueryTemplate())) {
+            // 使用配置的查询模板,通过WorkflowUtil渲染变量引用
+            textInput = WorkflowUtil.renderTemplate(nodeConfig.getQueryTemplate(), state.getInputs());
+            log.info("使用查询模板,模板内容: {}, 渲染后查询关键词: {}", nodeConfig.getQueryTemplate(), textInput);
+        } else {
+            // 未配置模板时使用上游节点的默认输出,保持向后兼容
+            textInput = getFirstInputText();
+            log.info("未配置查询模板,使用上游节点输出作为查询关键词: {}", textInput);
+        }
+
         if (StringUtils.isBlank(textInput)) {
             log.warn("知识检索节点输入内容为空");
             return NodeProcessResult.builder()
