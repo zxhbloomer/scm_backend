@@ -51,6 +51,9 @@ public class MilvusVectorIndexingService {
     public int ingestDocument(AiKnowledgeBaseEntity kb, AiKnowledgeBaseItemEntity item) {
         try {
             log.info("开始向量化索引, item_uuid: {}, kb_uuid: {}", item.getItemUuid(), item.getKbUuid());
+            log.info("[METADATA调试] 输入数据 - title: [{}], brief: [{}], remark长度: {}",
+                    item.getTitle(), item.getBrief(),
+                    item.getRemark() != null ? item.getRemark().length() : 0);
 
             // 1. 文本分割
             List<String> textSegments = splitDocument(item.getRemark(), kb);
@@ -69,6 +72,11 @@ public class MilvusVectorIndexingService {
                 metadata.put("total_segments", textSegments.size());
                 metadata.put("file_name", item.getSourceFileName());
                 metadata.put("tenant_code", extractTenantCodeFromKbUuid(item.getKbUuid()));
+                metadata.put("title", item.getTitle() != null ? item.getTitle() : "");
+                metadata.put("brief", item.getBrief() != null ? item.getBrief() : "");
+
+                // 调试日志: 打印完整metadata
+                log.info("[METADATA调试] 第{}段metadata: {}", i, metadata);
 
                 // 创建Document(id使用UuidUtil生成)
                 Document document = new Document(UuidUtil.createShort(), segment, metadata);

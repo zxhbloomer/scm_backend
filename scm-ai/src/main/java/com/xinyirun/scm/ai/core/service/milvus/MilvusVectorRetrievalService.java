@@ -62,15 +62,25 @@ public class MilvusVectorRetrievalService {
             log.info("开始向量检索, question: {}, kbUuid: {}, maxResults: {}, minScore: {}",
                     question, kbUuid, maxResults, minScore);
 
-            // 1. 构建SearchRequest(Spring AI标准API)
-            SearchRequest request = SearchRequest.builder()
+            // 1. 构建Milvus原生过滤表达式
+            // 注意: kb_uuid存储在metadata JSON字段中,需要使用JSON路径语法
+            String nativeFilter = String.format("metadata[\"kb_uuid\"] == \"%s\"", kbUuid);
+            log.info("[METADATA调试] 使用nativeFilter: {}, 原始minScore: {}", nativeFilter, minScore);
+
+            // 临时调试: 先不使用阈值过滤,看看Milvus原始返回了多少结果
+            // TODO: 调试完成后恢复minScore
+            double debugMinScore = 0.0;
+            log.info("[METADATA调试] 临时使用debugMinScore: {} (原始: {})", debugMinScore, minScore);
+
+            // 2. 使用MilvusSearchRequest构建请求(绕过Spring AI的FilterExpressionConverter)
+            MilvusSearchRequest request = MilvusSearchRequest.milvusBuilder()
                     .query(question)
                     .topK(maxResults)
-                    .similarityThreshold(minScore)
-                    .filterExpression(String.format("kb_uuid == '%s'", kbUuid))
+                    .similarityThreshold(debugMinScore)
+                    .nativeExpression(nativeFilter)
                     .build();
 
-            // 2. 执行搜索(VectorStore自动向量化问题)
+            // 3. 执行搜索(VectorStore自动向量化问题)
             List<Document> documents = vectorStore.similaritySearch(request);
             log.info("Milvus搜索完成, 命中数: {}", documents.size());
 
@@ -78,6 +88,9 @@ public class MilvusVectorRetrievalService {
             List<VectorSearchResultVo> results = new ArrayList<>();
             for (Document doc : documents) {
                 String embeddingId = doc.getId();
+
+                // 调试日志: 打印完整metadata
+                log.info("[METADATA调试] 检索到文档 - embeddingId: {}, metadata: {}", embeddingId, doc.getMetadata());
 
                 // 从metadata获取相似度分数
                 Double score = doc.getMetadata().containsKey("score")

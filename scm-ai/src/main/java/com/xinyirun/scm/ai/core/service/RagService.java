@@ -380,8 +380,22 @@ public class RagService {
         // 使用知识库配置的系统提示词
         String systemMessage = knowledgeBase.getQuerySystemMessage();
         if (StringUtils.isBlank(systemMessage)) {
-            systemMessage = "你是一个基于知识库的AI助手，请根据提供的知识库上下文回答用户问题。" +
-                    "如果上下文中没有相关信息，请诚实地告诉用户你不知道答案。";
+            systemMessage = """
+                你是一个基于知识库的AI助手。
+
+                【核心原则】
+                1. 忠实返回知识库检索到的所有信息，不要因为格式不符合预期就说"无法回答"
+                2. 如果检索到的是问题列表，就整理这些问题并返回给用户
+                3. 如果检索到的是文档内容片段，就提取关键信息并返回
+                4. 只有当检索结果完全为空时，才说"知识库中没有找到相关信息"
+
+                【回答策略】
+                - 检索到问题列表时：输出"根据知识库，以下是关于XXX的相关问题："，然后列出所有问题
+                - 检索到文档内容时：输出"根据知识库检索结果："，然后整理并返回关键信息
+                - 检索结果为空时：输出"知识库中暂时没有关于XXX的信息"
+
+                记住：只要检索到了数据，就要忠实返回，让用户看到知识库里有什么内容。
+                """;
         }
 
         // 使用SystemMessage而不是拼接到prompt
@@ -398,6 +412,14 @@ public class RagService {
             userMessageBuilder.append("=== 向量检索结果 ===\n");
             for (int i = 0; i < vectorResults.size(); i++) {
                 VectorSearchResultVo result = vectorResults.get(i);
+
+                // 调试日志: 打印检索结果的metadata
+                log.info("[METADATA调试] 第{}个检索结果 - title: [{}], brief: [{}], content长度: {}",
+                        i + 1,
+                        result.getMetadata() != null ? result.getMetadata().get("title") : "null",
+                        result.getMetadata() != null ? result.getMetadata().get("brief") : "null",
+                        result.getContent() != null ? result.getContent().length() : 0);
+
                 userMessageBuilder.append("[").append(i + 1).append("] ")
                         .append(result.getContent())
                         .append(" (相似度: ").append(String.format("%.2f", result.getScore()))
