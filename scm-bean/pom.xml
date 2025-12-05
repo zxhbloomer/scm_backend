@@ -66,6 +66,11 @@
 <!--            <groupId>io.springfox</groupId>-->
 <!--            <artifactId>springfox-swagger-ui</artifactId>-->
 <!--        </dependency>-->
+        <!-- springdoc-openapi: OpenAPI 3.0 文档生成，用于@Schema注解 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.flowable</groupId>
             <artifactId>flowable-spring-boot-starter-process</artifactId>
