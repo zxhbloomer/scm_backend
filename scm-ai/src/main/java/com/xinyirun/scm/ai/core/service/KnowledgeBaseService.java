@@ -103,16 +103,26 @@ public class KnowledgeBaseService {
             String uuid = UuidUtil.createShort();
             entity.setKbUuid(tenantCode + "::" + uuid);
 
-            Long currentUserId = SecurityUtil.getStaff_id();
-            entity.setOwnerId(String.valueOf(currentUserId));
-
-            // 查询员工信息获取name
-            MStaffVo staffVo = staffService.selectByid(currentUserId);
-            if (staffVo != null && staffVo.getName() != null) {
-                entity.setOwnerName(staffVo.getName());
+            // 设置ownerId和ownerName
+            // 优先使用VO中传入的值（MCP工具场景），避免在异步线程中依赖SecurityUtil
+            if (StringUtils.isNotBlank(vo.getOwnerId())) {
+                // 使用传入的ownerId（临时知识库场景）
+                entity.setOwnerId(vo.getOwnerId());
+                entity.setOwnerName(vo.getOwnerName() != null ? vo.getOwnerName() : "");
+                log.info("使用传入的ownerId: {}, ownerName: {}", vo.getOwnerId(), vo.getOwnerName());
             } else {
-                log.warn("无法获取员工姓名，userId: {}", currentUserId);
-                entity.setOwnerName("");
+                // 从SecurityUtil获取（Web请求场景）
+                Long currentUserId = SecurityUtil.getStaff_id();
+                entity.setOwnerId(String.valueOf(currentUserId));
+
+                // 查询员工信息获取name
+                MStaffVo staffVo = staffService.selectByid(currentUserId);
+                if (staffVo != null && staffVo.getName() != null) {
+                    entity.setOwnerName(staffVo.getName());
+                } else {
+                    log.warn("无法获取员工姓名，userId: {}", currentUserId);
+                    entity.setOwnerName("");
+                }
             }
 
             knowledgeBaseMapper.insert(entity);
