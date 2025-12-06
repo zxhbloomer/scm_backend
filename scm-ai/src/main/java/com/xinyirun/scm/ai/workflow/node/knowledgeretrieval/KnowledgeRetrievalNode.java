@@ -56,19 +56,37 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
 
         // 检查是否使用临时知识库
         if (Boolean.TRUE.equals(nodeConfig.getIsTempKb())) {
-            log.info("使用临时知识库,临时知识库节点UUID: {}, 变量引用: {}",
+            log.info("使用临时知识库,临时知识库节点UUID: {}, 配置的变量引用: {}",
                     nodeConfig.getTempKbNodeUuid(), kbUuid);
+
+            // 直接从上游节点输出的JSON中提取kbUuid
+            // 上游TempKnowledgeBaseNode输出格式: {"success":true,"kbUuid":"scm_tenant_xxx::uuid",...}
+            String upstreamJson = getFirstInputText();
+            if (StringUtils.isNotBlank(upstreamJson)) {
+                try {
+                    com.alibaba.fastjson2.JSONObject jsonObj = com.alibaba.fastjson2.JSON.parseObject(upstreamJson);
+                    String extractedKbUuid = jsonObj.getString("kbUuid");
+                    if (StringUtils.isNotBlank(extractedKbUuid)) {
+                        kbUuid = extractedKbUuid;
+                        log.info("从上游临时知识库节点输出中提取kbUuid: {}", kbUuid);
+                    } else {
+                        log.warn("上游节点输出JSON中未找到kbUuid字段");
+                    }
+                } catch (Exception e) {
+                    log.warn("解析上游节点输出JSON失败: {}, 尝试使用变量渲染", e.getMessage());
+                }
+            }
         }
 
-        // 如果是变量引用(格式:{nodeUuid_paramName}),进行变量渲染
+        // 如果仍是变量引用格式(格式:{nodeUuid_paramName}),尝试变量渲染(兼容旧逻辑)
         if (kbUuid.startsWith("{") && kbUuid.endsWith("}")) {
             String originalKbUuid = kbUuid;
             kbUuid = WorkflowUtil.renderTemplate(kbUuid, state.getInputs());
             log.info("渲染临时知识库变量引用: {} -> {}", originalKbUuid, kbUuid);
 
             // 验证渲染后的知识库UUID
-            if (StringUtils.isBlank(kbUuid)) {
-                throw new BusinessException("知识库UUID不能为空(变量引用解析失败,请确保上游临时知识库节点已执行)");
+            if (StringUtils.isBlank(kbUuid) || (kbUuid.startsWith("{") && kbUuid.endsWith("}"))) {
+                throw new BusinessException("知识库UUID解析失败,请确保上游临时知识库节点已执行并正确输出kbUuid");
             }
         }
 
