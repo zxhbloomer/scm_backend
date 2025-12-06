@@ -750,11 +750,16 @@ public class WorkflowEngine {
         stateGraph.addEdge(START, startNode.getUuid());
         wfState.addEdge(START, startNode.getUuid());
 
-        // 3. 收集条件分支节点（有带sourceHandle的出边）
-        Set<String> conditionalSourceNodes = new HashSet<>();
-        for (AiWorkflowEdgeEntity edge : wfEdges) {
-            if (StringUtils.isNotBlank(edge.getSourceHandle())) {
-                conditionalSourceNodes.add(edge.getSourceNodeUuid());
+        // 3. 找出所有条件分支节点的UUID（Switcher和Classifier组件）
+        // 注意：sourceHandle="right"只是X6图的默认连接点，不代表条件分支
+        Set<String> conditionalNodeUuids = new HashSet<>();
+        for (AiWorkflowNodeVo node : wfNodes) {
+            AiWorkflowComponentEntity component = components.stream()
+                .filter(c -> c.getId().equals(node.getWorkflowComponentId()))
+                .findFirst()
+                .orElse(null);
+            if (component != null && ("Switcher".equals(component.getName()) || "Classifier".equals(component.getName()))) {
+                conditionalNodeUuids.add(node.getUuid());
             }
         }
 
@@ -766,13 +771,8 @@ public class WorkflowEngine {
             String source = edge.getSourceNodeUuid();
             String target = edge.getTargetNodeUuid();
 
-            // 跳过条件分支边（有sourceHandle），由processConditionalEdges单独处理
-            if (StringUtils.isNotBlank(edge.getSourceHandle())) {
-                continue;
-            }
-
-            // 跳过条件分支节点的普通边（这些节点的所有出边都由条件边处理）
-            if (conditionalSourceNodes.contains(source)) {
+            // 跳过条件分支节点的边（由processConditionalEdges单独处理）
+            if (conditionalNodeUuids.contains(source)) {
                 continue;
             }
 
@@ -794,15 +794,30 @@ public class WorkflowEngine {
     /**
      * 处理条件分支边
      *
+     * <p>只处理Switcher和Classifier组件的边作为条件边，普通节点的边不应被处理为条件边</p>
+     *
      * @param stateGraph 状态图
      * @throws GraphStateException 状态图异常
      */
     private void processConditionalEdges(StateGraph stateGraph) throws GraphStateException {
-        // 找出所有条件分支节点（有带sourceHandle的出边）
-        Map<String, List<AiWorkflowEdgeEntity>> conditionalEdgesMap = new HashMap<>();
+        // 找出所有条件分支节点的UUID（Switcher和Classifier组件）
+        Set<String> conditionalNodeUuids = new HashSet<>();
+        for (AiWorkflowNodeVo node : wfNodes) {
+            AiWorkflowComponentEntity component = components.stream()
+                .filter(c -> c.getId().equals(node.getWorkflowComponentId()))
+                .findFirst()
+                .orElse(null);
+            // 只有Switcher和Classifier组件才是条件分支节点
+            if (component != null && ("Switcher".equals(component.getName()) || "Classifier".equals(component.getName()))) {
+                conditionalNodeUuids.add(node.getUuid());
+            }
+        }
 
+        // 只收集条件分支节点的出边
+        Map<String, List<AiWorkflowEdgeEntity>> conditionalEdgesMap = new HashMap<>();
         for (AiWorkflowEdgeEntity edge : wfEdges) {
-            if (StringUtils.isNotBlank(edge.getSourceHandle())) {
+            // 只处理条件分支节点的边
+            if (conditionalNodeUuids.contains(edge.getSourceNodeUuid())) {
                 conditionalEdgesMap
                     .computeIfAbsent(edge.getSourceNodeUuid(), k -> new ArrayList<>())
                     .add(edge);
@@ -820,10 +835,18 @@ public class WorkflowEngine {
                 mappings.put(edge.getTargetNodeUuid(), edge.getTargetNodeUuid());
             }
 
-            // 添加条件边
+            // 添加条件边（增加null安全检查）
             stateGraph.addConditionalEdges(
                 sourceUuid,
-                edge_async(state -> state.data().get("next").toString()),
+                edge_async(state -> {
+                    Object next = state.data().get("next");
+                    if (next == null) {
+                        log.warn("条件分支节点[{}]未设置next字段，使用默认路由", sourceUuid);
+                        // 返回第一个目标节点作为默认路由
+                        return conditionalEdges.isEmpty() ? null : conditionalEdges.get(0).getTargetNodeUuid();
+                    }
+                    return next.toString();
+                }),
                 mappings
             );
         }

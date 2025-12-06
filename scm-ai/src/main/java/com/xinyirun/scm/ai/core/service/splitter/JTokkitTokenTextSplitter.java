@@ -9,6 +9,7 @@ import com.knuddels.jtokkit.api.EncodingRegistry;
 import com.knuddels.jtokkit.api.EncodingType;
 import com.knuddels.jtokkit.api.IntArrayList;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.transformer.splitter.TextSplitter;
 import org.springframework.util.Assert;
 
@@ -42,6 +43,7 @@ import org.springframework.util.Assert;
  * @author SCM AI Team
  * @since 2025-10-17
  */
+@Slf4j
 public class JTokkitTokenTextSplitter extends TextSplitter {
 
     /**
@@ -159,63 +161,71 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
             return new ArrayList<>();
         }
 
-        List<Integer> tokens = getEncodedTokens(text);
+        List<Integer> tokens = new ArrayList<>(getEncodedTokens(text));
         List<String> chunks = new ArrayList<>();
-        int num_chunks = 0;
+        int totalTokens = tokens.size();
+        int loopCount = 0;
 
-        while (!tokens.isEmpty() && num_chunks < this.maxNumChunks) {
+        log.info("[分割开始] 总tokens: {}, chunkSize: {}, overlap: {}", totalTokens, chunkSize, overlapSize);
+
+        while (!tokens.isEmpty() && loopCount < 100) {  // 增加循环保护
+            loopCount++;
+
             // 1. 提取当前chunk的tokens
             int endIndex = Math.min(chunkSize, tokens.size());
             List<Integer> chunk = tokens.subList(0, endIndex);
             String chunkText = decodeTokens(chunk);
 
+            log.info("[第{}次循环] tokens剩余: {}, endIndex: {}, chunkText长度: {}",
+                    loopCount, tokens.size(), endIndex, chunkText.length());
+
             // 2. 跳过空白chunk
             if (chunkText.trim().isEmpty()) {
-                tokens = tokens.subList(chunk.size(), tokens.size());
+                log.warn("[跳过空白chunk] 推进{}个tokens", endIndex);
+                tokens = new ArrayList<>(tokens.subList(endIndex, tokens.size()));
                 continue;
             }
 
             // 3. 在自然分隔符处优化切分（保持语义完整性）
-            // 🔧 重要：只优化输出文本，不影响位置推进
             int lastSeparator = chunkText.lastIndexOf(this.customSeparator);
+            String originalChunkText = chunkText;
             if (lastSeparator != -1 && lastSeparator > this.minChunkSizeChars) {
-                // 在分隔符处截断文本（仅用于输出，不影响tokens推进）
                 chunkText = chunkText.substring(0, lastSeparator + this.customSeparator.length());
+                log.info("[分隔符优化] 原长度: {}, 优化后: {}, lastSeparator位置: {}",
+                        originalChunkText.length(), chunkText.length(), lastSeparator);
             }
 
             // 4. 格式化chunk文本并添加到结果
             String chunkTextToAppend = this.keepSeparator ? chunkText.trim() : chunkText.replace(System.lineSeparator(), " ").trim();
             if (chunkTextToAppend.length() > this.minChunkLengthToEmbed) {
                 chunks.add(chunkTextToAppend);
+                log.info("[添加chunk] 第{}个chunk, 长度: {}, 前50字符: {}",
+                        chunks.size(), chunkTextToAppend.length(),
+                        chunkTextToAppend.length() > 50 ? chunkTextToAppend.substring(0, 50) : chunkTextToAppend);
+            } else {
+                log.warn("[过滤短chunk] 长度: {} < minLength: {}", chunkTextToAppend.length(), minChunkLengthToEmbed);
             }
 
-            // 5. 实现overlap: 使用原始endIndex推进，避免无限循环
-            // 🔧 关键修复（2025-10-18）：
-            // 使用原始endIndex而不是优化后的actualTokensUsed
-            // 原因：分隔符优化只影响输出文本，不应影响token位置推进
-            // 例如：endIndex=300, 优化后actualTokensUsed=20
-            //      如果用actualTokensUsed: nextStart = max(0, 20-50) = 0 → 无限循环
-            //      如果用endIndex: nextStart = max(0, 300-50) = 250 → 正常推进
+            // 5. 实现overlap: 每次复制新的list，避免视图嵌套
             int nextStart = Math.max(0, endIndex - this.overlapSize);
+            log.info("[位置推进] endIndex: {}, overlapSize: {}, nextStart: {}, 推进前tokens.size: {}",
+                    endIndex, overlapSize, nextStart, tokens.size());
 
-            // 防止无限循环：如果无法推进（剩余tokens <= overlapSize），跳出循环
-            if (nextStart == 0 && tokens.size() <= this.overlapSize) {
-                break;
+            if (nextStart == 0 && tokens.size() > overlapSize) {
+                log.error("[检测到无限循环风险] nextStart=0但tokens.size({}) > overlapSize({}), 强制推进{}个tokens",
+                        tokens.size(), overlapSize, Math.min(100, endIndex));
+                nextStart = Math.min(100, endIndex);  // 强制推进至少100个tokens或endIndex
             }
 
-            tokens = tokens.subList(nextStart, tokens.size());
-
-            num_chunks++;
+            tokens = new ArrayList<>(tokens.subList(nextStart, tokens.size()));
+            log.info("[推进后] tokens剩余: {}\n", tokens.size());
         }
 
-        // 6. 处理剩余tokens
-        if (!tokens.isEmpty()) {
-            String remaining_text = decodeTokens(tokens).replace(System.lineSeparator(), " ").trim();
-            if (remaining_text.length() > this.minChunkLengthToEmbed) {
-                chunks.add(remaining_text);
-            }
+        if (loopCount >= 100) {
+            log.error("[循环超限] 达到100次循环保护上限, 生成chunks: {}, 剩余tokens: {}", chunks.size(), tokens.size());
         }
 
+        log.info("[分割完成] 生成chunks: {}, 剩余tokens: {}", chunks.size(), tokens.size());
         return chunks;
     }
 

@@ -364,9 +364,12 @@ public class WorkflowUtil {
                 return false;
             }
 
-            boolean isMcpTool = "McpTool".equals(component.getName());
+            // 需要启用MCP工具的组件类型：McpTool、TempKnowledgeBase
+            // TempKnowledgeBase通过LLM的Function Calling调用TempKnowledgeBaseMcpTools
+            String componentName = component.getName();
+            boolean isMcpTool = "McpTool".equals(componentName) || "TempKnowledgeBase".equals(componentName);
             log.debug("节点组件类型检测 - componentId: {}, name: {}, isMcpTool: {}",
-                    component.getId(), component.getName(), isMcpTool);
+                    component.getId(), componentName, isMcpTool);
             return isMcpTool;
         } catch (Exception e) {
             log.error("判断节点类型时发生异常, nodeId: {}, 默认为非MCP工具节点", node.getWorkflowComponentId(), e);

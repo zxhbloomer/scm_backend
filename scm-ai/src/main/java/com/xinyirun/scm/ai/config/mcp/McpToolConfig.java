@@ -250,8 +250,16 @@ class McpToolCallbackAdapter {
                 McpToolParam mcpParam = param.getAnnotation(McpToolParam.class);
 
                 JSONObject propertySchema = new JSONObject();
-                propertySchema.put("type", getJsonType(param.getType()));
+                String jsonType = getJsonType(param.getType());
+                propertySchema.put("type", jsonType);
                 propertySchema.put("description", mcpParam.description());
+
+                // 如果是数组类型，需要添加items定义
+                if ("array".equals(jsonType)) {
+                    JSONObject itemsSchema = new JSONObject();
+                    itemsSchema.put("type", "string");  // 默认数组元素为string类型
+                    propertySchema.put("items", itemsSchema);
+                }
 
                 properties.put(param.getName(), propertySchema);
 
@@ -309,6 +317,9 @@ class McpToolCallbackAdapter {
             return "number";
         } else if (javaType == Boolean.class || javaType == boolean.class) {
             return "boolean";
+        } else if (List.class.isAssignableFrom(javaType)) {
+            // List类型映射为JSON Schema的array类型
+            return "array";
         } else {
             return "string";
         }
@@ -323,6 +334,7 @@ class McpToolCallbackAdapter {
      * @param targetType 目标类型
      * @return 转换后的值
      */
+    @SuppressWarnings("unchecked")
     private static Object convertType(Object value, Class<?> targetType) {
         if (value == null) {
             return null;
@@ -330,6 +342,22 @@ class McpToolCallbackAdapter {
 
         if (targetType.isInstance(value)) {
             return value;
+        }
+
+        // 处理List类型：LLM返回的数组会是List或Collection类型
+        if (List.class.isAssignableFrom(targetType)) {
+            if (value instanceof List) {
+                return value;
+            } else if (value instanceof String) {
+                // 如果是JSON字符串，尝试解析
+                String strValue = (String) value;
+                if (strValue.startsWith("[") && strValue.endsWith("]")) {
+                    return JSON.parseArray(strValue, String.class);
+                }
+                // 单个字符串转为List
+                return List.of(strValue);
+            }
+            return new ArrayList<>();
         }
 
         String strValue = value.toString();
