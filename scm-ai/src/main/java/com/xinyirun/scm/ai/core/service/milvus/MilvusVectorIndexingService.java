@@ -70,7 +70,7 @@ public class MilvusVectorIndexingService {
                 metadata.put("kb_item_uuid", item.getItemUuid());
                 metadata.put("segment_index", i);
                 metadata.put("total_segments", textSegments.size());
-                metadata.put("file_name", item.getSourceFileName());
+                metadata.put("file_name", item.getSourceFileName() != null ? item.getSourceFileName() : "");
                 metadata.put("tenant_code", extractTenantCodeFromKbUuid(item.getKbUuid()));
                 metadata.put("title", item.getTitle() != null ? item.getTitle() : "");
                 metadata.put("brief", item.getBrief() != null ? item.getBrief() : "");
@@ -83,8 +83,18 @@ public class MilvusVectorIndexingService {
                 documents.add(document);
             }
 
-            // 3. 批量添加到Milvus(VectorStore自动生成embedding)
-            vectorStore.add(documents);
+            // 3. 分批添加到Milvus(SiliconFlow embedding API限制batch size <= 64)
+            int batchSize = 50;  // 安全批量大小
+            int totalBatches = (documents.size() + batchSize - 1) / batchSize;
+
+            for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+                int start = batchIndex * batchSize;
+                int end = Math.min(start + batchSize, documents.size());
+                List<Document> batch = documents.subList(start, end);
+
+                log.info("正在处理第 {}/{} 批, 文档数: {}", batchIndex + 1, totalBatches, batch.size());
+                vectorStore.add(batch);
+            }
 
             log.info("向量化索引完成, item_uuid: {}, 成功索引: {} 个文本段",
                     item.getItemUuid(), documents.size());
