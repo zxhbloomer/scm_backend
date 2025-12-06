@@ -48,9 +48,11 @@ public class TempKnowledgeBaseAiService {
      *
      * @param text 文本内容（可选）
      * @param fileUrls 文件URL数组（可选）
+     * @param brief 简介（用于填充知识项的title和brief字段）
+     * @param staffId 员工ID（MCP工具传入，避免依赖SecurityUtil）
      * @return 包含创建结果的Map
      */
-    public Map<String, Object> createTempKnowledgeBase(String text, List<String> fileUrls) {
+    public Map<String, Object> createTempKnowledgeBase(String text, List<String> fileUrls, String brief, Long staffId) {
         try {
             // 1. 参数验证
             if ((text == null || text.trim().isEmpty()) &&
@@ -62,7 +64,8 @@ public class TempKnowledgeBaseAiService {
             }
 
             // 2. 创建临时知识库
-            AiKnowledgeBaseVo kbVo = buildTempKnowledgeBase();
+            // 重要：传入staffId，避免在异步线程中依赖SecurityUtil获取用户信息
+            AiKnowledgeBaseVo kbVo = buildTempKnowledgeBase(staffId);
             AiKnowledgeBaseVo savedKb = knowledgeBaseService.saveOrUpdate(kbVo);
             String kbUuid = savedKb.getKbUuid();
 
@@ -74,14 +77,14 @@ public class TempKnowledgeBaseAiService {
 
             // 3.1 创建文本item
             if (text != null && !text.trim().isEmpty()) {
-                String textItemUuid = createTextItem(kbUuid, savedKb.getId(), text);
+                String textItemUuid = createTextItem(kbUuid, savedKb.getId(), text, brief);
                 itemUuids.add(textItemUuid);
                 log.info("文本item创建成功: itemUuid={}", textItemUuid);
             }
 
             // 3.2 创建文件items
             if (fileUrls != null && !fileUrls.isEmpty()) {
-                List<String> fileItemUuids = createFileItems(kbUuid, fileUrls);
+                List<String> fileItemUuids = createFileItems(kbUuid, savedKb.getId(), fileUrls, brief);
                 itemUuids.addAll(fileItemUuids);
                 log.info("文件items创建成功，数量: {}", fileItemUuids.size());
             }
@@ -113,8 +116,10 @@ public class TempKnowledgeBaseAiService {
 
     /**
      * 构建临时知识库VO
+     *
+     * @param staffId 员工ID（用于设置ownerId，避免依赖SecurityUtil）
      */
-    private AiKnowledgeBaseVo buildTempKnowledgeBase() {
+    private AiKnowledgeBaseVo buildTempKnowledgeBase(Long staffId) {
         AiKnowledgeBaseVo kbVo = new AiKnowledgeBaseVo();
         String timestamp = LocalDateTime.now().format(
                 DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
@@ -125,6 +130,13 @@ public class TempKnowledgeBaseAiService {
         kbVo.setExpireTime(LocalDateTime.now().plusHours(2));
         kbVo.setIsPublic(0);  // 私有
         kbVo.setIsStrict(0);  // 非严格模式
+
+        // 重要：直接设置ownerId，避免KnowledgeBaseService.saveOrUpdate依赖SecurityUtil
+        // 在MCP异步线程中SecurityUtil上下文不可用，会导致selectByid查询错误
+        if (staffId != null) {
+            kbVo.setOwnerId(String.valueOf(staffId));
+            kbVo.setOwnerName("MCP工具用户");  // 临时知识库不需要精确的用户名
+        }
 
         // 设置默认配置
         kbVo.setIngestMaxOverlap(2000);
@@ -139,20 +151,29 @@ public class TempKnowledgeBaseAiService {
 
     /**
      * 创建文本类型的知识项
+     *
+     * @param kbUuid 知识库UUID
+     * @param kbId 知识库ID
+     * @param text 文本内容
+     * @param brief 简介（用于填充title和brief字段）
+     * @return 知识项UUID
      */
-    private String createTextItem(String kbUuid, String kbId, String text) {
+    private String createTextItem(String kbUuid, String kbId, String text, String brief) {
         AiKnowledgeBaseItemEntity item = new AiKnowledgeBaseItemEntity();
 
         String tenantCode = DataSourceHelper.getCurrentDataSourceName();
         String uuid = UuidUtil.createShort();
         String itemUuid = tenantCode + "::" + uuid;
 
+        // 向后兼容: brief为空时使用默认值
+        String actualBrief = (brief == null || brief.trim().isEmpty()) ? "文本内容" : brief;
+
         item.setItemUuid(itemUuid);
         item.setKbId(kbId);
         item.setKbUuid(kbUuid);
-        item.setTitle("文本内容");
+        item.setTitle(actualBrief);  // 使用brief填充title
         item.setRemark(text);  // 文本内容保存在remark字段
-        item.setBrief(text.length() > 200 ? text.substring(0, 200) : text);
+        item.setBrief(actualBrief);  // 使用brief填充brief字段
         item.setEmbeddingStatus(0);  // 待索引
 
         documentProcessingService.getItemMapper().insert(item);
@@ -162,25 +183,49 @@ public class TempKnowledgeBaseAiService {
 
     /**
      * 创建文件类型的知识项
+     *
+     * @param kbUuid 知识库UUID
+     * @param kbId 知识库ID
+     * @param fileUrls 文件URL列表
+     * @param brief 简介（用于填充title和brief字段）
+     * @return 知识项UUID列表
      */
-    private List<String> createFileItems(String kbUuid, List<String> fileUrls) {
-        List<SFileInfoVo> fileInfoList = new ArrayList<>();
+    private List<String> createFileItems(String kbUuid, String kbId, List<String> fileUrls, String brief) {
+        // 向后兼容: brief为空时使用默认值
+        String actualBrief = (brief == null || brief.trim().isEmpty()) ? "文件内容" : brief;
 
+        // 1. 构建文件信息列表
+        List<SFileInfoVo> fileInfoList = new ArrayList<>();
         for (String fileUrl : fileUrls) {
             String fileName = extractFileNameFromUrl(fileUrl);
 
             SFileInfoVo fileInfo = new SFileInfoVo();
             fileInfo.setUrl(fileUrl);
             fileInfo.setFileName(fileName);
-            fileInfo.setFile_size(new java.math.BigDecimal("0"));  // 文件大小未知
+            fileInfo.setFile_size(new java.math.BigDecimal("0"));
             fileInfoList.add(fileInfo);
         }
 
-        return documentProcessingService
+        // 2. 调用批量创建方法（会使用文件名作为title）
+        List<String> itemUuids = documentProcessingService
                 .batchCreateItems(kbUuid, fileInfoList, false)
                 .stream()
                 .map(vo -> vo.getItemUuid())
                 .toList();
+
+        // 3. 手动更新每个item的title和brief为用户输入的简介
+        for (String itemUuid : itemUuids) {
+            AiKnowledgeBaseItemEntity item = documentProcessingService.getItemMapper()
+                    .selectByItemUuid(itemUuid);
+
+            if (item != null) {
+                item.setTitle(actualBrief);
+                item.setBrief(actualBrief);
+                documentProcessingService.getItemMapper().updateById(item);
+            }
+        }
+
+        return itemUuids;
     }
 
     /**
