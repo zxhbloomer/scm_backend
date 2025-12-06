@@ -1,14 +1,26 @@
 package com.xinyirun.scm.ai.workflow.node.tempknowledgebase;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
+import com.xinyirun.scm.ai.mcp.utils.temp.knowledge.service.TempKnowledgeBaseAiService;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.WfState;
-import com.xinyirun.scm.ai.workflow.WorkflowUtil;
+import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
+import com.xinyirun.scm.core.bpm.utils.SpringContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
 
 /**
  * 临时知识库节点
@@ -16,19 +28,17 @@ import org.apache.commons.lang3.StringUtils;
  * 功能：创建2小时自动过期的临时知识库，同步完成向量索引
  *
  * 设计理念：
- * - 极简配置，只需要选择模型
- * - 后台硬编码提示词："创建临时知识库并同步完成向量索引"
+ * - 极简配置，只需要配置简介(brief)
  * - 自动使用上游节点的输出作为输入
- * - LLM根据输入内容自动判断text还是fileUrls，然后调用MCP工具
+ * - 直接调用TempKnowledgeBaseAiService创建知识库（不依赖LLM的Function Calling）
  * - 输出kbUuid供下游知识检索节点使用
  *
  * 执行流程:
- * 1. 解析节点配置，获取model_name
+ * 1. 解析节点配置，获取brief
  * 2. 获取上游节点的输出（必需）
- * 3. 构建完整prompt（硬编码 + 上游输出）
- * 4. 通过LLM的Function Calling调用TempKnowledgeBaseMcpTools
- * 5. LLM根据输入内容自动判断text还是fileUrls
- * 6. 流式返回kbUuid，供下游节点使用
+ * 3. 从输入内容中提取URL（如果有）
+ * 4. 直接调用TempKnowledgeBaseAiService.createTempKnowledgeBase()
+ * 5. 将kbUuid作为节点输出，供下游节点使用
  *
  * 使用场景：
  * - 合同审批workflow：基于用户输入创建临时知识库
@@ -42,18 +52,12 @@ import org.apache.commons.lang3.StringUtils;
 public class TempKnowledgeBaseNode extends AbstractWfNode {
 
     /**
-     * 硬编码的LLM提示词
-     *
-     * 目的：指导LLM调用TempKnowledgeBaseMcpTools.createTempKnowledgeBase()
-     *
-     * LLM会自动：
-     * 1. 发现TempKnowledgeBaseMcpTools工具
-     * 2. 将工具定义作为Function Call提供
-     * 3. 根据此提示词调用createTempKnowledgeBase方法
-     * 4. 根据输入内容自动判断text还是fileUrls参数
+     * URL提取正则表达式
+     * 匹配http://或https://开头的URL
      */
-    private static final String HARDCODED_PROMPT =
-            "创建临时知识库并同步完成向量索引";
+    private static final Pattern URL_PATTERN = Pattern.compile(
+            "(https?://[\\w\\-._~:/?#\\[\\]@!$&'()*+,;=%]+)",
+            Pattern.CASE_INSENSITIVE);
 
     public TempKnowledgeBaseNode(AiWorkflowComponentEntity wfComponent,
                                  AiWorkflowNodeVo node,
@@ -65,7 +69,7 @@ public class TempKnowledgeBaseNode extends AbstractWfNode {
     /**
      * 节点执行入口
      *
-     * @return NodeProcessResult 节点执行结果（流式输出通过StreamHandler实时发送）
+     * @return NodeProcessResult 节点执行结果
      */
     @Override
     protected NodeProcessResult onProcess() {
@@ -89,37 +93,88 @@ public class TempKnowledgeBaseNode extends AbstractWfNode {
                     upstreamInput.length() > 100 ?
                     upstreamInput.substring(0, 100) + "..." : upstreamInput);
 
-            // 3. 获取模型名称（可选配置，默认使用gj-deepseek）
-            String modelName = config.getModel_name();
-            if (StringUtils.isBlank(modelName)) {
-                modelName = "gj-deepseek";
+            // 3. 获取简介（必填配置，如果为空则使用默认值）
+            String brief = config.getBrief();
+            if (StringUtils.isBlank(brief)) {
+                brief = "临时知识库内容";
+                log.warn("临时知识库节点未配置简介，使用默认值: {}", brief);
             }
 
-            // 4. 构建完整的prompt（硬编码 + 上游输出）
-            String fullPrompt = HARDCODED_PROMPT + "\n\n输入内容:\n" + upstreamInput;
+            // 4. 从输入内容中提取URL
+            List<String> fileUrls = extractUrls(upstreamInput);
+            String textContent = upstreamInput;
 
-            log.info("临时知识库节点完整prompt: {}", fullPrompt);
+            // 如果有URL，从文本中移除URL（避免重复）
+            if (!fileUrls.isEmpty()) {
+                for (String url : fileUrls) {
+                    textContent = textContent.replace(url, "").trim();
+                }
+                log.info("提取到 {} 个文件URL", fileUrls.size());
+            }
 
-            // 5. 使用LLM的Function Calling能力调用MCP工具
-            // WorkflowUtil.streamingInvokeLLM会自动:
-            // - 发现所有@McpTool注解的工具（包括TempKnowledgeBaseMcpTools）
-            // - 将工具定义作为Function Call提供给LLM
-            // - LLM根据prompt智能选择TempKnowledgeBaseMcpTools.createTempKnowledgeBase
-            // - LLM根据输入内容自动判断是text还是fileUrls
-            // - 自动传递tenantCode和staffId（框架注入）
-            // - 流式返回工具执行结果（包含kbUuid）
-            WorkflowUtil.streamingInvokeLLM(wfState, state, node,
-                    modelName, fullPrompt);
+            // 5. 从workflow上下文获取用户ID（异步线程中SecurityUtil不可用）
+            Long staffId = wfState.getUserId();
 
-            log.info("临时知识库节点执行完成: {}, 模型: {}", node.getTitle(), modelName);
+            // 6. 直接调用TempKnowledgeBaseAiService创建临时知识库
+            TempKnowledgeBaseAiService tempKbService = SpringContextHolder.getBean(
+                    TempKnowledgeBaseAiService.class);
 
-            // 流式输出时，实际内容通过StreamHandler实时发送
-            // 返回的kbUuid会包含在流式输出的JSON中，下游节点可以引用
-            return new NodeProcessResult();
+            Map<String, Object> result = tempKbService.createTempKnowledgeBase(
+                    textContent,
+                    fileUrls.isEmpty() ? null : fileUrls,
+                    brief,
+                    staffId
+            );
+
+            // 7. 检查结果
+            boolean success = (boolean) result.getOrDefault("success", false);
+            if (!success) {
+                String message = (String) result.getOrDefault("message", "创建临时知识库失败");
+                throw new RuntimeException(message);
+            }
+
+            // 8. 获取kbUuid
+            String kbUuid = (String) result.get("kbUuid");
+            log.info("临时知识库创建成功: kbUuid={}", kbUuid);
+
+            // 9. 将结果作为节点输出
+            String outputJson = JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
+
+            // 10. 流式发送输出（模拟LLM输出格式，保持与原有逻辑兼容）
+            if (wfState.getStreamHandler() != null) {
+                wfState.getStreamHandler().sendNodeChunk(node.getUuid(), outputJson);
+            }
+
+            // 11. 创建节点输出（供下游节点引用kbUuid）
+            NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", outputJson);
+
+            log.info("临时知识库节点执行完成: {}, kbUuid: {}", node.getTitle(), kbUuid);
+
+            return NodeProcessResult.builder().content(List.of(output)).build();
 
         } catch (Exception e) {
             log.error("临时知识库节点执行失败: {}", node.getTitle(), e);
             throw new RuntimeException("临时知识库创建失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 从文本中提取URL列表
+     *
+     * @param text 输入文本
+     * @return URL列表（可能为空）
+     */
+    private List<String> extractUrls(String text) {
+        List<String> urls = new ArrayList<>();
+        if (StringUtils.isBlank(text)) {
+            return urls;
+        }
+
+        Matcher matcher = URL_PATTERN.matcher(text);
+        while (matcher.find()) {
+            urls.add(matcher.group(1));
+        }
+
+        return urls;
     }
 }
