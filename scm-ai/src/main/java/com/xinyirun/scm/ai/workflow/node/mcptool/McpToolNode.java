@@ -91,7 +91,8 @@ public class McpToolNode extends AbstractWfNode {
             // - 将工具定义作为Function Call提供给LLM
             // - LLM根据输入智能选择工具并调用
             // - 流式返回工具执行结果
-            WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt);
+            boolean silentMode = config.getShowProcessOutput() != null && !config.getShowProcessOutput();
+            WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt, silentMode);
 
             log.info("MCP工具节点执行完成: {}, 模型: {}", node.getTitle(), modelName);
 

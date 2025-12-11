@@ -140,9 +140,17 @@ public class TempKnowledgeBaseNode extends AbstractWfNode {
             // 9. 将结果作为节点输出
             String outputJson = JSON.toJSONString(result, JSONWriter.Feature.PrettyFormat);
 
-            // 10. 流式发送输出（模拟LLM输出格式，保持与原有逻辑兼容）
-            if (wfState.getStreamHandler() != null) {
+            // 10. 流式发送输出（检查show_process_output配置）
+            // 只有当配置为true（默认）时才发送chunk到聊天界面
+            Boolean showProcessOutput = config.getShowProcessOutput();
+            if (showProcessOutput == null) {
+                showProcessOutput = true;  // 默认显示
+            }
+
+            if (showProcessOutput && wfState.getStreamHandler() != null) {
                 wfState.getStreamHandler().sendNodeChunk(node.getUuid(), outputJson);
+            } else {
+                log.info("临时知识库节点配置show_process_output=false，跳过流式输出");
             }
 
             // 11. 创建节点输出（供下游节点引用kbUuid）

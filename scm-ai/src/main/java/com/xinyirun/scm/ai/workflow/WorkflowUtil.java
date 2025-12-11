@@ -106,6 +106,20 @@ public class WorkflowUtil {
     }
 
     /**
+     * 流式调用 LLM 模型生成响应（向后兼容版本，默认显示输出）
+     *
+     * @param wfState 工作流状态对象
+     * @param nodeState 工作流节点状态
+     * @param node 工作流节点定义
+     * @param modelName 模型名称
+     * @param prompt 提示词/问题
+     */
+    public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
+                                           String modelName, String prompt) {
+        streamingInvokeLLM(wfState, nodeState, node, modelName, prompt, false);
+    }
+
+    /**
      * 流式调用 LLM 模型生成响应
      *
      * <p>支持多轮对话上下文记忆功能：</p>
@@ -123,9 +137,10 @@ public class WorkflowUtil {
      * @param node 工作流节点定义
      * @param modelName 模型名称
      * @param prompt 提示词/问题
+     * @param silentMode 静默模式，true时不流式推送输出到前端，但数据仍传递给下游节点
      */
     public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
-                                           String modelName, String prompt) {
+                                           String modelName, String prompt, boolean silentMode) {
         String conversationId = wfState.getConversationId();
 
         // 提取原始用户输入（用于对话记录，而不是渲染后的prompt）
@@ -180,7 +195,7 @@ public class WorkflowUtil {
                             if (StringUtils.isNotBlank(content)) {
                                 fullResponse.append(content);
 
-                                if (wfState.getStreamHandler() != null) {
+                                if (!silentMode && wfState.getStreamHandler() != null) {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }
@@ -229,7 +244,7 @@ public class WorkflowUtil {
                             if (StringUtils.isNotBlank(content)) {
                                 fullResponse.append(content);
 
-                                if (wfState.getStreamHandler() != null) {
+                                if (!silentMode && wfState.getStreamHandler() != null) {
                                     wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
                                 }
                             }

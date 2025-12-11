@@ -524,17 +524,28 @@ public class WorkflowEngine {
                         // - Answer节点：已经通过NODE_CHUNK事件发送了流式内容
                         // - SubWorkflow节点：子工作流内部的Answer节点已经通过CHUNK事件发送了流式内容
                         // - End节点：结束节点的输出是最终结果，不需要单独发送OUTPUT事件
+                        // - 配置了show_process_output=false的节点：用户不希望在聊天界面显示执行过程
+
+                        // 检查节点配置中的show_process_output开关
+                        boolean showProcessOutput = true;  // 默认显示
+                        JSONObject nodeConfig = wfNode.getNodeConfig();
+                        if (nodeConfig != null && nodeConfig.containsKey("show_process_output")) {
+                            showProcessOutput = nodeConfig.getBooleanValue("show_process_output");
+                        }
+
                         if (!"Start".equals(componentName)
                             && !"Answer".equals(componentName)
                             && !"SubWorkflow".equals(componentName)
-                            && !"End".equals(componentName)) {
+                            && !"End".equals(componentName)
+                            && showProcessOutput) {
                             log.info("发送NODE_OUTPUT事件 - nodeUuid: {}, componentName: {}", nodeUuid, componentName);
                             List<NodeIOData> nodeOutputs = nodeState.getOutputs();
                             for (NodeIOData output : nodeOutputs) {
                                 streamHandler.sendNodeOutput(nodeUuid, JSONObject.toJSONString(output));
                             }
                         } else {
-                            log.info("跳过NODE_OUTPUT事件 - componentName: {}（用户输入回显/流式输出/结束节点）", componentName);
+                            log.info("跳过NODE_OUTPUT事件 - componentName: {}, showProcessOutput: {}（用户输入回显/流式输出/结束节点/静默模式）",
+                                    componentName, showProcessOutput);
                         }
                     }
             );
