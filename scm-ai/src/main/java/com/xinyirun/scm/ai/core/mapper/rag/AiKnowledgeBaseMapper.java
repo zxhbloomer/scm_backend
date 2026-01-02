@@ -46,6 +46,8 @@ public interface AiKnowledgeBaseMapper extends BaseMapper<AiKnowledgeBaseEntity>
             owner_id AS ownerId,
             owner_name AS ownerName,
             item_count AS itemCount,
+            is_temp AS isTemp,
+            expire_time AS expireTime,
             c_time,
             u_time,
             c_id,
