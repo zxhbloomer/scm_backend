@@ -324,15 +324,30 @@ public class WorkflowRoutingService {
 
             // Step 3: 调用Orchestrator LLM进行任务分解(支持多轮对话memory)
             log.info("【Orchestrator】调用LLM进行任务分解, conversationId={}", conversationId);
+            log.info("【Orchestrator】Prompt内容:\n{}", orchestratorPrompt);
+            log.info("【Orchestrator】Prompt长度: {} 字符, 预估token数: {}",
+                orchestratorPrompt.length(),
+                orchestratorPrompt.length() / 2);
+            log.info("【Orchestrator】workflowsInfo长度: {}, mcpToolsInfo长度: {}",
+                workflowsInfo.length(),
+                mcpToolsInfo.length());
+
             final long orchestratorStartTime = System.currentTimeMillis();
+            log.info("【Orchestrator】LLM API调用开始, 时间戳: {}", orchestratorStartTime);
 
             // 获取ChatResponse以提取Usage信息(而非直接.entity()丢失元数据)
+            // extraBody 已在 orchestratorChatClient Bean 的 defaultOptions 中配置
             var chatResponse = orchestratorChatClient.prompt()
                 .user(orchestratorPrompt)
                 // 传递conversationId给Memory Advisor,自动注入历史对话上下文
                 .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .call()
                 .chatResponse();
+
+            final long orchestratorEndTime = System.currentTimeMillis();
+            log.info("【Orchestrator】LLM API调用结束, 时间戳: {}, 耗时: {}ms",
+                orchestratorEndTime,
+                orchestratorEndTime - orchestratorStartTime);
 
             // 【注意】Token记录延后到runtime创建之后,以便获取runtimeId作为serial_id
             Usage orchestratorUsage = null;
@@ -1128,6 +1143,7 @@ public class WorkflowRoutingService {
 
         // 调用Synthesizer LLM生成自然语言回复(流式,支持多轮对话memory)
         // 使用orchestratorChatClient(与Orchestrator阶段相同的ChatClient)
+        // extraBody 已在 orchestratorChatClient Bean 的 defaultOptions 中配置
         return orchestratorChatClient.prompt()
             .user(synthesizerPrompt.toString())
             // 传递conversationId给Memory Advisor,保持上下文一致性

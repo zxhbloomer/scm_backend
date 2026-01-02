@@ -629,10 +629,10 @@ public class Neo4jGraphIndexingService {
             var relResult = session.run(deleteRelationsCypher, params);
             int deletedRelations = relResult.hasNext() ? relResult.next().get("deletedRelations").asInt() : 0;
 
-            // 2. 删除Neo4j实体（批量删除整个知识库的实体）
+            // 2. 删除Neo4j实体（批量删除整个知识库的实体，使用DETACH DELETE自动删除所有关系）
             String deleteNodesCypher = """
                     MATCH (e:Entity {kb_uuid: $kbUuid})
-                    DELETE e
+                    DETACH DELETE e
                     RETURN count(e) as deletedNodes
                     """;
 
@@ -681,10 +681,10 @@ public class Neo4jGraphIndexingService {
             var relResult = session.run(deleteRelationsCypher, params);
             int deletedRelations = relResult.hasNext() ? relResult.next().get("deletedRelations").asInt() : 0;
 
-            // 2. 删除Neo4j实体
+            // 2. 删除Neo4j实体（使用DETACH DELETE自动删除所有关系）
             String deleteNodesCypher = """
                     MATCH (e:Entity {kb_item_uuid: $itemUuid})
-                    DELETE e
+                    DETACH DELETE e
                     RETURN count(e) as deletedNodes
                     """;
 

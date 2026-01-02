@@ -236,7 +236,7 @@ public class SecurityUtil {
                 return true;
             }
         } catch (Exception e) {
-            log.debug("判断jwt出错" + e.getMessage());
+            log.info("判断jwt出错" + e.getMessage());
             return false;
         }
     }

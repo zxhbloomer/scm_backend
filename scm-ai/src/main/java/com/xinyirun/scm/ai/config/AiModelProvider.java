@@ -210,6 +210,9 @@ public class AiModelProvider {
                 .temperature(config.getTemperature().doubleValue())
                 .maxTokens(config.getMaxTokens())
                 .topP(config.getTopP().doubleValue())
+                .extraBody(Map.of(
+						"enable_thinking", false
+				))
                 .build())
             .build();
     }
