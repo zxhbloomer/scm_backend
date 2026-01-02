@@ -126,9 +126,9 @@ public class AiKnowledgeBaseVo {
     private Integer relationCount;
 
     /**
-     * 是否临时知识库（0-否，1-是）
+     * 是否临时知识库
      */
-    private Integer isTemp;
+    private Boolean isTemp;
 
     /**
      * 过期时间（仅临时知识库有值）

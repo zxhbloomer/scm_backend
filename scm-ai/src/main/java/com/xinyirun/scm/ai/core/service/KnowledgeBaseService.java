@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.core.service;
 
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -87,7 +88,7 @@ public class KnowledgeBaseService {
      * @param vo 知识库VO对象
      * @return 保存后的知识库VO
      */
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     public AiKnowledgeBaseVo saveOrUpdate(AiKnowledgeBaseVo vo) {
         AiKnowledgeBaseEntity entity = new AiKnowledgeBaseEntity();
 
@@ -97,6 +98,10 @@ public class KnowledgeBaseService {
         if (isNew) {
             // 新增：排除id字段(由数据库自动生成)
             BeanUtils.copyProperties(vo, entity, "id");
+
+            // 手动设置临时知识库字段（确保正确复制）
+            entity.setIsTemp(vo.getIsTemp());
+            entity.setExpireTime(vo.getExpireTime());
 
             // kb_uuid 格式：{tenantCode}::{uuid}，方便定时任务识别租户
             String tenantCode = DataSourceHelper.getCurrentDataSourceName();
@@ -130,8 +135,9 @@ public class KnowledgeBaseService {
             log.info("新增知识库成功，kbUuid: {}, title: {}",
                      entity.getKbUuid(), entity.getTitle());
 
-            // 如果是临时知识库，创建2小时后的自动清理任务
-            if (entity.getIs_temp() != null && entity.getIs_temp() == 1) {
+            // 如果是临时知识库，创建清理任务
+            // ScheduleUtils 内部通过 DataSourceHelper.use("master") 切换数据源
+            if (Boolean.TRUE.equals(entity.getIsTemp())) {
                 try {
                     Scheduler scheduler = SpringUtils.getBean(Scheduler.class);
                     boolean created = ScheduleUtils.createJobTempKbCleanup(
@@ -141,18 +147,17 @@ public class KnowledgeBaseService {
                             Long.parseLong(entity.getId())
                     );
                     if (created) {
-                        log.info("临时知识库清理任务已创建: kbUuid={}, 将在2小时后执行",
-                                entity.getKbUuid());
+                        log.info("临时知识库清理任务已创建: kbUuid={}, 将在2小时后执行", entity.getKbUuid());
                     }
                 } catch (Exception e) {
-                    // 任务创建失败不影响主流程，记录错误日志
-                    log.error("创建临时知识库清理任务失败: kbUuid={}, error={}",
-                            entity.getKbUuid(), e.getMessage(), e);
+                    log.error("创建临时知识库清理任务失败: kbUuid={}, error={}", entity.getKbUuid(), e.getMessage(), e);
+                    // 不抛异常，知识库创建成功但清理任务失败不影响主流程
                 }
             }
 
             // 返回插入后的实体
             BeanUtils.copyProperties(entity, vo);
+            DataSourceHelper.use(tenantCode);
         } else {
             // 更新：先查询完整实体（SCM标准模式）
             AiKnowledgeBaseEntity existEntity = knowledgeBaseMapper.selectById(vo.getId());

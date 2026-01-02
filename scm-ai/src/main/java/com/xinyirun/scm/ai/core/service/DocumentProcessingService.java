@@ -350,7 +350,7 @@ public class DocumentProcessingService {
             // 根据知识库类型决定索引类型
             // 临时知识库只进行向量索引，正式知识库进行向量+图谱双索引
             List<String> indexTypes;
-            if (kb.getIsTemp() != null && kb.getIsTemp() == 1) {
+            if (Boolean.TRUE.equals(kb.getIsTemp())) {
                 indexTypes = Arrays.asList("embedding");  // 临时知识库：仅向量索引
                 log.info("临时知识库，仅进行向量索引: kbUuid={}", kbUuid);
             } else {

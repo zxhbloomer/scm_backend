@@ -155,16 +155,16 @@ public class AiKnowledgeBaseEntity {
     private Integer itemCount;
 
     /**
-     * 是否临时知识库（0-否，1-是）
+     * 是否临时知识库
      */
     @TableField("is_temp")
-    private Integer is_temp;
+    private Boolean isTemp;
 
     /**
      * 过期时间（仅临时知识库有值）
      */
     @TableField("expire_time")
-    private LocalDateTime expire_time;
+    private LocalDateTime expireTime;
 
     /**
      * 创建时间

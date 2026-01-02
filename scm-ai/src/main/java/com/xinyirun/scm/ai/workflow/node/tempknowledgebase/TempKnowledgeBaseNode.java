@@ -2,6 +2,7 @@ package com.xinyirun.scm.ai.workflow.node.tempknowledgebase;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONWriter;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.mcp.utils.temp.knowledge.service.TempKnowledgeBaseAiService;
@@ -71,6 +72,7 @@ public class TempKnowledgeBaseNode extends AbstractWfNode {
      *
      * @return NodeProcessResult 节点执行结果
      */
+    @DSTransactional
     @Override
     protected NodeProcessResult onProcess() {
         log.info("开始执行临时知识库节点: {}", node.getTitle());

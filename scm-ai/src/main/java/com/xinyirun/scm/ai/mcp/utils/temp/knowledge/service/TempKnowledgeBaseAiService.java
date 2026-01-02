@@ -126,10 +126,10 @@ public class TempKnowledgeBaseAiService {
 
         kbVo.setTitle("临时知识库-" + timestamp);
         kbVo.setRemark("由MCP工具自动创建的临时知识库，用于workflow");
-        kbVo.setIsTemp(1);  // 标记为临时
+        kbVo.setIsTemp(true);  // 标记为临时知识库
         kbVo.setExpireTime(LocalDateTime.now().plusHours(2));
-        kbVo.setIsPublic(0);  // 私有
-        kbVo.setIsStrict(0);  // 非严格模式
+        kbVo.setIsPublic(1);  // 公开（临时知识库需要公开才能被工作流访问）
+        kbVo.setIsStrict(1);  // 严格模式（临时知识库使用严格匹配）
 
         // 重要：直接设置ownerId，避免KnowledgeBaseService.saveOrUpdate依赖SecurityUtil
         // 在MCP异步线程中SecurityUtil上下文不可用，会导致selectByid查询错误
