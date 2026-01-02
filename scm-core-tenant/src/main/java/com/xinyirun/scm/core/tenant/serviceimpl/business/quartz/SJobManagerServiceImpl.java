@@ -1,5 +1,6 @@
 package com.xinyirun.scm.core.tenant.serviceimpl.business.quartz;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.tenant.manager.quartz.SJobManagerEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
@@ -33,6 +34,7 @@ public class SJobManagerServiceImpl extends ServiceImpl<SJobManagerMapper, SJobM
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @DS("master")
     public InsertResultAo<SJobManagerBo> insert(SJobManagerBo bo) {
         SJobManagerEntity entity = new SJobManagerEntity();
         BeanUtils.copyProperties(bo, entity);

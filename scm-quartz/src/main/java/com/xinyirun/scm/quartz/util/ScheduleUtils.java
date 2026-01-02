@@ -232,13 +232,17 @@ public class ScheduleUtils {
         job.setJob_serial_id(kbId); // 关联临时知识库ID
 
         // 写入租户库
+        DataSourceHelper.use(tenantCode);
         SJobEntity entity = (SJobEntity) BeanUtilsSupport.copyProperties(job, SJobEntity.class);
         SpringUtils.getBean(ISJobQuartzService.class).save(entity);
         job.setId(entity.getId());
+        DataSourceHelper.close();
 
         // 写入Master库（关键：包含tenant_code）
+        DataSourceHelper.use("master");
         job.setTenant_job_id(entity.getId());
         SpringUtils.getBean(ISJobManagerQuartzService.class).insert(job);
+        DataSourceHelper.close();
 
         // 创建调度任务（SimpleTrigger单次执行）
         return createScheduleJobSimpleTrigger(scheduler, job);

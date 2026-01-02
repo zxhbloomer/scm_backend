@@ -1,11 +1,13 @@
 package com.xinyirun.scm.quartz.serviceimpl.master;
 
 import com.baomidou.dynamic.datasource.annotation.DS;
+import com.baomidou.dynamic.datasource.annotation.DSTransactional;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.bean.entity.tenant.manager.quartz.SJobManagerEntity;
 import com.xinyirun.scm.bean.system.ao.result.InsertResultAo;
 import com.xinyirun.scm.bean.system.bo.tenant.manager.quartz.SJobManagerBo;
 import com.xinyirun.scm.bean.system.result.utils.v1.InsertResultUtil;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.quartz.mapper.master.SJobManagerQuartzMapper;
 import com.xinyirun.scm.quartz.service.master.ISJobManagerQuartzService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Slf4j
 @Service
-@DS("master")
 public class SJobManagerQuartzServiceImpl extends ServiceImpl<SJobManagerQuartzMapper, SJobManagerEntity> implements ISJobManagerQuartzService {
 
     @Autowired
@@ -34,9 +35,10 @@ public class SJobManagerQuartzServiceImpl extends ServiceImpl<SJobManagerQuartzM
      * @return 插入结果
      */
     @Override
-    @Transactional(rollbackFor = Exception.class)
+    @DSTransactional
     @DS("master")
     public InsertResultAo<SJobManagerBo> insert(SJobManagerBo bo) {
+        // 切换租户数据源
         SJobManagerEntity entity = new SJobManagerEntity();
         BeanUtils.copyProperties(bo, entity);
         mapper.insert(entity);
