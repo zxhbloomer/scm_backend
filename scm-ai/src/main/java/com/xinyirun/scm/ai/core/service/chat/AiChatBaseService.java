@@ -67,6 +67,11 @@ public class AiChatBaseService {
     @Qualifier("workflowDomainChatClientNoMcp")
     private ChatClient workflowDomainChatClientNoMcp;
 
+    @Lazy
+    @Resource
+    @Qualifier("mcpToolOnlyChatClient")
+    private ChatClient mcpToolOnlyChatClient;
+
     @Resource
     private AiConversationContentMapper aiConversationContentMapper;
     @Resource
@@ -149,6 +154,28 @@ public class AiChatBaseService {
                 .prompt()
                 .user(aiChatOption.getPrompt())
                 .stream();
+    }
+
+    /**
+     * MCP工具节点专用：带MCP工具但不加载对话历史
+     *
+     * MCP工具调用是确定性操作，不需要对话上下文。
+     * 如果加载了知识库检索等节点产生的对话历史，会干扰LLM的工具调用决策。
+     *
+     * @param aiChatOption 聊天选项配置对象，包含提示词和toolContext
+     * @return ChatClient.StreamResponseSpec 流式响应
+     */
+    public ChatClient.StreamResponseSpec chatStreamWithMcpTools(AIChatOptionVo aiChatOption) {
+        log.info("MCP工具节点使用无记忆模式, 避免对话历史干扰工具调用");
+        ChatClient.ChatClientRequestSpec requestSpec = mcpToolOnlyChatClient
+                .prompt()
+                .user(aiChatOption.getPrompt());
+
+        if (aiChatOption.getToolContext() != null && !aiChatOption.getToolContext().isEmpty()) {
+            requestSpec.toolContext(aiChatOption.getToolContext());
+        }
+
+        return requestSpec.stream();
     }
 
     /**

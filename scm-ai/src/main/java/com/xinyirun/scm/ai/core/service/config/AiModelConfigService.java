@@ -119,6 +119,16 @@ public class AiModelConfigService {
         if (aiModelConfigVo.getEnabled() != null) {
             aiModelConfig.setEnabled(aiModelConfigVo.getEnabled());
         }
+        // 模型能力标记
+        if (aiModelConfigVo.getSupportChat() != null) {
+            aiModelConfig.setSupportChat(aiModelConfigVo.getSupportChat());
+        }
+        if (aiModelConfigVo.getSupportVision() != null) {
+            aiModelConfig.setSupportVision(aiModelConfigVo.getSupportVision());
+        }
+        if (aiModelConfigVo.getSupportEmbedding() != null) {
+            aiModelConfig.setSupportEmbedding(aiModelConfigVo.getSupportEmbedding());
+        }
 
         // 校验并设置高级参数（带默认值和范围校验）
         validateAndSetAdvancedSettings(aiModelConfigVo, aiModelConfig);

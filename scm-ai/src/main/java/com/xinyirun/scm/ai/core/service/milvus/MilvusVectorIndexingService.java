@@ -55,6 +55,9 @@ public class MilvusVectorIndexingService {
                     item.getTitle(), item.getBrief(),
                     item.getRemark() != null ? item.getRemark().length() : 0);
 
+            // 0. 删除旧的向量数据（防止重建索引时新旧分段共存）
+            deleteDocumentEmbeddings(item.getItemUuid());
+
             // 1. 文本分割
             List<String> textSegments = splitDocument(item.getRemark(), kb);
             log.info("文本分割完成, item_uuid: {}, 文本段数量: {}", item.getItemUuid(), textSegments.size());

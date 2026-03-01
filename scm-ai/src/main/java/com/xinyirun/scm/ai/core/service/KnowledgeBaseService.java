@@ -325,17 +325,16 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 索引知识库所有未索引文档
+     * 批量索引知识库所有文档（重新索引）
      *
      * @param kbUuid 知识库UUID
      * @param indexTypes 索引类型列表（embedding、graphical）
      * @return 是否成功发送索引消息
      */
     public boolean indexing(String kbUuid, List<String> indexTypes) {
-        // 查询该知识库下所有未索引的文档
+        // 查询该知识库下所有文档
         LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(AiKnowledgeBaseItemEntity::getKbUuid, kbUuid);
-        wrapper.eq(AiKnowledgeBaseItemEntity::getEmbeddingStatus, 0);
 
         List<AiKnowledgeBaseItemEntity> items = itemMapper.selectList(wrapper);
 

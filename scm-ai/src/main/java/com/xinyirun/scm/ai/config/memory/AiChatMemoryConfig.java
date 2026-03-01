@@ -140,6 +140,43 @@ public class AiChatMemoryConfig {
     }
 
     /**
+     * MCP工具节点专用ChatClient（无记忆）
+     *
+     * <p>MCP工具调用是确定性操作，不需要对话上下文。
+     * 如果加载知识库检索等节点产生的对话历史，会干扰LLM的工具调用决策。</p>
+     * <ul>
+     *   <li>有MCP工具: 支持Function Calling调用MCP工具</li>
+     *   <li>无记忆Advisor: 不加载对话历史，避免干扰工具调用</li>
+     * </ul>
+     */
+    @Lazy
+    @Bean("mcpToolOnlyChatClient")
+    public ChatClient mcpToolOnlyChatClient(
+            AiModelProvider aiModelProvider,
+            @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
+        ChatModel chatModel = aiModelProvider.getChatModel();
+
+        String mcpToolSystemPrompt = """
+            在使用MCP工具时，请严格遵守以下要求：
+            1. 不可以臆想、推测数据，必须基于工具返回的实际结果
+            2. 不可以过度回复、不可以过度推测
+            3. 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
+            4. 如果找不到相关引用，请说明"未找到相关引用"
+            5. 找不到相关回答，请说明"未找到相关回答"
+            6. 在回答找不到的情况时，不要过多拓展回复和过度回复
+            """;
+
+        ChatClient.Builder builder = ChatClient.builder(chatModel)
+                .defaultSystem(mcpToolSystemPrompt);
+
+        if (toolCallbackProvider != null) {
+            builder.defaultToolCallbacks(toolCallbackProvider);
+        }
+
+        return builder.build();
+    }
+
+    /**
      * 工作流路由专用ChatClient
      *
      * <p>用于LLM智能路由的专用ChatClient，配置为：</p>
