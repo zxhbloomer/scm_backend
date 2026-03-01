@@ -1,21 +1,22 @@
 package com.xinyirun.scm.ai.bean.vo.workflow;
 
+import com.alibaba.fastjson2.JSONObject;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 /**
- * 工作流SSE事件VO
- * 用于Flux流式输出工作流执行事件
+ * 工作流SSE数据VO
+ * 对齐Spring AI Alibaba：无event名，纯data传输，通过type字段区分消息类型
  *
- * 事件格式对齐前端workflowService.js的workflowRun()回调：
- * - start: 工作流开始
- * - [NODE_RUN_xxx]: 节点开始执行
- * - [NODE_INPUT_xxx]: 节点输入数据
- * - [NODE_OUTPUT_xxx]: 节点输出数据
- * - done: 工作流完成
- * - error: 执行错误
+ * 消息类型：
+ * - type=runtime: 工作流运行时初始化数据
+ * - type=chunk: LLM流式输出块
+ * - type=output: 节点完整输出
+ * - type=interrupt: 人机交互中断
  *
  * @author SCM-AI团队
  * @since 2025-10-29
@@ -27,140 +28,77 @@ import lombok.NoArgsConstructor;
 public class WorkflowEventVo {
 
     /**
-     * SSE事件名称
-     * 示例: "start", "[NODE_RUN_xxx]", "[NODE_INPUT_xxx]", "done", "error"
-     */
-    private String event;
-
-    /**
-     * SSE事件数据（JSON字符串）
+     * SSE数据（JSON字符串）
+     * 包含type字段用于区分消息类型
      */
     private String data;
 
     /**
-     * 创建start事件
-     * 前端回调: startCallback(data)
+     * 创建Runtime初始化数据
+     * 工作流启动时发送的首条消息
      *
-     * @param data 运行时数据（JSON格式）
-     * @return start事件
+     * @param runtimeUuid 运行时UUID
+     * @param runtimeId 运行时ID
+     * @param workflowUuid 工作流UUID
+     * @param conversationId 对话ID
+     * @return 运行时初始化事件
      */
-    public static WorkflowEventVo createStartEvent(String data) {
-        return WorkflowEventVo.builder()
-                .event("start")
-                .data(data)
-                .build();
+    public static WorkflowEventVo createRuntimeData(String runtimeUuid, Long runtimeId,
+                                                     String workflowUuid, String conversationId) {
+        JSONObject json = new JSONObject();
+        json.put("type", "runtime");
+        json.put("runtimeUuid", runtimeUuid);
+        json.put("runtimeId", runtimeId);
+        json.put("workflowUuid", workflowUuid);
+        json.put("conversationId", conversationId);
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 
     /**
-     * 创建NODE_RUN事件
-     * 前端回调: messageReceived(data, "[NODE_RUN_xxx]")
-     *
-     * @param nodeUuid 节点UUID
-     * @param data 节点执行数据（JSON格式）
-     * @return NODE_RUN事件
-     */
-    public static WorkflowEventVo createNodeRunEvent(String nodeUuid, String data) {
-        return WorkflowEventVo.builder()
-                .event("[NODE_RUN_" + nodeUuid + "]")
-                .data(data)
-                .build();
-    }
-
-    /**
-     * 创建NODE_INPUT事件
-     * 前端回调: messageReceived(data, "[NODE_INPUT_xxx]")
+     * 创建流式块数据
+     * LLM流式输出时的文本块
      *
      * @param nodeUuid 节点UUID
-     * @param data 节点输入数据（JSON格式）
-     * @return NODE_INPUT事件
+     * @param chunk 流式文本块
+     * @return 流式块事件
      */
-    public static WorkflowEventVo createNodeInputEvent(String nodeUuid, String data) {
-        return WorkflowEventVo.builder()
-                .event("[NODE_INPUT_" + nodeUuid + "]")
-                .data(data)
-                .build();
+    public static WorkflowEventVo createChunkData(String nodeUuid, String chunk) {
+        JSONObject json = new JSONObject();
+        json.put("type", "chunk");
+        json.put("node", nodeUuid);
+        json.put("chunk", chunk);
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 
     /**
-     * 创建NODE_OUTPUT事件
-     * 前端回调: messageReceived(data, "[NODE_OUTPUT_xxx]")
+     * 创建节点输出数据
+     * 节点执行完成时的完整输出
      *
      * @param nodeUuid 节点UUID
-     * @param data 节点输出数据（JSON格式）
-     * @return NODE_OUTPUT事件
+     * @param outputs 节点输出Map
+     * @return 节点输出事件
      */
-    public static WorkflowEventVo createNodeOutputEvent(String nodeUuid, String data) {
-        return WorkflowEventVo.builder()
-                .event("[NODE_OUTPUT_" + nodeUuid + "]")
-                .data(data)
-                .build();
+    public static WorkflowEventVo createNodeOutputData(String nodeUuid, Map<String, Object> outputs) {
+        JSONObject json = new JSONObject();
+        json.put("type", "output");
+        json.put("node", nodeUuid);
+        json.put("data", outputs);
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 
     /**
-     * 创建NODE_CHUNK事件（LLM流式输出）
-     * 前端回调: messageReceived(data, "[NODE_CHUNK_xxx]")
-     *
-     * @param nodeUuid 节点UUID
-     * @param chunk 输出块内容
-     * @return NODE_CHUNK事件
-     */
-    public static WorkflowEventVo createNodeChunkEvent(String nodeUuid, String chunk) {
-        return WorkflowEventVo.builder()
-                .event("[NODE_CHUNK_" + nodeUuid + "]")
-                .data(chunk)
-                .build();
-    }
-
-    /**
-     * 创建NODE_WAIT_FEEDBACK_BY事件（人机交互）
-     * 前端回调: messageReceived(tip, "[NODE_WAIT_FEEDBACK_BY_xxx]")
-     * 参考: aideepin WorkflowEngine.java Line 136
+     * 创建人机交互数据
+     * 工作流暂停等待用户输入
      *
      * @param nodeUuid 节点UUID
      * @param tip 提示信息
-     * @return NODE_WAIT_FEEDBACK_BY事件
+     * @return 人机交互事件
      */
-    public static WorkflowEventVo createNodeWaitFeedbackEvent(String nodeUuid, String tip) {
-        return WorkflowEventVo.builder()
-                .event("[NODE_WAIT_FEEDBACK_BY_" + nodeUuid + "]")
-                .data(tip != null ? tip : "")
-                .build();
-    }
-
-    /**
-     * 创建done事件
-     * 前端回调: doneCallback(data)
-     *
-     * @param data 完成数据（可选，可为空）
-     * @return done事件
-     */
-    public static WorkflowEventVo createDoneEvent(String data) {
-        return WorkflowEventVo.builder()
-                .event("done")
-                .data(data != null ? data : "")
-                .build();
-    }
-
-    /**
-     * 创建done事件（无数据）
-     *
-     * @return done事件
-     */
-    public static WorkflowEventVo createDoneEvent() {
-        return createDoneEvent(null);
-    }
-
-    /**
-     * 创建error事件
-     * 前端回调: errorCallback(data)
-     *
-     * @param errorMessage 错误消息
-     * @return error事件
-     */
-    public static WorkflowEventVo createErrorEvent(String errorMessage) {
-        return WorkflowEventVo.builder()
-                .event("error")
-                .data(errorMessage != null ? errorMessage : "工作流执行失败")
-                .build();
+    public static WorkflowEventVo createInterruptData(String nodeUuid, String tip) {
+        JSONObject json = new JSONObject();
+        json.put("type", "interrupt");
+        json.put("node", nodeUuid);
+        json.put("tip", tip != null ? tip : "请输入您的反馈");
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 }

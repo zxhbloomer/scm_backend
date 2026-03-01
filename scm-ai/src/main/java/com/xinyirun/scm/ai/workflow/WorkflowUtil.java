@@ -15,6 +15,7 @@ import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 
 import java.util.HashMap;
@@ -178,90 +179,63 @@ public class WorkflowUtil {
 
             StringBuilder fullResponse = new StringBuilder();
 
-            // 降级模式判断: conversationId 为 NULL 时使用无记忆模式
-            if (StringUtils.isBlank(conversationId)) {
+            // 构建toolContext（MCP工具节点和有记忆模式都需要）
+            Map<String, Object> toolContextMap = new HashMap<>();
+            toolContextMap.put("tenantCode", wfState.getTenantCode());
+            toolContextMap.put("staffId", wfState.getUserId());
+            toolContextMap.put("nodeState", nodeState);
+            if (wfState.getPageContext() != null) {
+                toolContextMap.put("pageContext", wfState.getPageContext());
+            }
+            chatOption.setToolContext(toolContextMap);
+
+            // 获取流式响应：根据节点类型和conversationId选择不同模式
+            ChatClient.StreamResponseSpec streamSpec;
+
+            if (isMcpToolNode) {
+                // MCP工具节点：使用MCP工具但不加载对话历史，避免知识库内容干扰工具调用
+                log.info("MCP工具节点使用无记忆模式, 避免对话历史干扰工具调用");
+                streamSpec = aiChatBaseService.chatStreamWithMcpTools(chatOption);
+            } else if (StringUtils.isBlank(conversationId)) {
                 log.warn("conversationId is null, fallback to no-memory mode");
-
-                // 无记忆模式 - 使用 chatStream()
-                aiChatBaseService.chatStream(chatOption)
-                        .chatResponse()
-                        .doOnNext(chatResponse -> {
-                            // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
-                            if (wfState.getTenantCode() != null) {
-                                DataSourceHelper.use(wfState.getTenantCode());
-                            }
-
-                            String content = chatResponse.getResult().getOutput().getText();
-                            if (StringUtils.isNotBlank(content)) {
-                                fullResponse.append(content);
-
-                                if (!silentMode && wfState.getStreamHandler() != null) {
-                                    wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
-                                }
-                            }
-
-                            // 累积Usage信息（通常在最后一个响应中包含完整Usage）
-                            if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
-                                finalUsage[0] = chatResponse.getMetadata().getUsage();
-                            }
-                        })
-                        .doOnComplete(() -> {
-                            // 在完成时记录Token使用量
-                            recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
-                        })
-                        .blockLast();
+                streamSpec = aiChatBaseService.chatStream(chatOption);
             } else {
-                // 有记忆模式 - 使用 chatWithWorkflowMemoryStream()
-                // WorkflowConversationAdvisor会通过参数传递runtime_uuid保存对话记录
-
-                // 设置 conversationId 并调用 LLM（使用Workflow专用方法）
+                // 有记忆模式
                 chatOption.setConversationId(conversationId);
                 String runtimeUuid = wfState.getUuid();
-
-                // 设置 toolContext,传递租户编码、用户ID、节点状态和页面上下文给 MCP 工具
-                Map<String, Object> toolContextMap = new HashMap<>();
-                toolContextMap.put("tenantCode", wfState.getTenantCode());
-                toolContextMap.put("staffId", wfState.getUserId());
-                toolContextMap.put("nodeState", nodeState);  // 传递节点状态用于记录MCP调用
-                // 传递页面上下文给MCP工具(用于回答"我现在在哪个页面"等问题)
-                if (wfState.getPageContext() != null) {
-                    toolContextMap.put("pageContext", wfState.getPageContext());
-                }
-                chatOption.setToolContext(toolContextMap);
-
-                log.info("LLM 调用开始 - conversationId: {}, runtimeUuid: {}, originalUserInput: {}, callSource: {}",
-                        conversationId, runtimeUuid, originalUserInput, wfState.getCallSource());
-
-                aiChatBaseService.chatWithWorkflowMemoryStream(chatOption, runtimeUuid, originalUserInput, wfState.getCallSource())
-                        .chatResponse()
-                        .doOnNext(chatResponse -> {
-                            // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
-                            if (wfState.getTenantCode() != null) {
-                                DataSourceHelper.use(wfState.getTenantCode());
-                            }
-
-                            String content = chatResponse.getResult().getOutput().getText();
-                            if (StringUtils.isNotBlank(content)) {
-                                fullResponse.append(content);
-
-                                if (!silentMode && wfState.getStreamHandler() != null) {
-                                    wfState.getStreamHandler().sendNodeChunk(node.getUuid(), content);
-                                }
-                            }
-
-                            // 累积Usage信息（通常在最后一个响应中包含完整Usage）
-                            if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
-                                finalUsage[0] = chatResponse.getMetadata().getUsage();
-                            }
-                        })
-                        .doOnComplete(() -> {
-                            // 在完成时记录Token使用量
-                            recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
-                        })
-                        .blockLast();
-
-                log.info("LLM 调用完成 - conversationId: {}, runtimeUuid: {}", conversationId, runtimeUuid);
+                log.debug("LLM流式调用开始 - conversationId: {}, runtimeUuid: {}", conversationId, runtimeUuid);
+                streamSpec = aiChatBaseService.chatWithWorkflowMemoryStream(chatOption, runtimeUuid, originalUserInput, wfState.getCallSource());
             }
+
+            // 统一的流式处理逻辑
+            streamSpec.chatResponse()
+                    .doOnSubscribe(sub -> log.debug("LLM Flux已订阅"))
+                    .doOnNext(chatResponse -> {
+                        // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
+                        if (wfState.getTenantCode() != null) {
+                            DataSourceHelper.use(wfState.getTenantCode());
+                        }
+
+                        String content = chatResponse.getResult().getOutput().getText();
+                        if (StringUtils.isNotBlank(content)) {
+                            fullResponse.append(content);
+                        }
+
+                        // 累积Usage信息（通常在最后一个响应中包含完整Usage）
+                        if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+                            finalUsage[0] = chatResponse.getMetadata().getUsage();
+                        }
+                    })
+                    .doOnComplete(() -> {
+                        log.debug("LLM Flux完成(onComplete)");
+                        recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
+                    })
+                    .doOnError(e -> log.error("LLM Flux发生错误(onError)", e))
+                    .doOnCancel(() -> log.warn("LLM Flux被取消(onCancel)"))
+                    .timeout(java.time.Duration.ofSeconds(120))
+                    .blockLast();
+
+            log.debug("LLM blockLast()已返回 - conversationId: {}", conversationId);
 
             String response = fullResponse.toString();
             // 移除前导和尾随空白字符,避免Markdown渲染为代码块

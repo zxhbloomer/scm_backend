@@ -90,10 +90,32 @@ public class WorkflowToolCallback {
                     );
 
                     // 4. 阻塞等待workflow完成,收集最终结果
+                    // 对齐Spring AI Alibaba：通过data.type区分消息类型
                     StringBuilder result = new StringBuilder();
                     events.doOnNext(event -> {
-                        if ("done".equals(event.getEvent())) {
-                            result.append(event.getData());
+                        try {
+                            JSONObject dataJson = JSONObject.parseObject(event.getData());
+                            String type = dataJson.getString("type");
+                            if ("output".equals(type)) {
+                                // 提取节点输出中的output变量
+                                JSONObject outputData = dataJson.getJSONObject("data");
+                                if (outputData != null) {
+                                    for (String key : outputData.keySet()) {
+                                        Object outputItem = outputData.get(key);
+                                        if (outputItem instanceof JSONObject) {
+                                            JSONObject itemJson = (JSONObject) outputItem;
+                                            if ("output".equals(itemJson.getString("name"))) {
+                                                JSONObject content = itemJson.getJSONObject("content");
+                                                if (content != null && content.containsKey("value")) {
+                                                    result.append(content.getString("value"));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            // 忽略解析错误
                         }
                     }).blockLast();  // 关键: 阻塞直到Flux完成
 

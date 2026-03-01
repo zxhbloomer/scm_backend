@@ -19,9 +19,23 @@ public class WorkflowConstants {
     public static final String DEFAULT_OUTPUT_PARAM_NAME = "output";
 
     /**
+     * 节点输出在OverAllState中的key前缀
+     * 格式: NODE_OUTPUT_KEY_PREFIX + nodeUuid
+     * 用于并行节点输出合并，确保各节点输出不互相覆盖
+     */
+    public static final String NODE_OUTPUT_KEY_PREFIX = "node_output_";
+
+    /**
      * 人机交互的KEY
      */
     public static final String HUMAN_FEEDBACK_KEY = "human_feedback";
+
+    /**
+     * 虚拟并行节点ID前缀
+     * 当Switcher的某个条件分支指向多个目标节点时，创建此虚拟节点负责并行执行所有分支链
+     * 格式: VIRTUAL_PARALLEL_PREFIX + switcherUuid + "_" + sourceHandle
+     */
+    public static final String VIRTUAL_PARALLEL_PREFIX = "VPAR_";
 
     /**
      * 工作流组件UUID常量

@@ -68,7 +68,7 @@ public class SubWorkflowNode extends AbstractWfNode {
             // 获取工作流启动器实例
             WorkflowStarter workflowStarter = SpringUtil.getBean(WorkflowStarter.class);
 
-            // 同步执行子工作流（传递父conversationId以继承对话上下文，传递父runtime_uuid避免创建新记录，传递父StreamHandler以转发流式事件）
+            // 同步执行子工作流（传递父conversationId以继承对话上下文，传递父runtime_uuid避免创建新记录）
             Map<String, Object> subOutputs = workflowStarter.runSync(
                 subWorkflowUuid,
                 convertToInputList(subInputs),
@@ -77,7 +77,6 @@ public class SubWorkflowNode extends AbstractWfNode {
                 wfState.getExecutionStack(),
                 wfState.getConversationId(),
                 wfState.getUuid(),  // 传递父runtime_uuid，子工作流将复用此UUID
-                wfState.getStreamHandler(),  // 传递父StreamHandler，子工作流的流式事件将实时转发到前端
                 wfState.getCallSource()  // 传递父工作流的callSource，子工作流继承父工作流的调用来源
             );
 

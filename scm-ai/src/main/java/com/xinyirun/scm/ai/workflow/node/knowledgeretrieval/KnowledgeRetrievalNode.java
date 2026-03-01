@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
+import static com.xinyirun.scm.ai.workflow.WorkflowConstants.NODE_OUTPUT_KEY_PREFIX;
 
 /**
  * 工作流知识检索节点
@@ -56,25 +57,37 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
 
         // 检查是否使用临时知识库
         if (Boolean.TRUE.equals(nodeConfig.getIsTempKb())) {
+            String tempKbNodeUuid = nodeConfig.getTempKbNodeUuid();
             log.info("使用临时知识库,临时知识库节点UUID: {}, 配置的变量引用: {}",
-                    nodeConfig.getTempKbNodeUuid(), kbUuid);
+                    tempKbNodeUuid, kbUuid);
 
-            // 直接从上游节点输出的JSON中提取kbUuid
-            // 上游TempKnowledgeBaseNode输出格式: {"success":true,"kbUuid":"scm_tenant_xxx::uuid",...}
-            String upstreamJson = getFirstInputText();
-            if (StringUtils.isNotBlank(upstreamJson)) {
-                try {
-                    com.alibaba.fastjson2.JSONObject jsonObj = com.alibaba.fastjson2.JSON.parseObject(upstreamJson);
-                    String extractedKbUuid = jsonObj.getString("kbUuid");
-                    if (StringUtils.isNotBlank(extractedKbUuid)) {
-                        kbUuid = extractedKbUuid;
-                        log.info("从上游临时知识库节点输出中提取kbUuid: {}", kbUuid);
-                    } else {
-                        log.warn("上游节点输出JSON中未找到kbUuid字段");
+            // 直接从state.data()获取临时知识库节点的输出
+            // 使用NODE_OUTPUT_KEY_PREFIX + tempKbNodeUuid作为key
+            String outputKey = NODE_OUTPUT_KEY_PREFIX + tempKbNodeUuid;
+            Object tempKbOutput = state.data().get(outputKey);
+            log.info("从state.data()获取临时知识库输出: key={}, value={}", outputKey, tempKbOutput);
+
+            if (tempKbOutput instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<NodeIOData> outputs = (List<NodeIOData>) tempKbOutput;
+                if (!outputs.isEmpty()) {
+                    String upstreamJson = outputs.get(0).valueToString();
+                    log.info("临时知识库节点输出JSON: {}", upstreamJson);
+                    try {
+                        com.alibaba.fastjson2.JSONObject jsonObj = com.alibaba.fastjson2.JSON.parseObject(upstreamJson);
+                        String extractedKbUuid = jsonObj.getString("kbUuid");
+                        if (StringUtils.isNotBlank(extractedKbUuid)) {
+                            kbUuid = extractedKbUuid;
+                            log.info("从临时知识库节点输出中提取kbUuid: {}", kbUuid);
+                        } else {
+                            log.warn("临时知识库节点输出JSON中未找到kbUuid字段");
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析临时知识库节点输出JSON失败: {}", e.getMessage());
                     }
-                } catch (Exception e) {
-                    log.warn("解析上游节点输出JSON失败: {}, 尝试使用变量渲染", e.getMessage());
                 }
+            } else {
+                log.warn("未找到临时知识库节点输出或格式不正确: key={}", outputKey);
             }
         }
 

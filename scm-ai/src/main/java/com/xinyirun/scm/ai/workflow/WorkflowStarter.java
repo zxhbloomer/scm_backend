@@ -13,24 +13,18 @@ import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 工作流启动器
  *
  * <p>负责工作流的流式执行和中断恢复</p>
+ * <p>对齐Spring AI Alibaba - 直接调用WorkflowEngine.run()返回Flux，无回调</p>
  *
  * @author zxh
  * @since 2025-10-21
@@ -38,23 +32,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 @Component
 public class WorkflowStarter {
-
-    /**
-     * self注入 - 用于调用@Async方法
-     * 必须使用@Lazy避免循环依赖
-     */
-    @Lazy
-    @Resource
-    private WorkflowStarter self;
-
-    /**
-     * StreamHandler缓存
-     * Key: executionId (UUID)
-     * Value: WorkflowStreamHandler
-     * 用于在Flux.create和@Async方法之间传递StreamHandler
-     */
-    private final ConcurrentHashMap<String, WorkflowStreamHandler> handlerCache
-            = new ConcurrentHashMap<>();
 
     @Resource
     private AiWorkflowService workflowService;
@@ -80,14 +57,11 @@ public class WorkflowStarter {
     @Resource
     private AiConversationRuntimeNodeService conversationRuntimeNodeService;
 
-    @Resource(name = "mainExecutor")
-    private ThreadPoolTaskExecutor mainExecutor;
-
     /**
      * 流式执行工作流
      *
-     * 使用@Async异步执行工作流，避免阻塞Flux流。
-     * Flux.create立即返回，workflowEngine.run()在独立线程执行。
+     * <p>对齐Spring AI Alibaba的GraphRunner模式：
+     * 直接调用WorkflowEngine.run()返回Flux，无回调、无subscribeOn</p>
      *
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
@@ -96,13 +70,18 @@ public class WorkflowStarter {
      * @param conversationId 对话ID (AI_CHAT场景必传,WORKFLOW_TEST传null)
      * @return Flux流式响应
      */
-    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode, WorkflowCallSource callSource, String conversationId) {
+    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs,
+                                           String tenantCode, WorkflowCallSource callSource,
+                                           String conversationId) {
         return streaming(workflowUuid, userInputs, tenantCode, callSource, conversationId, null);
     }
 
     /**
      * 流式执行工作流（带页面上下文）
      *
+     * <p>对齐Spring AI Alibaba的GraphRunner模式：
+     * 直接调用WorkflowEngine.run()返回Flux，无回调、无subscribeOn</p>
+     *
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
      * @param tenantCode 租户编码
@@ -111,120 +90,27 @@ public class WorkflowStarter {
      * @param pageContext 页面上下文(用于MCP工具)
      * @return Flux流式响应
      */
-    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs, String tenantCode, WorkflowCallSource callSource, String conversationId, Map<String, Object> pageContext) {
+    public Flux<WorkflowEventVo> streaming(String workflowUuid, List<JSONObject> userInputs,
+                                           String tenantCode, WorkflowCallSource callSource,
+                                           String conversationId, Map<String, Object> pageContext) {
         Long userId = SecurityUtil.getStaff_id();
-        String executionId = UUID.randomUUID().toString();
+        log.info("[WorkflowStarter] ===== streaming()开始 ===== workflowUuid={}, userId={}", workflowUuid, userId);
 
-        // 创建Flux并立即返回(不阻塞)
-        // 改为同步订阅,确保FluxSink在asyncRunWorkflow之前创建
-        Flux<WorkflowEventVo> flux = Flux.<WorkflowEventVo>create(fluxSink -> {
-            // 创建工作流流式回调处理器
-            WorkflowStreamHandler streamHandler = new WorkflowStreamHandler(
-                    new WorkflowStreamHandler.StreamCallback() {
-                        @Override
-                        public void onStart(String runtimeData) {
-                            fluxSink.next(WorkflowEventVo.createStartEvent(runtimeData));
-                        }
-
-                        @Override
-                        public void onNodeRun(String nodeUuid, String nodeData) {
-                            fluxSink.next(WorkflowEventVo.createNodeRunEvent(nodeUuid, nodeData));
-                        }
-
-                        @Override
-                        public void onNodeInput(String nodeUuid, String inputData) {
-                            fluxSink.next(WorkflowEventVo.createNodeInputEvent(nodeUuid, inputData));
-                        }
-
-                        @Override
-                        public void onNodeOutput(String nodeUuid, String outputData) {
-                            fluxSink.next(WorkflowEventVo.createNodeOutputEvent(nodeUuid, outputData));
-                        }
-
-                        @Override
-                        public void onNodeChunk(String nodeUuid, String chunk) {
-                            fluxSink.next(WorkflowEventVo.createNodeChunkEvent(nodeUuid, chunk));
-                        }
-
-                        @Override
-                        public void onNodeWaitFeedback(String nodeUuid, String tip) {
-                            fluxSink.next(WorkflowEventVo.createNodeWaitFeedbackEvent(nodeUuid, tip));
-                        }
-
-                        @Override
-                        public void onComplete(String data) {
-                            fluxSink.next(WorkflowEventVo.createDoneEvent(data));
-                            fluxSink.complete();
-                        }
-
-                        @Override
-                        public void onError(Throwable error) {
-                            fluxSink.error(error);
-                        }
-                    }
-            );
-
-            // 存储streamHandler到缓存,供异步方法使用
-            handlerCache.put(executionId, streamHandler);
-
-            // 在FluxSink创建后立即启动异步执行
-            self.asyncRunWorkflow(executionId, workflowUuid, userId, userInputs, tenantCode, callSource, conversationId, pageContext);
-        })
-        .subscribeOn(Schedulers.boundedElastic())
-        .doFinally(signalType -> {
-            // 清理缓存和数据源上下文
-            handlerCache.remove(executionId);
-            DataSourceHelper.close();
-        });
-
-        return flux;
-    }
-
-    /**
-     * 异步执行工作流
-     *
-     * 此方法在独立线程池中执行,负责工作流的实际运行。
-     * 包括数据源切换、配置加载、引擎创建和执行。
-     *
-     * @param executionId 执行ID
-     * @param workflowUuid 工作流UUID
-     * @param userId 用户ID
-     * @param userInputs 用户输入参数
-     * @param tenantCode 租户编码
-     * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
-     * @param conversationId 对话ID (AI_CHAT场景必传,WORKFLOW_TEST场景传null)
-     * @param pageContext 页面上下文(用于MCP工具)
-     */
-    @Async("mainExecutor")
-    public void asyncRunWorkflow(String executionId,
-                                 String workflowUuid,
-                                 Long userId,
-                                 List<JSONObject> userInputs,
-                                 String tenantCode,
-                                 WorkflowCallSource callSource,
-                                 String conversationId,
-                                 Map<String, Object> pageContext) {
-        try {
-            // 在异步线程中切换到正确的数据源
+        // 对齐Spring AI Alibaba - 使用Flux.defer()延迟执行，直接返回Engine的Flux
+        return Flux.defer(() -> {
+            log.info("[WorkflowStarter] Flux.defer()内部开始执行, workflowUuid={}, tenantCode={}", workflowUuid, tenantCode);
+            // 切换到正确的数据源
             DataSourceHelper.use(tenantCode);
-
-            // 从缓存获取StreamHandler
-            WorkflowStreamHandler streamHandler = handlerCache.get(executionId);
-            if (streamHandler == null) {
-                log.error("StreamHandler not found for execution: {}", executionId);
-                return;
-            }
 
             // 获取工作流配置
             AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
             // 检查工作流是否启用
             if (workflow.getIsEnable() == null || !workflow.getIsEnable()) {
-                streamHandler.sendError(new BusinessException("工作流已禁用"));
-                return;
+                return Flux.error(new RuntimeException("工作流已禁用"));
             }
 
-            log.info("WorkflowEngine run,userId:{},workflowUuid:{},tenantCode:{},userInputs:{}",
+            log.info("WorkflowStarter streaming, userId:{}, workflowUuid:{}, tenantCode:{}, userInputs:{}",
                     userId, workflow.getWorkflowUuid(), tenantCode, userInputs);
 
             // 获取工作流组件、节点、边配置
@@ -232,10 +118,9 @@ public class WorkflowStarter {
             List<AiWorkflowNodeVo> nodes = workflowNodeService.listByWorkflowId(workflow.getId());
             List<AiWorkflowEdgeEntity> edges = workflowEdgeService.listByWorkflowId(workflow.getId());
 
-            // 创建工作流引擎
+            // 创建工作流引擎（无streamHandler参数）
             WorkflowEngine workflowEngine = new WorkflowEngine(
                     workflow,
-                    streamHandler,
                     components,
                     nodes,
                     edges,
@@ -251,45 +136,52 @@ public class WorkflowStarter {
                 workflowEngine.setPageContext(pageContext);
             }
 
-            // 在独立线程中执行工作流(不阻塞Flux.create)
-            // AI_CHAT场景: 传递真实的conversationId
-            // WORKFLOW_TEST场景: 传递null让系统自动生成新的conversationId
-            workflowEngine.run(userId, userInputs, tenantCode, conversationId);
-
-            // 工作流运行成功后,自动更新测试时间
-            // 注意: 只有在WORKFLOW_TEST模式下才更新测试时间
-            if (callSource == WorkflowCallSource.WORKFLOW_TEST) {
-                try {
-                    workflowService.updateTestTime(workflowUuid, tenantCode);
-                    log.info("工作流测试运行成功,已更新测试时间: workflowUuid={}, tenantCode={}", workflowUuid, tenantCode);
-                } catch (Exception testTimeException) {
-                    // 更新测试时间失败不影响工作流执行结果
-                    log.error("更新测试时间失败: workflowUuid={}, tenantCode={}", workflowUuid, tenantCode, testTimeException);
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("工作流执行异常: workflowUuid={}, userId={}, executionId={}",
-                    workflowUuid, userId, executionId, e);
-
-            // 通过streamHandler发送错误
-            WorkflowStreamHandler streamHandler = handlerCache.get(executionId);
-            if (streamHandler != null) {
-                streamHandler.sendError(e);
-            }
-        } finally {
-            // 清理数据源上下文
+            // 直接调用Engine的run()方法，返回Flux（对齐Spring AI Alibaba模式）
+            log.info("[WorkflowStarter] 准备调用workflowEngine.run()...");
+            return workflowEngine.run(userId, userInputs, tenantCode, conversationId)
+                    .doOnSubscribe(sub -> log.info("[WorkflowStarter] Engine Flux已被订阅(doOnSubscribe)"))
+                    .doFirst(() -> log.info("[WorkflowStarter] Engine Flux开始执行(doFirst)"))
+                    .doOnNext(event -> log.info("[WorkflowStarter] 收到Engine事件(doOnNext): dataLen={}", event.getData() != null ? event.getData().length() : 0))
+                    .doOnComplete(() -> {
+                        log.info("[WorkflowStarter] Engine Flux完成(doOnComplete)");
+                        // 工作流运行成功后,自动更新测试时间
+                        if (callSource == WorkflowCallSource.WORKFLOW_TEST) {
+                            try {
+                                workflowService.updateTestTime(workflowUuid, tenantCode);
+                                log.info("工作流测试运行成功,已更新测试时间: workflowUuid={}, tenantCode={}",
+                                        workflowUuid, tenantCode);
+                            } catch (Exception e) {
+                                log.error("更新测试时间失败: workflowUuid={}, tenantCode={}",
+                                        workflowUuid, tenantCode, e);
+                            }
+                        }
+                    })
+                    .doOnError(e -> log.error("[WorkflowStarter] Engine Flux错误(doOnError)", e))
+                    .doOnCancel(() -> log.warn("[WorkflowStarter] Engine Flux被取消(doOnCancel)"));
+        })
+        .timeout(Duration.ofMinutes(30))
+        .onErrorResume(TimeoutException.class, e -> {
+            log.warn("工作流执行超时: workflowUuid={}", workflowUuid);
+            return Flux.error(new RuntimeException("工作流执行超时，已自动取消"));
+        })
+        .onErrorResume(e -> {
+            log.error("工作流执行异常: workflowUuid={}", workflowUuid, e);
+            return Flux.error(new RuntimeException("工作流执行失败: " + e.getMessage()));
+        })
+        .doFinally(signalType -> {
             DataSourceHelper.close();
-        }
+        });
     }
 
     /**
-     * 恢复中断的工作流
+     * 恢复中断的工作流（同步方法，用于非流式场景）
+     *
+     * <p>Controller调用后，工作流在当前线程恢复执行。
+     * 适用于不需要流式返回的场景。</p>
      *
      * @param runtimeUuid 运行实例UUID
      * @param userInput 用户输入
      */
-    @Async("mainExecutor")
     public void resumeFlow(String runtimeUuid, String userInput) {
         try {
             WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
@@ -298,42 +190,41 @@ public class WorkflowStarter {
                 throw new RuntimeException("工作流实例不存在或已超时");
             }
 
-            // 在异步线程中切换到正确的数据源
-            // WorkflowEngine中保存了tenantCode,使用getTenantCode()获取
             String tenantCode = workflowEngine.getTenantCode();
             if (tenantCode != null) {
                 DataSourceHelper.use(tenantCode);
             }
 
-            // 调用engine的resume方法恢复工作流
-            workflowEngine.resume(userInput);
+            // 同步执行：阻塞等待Flux完成
+            workflowEngine.resume(userInput).blockLast();
         } finally {
-            // 清理数据源上下文
             DataSourceHelper.close();
         }
     }
 
     /**
      * 恢复暂停的工作流(流式响应)
-     * 用于多轮对话场景:工作流暂停等待用户输入后,用户提供输入继续执行
      *
-     * 遵循Spring AI模式:每次HTTP请求创建新Flux,但复用WorkflowEngine
+     * <p>用于多轮对话场景:工作流暂停等待用户输入后,用户提供输入继续执行</p>
+     * <p>对齐Spring AI Alibaba - 直接调用WorkflowEngine.resume()返回Flux</p>
      *
-     * @param runtimeUuid 工作流运行时UUID(从InterruptedFlow.RUNTIME_TO_GRAPH获取)
+     * @param runtimeUuid 工作流运行时UUID
      * @param workflowUuid 工作流UUID(用于runtime过期时重启)
      * @param userInput 用户提供的输入内容
      * @param tenantId 租户ID
-     * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
-     * @param conversationId 对话ID (AI_CHAT场景必传,用于runtime过期时重启工作流)
-     * @return 工作流事件流(Flux<WorkflowEventVo>)
+     * @param callSource 调用来源标识
+     * @param conversationId 对话ID
+     * @return 工作流事件流
      */
     public Flux<WorkflowEventVo> resumeFlowAsFlux(String runtimeUuid, String workflowUuid,
-                                                   String userInput, String tenantId, WorkflowCallSource callSource, String conversationId) {
+                                                   String userInput, String tenantId,
+                                                   WorkflowCallSource callSource,
+                                                   String conversationId) {
         // 从缓存中获取暂停的工作流引擎
         WorkflowEngine workflowEngine = InterruptedFlow.RUNTIME_TO_GRAPH.get(runtimeUuid);
 
         if (workflowEngine == null) {
-            // KISS优化: 过期优雅降级 - 用户输入重启工作流,而非报错
+            // 过期优雅降级：用户输入重启工作流
             log.info("运行时已过期(>30分钟),使用用户输入重新开始工作流: workflowUuid={}", workflowUuid);
             List<JSONObject> userInputs = List.of(
                 new JSONObject().fluentPut("content", userInput)
@@ -341,88 +232,34 @@ public class WorkflowStarter {
             return streaming(workflowUuid, userInputs, tenantId, callSource, conversationId);
         }
 
-        // 为本次HTTP请求创建新Flux（Spring AI模式）
-        return Flux.<WorkflowEventVo>create(fluxSink -> {
-            // 为本次请求创建新的StreamHandler
-            WorkflowStreamHandler newHandler = new WorkflowStreamHandler(
-                new WorkflowStreamHandler.StreamCallback() {
-                    @Override
-                    public void onStart(String runtimeData) {
-                        fluxSink.next(WorkflowEventVo.createStartEvent(runtimeData));
-                    }
+        // 对齐Spring AI Alibaba - 使用Flux.defer()延迟执行
+        return Flux.defer(() -> {
+            String tenantCode = workflowEngine.getTenantCode();
+            // 校验tenantId与engine内部的tenantCode是否一致
+            if (tenantCode != null && !tenantCode.equals(tenantId)) {
+                log.warn("resumeFlowAsFlux tenantId不匹配, 使用engine内部值: param={}, engine={}",
+                        tenantId, tenantCode);
+            }
+            if (tenantCode != null) {
+                DataSourceHelper.use(tenantCode);
+            }
 
-                    @Override
-                    public void onNodeRun(String nodeUuid, String nodeData) {
-                        fluxSink.next(WorkflowEventVo.createNodeRunEvent(nodeUuid, nodeData));
-                    }
-
-                    @Override
-                    public void onNodeInput(String nodeUuid, String inputData) {
-                        fluxSink.next(WorkflowEventVo.createNodeInputEvent(nodeUuid, inputData));
-                    }
-
-                    @Override
-                    public void onNodeOutput(String nodeUuid, String outputData) {
-                        fluxSink.next(WorkflowEventVo.createNodeOutputEvent(nodeUuid, outputData));
-                    }
-
-                    @Override
-                    public void onNodeChunk(String nodeUuid, String chunk) {
-                        fluxSink.next(WorkflowEventVo.createNodeChunkEvent(nodeUuid, chunk));
-                    }
-
-                    @Override
-                    public void onNodeWaitFeedback(String nodeUuid, String tip) {
-                        fluxSink.next(WorkflowEventVo.createNodeWaitFeedbackEvent(nodeUuid, tip));
-                    }
-
-                    @Override
-                    public void onComplete(String data) {
-                        fluxSink.next(WorkflowEventVo.createDoneEvent(data));
-                        fluxSink.complete();
-                    }
-
-                    @Override
-                    public void onError(Throwable error) {
-                        fluxSink.error(error);
-                    }
-                }
-            );
-
-            // 替换WorkflowEngine的StreamHandler（连接到当前HTTP响应流）
-            workflowEngine.setStreamHandler(newHandler);
-
-            // 异步恢复工作流执行
-            CompletableFuture.runAsync(() -> {
-                try {
-                    String tenantCode = workflowEngine.getTenantCode();
-                    if (tenantCode != null) {
-                        DataSourceHelper.use(tenantCode);
-                    }
-
-                    // 调用WorkflowEngine.resume()恢复执行
-                    workflowEngine.resume(userInput);
-
-                } catch (Exception e) {
-                    log.error("工作流恢复执行失败, runtimeUuid={}", runtimeUuid, e);
-                    newHandler.sendError(e);
-                } finally {
-                    DataSourceHelper.close();
-                }
-            }, mainExecutor);
+            // 直接调用Engine的resume()方法，返回Flux
+            return workflowEngine.resume(userInput);
         })
-        .timeout(Duration.ofMinutes(30)) // KISS优化: 延长到30分钟
+        .timeout(Duration.ofMinutes(30))
         .onErrorResume(TimeoutException.class, e -> {
             log.warn("工作流恢复执行超时: runtimeUuid={}", runtimeUuid);
             InterruptedFlow.RUNTIME_TO_GRAPH.remove(runtimeUuid);
-            return Flux.just(WorkflowEventVo.createErrorEvent("工作流执行超时，已自动取消"));
+            return Flux.error(new RuntimeException("工作流执行超时，已自动取消"));
+        })
+        .onErrorResume(e -> {
+            log.error("工作流恢复执行失败, runtimeUuid={}", runtimeUuid, e);
+            return Flux.error(new RuntimeException("工作流恢复执行失败: " + e.getMessage()));
         })
         .doOnCancel(() -> {
             log.info("用户取消工作流执行: runtimeUuid={}", runtimeUuid);
-            // KISS验证: 保留状态供后续恢复(支持误点停止/临时中断场景)
-            // PassiveExpiringMap会在30分钟后自动清理
         })
-        .subscribeOn(Schedulers.boundedElastic())
         .doFinally(signalType -> {
             DataSourceHelper.close();
         });
@@ -433,6 +270,7 @@ public class WorkflowStarter {
      *
      * <p>与streaming方法不同，此方法同步执行工作流并返回最终输出结果。
      * 主要用于SubWorkflowNode调用子工作流。</p>
+     * <p>对齐Spring AI Alibaba - 使用blockLast()收集Flux结果</p>
      *
      * @param workflowUuid 工作流UUID
      * @param userInputs 用户输入参数
@@ -440,9 +278,8 @@ public class WorkflowStarter {
      * @param userId 用户ID
      * @param parentExecutionStack 父工作流的执行栈
      * @param parentConversationId 父工作流的conversationId
-     * @param parentRuntimeUuid 父工作流的runtime_uuid（用于子工作流复用，避免创建新runtime记录）
-     * @param parentStreamHandler 父工作流的StreamHandler（用于转发子工作流的流式事件）
-     * @param callSource 调用来源标识 (WORKFLOW_TEST 或 AI_CHAT)
+     * @param parentRuntimeUuid 父工作流的runtime_uuid
+     * @param callSource 调用来源标识
      * @return 工作流输出结果
      */
     public Map<String, Object> runSync(String workflowUuid,
@@ -452,7 +289,6 @@ public class WorkflowStarter {
                                        Set<String> parentExecutionStack,
                                        String parentConversationId,
                                        String parentRuntimeUuid,
-                                       WorkflowStreamHandler parentStreamHandler,
                                        WorkflowCallSource callSource) {
         try {
             // 切换到正确的数据源
@@ -473,75 +309,9 @@ public class WorkflowStarter {
             List<AiWorkflowNodeVo> nodes = workflowNodeService.listByWorkflowId(workflow.getId());
             List<AiWorkflowEdgeEntity> edges = workflowEdgeService.listByWorkflowId(workflow.getId());
 
-            // 创建一个StreamHandler用于收集结果并转发流式事件到父工作流
-            final Map<String, Object> result = new ConcurrentHashMap<>();
-            final AtomicReference<Throwable> errorRef = new AtomicReference<>();
-
-            WorkflowStreamHandler streamHandler = new WorkflowStreamHandler(
-                    new WorkflowStreamHandler.StreamCallback() {
-                        @Override
-                        public void onStart(String runtimeData) {
-                            // 子工作流不需要发送start事件
-                        }
-
-                        @Override
-                        public void onNodeRun(String nodeUuid, String nodeData) {
-                            // 转发子工作流的node run事件到父工作流
-                            if (parentStreamHandler != null) {
-                                parentStreamHandler.sendNodeRun(nodeUuid, nodeData);
-                            }
-                        }
-
-                        @Override
-                        public void onNodeInput(String nodeUuid, String inputData) {
-                            // 转发子工作流的node input事件到父工作流
-                            if (parentStreamHandler != null) {
-                                parentStreamHandler.sendNodeInput(nodeUuid, inputData);
-                            }
-                        }
-
-                        @Override
-                        public void onNodeOutput(String nodeUuid, String outputData) {
-                            // 转发子工作流的node output事件到父工作流
-                            if (parentStreamHandler != null) {
-                                parentStreamHandler.sendNodeOutput(nodeUuid, outputData);
-                            }
-                        }
-
-                        @Override
-                        public void onNodeChunk(String nodeUuid, String chunk) {
-                            // 转发子工作流的chunk事件到父工作流，实现流式输出
-                            if (parentStreamHandler != null) {
-                                parentStreamHandler.sendNodeChunk(nodeUuid, chunk);
-                            }
-                        }
-
-                        @Override
-                        public void onNodeWaitFeedback(String nodeUuid, String tip) {
-                            // 子工作流不支持人机交互
-                            throw new RuntimeException("子工作流不支持人机交互节点");
-                        }
-
-                        @Override
-                        public void onComplete(String data) {
-                            // 收集最终输出结果
-                            if (data != null && !data.isEmpty()) {
-                                JSONObject outputJson = JSONObject.parseObject(data);
-                                result.putAll(outputJson);
-                            }
-                        }
-
-                        @Override
-                        public void onError(Throwable error) {
-                            errorRef.set(error);
-                        }
-                    }
-            );
-
-            // 创建工作流引擎（支持传入父执行栈和父runtime_uuid）
+            // 创建工作流引擎（子工作流使用parentRuntimeUuid）
             WorkflowEngine workflowEngine = new WorkflowEngine(
                     workflow,
-                    streamHandler,
                     components,
                     nodes,
                     edges,
@@ -550,16 +320,47 @@ public class WorkflowStarter {
                     workflowRuntimeNodeService,
                     conversationRuntimeService,
                     conversationRuntimeNodeService,
-                    parentRuntimeUuid  // 传递父runtime_uuid，子工作流将复用此UUID
+                    parentRuntimeUuid
             );
 
-            // 同步执行工作流（传递父conversationId）
-            workflowEngine.run(userId, userInputs, tenantCode, parentConversationId);
+            // 同步执行工作流并收集结果
+            // 使用blockLast()阻塞等待Flux完成，获取最后一个事件
+            // 对齐Spring AI Alibaba：通过data中的type字段区分消息类型
+            final Map<String, Object> result = new HashMap<>();
+            WorkflowEventVo lastEvent = workflowEngine.run(userId, userInputs, tenantCode, parentConversationId)
+                    .doOnNext(event -> {
+                        // 解析data中的type字段
+                        String data = event.getData();
+                        if (data == null || data.isEmpty()) return;
 
-            // 检查是否有错误
-            if (errorRef.get() != null) {
-                throw new RuntimeException("子工作流执行失败", errorRef.get());
-            }
+                        try {
+                            JSONObject dataJson = JSONObject.parseObject(data);
+                            String type = dataJson.getString("type");
+
+                            // 收集output类型的输出
+                            if ("output".equals(type)) {
+                                JSONObject outputData = dataJson.getJSONObject("data");
+                                if (outputData != null) {
+                                    // 从节点输出中提取output变量
+                                    for (String key : outputData.keySet()) {
+                                        Object outputItem = outputData.get(key);
+                                        if (outputItem instanceof JSONObject) {
+                                            JSONObject itemJson = (JSONObject) outputItem;
+                                            if ("output".equals(itemJson.getString("name"))) {
+                                                JSONObject content = itemJson.getJSONObject("content");
+                                                if (content != null && content.containsKey("value")) {
+                                                    result.put("output", content.get("value"));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            log.warn("解析子工作流输出失败: {}", data, e);
+                        }
+                    })
+                    .blockLast();
 
             log.info("SubWorkflow runSync completed: workflowUuid={}, result={}", workflowUuid, result);
             return result;
@@ -568,7 +369,6 @@ public class WorkflowStarter {
             log.error("子工作流同步执行异常: workflowUuid={}, userId={}", workflowUuid, userId, e);
             throw new RuntimeException("子工作流执行失败: " + e.getMessage(), e);
         } finally {
-            // 清理数据源上下文
             DataSourceHelper.close();
         }
     }

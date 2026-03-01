@@ -1024,6 +1024,7 @@ public class WorkflowRoutingService {
 
     /**
      * 将Orchestrator执行结果转换为SSE事件流
+     * 对齐Spring AI Alibaba：使用data.type区分消息类型
      *
      * @param response Orchestrator最终响应
      * @param userInput 原始用户输入
@@ -1039,44 +1040,33 @@ public class WorkflowRoutingService {
 
         List<WorkflowEventVo> events = new ArrayList<>();
 
-        // 1. 发送开始事件
-        JSONObject startData = new JSONObject();
-        startData.put("type", "orchestrator");
-        startData.put("analysis", response.analysis());
-        startData.put("taskCount", response.workerResults().size());
-        WorkflowEventVo startEvent = WorkflowEventVo.createStartEvent(startData.toJSONString());
-        events.add(startEvent);
-        log.info("【SSE事件-1】START事件: event={}, data长度={}", startEvent.getEvent(), startEvent.getData().length());
-        log.debug("【SSE事件-1】START事件完整data: {}", startEvent.getData());
+        // 1. 发送runtime数据（对齐Spring AI Alibaba）
+        JSONObject runtimeData = new JSONObject();
+        runtimeData.put("type", "runtime");
+        runtimeData.put("orchestratorType", "workflow");
+        runtimeData.put("analysis", response.analysis());
+        runtimeData.put("taskCount", response.workerResults().size());
+        events.add(WorkflowEventVo.builder().data(runtimeData.toJSONString()).build());
+        log.info("【SSE事件-1】runtime数据: data长度={}", runtimeData.toJSONString().length());
 
-        // 2. 发送每个Worker的执行结果
+        // 2. 发送每个Worker的执行结果作为output
         int index = 0;
         for (String workerResult : response.workerResults()) {
-            JSONObject nodeData = new JSONObject();
-            nodeData.put("workerIndex", index);
-            nodeData.put("result", workerResult);
-            WorkflowEventVo nodeEvent = WorkflowEventVo.createNodeRunEvent("worker_" + index, nodeData.toJSONString());
-            events.add(nodeEvent);
-            log.info("【SSE事件-{}】NODE_RUN事件: event={}, data长度={}", index + 2, nodeEvent.getEvent(), nodeEvent.getData().length());
-            log.debug("【SSE事件-{}】NODE_RUN事件完整data: {}", index + 2, nodeEvent.getData());
-            log.info("【SSE事件-{}】workerResult前100字符: {}", index + 2,
-                workerResult.length() > 100 ? workerResult.substring(0, 100) : workerResult);
+            JSONObject outputData = new JSONObject();
+            outputData.put("type", "output");
+            outputData.put("node", "worker_" + index);
+
+            JSONObject workerData = new JSONObject();
+            workerData.put("workerIndex", index);
+            workerData.put("result", workerResult);
+            outputData.put("data", workerData);
+
+            events.add(WorkflowEventVo.builder().data(outputData.toJSONString()).build());
+            log.info("【SSE事件-{}】output数据: data长度={}", index + 2, outputData.toJSONString().length());
             index++;
         }
 
-        // 3. 发送完成事件,包含汇总结果
-        String summary = buildSummaryFromResults(response);
-        JSONObject doneData = new JSONObject();
-        doneData.put("analysis", response.analysis());
-        doneData.put("workerResults", response.workerResults());
-        doneData.put("summary", summary);
-        WorkflowEventVo doneEvent = WorkflowEventVo.createDoneEvent(doneData.toJSONString());
-        events.add(doneEvent);
-        log.info("【SSE事件-{}】DONE事件: event={}, data长度={}", index + 2, doneEvent.getEvent(), doneEvent.getData().length());
-        log.debug("【SSE事件-{}】DONE事件完整data: {}", index + 2, doneEvent.getData());
-        log.info("【SSE事件-{}】summary前100字符: {}", index + 2,
-            summary.length() > 100 ? summary.substring(0, 100) : summary);
-
+        // 3. 工作流完成不再发送done事件，由Flux.complete()信号通知（对齐Spring AI Alibaba）
         log.info("【SSE事件转换】完成,总共生成{}个事件", events.size());
         return Flux.fromIterable(events);
     }
@@ -1107,6 +1097,18 @@ public class WorkflowRoutingService {
         log.info("【Synthesizer】工具结果数量={}", response.workerResults().size());
         log.info("【Synthesizer】runtimeUuid={}", response.runtimeUuid());
         log.info("【Synthesizer】conversationId={}", conversationId);
+
+        // 检查worker结果中是否包含ai_new_route(业务弹窗数据)
+        // Synthesizer会将结果转为自然语言,导致原始JSON丢失,需要通过workflowOutputData透传
+        String workflowOutputDataForDialog = null;
+        for (String workerResult : response.workerResults()) {
+            if (workerResult != null && workerResult.contains("ai_new_route")) {
+                workflowOutputDataForDialog = workerResult;
+                log.info("【Synthesizer】检测到ai_new_route,将通过workflowOutputData透传给前端");
+                break;
+            }
+        }
+        final String finalWorkflowOutputData = workflowOutputDataForDialog;
 
         // 构建Synthesizer的prompt - 让LLM根据工具结果生成自然语言回复
         StringBuilder synthesizerPrompt = new StringBuilder();
@@ -1213,6 +1215,7 @@ public class WorkflowRoutingService {
                         ))
                         .isComplete(true)
                         .runtimeUuid(runtimeUuid)  // 【新增】返回runtimeUuid用于前端显示执行详情icon
+                        .workflowOutputData(finalWorkflowOutputData)  // 透传含ai_new_route的原始工作流输出
                         .build();
                 } else {
                     // 中间chunk,只包含当前内容
@@ -1304,8 +1307,7 @@ public class WorkflowRoutingService {
 
     /**
      * 将WorkflowEventVo转换为ChatResponseVo(兼容前端)
-     *
-     * <p>WorkflowEventVo是内部工作流事件格式,前端期望ChatResponseVo格式</p>
+     * 对齐Spring AI Alibaba：通过data.type区分消息类型
      *
      * @param event 工作流事件
      * @return ChatResponseVo
@@ -1315,54 +1317,51 @@ public class WorkflowRoutingService {
             // 将event.data解析为JSON对象
             JSONObject eventData = JSON.parseObject(event.getData());
 
-            // 根据不同的event类型构建不同的响应
-            String eventType = event.getEvent();
+            // 通过data.type区分消息类型（对齐Spring AI Alibaba）
+            String type = eventData.getString("type");
 
-            if ("start".equals(eventType)) {
-                // start事件: 返回空内容块(前端需要这个事件来初始化)
-                return ChatResponseVo.createContentChunk("");
+            switch (type != null ? type : "") {
+                case "runtime":
+                    // runtime数据: 返回空内容块(前端需要这个事件来初始化)
+                    return ChatResponseVo.createContentChunk("");
 
-            } else if (eventType != null && eventType.startsWith("[NODE_CHUNK_")) {
-                // NODE_CHUNK事件: LLM流式输出,提取chunk内容
-                String chunk = eventData.getString("chunk");
-                return ChatResponseVo.createContentChunk(chunk != null ? chunk : "");
+                case "chunk":
+                    // LLM流式输出
+                    String chunk = eventData.getString("chunk");
+                    return ChatResponseVo.createContentChunk(chunk != null ? chunk : "");
 
-            } else if ("done".equals(eventType)) {
-                // done事件: 标记完成,提取完整内容
-                String content = eventData.getString("fullContent");
-                if (content == null) {
-                    content = "";
-                }
+                case "output":
+                    // 节点完整输出：提取output变量的值
+                    JSONObject outputData = eventData.getJSONObject("data");
+                    if (outputData != null) {
+                        for (String key : outputData.keySet()) {
+                            Object outputItem = outputData.get(key);
+                            if (outputItem instanceof JSONObject) {
+                                JSONObject itemJson = (JSONObject) outputItem;
+                                if ("output".equals(itemJson.getString("name"))) {
+                                    JSONObject content = itemJson.getJSONObject("content");
+                                    if (content != null && content.containsKey("value")) {
+                                        return ChatResponseVo.createContentChunk(content.getString("value"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return ChatResponseVo.createContentChunk("");
 
-                return ChatResponseVo.builder()
-                    .results(List.of(
-                        ChatResponseVo.Generation.builder()
-                            .output(ChatResponseVo.AssistantMessage.builder()
-                                .content(content)
-                                .build())
-                            .metadata(ChatResponseVo.GenerationMetadata.builder()
-                                .finishReason("stop")
-                                .build())
-                            .build()
-                    ))
-                    .isComplete(true)
-                    .runtimeId(eventData.getLong("runtimeId"))
-                    .runtimeUuid(eventData.getString("runtimeUuid"))
-                    .workflowUuid(eventData.getString("workflowUuid"))
-                    .build();
+                case "interrupt":
+                    // 人机交互中断
+                    ChatResponseVo interruptResponse = ChatResponseVo.createContentChunk("");
+                    interruptResponse.setIsWaitingInput(true);
+                    return interruptResponse;
 
-            } else if ("error".equals(eventType)) {
-                // error事件: 提取错误消息
-                String errorMsg = eventData.getString("errorMessage");
-                return ChatResponseVo.createErrorResponse(errorMsg != null ? errorMsg : "工作流执行失败");
-
-            } else {
-                // 其他事件(NODE_RUN, NODE_INPUT, NODE_OUTPUT等): 返回空内容块
-                return ChatResponseVo.createContentChunk("");
+                default:
+                    // 未知类型: 返回空内容块
+                    return ChatResponseVo.createContentChunk("");
             }
 
         } catch (Exception e) {
-            log.error("转换WorkflowEventVo失败: event={}", event, e);
+            log.error("转换WorkflowEventVo失败", e);
             return ChatResponseVo.createContentChunk("");
         }
     }

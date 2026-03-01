@@ -36,6 +36,14 @@ public class EndNode extends AbstractWfNode {
     protected NodeProcessResult onProcess() {
         List<NodeIOData> result = new ArrayList<>();
 
+        log.debug("EndNode输入数量: {}", state.getInputs().size());
+        for (NodeIOData input : state.getInputs()) {
+            log.debug("EndNode输入: name={}, type={}, value={}",
+                    input.getName(),
+                    input.getContent() != null ? input.getContent().getType() : null,
+                    input.valueToString());
+        }
+
         // 使用 Fastjson2 的 JSONObject
         JSONObject nodeConfigObj = node.getNodeConfig();
         String output = "";
@@ -45,6 +53,7 @@ public class EndNode extends AbstractWfNode {
         } else {
             // 从节点配置中获取结果模板
             String resultTemplate = nodeConfigObj.getString("result");
+            log.debug("EndNode模板: {}", resultTemplate);
             if (null != resultTemplate) {
                 // 将文件内容转换为Markdown格式
                 WfNodeIODataUtil.changeFilesContentToMarkdown(state.getInputs());
@@ -53,6 +62,7 @@ public class EndNode extends AbstractWfNode {
             }
         }
 
+        log.debug("EndNode输出: {}", output);
         result.add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", output));
         return NodeProcessResult.builder().content(result).build();
     }

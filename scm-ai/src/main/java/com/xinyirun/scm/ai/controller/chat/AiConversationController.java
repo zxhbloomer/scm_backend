@@ -596,8 +596,8 @@ public class AiConversationController {
             // 转换为ChatResponseVo流,并累积内容注入done事件
             return workflowEvents
                 .map(event -> {
-                    log.info("【Workflow Slash Command-调试】收到WorkflowEventVo, event={}, data长度={}",
-                        event.getEvent(), event.getData() != null ? event.getData().length() : 0);
+                    log.info("【Workflow Slash Command-调试】收到WorkflowEventVo, data长度={}",
+                        event.getData() != null ? event.getData().length() : 0);
                     return workflowEventAdapter.convert(event);
                 })
                 .map(response -> {

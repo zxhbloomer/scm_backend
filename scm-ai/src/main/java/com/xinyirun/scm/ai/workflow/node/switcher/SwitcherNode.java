@@ -43,16 +43,16 @@ public class SwitcherNode extends AbstractWfNode {
             log.warn("找不到条件分支节点的配置,nodeUuid:{},name:{}", node.getUuid(), node.getTitle());
             throw new BusinessException("工作流节点配置错误");
         }
-        String nextNode = nodeConfig.getDefaultTargetNodeUuid();
-        if (StringUtils.isBlank(nextNode)) {
-            log.error("Switcher default downstream is empty,node:{},name:{}", node.getUuid(), node.getTitle());
-            throw new BusinessException("工作流节点配置错误");
-        }
-        //初始化配置的各种case
+
+        // 默认使用 default_handle，对应 default 分支的边
+        String matchedSourceHandle = "default_handle";
+
+        // 遍历所有case，找到第一个匹配的
         for (SwitcherCase switcherCase : nodeConfig.getCases()) {
             List<SwitcherCase.Condition> conditions = switcherCase.getConditions();
-            if (StringUtils.isAnyBlank(switcherCase.getTargetNodeUuid(), switcherCase.getOperator()) || CollectionUtils.isEmpty(conditions)) {
-                log.warn("Switcher case error:{}", switcherCase);
+            // 只需要检查 case.uuid 和 operator，不再依赖 target_node_uuid
+            if (StringUtils.isBlank(switcherCase.getUuid()) || StringUtils.isBlank(switcherCase.getOperator()) || CollectionUtils.isEmpty(conditions)) {
+                log.warn("Switcher case error: uuid或operator为空, case={}", switcherCase);
                 continue;
             }
             int conditionPassCount = 0;
@@ -76,15 +76,23 @@ public class SwitcherNode extends AbstractWfNode {
                 }
             }
             if (casePass) {
-                nextNode = switcherCase.getTargetNodeUuid();
+                // case 匹配成功，返回 case.uuid 作为 sourceHandle
+                // 这个 uuid 与 edge 表中的 source_handle 对应
+                matchedSourceHandle = switcherCase.getUuid();
+                log.info("Switcher条件匹配成功, caseUuid={}, nodeUuid={}", matchedSourceHandle, node.getUuid());
                 break;
             }
         }
-        if (StringUtils.isBlank(nextNode)) {
-            log.error("Switcher downstream is empty,node:{},name:{}", node.getUuid(), node.getTitle());
-            throw new BusinessException("工作流节点配置错误");
-        }
-        return NodeProcessResult.builder().nextNodeUuid(nextNode).content(changeInputsToOutputs(state.getInputs())).build();
+
+        log.info("Switcher条件路由结果: matchedSourceHandle={}, nodeUuid={}, title={}",
+                matchedSourceHandle, node.getUuid(), node.getTitle());
+
+        // 返回 sourceHandle 而非 targetNodeUuid
+        // WorkflowEngine 会根据 sourceHandle 从 edge 表查找所有目标节点
+        return NodeProcessResult.builder()
+                .nextSourceHandle(matchedSourceHandle)
+                .content(changeInputsToOutputs(state.getInputs()))
+                .build();
     }
 
     private boolean processCondition(String defValue, String inputValue, String operator) {

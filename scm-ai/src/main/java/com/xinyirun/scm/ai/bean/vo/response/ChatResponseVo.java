@@ -102,6 +102,14 @@ public class ChatResponseVo {
     private List<java.util.Map<String, Object>> mcpToolResults;
 
     /**
+     * 工作流原始输出数据(Synthesizer路径时保留原始工作流输出)
+     * 当Synthesizer将工作流结果转为自然语言时,含ai_new_route的原始JSON通过此字段透传给前端
+     *
+     * @since 2026-02-28 AI业务弹窗通用组件
+     */
+    private String workflowOutputData;
+
+    /**
      * 生成结果内部类
      */
     @Data

@@ -109,10 +109,15 @@ public class ClassifierNode extends AbstractWfNode {
                 .content(classificationContent)
                 .build());
 
-        // 返回结果并指定下一个节点
-        String nextNodeUuid = categoryOpt.get().getTargetNodeUuid();
+        // 返回结果并指定下一个分支（使用 categoryUuid 作为 sourceHandle）
+        // WorkflowEngine 会根据 sourceHandle 从 edge 表查找所有目标节点
+        // 当同一个 categoryUuid 对应多个目标节点时，会创建虚拟并行分发节点实现并行执行
+        String matchedSourceHandle = categoryOpt.get().getCategoryUuid();
+        log.info("Classifier分类匹配成功, categoryUuid={}, categoryName={}, nodeUuid={}",
+                matchedSourceHandle, categoryOpt.get().getCategoryName(), node.getUuid());
+
         return NodeProcessResult.builder()
-                .nextNodeUuid(nextNodeUuid)
+                .nextSourceHandle(matchedSourceHandle)
                 .content(outputs)
                 .build();
     }

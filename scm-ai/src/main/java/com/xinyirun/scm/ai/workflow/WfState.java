@@ -50,11 +50,6 @@ public class WfState {
     private Map<String, Object> pageContext;
 
     /**
-     * 工作流流式处理器（用于发送 SSE 事件）
-     */
-    private WorkflowStreamHandler streamHandler;
-
-    /**
      * Source node uuid => target node uuid list
      */
     private Map<String, List<String>> edges = new HashMap<>();

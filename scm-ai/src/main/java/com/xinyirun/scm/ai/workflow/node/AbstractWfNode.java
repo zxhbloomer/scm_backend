@@ -24,9 +24,9 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections4.CollectionUtils;
@@ -80,10 +80,25 @@ public abstract class AbstractWfNode {
 
         List<NodeIOData> inputs = new ArrayList<>();
 
-        // 将上游节点的输出转成当前节点的输入
-        List<NodeIOData> upstreamOutputs = wfState.getLatestOutputs();
-        if (!upstreamOutputs.isEmpty()) {
-            inputs.addAll(new ArrayList<>(deepCopyList(upstreamOutputs)));
+        // 从OverAllState获取所有上游节点的输出
+        // 参照Spring AI Alibaba方式：通过state.data()获取，框架自动合并并行节点输出
+        Map<String, Object> stateData = state.data();
+
+        // 调试日志：打印state.data()中的所有key，检查是否包含node_output_前缀的数据
+        log.info("[initInput调试] state.data()包含{}个key: {}", stateData.size(), stateData.keySet());
+
+        for (Map.Entry<String, Object> entry : stateData.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(NODE_OUTPUT_KEY_PREFIX)) {
+                log.info("[initInput调试] 找到上游节点输出: key={}", key);
+                Object value = entry.getValue();
+                if (value instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<NodeIOData> nodeOutputs = (List<NodeIOData>) value;
+                    inputs.addAll(new ArrayList<>(deepCopyList(nodeOutputs)));
+                    log.info("[initInput调试] 添加{}个输出到inputs", nodeOutputs.size());
+                }
+            }
         }
 
         // 处理引用类型的输入参数
@@ -183,12 +198,12 @@ public abstract class AbstractWfNode {
 
     /**
      * 执行节点处理
+     * 简化版 - 对齐Spring AI Alibaba设计
+     * 节点只负责业务逻辑，数据库更新由WorkflowEngine统一处理
      *
-     * @param inputConsumer  输入参数处理回调
-     * @param outputConsumer 输出结果处理回调
      * @return 节点处理结果
      */
-    public NodeProcessResult process(Consumer<WfNodeState> inputConsumer, Consumer<WfNodeState> outputConsumer) {
+    public NodeProcessResult process() {
         state.setProcessStatus(NODE_PROCESS_STATUS_DOING);
         initInput();
 
@@ -201,10 +216,6 @@ public abstract class AbstractWfNode {
             }
         }
 
-        if (null != inputConsumer) {
-            inputConsumer.accept(state);
-        }
-
         log.info("节点输入: {}", JsonUtil.toJson(state.getInputs()));
 
         NodeProcessResult processResult;
@@ -215,9 +226,6 @@ public abstract class AbstractWfNode {
             state.setProcessStatus(NODE_PROCESS_STATUS_FAIL);
             state.setProcessStatusRemark("节点执行异常: " + e.getMessage());
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_FAIL);
-            if (null != outputConsumer) {
-                outputConsumer.accept(state);
-            }
             throw new RuntimeException(e);
         }
 
@@ -227,10 +235,6 @@ public abstract class AbstractWfNode {
 
         state.setProcessStatus(NODE_PROCESS_STATUS_SUCCESS);
         wfState.getCompletedNodes().add(this);
-
-        if (null != outputConsumer) {
-            outputConsumer.accept(state);
-        }
 
         return processResult;
     }

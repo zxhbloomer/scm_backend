@@ -20,6 +20,7 @@ import com.xinyirun.scm.ai.workflow.node.switcher.OperatorEnum;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
 import com.xinyirun.scm.bean.system.result.utils.v1.ResultUtil;
 import com.xinyirun.scm.common.annotations.SysLogAnnotion;
+import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -171,13 +172,6 @@ public class WorkflowController {
 
     /**
      * 流式执行工作流（Reactor Flux）
-     * 技术栈升级：从SseEmitter迁移到Reactor Flux，统一知识库对话和工作流的SSE实现
-     *
-     * SSE格式说明：
-     * - 使用ServerSentEvent包装WorkflowEventVo，确保event字段正确映射到SSE的event:行
-     * - 前端@microsoft/fetch-event-source库期望的格式：
-     *   event: done
-     *   data: {"data":"..."}
      *
      * @param wfUuid 工作流UUID
      * @param inputs 用户输入参数
@@ -186,31 +180,36 @@ public class WorkflowController {
     @Operation(summary = "流式执行工作流")
     @PostMapping(value = "/run/{wfUuid}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @SysLogAnnotion("流式执行工作流")
-    @DS("#header.X-Tenant-ID")
     public Flux<ServerSentEvent<String>> run(@PathVariable String wfUuid,
-                                               @RequestBody List<JSONObject> inputs,
-                                               HttpServletRequest request) {
-        // 【多租户支持】从请求头中获取租户编码
-        // 由于使用了响应式流，必须在主线程获取租户编码后传递给Service层
+                                             @RequestBody List<JSONObject> inputs,
+                                             HttpServletRequest request) {
         String tenantCode = request.getHeader("X-Tenant-ID");
+        log.info("[Controller] ========== 请求开始 ==========");
+        log.info("[Controller] wfUuid={}, tenantCode={}, inputs={}", wfUuid, tenantCode, inputs);
 
+        // 设置租户上下文
+        DataSourceHelper.use(tenantCode);
+
+        // 直接返回Flux，让Spring MVC自动处理SSE流式写入
         return workflowStarter.streaming(wfUuid, inputs, tenantCode, WorkflowCallSource.WORKFLOW_TEST, null)
-                .onErrorResume(error -> {
-                    // 在Flux流中处理错误，防止异常传播到全局异常处理器导致SSE流中断
-                    log.error("工作流执行错误 - wfUuid: {}, tenantCode: {}", wfUuid, tenantCode, error);
-
-                    // 创建错误事件并返回给前端
-                    WorkflowEventVo errorEvent = new WorkflowEventVo();
-                    errorEvent.setEvent("error");
-                    errorEvent.setData("工作流执行失败: " + error.getMessage());
-
-                    // 返回错误事件流（确保ChatClientMessageAggregator能够完成）
-                    return Flux.just(errorEvent);
+                .doOnSubscribe(sub -> log.info("[Controller] Flux已被订阅(doOnSubscribe)"))
+                .doFirst(() -> log.info("[Controller] Flux开始执行(doFirst)"))
+                .doOnNext(event -> log.info("[Controller] 收到事件(doOnNext): dataLen={}",
+                        event.getData() != null ? event.getData().length() : 0))
+                .map(event -> {
+                    log.info("[Controller] 转换SSE数据(map): dataLen={}", event.getData() != null ? event.getData().length() : 0);
+                    // 对齐Spring AI Alibaba：不设置event名，只发送data（前端通过data.type区分）
+                    return ServerSentEvent.<String>builder()
+                            .data(event.getData())
+                            .build();
                 })
-                .map(event -> ServerSentEvent.<String>builder()
-                        .event(event.getEvent())  // SSE的event:行
-                        .data(event.getData())    // SSE的data:行
-                        .build());
+                .doOnComplete(() -> log.info("[Controller] Flux完成(doOnComplete)"))
+                .doOnError(error -> log.error("[Controller] Flux错误(doOnError)", error))
+                .doOnCancel(() -> log.warn("[Controller] Flux被取消(doOnCancel)"))
+                .doFinally(signalType -> {
+                    log.info("[Controller] ========== 请求结束 ========== signalType={}", signalType);
+                    DataSourceHelper.close();
+                });
     }
 
     /**
