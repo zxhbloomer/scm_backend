@@ -3,6 +3,7 @@ package com.xinyirun.scm.ai.controller.config;
 import com.xinyirun.scm.ai.common.constant.ModelConstants;
 import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.config.DefaultModelsVo;
+import com.xinyirun.scm.ai.bean.vo.config.FetchRemoteModelsVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
 import com.xinyirun.scm.ai.core.service.config.AiConfigService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
@@ -125,5 +126,14 @@ public class AiModelConfigController {
         }
 
         aiConfigService.setDefaultModel(modelType, modelId);
+    }
+
+    @PostMapping("/fetch-remote-models")
+    @Operation(summary = "获取远程模型列表（第三方供应商）")
+    @SysLogAnnotion("获取远程模型列表")
+    @ResponseBody
+    public ResponseEntity<JsonResultAo<List<String>>> fetchRemoteModels(@RequestBody FetchRemoteModelsVo request) {
+        List<String> result = aiModelConfigService.fetchRemoteModels(request.getBaseUrl(), request.getApiKey());
+        return ResponseEntity.ok().body(ResultUtil.OK(result));
     }
 }

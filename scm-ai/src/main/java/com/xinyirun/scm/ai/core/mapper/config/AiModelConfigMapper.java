@@ -57,7 +57,8 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
             </if>
             <if test="keyword != null and keyword != ''">
                 AND (t1.model_name LIKE CONCAT('%', #{keyword}, '%')
-                     OR t1.deployment_name LIKE CONCAT('%', #{keyword}, '%'))
+                     OR t1.deployment_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR t1.name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
         ORDER BY t1.c_time DESC

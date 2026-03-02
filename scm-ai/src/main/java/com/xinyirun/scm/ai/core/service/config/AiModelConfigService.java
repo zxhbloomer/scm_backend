@@ -9,12 +9,21 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI模型配置服务类
@@ -107,7 +116,7 @@ public class AiModelConfigService {
         if (aiModelConfigVo.getProvider() != null) {
             aiModelConfig.setProvider(aiModelConfigVo.getProvider());
         }
-        if (aiModelConfigVo.getApiKey() != null) {
+        if (aiModelConfigVo.getApiKey() != null && !isApiKeyMasked(aiModelConfigVo.getApiKey())) {
             aiModelConfig.setApiKey(aiModelConfigVo.getApiKey());
         }
         if (aiModelConfigVo.getBaseUrl() != null) {
@@ -161,14 +170,14 @@ public class AiModelConfigService {
             entity.setTopP(BigDecimal.ONE);
         }
 
-        // Max Tokens校验：>0，默认1024
+        // Max Tokens校验：>0，默认4096
         if (vo.getMaxTokens() != null) {
             if (vo.getMaxTokens() <= 0) {
                 throw new RuntimeException("Max Tokens必须大于0");
             }
             entity.setMaxTokens(vo.getMaxTokens());
         } else if (entity.getMaxTokens() == null) {
-            entity.setMaxTokens(1024);
+            entity.setMaxTokens(4096);
         }
 
         // Timeout校验：>0，默认60秒
@@ -189,6 +198,14 @@ public class AiModelConfigService {
         AiModelConfigEntity entity = aiModelConfigMapper.selectById(id);
         if (entity == null) {
             throw new RuntimeException("模型信息不存在");
+        }
+
+        // 检查是否为默认模型，默认模型不允许直接删除
+        String idStr = id.toString();
+        if (idStr.equals(aiConfigService.getConfigValue("DEFAULT_LLM_MODEL_ID"))
+                || idStr.equals(aiConfigService.getConfigValue("DEFAULT_VISION_MODEL_ID"))
+                || idStr.equals(aiConfigService.getConfigValue("DEFAULT_EMBEDDING_MODEL_ID"))) {
+            throw new RuntimeException("该模型已设为默认模型，请先更换默认模型后再删除");
         }
 
         aiModelConfigMapper.deleteById(id);
@@ -263,6 +280,13 @@ public class AiModelConfigService {
      */
     public List<AiModelConfigVo> getAvailableEmbeddingModels() {
         return aiModelConfigMapper.selectAvailableEmbeddingModels();
+    }
+
+    /**
+     * 检测API Key是否为脱敏值（脱敏格式含"****"）
+     */
+    private boolean isApiKeyMasked(String apiKey) {
+        return apiKey.contains("****");
     }
 
     /**
@@ -404,5 +428,67 @@ public class AiModelConfigService {
         }
 
         return config;
+    }
+
+    /**
+     * 获取远程模型列表（第三方供应商）
+     * 通过OpenAI兼容协议调用远程API获取可用模型
+     *
+     * @param baseUrl API地址
+     * @param apiKey API密钥
+     * @return 模型ID列表
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> fetchRemoteModels(String baseUrl, String apiKey) {
+        if (StringUtils.isBlank(baseUrl) || StringUtils.isBlank(apiKey)) {
+            throw new IllegalArgumentException("API地址和API密钥不能为空");
+        }
+
+        // 构建请求URL，去除末尾斜杠后拼接 /v1/models
+        String url = baseUrl.replaceAll("/+$", "") + "/v1/models";
+
+        // 设置Authorization请求头
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + apiKey);
+        HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+        // 使用独立的RestTemplate，设置10秒超时
+        RestTemplate restTemplate = new RestTemplateBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .readTimeout(Duration.ofSeconds(10))
+                .build();
+
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, requestEntity, Map.class);
+            Map<String, Object> body = response.getBody();
+
+            if (body == null || !body.containsKey("data")) {
+                throw new RuntimeException("远程API响应格式不正确，缺少data字段");
+            }
+
+            List<Map<String, Object>> dataList = (List<Map<String, Object>>) body.get("data");
+            List<String> modelIds = new ArrayList<>();
+            for (Map<String, Object> item : dataList) {
+                Object id = item.get("id");
+                if (id != null) {
+                    modelIds.add(id.toString());
+                }
+            }
+
+            log.info("获取远程模型列表成功, url: {}, 模型数量: {}", url, modelIds.size());
+            return modelIds;
+        } catch (org.springframework.web.client.ResourceAccessException e) {
+            log.error("远程API连接超时, url: {}", url, e);
+            throw new RuntimeException("连接超时，请检查API地址是否正确");
+        } catch (org.springframework.web.client.HttpClientErrorException.Unauthorized e) {
+            log.error("远程API认证失败, url: {}", url, e);
+            throw new RuntimeException("认证失败，请检查API密钥是否正确");
+        } catch (RuntimeException e) {
+            if (e.getMessage() != null && (e.getMessage().startsWith("远程API") || e.getMessage().startsWith("连接超时") || e.getMessage().startsWith("认证失败"))) {
+                throw e;
+            }
+            log.error("获取远程模型列表失败, url: {}", url, e);
+            throw new RuntimeException("获取模型列表失败: " + e.getMessage());
+        }
     }
 }
