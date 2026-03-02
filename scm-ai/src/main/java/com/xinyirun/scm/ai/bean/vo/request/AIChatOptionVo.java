@@ -11,6 +11,7 @@ import lombok.experimental.Accessors;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -71,6 +72,14 @@ public class AIChatOptionVo implements Serializable {
      */
     @Schema(description = "是否启用MCP工具")
     private Boolean enableMcpTools = false;
+
+    /**
+     * 指定加载的MCP工具名称列表
+     * null或空: 加载全部MCP工具
+     * 指定具体名称: 只加载这些工具
+     */
+    @Schema(description = "指定MCP工具名称列表")
+    private List<String> toolNames;
 
     /**
      * 设置提示词并返回当前对象（链式调用）

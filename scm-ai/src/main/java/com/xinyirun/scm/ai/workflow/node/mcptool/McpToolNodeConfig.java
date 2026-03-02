@@ -3,18 +3,22 @@ package com.xinyirun.scm.ai.workflow.node.mcptool;
 import com.alibaba.fastjson2.annotation.JSONField;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * MCP工具节点配置类
  *
  * 节点配置数据结构(存储在ai_workflow_node.node_config字段):
  * {
  *   "tool_input": "查询库位信息,条件: {input.query_condition}",
- *   "model_name": "gj-deepseek"
+ *   "model_name": "gj-deepseek",
+ *   "tool_names": ["querySupplier", "queryInventory"]
  * }
  *
  * 简化设计:
  * - tool_input: 传递给MCP工具的输入参数,支持变量引用
  * - model_name: LLM模型名称,用于Function Calling智能选择工具
+ * - tool_names: 指定加载的MCP工具名称列表,null或空表示加载全部工具
  * - MCP工具会被自动发现并作为Function Call提供给LLM
  * - LLM根据输入智能选择并调用合适的工具
  *
@@ -47,4 +51,12 @@ public class McpToolNodeConfig {
      */
     @JSONField(name = "show_process_output")
     private Boolean showProcessOutput = true;
+
+    /**
+     * 指定加载的MCP工具名称列表
+     * null或空列表: 加载全部MCP工具（向后兼容）
+     * 指定具体工具名: 只加载这些工具,减少token消耗
+     */
+    @JSONField(name = "tool_names")
+    private List<String> toolNames;
 }

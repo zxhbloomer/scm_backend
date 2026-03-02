@@ -22,10 +22,13 @@ import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -46,6 +49,16 @@ import java.util.UUID;
 @Slf4j
 @Transactional(rollbackFor = Exception.class)
 public class AiChatBaseService {
+
+    private static final String MCP_TOOL_SYSTEM_PROMPT = """
+            在使用MCP工具时，请严格遵守以下要求：
+            1. 不可以臆想、推测数据，必须基于工具返回的实际结果
+            2. 不可以过度回复、不可以过度推测
+            3. 如果你对任何方面不确定，或者无法取得必要信息，请说"我没有足够的信息来自信地评估这一点"
+            4. 如果找不到相关引用，请说明"未找到相关引用"
+            5. 找不到相关回答，请说明"未找到相关回答"
+            6. 在回答找不到的情况时，不要过多拓展回复和过度回复
+            """;
 
     @Resource
     MessageChatMemoryAdvisor chatMessageChatMemoryAdvisor;
@@ -71,6 +84,11 @@ public class AiChatBaseService {
     @Resource
     @Qualifier("mcpToolOnlyChatClient")
     private ChatClient mcpToolOnlyChatClient;
+
+    @Lazy
+    @Resource
+    @Qualifier("mcpToolCallbackMap")
+    private Map<String, ToolCallback> mcpToolCallbackMap;
 
     @Resource
     private AiConversationContentMapper aiConversationContentMapper;
@@ -166,6 +184,35 @@ public class AiChatBaseService {
      * @return ChatClient.StreamResponseSpec 流式响应
      */
     public ChatClient.StreamResponseSpec chatStreamWithMcpTools(AIChatOptionVo aiChatOption) {
+        List<String> toolNames = aiChatOption.getToolNames();
+
+        // 指定了工具名称 → 过滤加载
+        if (toolNames != null && !toolNames.isEmpty()) {
+            ToolCallback[] filteredCallbacks = toolNames.stream()
+                    .filter(mcpToolCallbackMap::containsKey)
+                    .map(mcpToolCallbackMap::get)
+                    .toArray(ToolCallback[]::new);
+
+            if (filteredCallbacks.length > 0) {
+                log.info("MCP工具节点使用过滤模式, 加载工具: {}/{}", filteredCallbacks.length, toolNames.size());
+                ChatClient filteredClient = ChatClient.builder(aiModelProvider.getChatModel())
+                        .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
+                        .defaultToolCallbacks(filteredCallbacks)
+                        .build();
+
+                ChatClient.ChatClientRequestSpec requestSpec = filteredClient
+                        .prompt()
+                        .user(aiChatOption.getPrompt());
+
+                if (aiChatOption.getToolContext() != null && !aiChatOption.getToolContext().isEmpty()) {
+                    requestSpec.toolContext(aiChatOption.getToolContext());
+                }
+                return requestSpec.stream();
+            }
+            log.warn("指定的工具名称均未找到: {}, 降级为全部工具", toolNames);
+        }
+
+        // 未指定或过滤后为空 → 使用全部工具（向后兼容）
         log.info("MCP工具节点使用无记忆模式, 避免对话历史干扰工具调用");
         ChatClient.ChatClientRequestSpec requestSpec = mcpToolOnlyChatClient
                 .prompt()

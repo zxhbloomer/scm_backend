@@ -13,6 +13,7 @@ import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
+import com.xinyirun.scm.ai.workflow.node.mcptool.McpToolNodeConfig;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -179,6 +180,20 @@ public class WorkflowUtil {
             // 节点类型检测:判断是否为MCP工具节点
             boolean isMcpToolNode = isMcpToolNode(node);
             chatOption.setEnableMcpTools(isMcpToolNode);
+
+            // MCP工具节点:从node_config读取指定的工具名称列表
+            if (isMcpToolNode && node.getNodeConfig() != null) {
+                try {
+                    McpToolNodeConfig mcpConfig = node.getNodeConfig().to(McpToolNodeConfig.class);
+                    if (mcpConfig != null && mcpConfig.getToolNames() != null && !mcpConfig.getToolNames().isEmpty()) {
+                        chatOption.setToolNames(mcpConfig.getToolNames());
+                        log.info("MCP工具节点指定工具列表: {}", mcpConfig.getToolNames());
+                    }
+                } catch (Exception e) {
+                    log.warn("解析McpToolNodeConfig的toolNames失败, 使用全部工具", e);
+                }
+            }
+
             log.info("节点类型判断 - 节点UUID: {}, 标题: {}, 是否MCP工具节点: {}",
                     node.getUuid(), node.getTitle(), isMcpToolNode);
 
