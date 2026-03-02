@@ -22,7 +22,7 @@ public class TempKnowledgeBaseNodeConfig {
      * 模型名称（可选）
      *
      * 说明：
-     * - 默认值: "gj-deepseek"
+     * - 为空时使用系统默认语言模型
      * - 用于LLM的Function Calling功能
      */
     private String model_name;

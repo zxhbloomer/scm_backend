@@ -9,6 +9,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
+import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowComponentService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.data.NodeIODataContent;
@@ -89,7 +90,9 @@ public class WorkflowUtil {
                 throw new RuntimeException("AiChatBaseService not found in Spring context");
             }
 
-            var modelConfig = aiChatBaseService.getModule(request, null);
+            AiModelConfigService aiModelConfigService = SpringUtil.getBean(AiModelConfigService.class);
+            AiModelConfigVo modelConfig = resolveModelConfig(modelName, aiModelConfigService, aiChatBaseService, request);
+            log.info("invoke LLM (non-streaming), 实际使用模型: {}", modelConfig.getName());
 
             AIChatOptionVo chatOption = new AIChatOptionVo();
             chatOption.setModule(modelConfig);
@@ -165,7 +168,9 @@ public class WorkflowUtil {
                 throw new RuntimeException("AiChatBaseService not found in Spring context");
             }
 
-            AiModelConfigVo modelConfig = aiChatBaseService.getModule(request, null);
+            AiModelConfigService aiModelConfigService = SpringUtil.getBean(AiModelConfigService.class);
+            AiModelConfigVo modelConfig = resolveModelConfig(modelName, aiModelConfigService, aiChatBaseService, request);
+            log.info("invoke LLM (streaming), 实际使用模型: {}", modelConfig.getName());
 
             AIChatOptionVo chatOption = new AIChatOptionVo();
             chatOption.setModule(modelConfig);
@@ -406,5 +411,30 @@ public class WorkflowUtil {
     // 注意：USER和ASSISTANT消息的保存已由MessageChatMemoryAdvisor自动管理
     // 通过ScmWorkflowMessageChatMemory.add()方法完成
     // 符合Spring AI框架的最佳实践
+
+    /**
+     * 根据模型名称解析模型配置
+     *
+     * 优先使用节点指定的模型（按显示名称查询），若未指定或查询失败则降级到系统默认模型。
+     *
+     * @param modelName 节点配置的模型显示名称，可为空
+     * @param aiModelConfigService 模型配置服务
+     * @param aiChatBaseService 聊天基础服务（用于获取默认模型）
+     * @param request 聊天请求对象
+     * @return 模型配置（含完整API Key）
+     */
+    private static AiModelConfigVo resolveModelConfig(String modelName,
+                                                       AiModelConfigService aiModelConfigService,
+                                                       AiChatBaseService aiChatBaseService,
+                                                       AIChatRequestVo request) {
+        if (StringUtils.isNotBlank(modelName)) {
+            try {
+                return aiModelConfigService.getModelConfigByName(modelName);
+            } catch (Exception e) {
+                log.warn("指定模型 [{}] 未找到，使用系统默认模型", modelName);
+            }
+        }
+        return aiChatBaseService.getModule(request, null);
+    }
 
 }

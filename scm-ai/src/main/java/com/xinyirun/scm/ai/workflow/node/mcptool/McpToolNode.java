@@ -79,11 +79,8 @@ public class McpToolNode extends AbstractWfNode {
 
             log.info("MCP工具节点输入: {}", prompt);
 
-            // 3. 获取模型名称
+            // 3. 获取模型名称（为空时由WorkflowUtil.resolveModelConfig降级到系统默认模型）
             String modelName = config.getModelName();
-            if (StringUtils.isBlank(modelName)) {
-                modelName = "gj-deepseek";  // 默认模型
-            }
 
             // 4. 使用LLM的Function Calling能力自动选择和调用工具
             // WorkflowUtil.streamingInvokeLLM会自动:

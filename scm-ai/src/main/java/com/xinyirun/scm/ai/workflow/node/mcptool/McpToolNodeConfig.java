@@ -35,7 +35,7 @@ public class McpToolNodeConfig {
     /**
      * LLM模型名称
      * 用于Function Calling智能选择和调用MCP工具
-     * 默认: gj-deepseek
+     * 为空时使用系统默认语言模型
      */
     @JSONField(name = "model_name")
     private String modelName;
