@@ -222,6 +222,14 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
           AND t2.dict_value = t1.category
         WHERE t1.is_enable = 1
           AND (t1.is_public = 1 OR t1.c_id = #{userId})
+          -- 排除纯路由包装器和空工作流：必须含有至少一个实际处理节点
+          AND EXISTS (
+            SELECT 1 FROM ai_workflow_node t3
+            INNER JOIN ai_workflow_component t4 ON t3.workflow_component_id = t4.id
+            WHERE t3.workflow_id = t1.id
+            AND t3.is_deleted = 0
+            AND t4.name NOT IN ('Start', 'End', 'Classifier', 'SubWorkflow', 'Switcher')
+          )
         ORDER BY
           CASE WHEN t1.c_id = #{userId} THEN 0 ELSE 1 END,
           t1.priority DESC,

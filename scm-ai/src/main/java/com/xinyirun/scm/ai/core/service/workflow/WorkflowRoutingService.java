@@ -15,6 +15,8 @@ import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiConversationRuntimeMapper;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiConversationRuntimeNodeMapper;
 import com.xinyirun.scm.ai.workflow.WorkflowConstants;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiWfNodeIOVo;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.ai.core.mapper.workflow.AiWorkflowMapper;
 import com.xinyirun.scm.ai.workflow.WorkflowStarter;
@@ -101,6 +103,14 @@ public class WorkflowRoutingService {
 
     @Resource
     private WorkflowEventAdapter workflowEventAdapter;
+
+    @Lazy
+    @Resource
+    private AiWorkflowService aiWorkflowService;
+
+    @Lazy
+    @Resource
+    private AiWorkflowNodeService aiWorkflowNodeService;
 
     /**
      * 智能路由：根据用户输入选择最合适的工作流
@@ -950,8 +960,8 @@ public class WorkflowRoutingService {
      *
      * <p>两层架构:</p>
      * <ul>
-     *   <li>Layer 1: 用户指定工作流 - 直接执行传统workflow</li>
-     *   <li>Layer 2: Orchestrator-Workers模式 - LLM分解任务并执行</li>
+     *   <li>Layer 1: 用户指定工作流 - 直接执行</li>
+     *   <li>Layer 2: 轻量Router路由 - LLM智能路由并直接执行workflow</li>
      * </ul>
      *
      * @param userInput 用户输入文本
@@ -973,53 +983,79 @@ public class WorkflowRoutingService {
         log.info("【routeAndExecute】开始, userInput={}, userId={}, specifiedWorkflowUuid={}",
                 userInput, userId, specifiedWorkflowUuid);
 
-        // Layer 1: 用户指定工作流 - 直接执行传统workflow
+        // Layer 1: 用户指定工作流 - 直接执行
         if (StringUtils.isNotBlank(specifiedWorkflowUuid)) {
             log.info("【routeAndExecute】Layer 1: 用户指定工作流, workflowUuid={}", specifiedWorkflowUuid);
-
-            // 构建用户输入参数
-            // 格式必须符合WfNodeIODataUtil.createNodeIOData()的要求
-            List<JSONObject> userInputs = new ArrayList<>();
-            JSONObject input = new JSONObject();
-            input.put("name", "user_input");
-
-            // 构建content对象,TEXT类型
-            JSONObject content = new JSONObject();
-            content.put("type", WfIODataTypeEnum.TEXT.getValue());
-            content.put("title", "用户输入");
-            content.put("value", userInput);
-            input.put("content", content);
-
-            userInputs.add(input);
-
-            // 传统workflow需要转换WorkflowEventVo为ChatResponseVo格式
-            Flux<WorkflowEventVo> eventFlux = workflowStarter.streaming(
-                    specifiedWorkflowUuid,
-                    userInputs,
-                    tenantCode,
-                    WorkflowCallSource.AI_CHAT,
-                    conversationId,
-                    pageContext
-            );
-
-            // 转换WorkflowEventVo为ChatResponseVo(保持与前端兼容)
-            return eventFlux.map(this::convertWorkflowEventToChatResponse);
+            return executeWorkflowByUuid(specifiedWorkflowUuid, userInput, tenantCode, conversationId, pageContext);
         }
 
-        // Layer 2: Orchestrator-Workers模式
-        log.info("【routeAndExecute】Layer 2: 进入Orchestrator-Workers模式");
+        // Layer 2: 轻量Router路由 → 直接执行workflow
+        log.info("【routeAndExecute】Layer 2: 轻量Router路由");
+        String routedUuid = route(userInput, userId, null);
+        if (routedUuid != null) {
+            log.info("【routeAndExecute】Layer 2: Router路由到工作流, workflowUuid={}", routedUuid);
+            return executeWorkflowByUuid(routedUuid, userInput, tenantCode, conversationId, pageContext);
+        }
+        log.warn("【routeAndExecute】Layer 2: 未找到任何可用工作流(含默认兜底), userInput={}", userInput);
+        return Flux.just(ChatResponseVo.createContentChunk("暂无可用的工作流"));
+    }
 
+    /**
+     * 按工作流UUID执行工作流并返回流式响应
+     *
+     * @param workflowUuid 工作流UUID
+     * @param userInput 用户输入文本
+     * @param tenantCode 租户编码
+     * @param conversationId 对话ID
+     * @param pageContext 页面上下文
+     * @return Flux<ChatResponseVo> 流式事件响应
+     */
+    private Flux<ChatResponseVo> executeWorkflowByUuid(
+            String workflowUuid,
+            String userInput,
+            String tenantCode,
+            String conversationId,
+            Map<String, Object> pageContext) {
+
+        // 动态读取Start节点的第一个TEXT输入参数名
+        String paramName = "user_input";
         try {
-            // 调用Orchestrator进行任务分解和执行(传递conversationId支持多轮对话)
-            OrchestratorFinalResponse response = orchestrateAndExecute(userInput, userId, tenantCode, conversationId, pageContext);
-
-            // 将Orchestrator结果转换为ChatResponseVo格式(兼容前端,传递conversationId支持多轮对话)
-            return convertOrchestratorResponseToChatResponseStream(response, userInput, userId, tenantCode, conversationId);
-
+            AiWorkflowEntity workflow = aiWorkflowService.getOrThrow(workflowUuid);
+            AiWorkflowNodeVo startNode = aiWorkflowNodeService.getStartNode(workflow.getId());
+            if (startNode != null && startNode.getInputConfig() != null) {
+                List<AiWfNodeIOVo> userInputDefs = startNode.getInputConfig().getUserInputs();
+                if (userInputDefs != null && !userInputDefs.isEmpty()) {
+                    paramName = userInputDefs.get(0).getName();
+                    log.info("【executeWorkflowByUuid】读取Start节点参数名: {}", paramName);
+                }
+            }
         } catch (Exception e) {
-            log.error("【routeAndExecute】Orchestrator-Workers执行失败: userInput={}", userInput, e);
-            return Flux.just(ChatResponseVo.createErrorResponse("Orchestrator-Workers执行失败: " + e.getMessage()));
+            log.warn("【executeWorkflowByUuid】读取Start节点参数名失败，使用默认值: user_input", e);
         }
+
+        // 构建用户输入参数，格式符合WfNodeIODataUtil.createNodeIOData()的要求
+        List<JSONObject> userInputs = new ArrayList<>();
+        JSONObject input = new JSONObject();
+        input.put("name", paramName);
+
+        JSONObject content = new JSONObject();
+        content.put("type", WfIODataTypeEnum.TEXT.getValue());
+        content.put("title", "用户输入");
+        content.put("value", userInput);
+        input.put("content", content);
+
+        userInputs.add(input);
+
+        Flux<WorkflowEventVo> eventFlux = workflowStarter.streaming(
+                workflowUuid,
+                userInputs,
+                tenantCode,
+                WorkflowCallSource.AI_CHAT,
+                conversationId,
+                pageContext
+        );
+
+        return eventFlux.map(this::convertWorkflowEventToChatResponse);
     }
 
     /**
