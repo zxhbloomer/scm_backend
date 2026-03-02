@@ -260,12 +260,13 @@ public abstract class AbstractWfNode {
             return state.getInputs().get(0).valueToString();
         }
 
+        // 优先返回非默认名称的输入；全部都是默认名称时回退到第一个输入
         return state.getInputs()
                 .stream()
                 .filter(item -> !DEFAULT_INPUT_PARAM_NAME.equals(item.getName()))
                 .map(NodeIOData::valueToString)
                 .findFirst()
-                .orElse("");
+                .orElseGet(() -> state.getInputs().get(0).valueToString());
     }
 
     /**

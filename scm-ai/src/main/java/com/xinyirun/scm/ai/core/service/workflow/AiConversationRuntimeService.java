@@ -78,6 +78,9 @@ public class AiConversationRuntimeService extends ServiceImpl<AiConversationRunt
 
         AiConversationRuntimeVo vo = new AiConversationRuntimeVo();
         BeanUtils.copyProperties(runtime, vo);
+        // Entity用camelCase，VO用snake_case，BeanUtils无法自动映射这两个关键字段
+        vo.setRuntime_uuid(runtime.getRuntimeUuid());
+        vo.setConversation_id(runtime.getConversationId());
 
         // 手动转换 JSON 字段: String → JSONObject
         if (StringUtils.isNotBlank(runtime.getInputData())) {
@@ -126,6 +129,9 @@ public class AiConversationRuntimeService extends ServiceImpl<AiConversationRunt
 
         AiConversationRuntimeVo vo = new AiConversationRuntimeVo();
         BeanUtils.copyProperties(runtime, vo);
+        // Entity用camelCase，VO用snake_case，BeanUtils无法自动映射这两个关键字段
+        vo.setRuntime_uuid(runtime.getRuntimeUuid());
+        vo.setConversation_id(runtime.getConversationId());
 
         // 手动转换 JSON 字段: String → JSONObject
         if (StringUtils.isNotBlank(runtime.getInputData())) {
