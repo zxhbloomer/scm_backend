@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.bean.vo.request.AIChatOptionVo;
 import com.xinyirun.scm.ai.bean.vo.request.AIChatRequestVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowRuntimeNodeVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.core.service.chat.AiChatBaseService;
 import com.xinyirun.scm.ai.core.service.chat.AiTokenUsageService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
@@ -237,8 +238,16 @@ public class WorkflowUtil {
                         }
 
                         String content = chatResponse.getResult().getOutput().getText();
-                        if (StringUtils.isNotBlank(content)) {
+                        if (StringUtils.isNotEmpty(content)) {
                             fullResponse.append(content);
+
+                            // 通过Sink发送chunk事件到前端（打字机效果）
+                            if (!silentMode && wfState.getEventSink() != null) {
+                                wfState.markNodeStreamed(node.getUuid());
+                                wfState.getEventSink().tryEmitNext(
+                                    WorkflowEventVo.createChunkData(node.getUuid(), content)
+                                );
+                            }
                         }
 
                         // 累积Usage信息（通常在最后一个响应中包含完整Usage）
@@ -256,6 +265,13 @@ public class WorkflowUtil {
                     .blockLast();
 
             log.debug("LLM blockLast()已返回 - conversationId: {}", conversationId);
+
+            // 保存Token消耗到WfState，供node_complete事件携带
+            if (finalUsage[0] != null) {
+                long pt = finalUsage[0].getPromptTokens() != null ? finalUsage[0].getPromptTokens() : 0;
+                long ct = finalUsage[0].getCompletionTokens() != null ? finalUsage[0].getCompletionTokens() : 0;
+                wfState.recordNodeTokens(node.getUuid(), pt, ct);
+            }
 
             String response = fullResponse.toString();
             // 移除前导和尾随空白字符,避免Markdown渲染为代码块
@@ -443,12 +459,10 @@ public class WorkflowUtil {
                                                        AiChatBaseService aiChatBaseService,
                                                        AIChatRequestVo request) {
         if (StringUtils.isNotBlank(modelName)) {
-            try {
-                return aiModelConfigService.getModelConfigByName(modelName);
-            } catch (Exception e) {
-                log.warn("指定模型 [{}] 未找到，使用系统默认模型", modelName);
-            }
+            // 指定了具体模型：必须找到，否则报错（不再静默回退到默认模型）
+            return aiModelConfigService.getModelConfigByName(modelName);
         }
+        // 未指定模型（"默认模型"选项）：使用系统默认
         return aiChatBaseService.getModule(request, null);
     }
 

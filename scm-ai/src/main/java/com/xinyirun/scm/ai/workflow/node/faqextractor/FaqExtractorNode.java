@@ -67,8 +67,8 @@ public class FaqExtractorNode extends AbstractWfNode {
         String prompt = FaqExtractorPrompt.getPrompt(nodeConfigObj.getTopN(), userInput);
         log.info("关于常见问题提取生成的提示词: {}", prompt);
 
-        // 6. 调用LLM进行流式处理
-        WorkflowUtil.streamingInvokeLLM(wfState, state, node, nodeConfigObj.getModelName(), prompt);
+        // 6. 调用LLM进行流式处理（silentMode=true，中间节点不向前端输出chunk）
+        WorkflowUtil.streamingInvokeLLM(wfState, state, node, nodeConfigObj.getModelName(), prompt, true);
 
         return new NodeProcessResult();
     }

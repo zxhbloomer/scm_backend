@@ -9,7 +9,11 @@ import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.Getter;
 import lombok.Setter;
 
+import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
+import reactor.core.publisher.Sinks;
+
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.WORKFLOW_PROCESS_STATUS_READY;
 
@@ -82,6 +86,52 @@ public class WfState {
      * 执行栈：用于检测子工作流循环依赖
      */
     private Set<String> executionStack = new HashSet<>();
+
+    /**
+     * AI打开弹窗的参数数据（含ai_new_route的JSON）
+     * OpenPage节点设置，通过完成事件传递给前端，触发业务弹窗
+     */
+    private String ai_open_dialog_para;
+
+    /**
+     * 事件Sink引用，供LLM流式调用时发送chunk事件到前端
+     */
+    private transient Sinks.Many<WorkflowEventVo> eventSink;
+
+    /**
+     * 已通过chunk事件流式输出的节点UUID集合
+     * 用于handleGraphResponse中跳过output事件，避免内容重复
+     */
+    private final Set<String> streamedNodeUuids = ConcurrentHashMap.newKeySet();
+
+    /**
+     * 各节点Token消耗记录（nodeUuid → [promptTokens, completionTokens]）
+     */
+    private final Map<String, long[]> nodeTokens = new ConcurrentHashMap<>();
+
+    public void recordNodeTokens(String nodeUuid, long promptTokens, long completionTokens) {
+        nodeTokens.put(nodeUuid, new long[]{promptTokens, completionTokens});
+    }
+
+    public long[] getNodeTokens(String nodeUuid) {
+        return nodeTokens.get(nodeUuid);
+    }
+
+    public Sinks.Many<WorkflowEventVo> getEventSink() {
+        return eventSink;
+    }
+
+    public void setEventSink(Sinks.Many<WorkflowEventVo> eventSink) {
+        this.eventSink = eventSink;
+    }
+
+    public void markNodeStreamed(String nodeUuid) {
+        streamedNodeUuids.add(nodeUuid);
+    }
+
+    public boolean hasNodeStreamed(String nodeUuid) {
+        return streamedNodeUuids.contains(nodeUuid);
+    }
 
     public WfState(Long userId, List<NodeIOData> input, String uuid) {
         this.input = input;
