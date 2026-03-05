@@ -102,12 +102,63 @@ public class ChatResponseVo {
     private List<java.util.Map<String, Object>> mcpToolResults;
 
     /**
-     * 工作流原始输出数据(Synthesizer路径时保留原始工作流输出)
-     * 当Synthesizer将工作流结果转为自然语言时,含ai_new_route的原始JSON通过此字段透传给前端
+     * AI打开弹窗的参数数据（含ai_new_route的JSON）
+     * OpenPage节点或Synthesizer路径透传给前端，触发业务弹窗
      *
      * @since 2026-02-28 AI业务弹窗通用组件
      */
-    private String workflowOutputData;
+    private String ai_open_dialog_para;
+
+    /**
+     * 节点事件类型（node_start 或 node_complete）
+     * 用于前端展示工作流执行步骤
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private String nodeEventType;
+
+    /**
+     * 节点UUID
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private String nodeUuid;
+
+    /**
+     * 节点组件名称（如KnowledgeRetrieval）
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private String nodeName;
+
+    /**
+     * 节点标题（用户在工作流编辑器中设置的名称）
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private String nodeTitle;
+
+    /**
+     * 节点开始时间戳（毫秒，node_start事件使用）
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private Long nodeTimestamp;
+
+    /**
+     * 节点执行耗时（毫秒，node_complete事件使用）
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private Long nodeDuration;
+
+    /**
+     * 节点执行摘要（node_complete事件使用）
+     * KnowledgeRetrieval节点包含：{matchCount: N}
+     *
+     * @since 2026-03-02 AI聊天思考过程展示
+     */
+    private java.util.Map<String, Object> nodeSummary;
 
     /**
      * 生成结果内部类

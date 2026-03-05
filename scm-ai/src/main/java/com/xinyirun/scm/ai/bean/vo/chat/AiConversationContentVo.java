@@ -130,6 +130,16 @@ public class AiConversationContentVo implements Serializable {
     private String base_name;
 
     /**
+     * AI打开弹窗的参数数据，含ai_new_route的JSON
+     */
+    private String ai_open_dialog_para;
+
+    /**
+     * 工作流思考步骤JSON，刷新页面后恢复显示
+     */
+    private String workflow_steps;
+
+    /**
      * AI模型信息
      */
     private AiModelInfo ai_model_info;

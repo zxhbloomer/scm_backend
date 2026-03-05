@@ -310,4 +310,22 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         return node;
     }
 
+    /**
+     * 根据节点ID获取组件名称
+     *
+     * @param nodeId 节点ID（ai_workflow_node.id）
+     * @return 组件名称（如Classifier、Answer等），查不到返回"Unknown"
+     */
+    public String getComponentNameByNodeId(Long nodeId) {
+        if (nodeId == null) {
+            return "Unknown";
+        }
+        AiWorkflowNodeEntity node = aiWorkflowNodeMapper.selectById(nodeId);
+        if (node == null || node.getWorkflowComponentId() == null) {
+            return "Unknown";
+        }
+        AiWorkflowComponentEntity component = workflowComponentService.getById(node.getWorkflowComponentId());
+        return component != null ? component.getName() : "Unknown";
+    }
+
 }

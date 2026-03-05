@@ -32,7 +32,9 @@ public interface ExtAiConversationContentMapper {
             u_id,
             dbversion,
             content,
-            model_source_id
+            model_source_id,
+            ai_open_dialog_para,
+            workflow_steps
         FROM ai_conversation_content
         WHERE conversation_id = #{conversationId}
         ORDER BY c_time DESC
@@ -56,6 +58,8 @@ public interface ExtAiConversationContentMapper {
             content,
             runtime_uuid,
             model_source_id,
+            ai_open_dialog_para,
+            workflow_steps,
             c_time,
             u_time,
             c_id,

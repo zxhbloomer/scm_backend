@@ -15,6 +15,7 @@ import com.xinyirun.scm.ai.workflow.node.keywordextractor.KeywordExtractorNode;
 import com.xinyirun.scm.ai.workflow.node.mailsend.MailSendNode;
 import com.xinyirun.scm.ai.workflow.node.start.StartNode;
 import com.xinyirun.scm.ai.workflow.node.mcptool.McpToolNode;
+import com.xinyirun.scm.ai.workflow.node.openpage.OpenPageNode;
 import com.xinyirun.scm.ai.workflow.node.subworkflow.SubWorkflowNode;
 import com.xinyirun.scm.ai.workflow.node.switcher.SwitcherNode;
 import com.xinyirun.scm.ai.workflow.node.template.TemplateNode;
@@ -76,6 +77,8 @@ public class WfNodeFactory {
             wfNode = new McpToolNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("TempKnowledgeBase".equals(componentName)) {
             wfNode = new TempKnowledgeBaseNode(wfComponent, nodeDefinition, wfState, nodeState);
+        } else if ("OpenPage".equals(componentName)) {
+            wfNode = new OpenPageNode(wfComponent, nodeDefinition, wfState, nodeState);
         } else if ("End".equals(componentName)) {
             wfNode = new EndNode(wfComponent, nodeDefinition, wfState, nodeState);
         }

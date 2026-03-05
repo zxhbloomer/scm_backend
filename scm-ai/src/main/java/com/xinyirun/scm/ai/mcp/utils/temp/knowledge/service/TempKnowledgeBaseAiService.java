@@ -139,7 +139,7 @@ public class TempKnowledgeBaseAiService {
         }
 
         // 设置默认配置
-        kbVo.setIngestMaxOverlap(2000);
+        kbVo.setIngestMaxOverlap(50);
         kbVo.setIngestTokenEstimator("cl100k_base");
         kbVo.setIngestEmbeddingModel("BAAI/bge-m3");
         kbVo.setRetrieveMaxResults(5);

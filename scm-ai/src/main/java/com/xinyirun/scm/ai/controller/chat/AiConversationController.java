@@ -450,10 +450,21 @@ public class AiConversationController {
 
                 if (!userPrompt.isEmpty() || !finalAiResponse.isEmpty()) {
                     aiConversationContentService.saveContent(
-                        conversationId, 1, userPrompt, operatorId, null
+                        conversationId, 1, userPrompt, operatorId, null, null, null
                     );
+
+                    // 构建工作流思考步骤JSON（根据runtimeId查询节点执行记录）
+                    String workflowSteps = null;
+                    if (response.getRuntimeId() != null) {
+                        try {
+                            workflowSteps = aiConversationContentService.buildWorkflowStepsJson(response.getRuntimeId());
+                        } catch (Exception e) {
+                            log.warn("构建工作流思考步骤失败, runtimeId={}", response.getRuntimeId(), e);
+                        }
+                    }
+
                     var aiContentVo = aiConversationContentService.saveContent(
-                        conversationId, 2, finalAiResponse, operatorId, runtimeUuid
+                        conversationId, 2, finalAiResponse, operatorId, runtimeUuid, response.getAi_open_dialog_para(), workflowSteps
                     );
                     if (aiContentVo != null && aiContentVo.getMessage_id() != null) {
                         response.setMessageId(aiContentVo.getMessage_id());

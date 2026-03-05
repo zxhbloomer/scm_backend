@@ -1055,7 +1055,35 @@ public class WorkflowRoutingService {
                 pageContext
         );
 
-        return eventFlux.map(this::convertWorkflowEventToChatResponse);
+        // 捕获runtime事件中的runtimeUuid和runtimeId，用于完成事件
+        final String[] capturedRuntimeUuid = {null};
+        final Long[] capturedRuntimeId = {null};
+        final String[] capturedAiOpenDialogPara = {null};
+
+        Flux<ChatResponseVo> contentFlux = eventFlux.map(event -> {
+            JSONObject eventData = JSON.parseObject(event.getData());
+            String type = eventData.getString("type");
+            if ("runtime".equals(type)) {
+                capturedRuntimeUuid[0] = eventData.getString("runtimeUuid");
+                capturedRuntimeId[0] = eventData.getLong("runtimeId");
+            } else if ("workflow_output_data".equals(type)) {
+                capturedAiOpenDialogPara[0] = eventData.getString("data");
+                return ChatResponseVo.createContentChunk("");
+            }
+            return convertWorkflowEventToChatResponse(event);
+        });
+
+        // 追加完成事件（前端依赖isComplete触发onComplete回调，包括弹窗检测、步骤持久化等）
+        final String wfUuid = workflowUuid;
+        return Flux.concat(contentFlux, Flux.defer(() -> {
+            ChatResponseVo completeResponse = ChatResponseVo.createContentChunk("");
+            completeResponse.setIsComplete(true);
+            completeResponse.setRuntimeUuid(capturedRuntimeUuid[0]);
+            completeResponse.setRuntimeId(capturedRuntimeId[0]);
+            completeResponse.setWorkflowUuid(wfUuid);
+            completeResponse.setAi_open_dialog_para(capturedAiOpenDialogPara[0]);
+            return Flux.just(completeResponse);
+        }));
     }
 
     /**
@@ -1135,16 +1163,16 @@ public class WorkflowRoutingService {
         log.info("【Synthesizer】conversationId={}", conversationId);
 
         // 检查worker结果中是否包含ai_new_route(业务弹窗数据)
-        // Synthesizer会将结果转为自然语言,导致原始JSON丢失,需要通过workflowOutputData透传
-        String workflowOutputDataForDialog = null;
+        // Synthesizer会将结果转为自然语言,导致原始JSON丢失,需要通过ai_open_dialog_para透传
+        String aiOpenDialogParaForDialog = null;
         for (String workerResult : response.workerResults()) {
             if (workerResult != null && workerResult.contains("ai_new_route")) {
-                workflowOutputDataForDialog = workerResult;
-                log.info("【Synthesizer】检测到ai_new_route,将通过workflowOutputData透传给前端");
+                aiOpenDialogParaForDialog = workerResult;
+                log.info("【Synthesizer】检测到ai_new_route,将通过ai_open_dialog_para透传给前端");
                 break;
             }
         }
-        final String finalWorkflowOutputData = workflowOutputDataForDialog;
+        final String finalAiOpenDialogPara = aiOpenDialogParaForDialog;
 
         // 构建Synthesizer的prompt - 让LLM根据工具结果生成自然语言回复
         StringBuilder synthesizerPrompt = new StringBuilder();
@@ -1251,7 +1279,7 @@ public class WorkflowRoutingService {
                         ))
                         .isComplete(true)
                         .runtimeUuid(runtimeUuid)  // 【新增】返回runtimeUuid用于前端显示执行详情icon
-                        .workflowOutputData(finalWorkflowOutputData)  // 透传含ai_new_route的原始工作流输出
+                        .ai_open_dialog_para(finalAiOpenDialogPara)  // 透传含ai_new_route的原始工作流输出
                         .build();
                 } else {
                     // 中间chunk,只包含当前内容
@@ -1366,30 +1394,66 @@ public class WorkflowRoutingService {
                     String chunk = eventData.getString("chunk");
                     return ChatResponseVo.createContentChunk(chunk != null ? chunk : "");
 
-                case "output":
-                    // 节点完整输出：提取output变量的值
-                    JSONObject outputData = eventData.getJSONObject("data");
-                    if (outputData != null) {
-                        for (String key : outputData.keySet()) {
-                            Object outputItem = outputData.get(key);
-                            if (outputItem instanceof JSONObject) {
-                                JSONObject itemJson = (JSONObject) outputItem;
-                                if ("output".equals(itemJson.getString("name"))) {
-                                    JSONObject content = itemJson.getJSONObject("content");
-                                    if (content != null && content.containsKey("value")) {
-                                        return ChatResponseVo.createContentChunk(content.getString("value"));
+                case "output": {
+                    // 仅Answer/LLM终端节点的output作为content，其他节点output忽略
+                    String outputNodeName = eventData.getString("nodeName");
+                    log.debug("output事件: nodeName={}", outputNodeName);
+                    if ("Answer".equals(outputNodeName) || "LLM".equals(outputNodeName)) {
+                        JSONObject outputData = eventData.getJSONObject("data");
+                        if (outputData != null) {
+                            for (String key : outputData.keySet()) {
+                                Object outputItem = outputData.get(key);
+                                if (outputItem instanceof JSONObject) {
+                                    JSONObject itemJson = (JSONObject) outputItem;
+                                    if ("output".equals(itemJson.getString("name"))) {
+                                        JSONObject content = itemJson.getJSONObject("content");
+                                        if (content != null && content.containsKey("value")) {
+                                            String value = content.getString("value");
+                                            // 剥除LLM可能添加的markdown代码围栏，避免前端渲染丢失首字符
+                                            value = stripMarkdownCodeFence(value);
+                                            return ChatResponseVo.createContentChunk(value);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                     return ChatResponseVo.createContentChunk("");
+                }
 
                 case "interrupt":
                     // 人机交互中断
                     ChatResponseVo interruptResponse = ChatResponseVo.createContentChunk("");
                     interruptResponse.setIsWaitingInput(true);
                     return interruptResponse;
+
+                case "node_start": {
+                    // 节点开始执行事件
+                    ChatResponseVo nodeStartResp = ChatResponseVo.createContentChunk("");
+                    nodeStartResp.setNodeEventType("node_start");
+                    nodeStartResp.setNodeUuid(eventData.getString("node"));
+                    nodeStartResp.setNodeName(eventData.getString("nodeName"));
+                    nodeStartResp.setNodeTitle(eventData.getString("nodeTitle"));
+                    nodeStartResp.setNodeTimestamp(eventData.getLong("timestamp"));
+                    return nodeStartResp;
+                }
+
+                case "node_complete": {
+                    // 节点执行完成事件
+                    ChatResponseVo nodeCompleteResp = ChatResponseVo.createContentChunk("");
+                    nodeCompleteResp.setNodeEventType("node_complete");
+                    nodeCompleteResp.setNodeUuid(eventData.getString("node"));
+                    nodeCompleteResp.setNodeName(eventData.getString("nodeName"));
+                    nodeCompleteResp.setNodeTitle(eventData.getString("nodeTitle"));
+                    nodeCompleteResp.setNodeDuration(eventData.getLong("duration"));
+                    Object summaryObj = eventData.get("summary");
+                    if (summaryObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> summaryMap = (Map<String, Object>) summaryObj;
+                        nodeCompleteResp.setNodeSummary(summaryMap);
+                    }
+                    return nodeCompleteResp;
+                }
 
                 default:
                     // 未知类型: 返回空内容块
@@ -1400,6 +1464,34 @@ public class WorkflowRoutingService {
             log.error("转换WorkflowEventVo失败", e);
             return ChatResponseVo.createContentChunk("");
         }
+    }
+
+    /**
+     * 剥除LLM输出中的markdown代码围栏
+     * LLM有时会用```json...```包裹JSON，前端markdown渲染时可能丢失首字符
+     * 只剥离围栏标记和语言标识符，保留实际内容（如紧跟的{）
+     */
+    private String stripMarkdownCodeFence(String text) {
+        if (text == null) return null;
+        String s = text.trim();
+        if (s.startsWith("```")) {
+            int i = 3;
+            // 跳过语言标识符（仅字母，如json/xml）
+            while (i < s.length() && Character.isLetter(s.charAt(i))) {
+                i++;
+            }
+            s = s.substring(i);
+            // 如果紧跟换行则去掉一个换行
+            if (s.startsWith("\n")) {
+                s = s.substring(1);
+            } else if (s.startsWith("\r\n")) {
+                s = s.substring(2);
+            }
+        }
+        if (s.endsWith("```")) {
+            s = s.substring(0, s.length() - 3);
+        }
+        return s.trim();
     }
 
     /**

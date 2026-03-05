@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 工作流事件适配器
@@ -96,6 +97,34 @@ public class WorkflowEventAdapter {
                     String interruptTip = dataJson.getString("tip");
                     log.debug("人机交互中断: node={}, tip={}", interruptNode, interruptTip);
                     return interruptResponse;
+
+                case "node_start": {
+                    // 节点开始执行事件
+                    ChatResponseVo nodeStartResp = builder.build();
+                    nodeStartResp.setNodeEventType("node_start");
+                    nodeStartResp.setNodeUuid(dataJson.getString("node"));
+                    nodeStartResp.setNodeName(dataJson.getString("nodeName"));
+                    nodeStartResp.setNodeTitle(dataJson.getString("nodeTitle"));
+                    nodeStartResp.setNodeTimestamp(dataJson.getLong("timestamp"));
+                    return nodeStartResp;
+                }
+
+                case "node_complete": {
+                    // 节点执行完成事件
+                    ChatResponseVo nodeCompleteResp = builder.build();
+                    nodeCompleteResp.setNodeEventType("node_complete");
+                    nodeCompleteResp.setNodeUuid(dataJson.getString("node"));
+                    nodeCompleteResp.setNodeName(dataJson.getString("nodeName"));
+                    nodeCompleteResp.setNodeTitle(dataJson.getString("nodeTitle"));
+                    nodeCompleteResp.setNodeDuration(dataJson.getLong("duration"));
+                    Object summaryObj = dataJson.get("summary");
+                    if (summaryObj instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> summaryMap = (Map<String, Object>) summaryObj;
+                        nodeCompleteResp.setNodeSummary(summaryMap);
+                    }
+                    return nodeCompleteResp;
+                }
 
                 default:
                     // 未知类型：尝试提取content

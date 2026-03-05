@@ -166,7 +166,13 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
         int totalTokens = tokens.size();
         int loopCount = 0;
 
-        log.info("[分割开始] 总tokens: {}, chunkSize: {}, overlap: {}", totalTokens, chunkSize, overlapSize);
+        // 防御性检查：overlap不能超过chunkSize的一半，否则窗口无法前进
+        int effectiveOverlap = Math.min(overlapSize, chunkSize / 2);
+        if (effectiveOverlap != overlapSize) {
+            log.warn("[overlap修正] 原始overlap({})超过chunkSize({})的一半, 修正为: {}", overlapSize, chunkSize, effectiveOverlap);
+        }
+
+        log.info("[分割开始] 总tokens: {}, chunkSize: {}, overlap: {}", totalTokens, chunkSize, effectiveOverlap);
 
         while (!tokens.isEmpty() && loopCount < 100) {  // 增加循环保护
             loopCount++;
@@ -206,15 +212,17 @@ public class JTokkitTokenTextSplitter extends TextSplitter {
                 log.warn("[过滤短chunk] 长度: {} < minLength: {}", chunkTextToAppend.length(), minChunkLengthToEmbed);
             }
 
-            // 5. 实现overlap: 每次复制新的list，避免视图嵌套
-            int nextStart = Math.max(0, endIndex - this.overlapSize);
-            log.info("[位置推进] endIndex: {}, overlapSize: {}, nextStart: {}, 推进前tokens.size: {}",
-                    endIndex, overlapSize, nextStart, tokens.size());
-
-            if (nextStart == 0 && tokens.size() > overlapSize) {
-                log.error("[检测到无限循环风险] nextStart=0但tokens.size({}) > overlapSize({}), 强制推进{}个tokens",
-                        tokens.size(), overlapSize, Math.min(100, endIndex));
-                nextStart = Math.min(100, endIndex);  // 强制推进至少100个tokens或endIndex
+            // 5. 推进位置：已到达文本末尾时直接结束，否则应用overlap
+            int nextStart;
+            if (endIndex >= tokens.size()) {
+                // 已处理完所有tokens，无需overlap
+                nextStart = tokens.size();
+            } else {
+                nextStart = Math.max(0, endIndex - effectiveOverlap);
+                if (nextStart == 0 && tokens.size() > effectiveOverlap) {
+                    log.warn("[无限循环风险] nextStart=0但tokens.size({}) > overlap({}), 强制推进", tokens.size(), effectiveOverlap);
+                    nextStart = Math.min(100, endIndex);
+                }
             }
 
             tokens = new ArrayList<>(tokens.subList(nextStart, tokens.size()));

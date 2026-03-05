@@ -3,9 +3,14 @@ package com.xinyirun.scm.ai.core.service.chat;
 import com.xinyirun.scm.ai.bean.entity.chat.AiConversationContentEntity;
 import com.xinyirun.scm.ai.bean.vo.chat.AiConversationContentVo;
 import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
+import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationRuntimeNodeVo;
 import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
+import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeNodeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowNodeService;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.bean.clickhouse.vo.ai.SLogAiChatVo;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
@@ -21,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,6 +51,12 @@ public class AiConversationContentService {
     @Autowired
     private AiModelConfigService aiModelConfigService;
 
+    @Autowired
+    private AiConversationRuntimeNodeService conversationRuntimeNodeService;
+
+    @Autowired
+    private AiWorkflowNodeService workflowNodeService;
+
 
     /**
      * 保存对话内容（简化版，用于Workflow场景）
@@ -54,10 +66,12 @@ public class AiConversationContentService {
      * @param content 内容
      * @param operatorId 操作员ID
      * @param runtimeUuid 运行时UUID（可选，关联ai_conversation_runtime）
+     * @param aiOpenDialogPara AI打开弹窗的参数数据（可选，OpenPage节点输出的JSON）
+     * @param workflowSteps 工作流思考步骤JSON（可选，刷新页面后恢复显示）
      * @return 保存的对话内容VO
      */
     @Transactional(rollbackFor = Exception.class)
-    public AiConversationContentVo saveContent(String conversationId, Integer role, String content, Long operatorId, String runtimeUuid) {
+    public AiConversationContentVo saveContent(String conversationId, Integer role, String content, Long operatorId, String runtimeUuid, String aiOpenDialogPara, String workflowSteps) {
         try {
             AiConversationContentEntity entity = new AiConversationContentEntity();
             entity.setMessageId(UuidUtil.createShort());
@@ -68,6 +82,10 @@ public class AiConversationContentService {
             entity.setContent(StringUtils.isNotBlank(content) ? content.trim() : content);
             // 设置运行时UUID（可选）
             entity.setRuntimeUuid(runtimeUuid);
+            // 设置AI打开弹窗参数（可选，OpenPage节点输出的JSON）
+            entity.setAi_open_dialog_para(aiOpenDialogPara);
+            // 设置工作流思考步骤JSON（可选，刷新页面后恢复显示）
+            entity.setWorkflow_steps(workflowSteps);
 
             // 获取默认LLM模型配置并设置模型字段
             try {
@@ -309,6 +327,43 @@ public class AiConversationContentService {
         // 仅保存基础对话内容,忽略RAG相关参数
         return saveConversationContent(
                 conversationId, type, content, modelSourceId, providerName, baseName, operatorId);
+    }
+
+    /**
+     * 根据运行时ID构建工作流思考步骤JSON
+     * 从ai_conversation_runtime_node和ai_workflow_node表重建前端steps格式
+     *
+     * @param runtimeId 运行时ID（ai_conversation_runtime.id）
+     * @return JSON字符串，如果无节点数据返回null
+     */
+    public String buildWorkflowStepsJson(Long runtimeId) {
+        if (runtimeId == null) {
+            return null;
+        }
+
+        List<AiConversationRuntimeNodeVo> nodes = conversationRuntimeNodeService.listByWfRuntimeId(runtimeId);
+        if (nodes == null || nodes.isEmpty()) {
+            return null;
+        }
+
+        JSONArray stepsArray = new JSONArray();
+        for (AiConversationRuntimeNodeVo node : nodes) {
+            JSONObject step = new JSONObject();
+            step.put("nodeUuid", node.getRuntimeNodeUuid());
+            step.put("nodeName", workflowNodeService.getComponentNameByNodeId(node.getNodeId()));
+            step.put("nodeTitle", node.getNodeTitle());
+            // 执行状态：3=成功→done，其他→running
+            step.put("status", node.getStatus() != null && node.getStatus() == 3 ? "done" : "running");
+            // 耗时：u_time - c_time（毫秒）
+            long duration = 0;
+            if (node.getC_time() != null && node.getU_time() != null) {
+                duration = java.time.Duration.between(node.getC_time(), node.getU_time()).toMillis();
+            }
+            step.put("duration", duration);
+            stepsArray.add(step);
+        }
+
+        return stepsArray.toJSONString();
     }
 
 }

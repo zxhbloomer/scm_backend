@@ -9,17 +9,19 @@ import com.xinyirun.scm.ai.workflow.WfNodeIODataUtil;
 import com.xinyirun.scm.ai.workflow.WorkflowUtil;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
+import com.alibaba.fastjson2.JSONObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
 
 /**
- * 工作流模板节点
+ * 工作流模板转换节点
  *
- * 此节点负责使用指定的模板字符串来渲染工作流数据。
- * 模板支持 ${参数名} 的变量替换语法。
+ * 有模板时：使用 ${变量名} 语法渲染模板，输出自定义格式文本。
+ * 无模板时：将所有输入变量自动构建为JSON对象输出，key为变量名，value为变量值。
  */
 @Slf4j
 public class TemplateNode extends AbstractWfNode {
@@ -36,10 +38,20 @@ public class TemplateNode extends AbstractWfNode {
         // 将文件内容转换为Markdown格式
         WfNodeIODataUtil.changeFilesContentToMarkdown(state.getInputs());
 
-        // 使用工作流工具渲染模板
-        String content = WorkflowUtil.renderTemplate(nodeConfig.getTemplate(), state.getInputs());
-        NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", content);
+        String template = nodeConfig.getTemplate();
+        String content;
+        if (StringUtils.isBlank(template)) {
+            // 无模板：将所有输入变量构建为JSON对象输出
+            JSONObject json = new JSONObject();
+            for (NodeIOData input : state.getInputs()) {
+                json.put(input.getName(), input.valueToString());
+            }
+            content = json.toJSONString();
+        } else {
+            content = WorkflowUtil.renderTemplate(template, state.getInputs());
+        }
 
+        NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", content);
         return NodeProcessResult.builder().content(List.of(output)).build();
     }
 }

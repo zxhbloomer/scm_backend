@@ -75,13 +75,15 @@ public class WorkflowEventVo {
      * 节点执行完成时的完整输出
      *
      * @param nodeUuid 节点UUID
+     * @param nodeName 节点组件名称（如Answer、Classifier）
      * @param outputs 节点输出Map
      * @return 节点输出事件
      */
-    public static WorkflowEventVo createNodeOutputData(String nodeUuid, Map<String, Object> outputs) {
+    public static WorkflowEventVo createNodeOutputData(String nodeUuid, String nodeName, Map<String, Object> outputs) {
         JSONObject json = new JSONObject();
         json.put("type", "output");
         json.put("node", nodeUuid);
+        json.put("nodeName", nodeName);
         json.put("data", outputs);
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
@@ -99,6 +101,67 @@ public class WorkflowEventVo {
         json.put("type", "interrupt");
         json.put("node", nodeUuid);
         json.put("tip", tip != null ? tip : "请输入您的反馈");
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
+    }
+
+    /**
+     * 创建节点开始事件
+     * 节点开始执行前发送，用于前端展示执行步骤
+     *
+     * @param nodeUuid 节点UUID
+     * @param nodeName 节点组件名称（如KnowledgeRetrieval）
+     * @param nodeTitle 节点标题（用户设置）
+     * @param timestamp 开始时间戳（毫秒）
+     * @return 节点开始事件
+     */
+    public static WorkflowEventVo createNodeStartData(String nodeUuid, String nodeName,
+                                                       String nodeTitle, long timestamp) {
+        JSONObject json = new JSONObject();
+        json.put("type", "node_start");
+        json.put("node", nodeUuid);
+        json.put("nodeName", nodeName);
+        json.put("nodeTitle", nodeTitle);
+        json.put("timestamp", timestamp);
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
+    }
+
+    /**
+     * 创建节点完成事件
+     * 节点执行完成后发送，用于前端更新执行步骤状态
+     *
+     * @param nodeUuid 节点UUID
+     * @param nodeName 节点组件名称（如KnowledgeRetrieval）
+     * @param nodeTitle 节点标题（用户设置）
+     * @param duration 执行耗时（毫秒）
+     * @param summary 执行摘要（可为null），KnowledgeRetrieval包含matchCount
+     * @return 节点完成事件
+     */
+    public static WorkflowEventVo createNodeCompleteData(String nodeUuid, String nodeName,
+                                                          String nodeTitle, long duration,
+                                                          Map<String, Object> summary) {
+        JSONObject json = new JSONObject();
+        json.put("type", "node_complete");
+        json.put("node", nodeUuid);
+        json.put("nodeName", nodeName);
+        json.put("nodeTitle", nodeTitle);
+        json.put("duration", duration);
+        if (summary != null && !summary.isEmpty()) {
+            json.put("summary", summary);
+        }
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
+    }
+
+    /**
+     * 创建工作流输出数据事件
+     * OpenPage节点设置的JSON数据，通过此事件传递给前端
+     *
+     * @param outputData 工作流输出数据（含ai_new_route的JSON字符串）
+     * @return 工作流输出数据事件
+     */
+    public static WorkflowEventVo createAiOpenDialogParaEvent(String outputData) {
+        JSONObject json = new JSONObject();
+        json.put("type", "workflow_output_data");
+        json.put("data", outputData);
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 }

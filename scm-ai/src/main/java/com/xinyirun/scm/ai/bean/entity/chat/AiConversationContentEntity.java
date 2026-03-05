@@ -78,6 +78,18 @@ public class AiConversationContentEntity implements Serializable {
     private String baseName;
 
     /**
+     * AI打开弹窗的参数数据，含ai_new_route的JSON
+     */
+    @TableField("ai_open_dialog_para")
+    private String ai_open_dialog_para;
+
+    /**
+     * 工作流思考步骤JSON，刷新页面后恢复显示
+     */
+    @TableField("workflow_steps")
+    private String workflow_steps;
+
+    /**
      * 创建时间
      */
     @TableField(value = "c_time")
