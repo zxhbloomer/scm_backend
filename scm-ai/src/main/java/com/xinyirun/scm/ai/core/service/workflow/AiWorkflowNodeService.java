@@ -129,6 +129,7 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         AiWorkflowNodeEntity newNode = new AiWorkflowNodeEntity();
         BeanUtils.copyProperties(sourceNode, newNode, "id", "cTime", "uTime", "cId", "uId", "dbversion");
         newNode.setWorkflowId(targetWorkflowId);
+        newNode.setIsDeleted(false); // 显式设置为false,避免null值导致数据库约束错误
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowNodeMapper.insert(newNode);
 
