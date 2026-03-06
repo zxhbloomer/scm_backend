@@ -18,8 +18,11 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI工作流Service
@@ -119,7 +122,8 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         String newWorkflowUuid = UuidUtil.createShort();
         AiWorkflowEntity newWorkflow = new AiWorkflowEntity();
         newWorkflow.setWorkflowUuid(newWorkflowUuid);
-        newWorkflow.setTitle(sourceWorkflow.getTitle() + "-copy");
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        newWorkflow.setTitle(sourceWorkflow.getTitle() + " 复制 " + timestamp);
         newWorkflow.setRemark(sourceWorkflow.getRemark());
         newWorkflow.setIsPublic(false); // 复制的工作流默认私有
         newWorkflow.setIsEnable(true);
@@ -127,9 +131,9 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
         newWorkflow.setUserId(userId);
         aiWorkflowMapper.insert(newWorkflow);
 
-        // 复制节点和连线
-        workflowNodeService.copyByWorkflowId(sourceWorkflow.getId(), newWorkflow.getId());
-        workflowEdgeService.copyByWorkflowId(sourceWorkflow.getId(), newWorkflow.getId());
+        // 复制节点和连线(节点UUID映射用于更新边的引用)
+        Map<String, String> nodeUuidMapping = workflowNodeService.copyByWorkflowId(sourceWorkflow.getId(), newWorkflow.getId());
+        workflowEdgeService.copyByWorkflowId(sourceWorkflow.getId(), newWorkflow.getId(), nodeUuidMapping);
 
         // 转换为VO
         AiWorkflowVo vo = new AiWorkflowVo();

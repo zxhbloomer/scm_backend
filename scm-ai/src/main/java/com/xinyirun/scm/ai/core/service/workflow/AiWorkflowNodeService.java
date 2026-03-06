@@ -21,7 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI工作流节点Service
@@ -94,12 +96,20 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
      * @param targetWorkflowId 目标工作流ID
      * @return 新节点列表
      */
+    /**
+     * 复制工作流的所有节点
+     *
+     * @param sourceWorkflowId 源工作流ID
+     * @param targetWorkflowId 目标工作流ID
+     * @return 旧节点UUID到新节点UUID的映射(用于边的复制)
+     */
     @Transactional(rollbackFor = Exception.class)
-    public List<AiWorkflowNodeEntity> copyByWorkflowId(Long sourceWorkflowId, Long targetWorkflowId) {
-        List<AiWorkflowNodeEntity> result = new ArrayList<>();
+    public Map<String, String> copyByWorkflowId(Long sourceWorkflowId, Long targetWorkflowId) {
+        Map<String, String> uuidMapping = new HashMap<>();
         List<AiWorkflowNodeVo> sourceNodes = self.listByWorkflowId(sourceWorkflowId);
 
         for (AiWorkflowNodeVo sourceNode : sourceNodes) {
+            String oldUuid = sourceNode.getUuid();
             // VO转Entity
             AiWorkflowNodeEntity entity = new AiWorkflowNodeEntity();
             BeanUtils.copyProperties(sourceNode, entity);
@@ -112,10 +122,10 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
             }
 
             AiWorkflowNodeEntity newNode = self.copyNode(targetWorkflowId, entity);
-            result.add(newNode);
+            uuidMapping.put(oldUuid, newNode.getUuid());
         }
 
-        return result;
+        return uuidMapping;
     }
 
     /**
@@ -127,9 +137,10 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
      */
     public AiWorkflowNodeEntity copyNode(Long targetWorkflowId, AiWorkflowNodeEntity sourceNode) {
         AiWorkflowNodeEntity newNode = new AiWorkflowNodeEntity();
-        BeanUtils.copyProperties(sourceNode, newNode, "id", "cTime", "uTime", "cId", "uId", "dbversion");
+        BeanUtils.copyProperties(sourceNode, newNode, "id", "uuid", "cTime", "uTime", "cId", "uId", "dbversion");
+        newNode.setUuid(UuidUtil.createShort());
         newNode.setWorkflowId(targetWorkflowId);
-        newNode.setIsDeleted(false); // 显式设置为false,避免null值导致数据库约束错误
+        newNode.setIsDeleted(false);
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowNodeMapper.insert(newNode);
 

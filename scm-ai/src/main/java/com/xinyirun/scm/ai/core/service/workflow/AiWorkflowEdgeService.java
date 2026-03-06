@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI工作流连接边Service
@@ -74,15 +75,16 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      *
      * @param sourceWorkflowId 源工作流ID
      * @param targetWorkflowId 目标工作流ID
+     * @param nodeUuidMapping 旧节点UUID到新节点UUID的映射
      * @return 新连接边列表
      */
     @Transactional(rollbackFor = Exception.class)
-    public List<AiWorkflowEdgeEntity> copyByWorkflowId(Long sourceWorkflowId, Long targetWorkflowId) {
+    public List<AiWorkflowEdgeEntity> copyByWorkflowId(Long sourceWorkflowId, Long targetWorkflowId, Map<String, String> nodeUuidMapping) {
         List<AiWorkflowEdgeEntity> result = new ArrayList<>();
         List<AiWorkflowEdgeEntity> sourceEdges = self.listByWorkflowId(sourceWorkflowId);
 
         for (AiWorkflowEdgeEntity sourceEdge : sourceEdges) {
-            AiWorkflowEdgeEntity newEdge = self.copyEdge(targetWorkflowId, sourceEdge);
+            AiWorkflowEdgeEntity newEdge = self.copyEdge(targetWorkflowId, sourceEdge, nodeUuidMapping);
             result.add(newEdge);
         }
 
@@ -94,14 +96,24 @@ public class AiWorkflowEdgeService extends ServiceImpl<AiWorkflowEdgeMapper, AiW
      *
      * @param targetWorkflowId 目标工作流ID
      * @param sourceEdge 源连接边
+     * @param nodeUuidMapping 旧节点UUID到新节点UUID的映射
      * @return 新连接边
      */
-    public AiWorkflowEdgeEntity copyEdge(Long targetWorkflowId, AiWorkflowEdgeEntity sourceEdge) {
+    public AiWorkflowEdgeEntity copyEdge(Long targetWorkflowId, AiWorkflowEdgeEntity sourceEdge, Map<String, String> nodeUuidMapping) {
         AiWorkflowEdgeEntity newEdge = new AiWorkflowEdgeEntity();
         BeanUtils.copyProperties(sourceEdge, newEdge, "id", "uuid", "cTime", "uTime", "cId", "uId", "dbversion");
 
         newEdge.setUuid(UuidUtil.createShort());
         newEdge.setWorkflowId(targetWorkflowId);
+        // 更新边中的节点UUID引用为新UUID
+        if (nodeUuidMapping != null) {
+            if (newEdge.getSourceNodeUuid() != null && nodeUuidMapping.containsKey(newEdge.getSourceNodeUuid())) {
+                newEdge.setSourceNodeUuid(nodeUuidMapping.get(newEdge.getSourceNodeUuid()));
+            }
+            if (newEdge.getTargetNodeUuid() != null && nodeUuidMapping.containsKey(newEdge.getTargetNodeUuid())) {
+                newEdge.setTargetNodeUuid(nodeUuidMapping.get(newEdge.getTargetNodeUuid()));
+            }
+        }
         // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowEdgeMapper.insert(newEdge);
 
