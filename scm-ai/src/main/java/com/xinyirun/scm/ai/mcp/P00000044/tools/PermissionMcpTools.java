@@ -170,7 +170,7 @@ public class PermissionMcpTools {
     @McpTool(description = """
         P00000044
         获取用户可访问的页面菜单路径，需要传入页面编码(page_code)。
-        返回用户可访问的所有菜单路径，包括page_code、name、meta_title、path。
+        返回用户可访问的所有菜单路径，包括page_code、name、meta_title、path(菜单URL路径)、component(Vue组件路径)。
         同一个页面可能在不同菜单位置有多个路径
         """)
     public String getPageMenuPaths(

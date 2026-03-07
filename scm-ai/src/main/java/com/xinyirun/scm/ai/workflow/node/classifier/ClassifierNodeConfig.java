@@ -22,4 +22,10 @@ public class ClassifierNodeConfig {
      */
     @JsonProperty("model_name")
     private String modelName;
+
+    /**
+     * 分类指令（可选），用于补充说明判断逻辑，提升分类准确率
+     * 对应 Dify 的 instruction 字段
+     */
+    private String instruction;
 }

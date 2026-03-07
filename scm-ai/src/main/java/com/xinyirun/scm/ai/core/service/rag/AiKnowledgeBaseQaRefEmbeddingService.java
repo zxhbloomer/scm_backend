@@ -1,6 +1,5 @@
 package com.xinyirun.scm.ai.core.service.rag;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaRefEmbeddingEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.QaRefEmbeddingVo;
@@ -74,10 +73,7 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
      * @return 向量引用列表
      */
     public List<RefEmbeddingVo> listRefEmbeddings(String qaRecordId) {
-        // 查询该问答记录的所有向量引用
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefEmbeddingEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefEmbeddingEntity::getQaRecordId, qaRecordId);
-        List<AiKnowledgeBaseQaRefEmbeddingEntity> recordReferences = this.list(wrapper);
+        List<AiKnowledgeBaseQaRefEmbeddingEntity> recordReferences = baseMapper.selectListByQaRecordId(qaRecordId);
 
         if (CollectionUtils.isEmpty(recordReferences)) {
             return Collections.emptyList();
@@ -103,10 +99,7 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
      * @return 向量引用列表（QaRefEmbeddingVo）
      */
     public List<QaRefEmbeddingVo> listRefEmbeddingsForDisplay(String qaRecordId) {
-        // 查询该问答记录的所有向量引用
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefEmbeddingEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefEmbeddingEntity::getQaRecordId, qaRecordId);
-        List<AiKnowledgeBaseQaRefEmbeddingEntity> recordReferences = this.list(wrapper);
+        List<AiKnowledgeBaseQaRefEmbeddingEntity> recordReferences = baseMapper.selectListByQaRecordId(qaRecordId);
 
         if (CollectionUtils.isEmpty(recordReferences)) {
             return Collections.emptyList();
@@ -132,9 +125,7 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
      * @return 删除的记录数
      */
     public int deleteByQaRecordId(String qaRecordId) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefEmbeddingEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefEmbeddingEntity::getQaRecordId, qaRecordId);
-        return baseMapper.delete(wrapper);
+        return baseMapper.deleteByQaRecordId(qaRecordId);
     }
 
     /**
@@ -144,9 +135,7 @@ public class AiKnowledgeBaseQaRefEmbeddingService extends ServiceImpl<AiKnowledg
      * @return 删除的记录数
      */
     public int deleteByUserId(Long userId) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefEmbeddingEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefEmbeddingEntity::getUserId, userId);
-        int count = baseMapper.delete(wrapper);
+        int count = baseMapper.deleteByUserId(userId);
         log.info("删除用户向量引用记录，userId: {}, 删除数量: {}", userId, count);
         return count;
     }

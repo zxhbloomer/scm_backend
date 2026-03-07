@@ -45,4 +45,31 @@ public interface AiConversationRuntimeNodeMapper extends BaseMapper<AiConversati
         ORDER BY id
     """)
     List<Long> selectIdsByRuntimeId(@Param("runtimeId") Long runtimeId);
+
+    /**
+     * 按conversationWorkflowRuntimeId查询所有节点列表
+     *
+     * @param runtimeId 运行实例ID
+     * @return 节点列表
+     */
+    @Select("""
+        SELECT
+            id,
+            runtime_node_uuid AS runtimeNodeUuid,
+            conversation_workflow_runtime_id AS conversationWorkflowRuntimeId,
+            node_id AS nodeId,
+            input_data AS inputData,
+            output_data AS outputData,
+            status,
+            status_remark AS statusRemark,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
+            dbversion
+        FROM ai_conversation_runtime_node
+        WHERE conversation_workflow_runtime_id = #{runtimeId}
+        ORDER BY id ASC
+    """)
+    List<AiConversationRuntimeNodeEntity> selectListByRuntimeId(@Param("runtimeId") Long runtimeId);
 }

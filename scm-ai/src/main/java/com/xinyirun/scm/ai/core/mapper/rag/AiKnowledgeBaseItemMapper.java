@@ -1,7 +1,10 @@
 package com.xinyirun.scm.ai.core.mapper.rag;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
+import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseItemVo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -78,4 +81,82 @@ public interface AiKnowledgeBaseItemMapper extends BaseMapper<AiKnowledgeBaseIte
         WHERE kb_uuid = #{kb_uuid}
     """)
     int deleteByKbUuid(@Param("kb_uuid") String kb_uuid);
+
+    /**
+     * 按知识库UUID查询所有文档项
+     *
+     * @param kb_uuid 知识库UUID
+     * @return 文档项列表
+     */
+    @Select("""
+        SELECT
+            id,
+            item_uuid AS itemUuid,
+            kb_id AS kbId,
+            kb_uuid AS kbUuid,
+            title,
+            brief,
+            remark,
+            source_file_id AS sourceFileId,
+            source_file_name AS sourceFileName,
+            source_file_upload_time AS sourceFileUploadTime,
+            embedding_model AS embeddingModel,
+            embedding_status AS embeddingStatus,
+            embedding_status_change_time AS embeddingStatusChangeTime,
+            graphical_status AS graphicalStatus,
+            graphical_status_change_time AS graphicalStatusChangeTime,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
+            dbversion
+        FROM ai_knowledge_base_item
+        WHERE kb_uuid = #{kb_uuid}
+    """)
+    List<AiKnowledgeBaseItemEntity> selectListByKbUuid(@Param("kb_uuid") String kb_uuid);
+
+    /**
+     * 分页搜索知识库文档项
+     * 按title或sourceFileName模糊匹配keyword
+     *
+     * @param page 分页参数
+     * @param kbUuid 知识库UUID
+     * @param keyword 关键词（模糊匹配title或source_file_name）
+     * @return 分页结果
+     */
+    @Select("""
+        <script>
+        SELECT
+            id,
+            item_uuid AS itemUuid,
+            kb_id AS kbId,
+            kb_uuid AS kbUuid,
+            title,
+            brief,
+            remark,
+            source_file_id AS sourceFileId,
+            source_file_name AS sourceFileName,
+            source_file_upload_time AS sourceFileUploadTime,
+            embedding_model AS embeddingModel,
+            embedding_status AS embeddingStatus,
+            embedding_status_change_time AS embeddingStatusChangeTime,
+            graphical_status AS graphicalStatus,
+            graphical_status_change_time AS graphicalStatusChangeTime,
+            c_time,
+            u_time,
+            c_id,
+            u_id,
+            dbversion
+        FROM ai_knowledge_base_item
+        WHERE kb_uuid = #{kbUuid}
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%')
+                 OR source_file_name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY c_time DESC
+        </script>
+    """)
+    IPage<AiKnowledgeBaseItemVo> searchByKbUuid(Page<AiKnowledgeBaseItemVo> page,
+                                                  @Param("kbUuid") String kbUuid,
+                                                  @Param("keyword") String keyword);
 }

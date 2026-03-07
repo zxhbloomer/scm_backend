@@ -1,6 +1,5 @@
 package com.xinyirun.scm.ai.core.service.workflow;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
@@ -16,7 +15,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -53,11 +51,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
 
         if (StringUtils.isNotBlank(componentVo.getComponentUuid())) {
             // 更新
-            AiWorkflowComponentEntity existing = aiWorkflowComponentMapper.selectOne(
-                    new LambdaQueryWrapper<AiWorkflowComponentEntity>()
-                            .eq(AiWorkflowComponentEntity::getComponentUuid, componentVo.getComponentUuid())
-                            .eq(AiWorkflowComponentEntity::getIsDeleted, 0)
-            );
+            AiWorkflowComponentEntity existing = aiWorkflowComponentMapper.selectByComponentUuid(componentVo.getComponentUuid());
 
             if (existing == null) {
                 throw new RuntimeException("组件不存在: " + componentVo.getComponentUuid());
@@ -89,11 +83,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
     @CacheEvict(cacheNames = {CACHE_WORKFLOW_COMPONENTS, CACHE_WORKFLOW_COMPONENT_START}, allEntries = true)
     public void enable(String componentUuid, Boolean isEnable) {
         // 1. 先查询出完整实体
-        AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectOne(
-                new LambdaQueryWrapper<AiWorkflowComponentEntity>()
-                        .eq(AiWorkflowComponentEntity::getComponentUuid, componentUuid)
-                        .eq(AiWorkflowComponentEntity::getIsDeleted, false)
-        );
+        AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectByComponentUuid(componentUuid);
 
         if (component == null) {
             throw new RuntimeException("组件不存在: " + componentUuid);
@@ -121,11 +111,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
         // }
 
         // 1. 先查询出完整实体
-        AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectOne(
-                new LambdaQueryWrapper<AiWorkflowComponentEntity>()
-                        .eq(AiWorkflowComponentEntity::getComponentUuid, componentUuid)
-                        .eq(AiWorkflowComponentEntity::getIsDeleted, false)
-        );
+        AiWorkflowComponentEntity component = aiWorkflowComponentMapper.selectByComponentUuid(componentUuid);
 
         if (component != null) {
             // 2. 在查询出的对象上直接修改字段
@@ -147,35 +133,8 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
      */
     public Page<AiWorkflowComponentVo> search(String title, Integer isEnable,
                                                Integer currentPage, Integer pageSize) {
-        LambdaQueryWrapper<AiWorkflowComponentEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiWorkflowComponentEntity::getIsDeleted, 0);
-
-        if (isEnable != null) {
-            wrapper.eq(AiWorkflowComponentEntity::getIsEnable, isEnable);
-        }
-
-        if (StringUtils.isNotBlank(title)) {
-            wrapper.like(AiWorkflowComponentEntity::getTitle, title);
-        }
-
-        wrapper.orderByAsc(AiWorkflowComponentEntity::getDisplayOrder, AiWorkflowComponentEntity::getId);
-
-        Page<AiWorkflowComponentEntity> entityPage = aiWorkflowComponentMapper.selectPage(
-                new Page<>(currentPage, pageSize), wrapper
-        );
-
-        Page<AiWorkflowComponentVo> voPage = new Page<>();
-        voPage.setCurrent(entityPage.getCurrent());
-        voPage.setSize(entityPage.getSize());
-        voPage.setTotal(entityPage.getTotal());
-
-        List<AiWorkflowComponentVo> voList = new ArrayList<>();
-        for (AiWorkflowComponentEntity entity : entityPage.getRecords()) {
-            voList.add(changeComponentToDTO(entity));
-        }
-        voPage.setRecords(voList);
-
-        return voPage;
+        Page<AiWorkflowComponentVo> page = new Page<>(currentPage, pageSize);
+        return (Page<AiWorkflowComponentVo>) aiWorkflowComponentMapper.searchPage(page, title, isEnable);
     }
 
     /**
@@ -186,12 +145,7 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
      */
     @Cacheable(cacheNames = CACHE_WORKFLOW_COMPONENTS)
     public List<AiWorkflowComponentEntity> getAllEnable() {
-        return aiWorkflowComponentMapper.selectList(
-                new LambdaQueryWrapper<AiWorkflowComponentEntity>()
-                        .eq(AiWorkflowComponentEntity::getIsEnable, 1)
-                        .eq(AiWorkflowComponentEntity::getIsDeleted, 0)
-                        .orderByAsc(AiWorkflowComponentEntity::getDisplayOrder, AiWorkflowComponentEntity::getId)
-        );
+        return aiWorkflowComponentMapper.selectAllEnabled();
     }
 
     /**
@@ -220,17 +174,5 @@ public class AiWorkflowComponentService extends ServiceImpl<AiWorkflowComponentM
                 .filter(component -> component.getId().equals(id))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("未找到组件: " + id));
-    }
-
-    /**
-     * 将组件实体转换为VO
-     *
-     * @param entity 组件实体
-     * @return 组件VO
-     */
-    private AiWorkflowComponentVo changeComponentToDTO(AiWorkflowComponentEntity entity) {
-        AiWorkflowComponentVo vo = new AiWorkflowComponentVo();
-        BeanUtils.copyProperties(entity, vo);
-        return vo;
     }
 }

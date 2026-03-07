@@ -1,7 +1,6 @@
 package com.xinyirun.scm.ai.core.service;
 
 import com.baomidou.dynamic.datasource.annotation.DSTransactional;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -226,9 +225,7 @@ public class KnowledgeBaseService {
     @Transactional(rollbackFor = Exception.class)
     public AiKnowledgeBaseItemVo uploadDoc(String kbUuid, Boolean indexAfterUpload, MultipartFile file, List<String> indexTypeList) throws IOException {
         // 1. 查询知识库
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getKbUuid, kbUuid);
-        AiKnowledgeBaseEntity kb = knowledgeBaseMapper.selectOne(wrapper);
+        AiKnowledgeBaseEntity kb = knowledgeBaseMapper.selectByKbUuid(kbUuid);
 
         if (kb == null) {
             throw new RuntimeException("知识库不存在：" + kbUuid);
@@ -270,9 +267,7 @@ public class KnowledgeBaseService {
         log.info("从URL创建文档，kbUuid: {}, fileUrl: {}, fileName: {}", kbUuid, fileUrl, fileName);
 
         // 1. 查询知识库
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getKbUuid, kbUuid);
-        AiKnowledgeBaseEntity kb = knowledgeBaseMapper.selectOne(wrapper);
+        AiKnowledgeBaseEntity kb = knowledgeBaseMapper.selectByKbUuid(kbUuid);
 
         if (kb == null) {
             throw new RuntimeException("知识库不存在：" + kbUuid);
@@ -333,10 +328,7 @@ public class KnowledgeBaseService {
      */
     public boolean indexing(String kbUuid, List<String> indexTypes) {
         // 查询该知识库下所有文档
-        LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseItemEntity::getKbUuid, kbUuid);
-
-        List<AiKnowledgeBaseItemEntity> items = itemMapper.selectList(wrapper);
+        List<AiKnowledgeBaseItemEntity> items = itemMapper.selectListByKbUuid(kbUuid);
 
         if (items.isEmpty()) {
             return false;
@@ -382,9 +374,7 @@ public class KnowledgeBaseService {
             // 发送RabbitMQ消息进行异步索引
             for (String itemUuid : itemUuids) {
                 // 查询文档项
-                LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
-                wrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, itemUuid);
-                AiKnowledgeBaseItemEntity item = itemMapper.selectOne(wrapper);
+                AiKnowledgeBaseItemEntity item = itemMapper.selectByItemUuid(itemUuid);
 
                 if (item == null) {
                     log.warn("文档不存在，跳过索引，itemUuid: {}", itemUuid);
@@ -455,7 +445,7 @@ public class KnowledgeBaseService {
     }
 
     /**
-     * 搜索我的知识库
+     * 搜索我的知识库（排除临时知识库）
      *
      * @param keyword 搜索关键词
      * @param includeOthersPublic 是否包含其他人公开的知识库
@@ -464,71 +454,32 @@ public class KnowledgeBaseService {
      * @return 分页查询结果
      */
     public IPage<AiKnowledgeBaseVo> searchMine(String keyword, Boolean includeOthersPublic, Integer currentPage, Integer pageSize) {
-        Page<AiKnowledgeBaseEntity> page = new Page<>(currentPage, pageSize);
-
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-
         Long currentUserId = SecurityUtil.getStaff_id();
         String ownerIdStr = String.valueOf(currentUserId);
 
         log.info("搜索知识库 - currentUserId: {}, ownerIdStr: {}, keyword: {}, page: {}, size: {}",
                  currentUserId, ownerIdStr, keyword, currentPage, pageSize);
 
-        wrapper.eq(AiKnowledgeBaseEntity::getOwnerId, ownerIdStr);
+        Page<AiKnowledgeBaseVo> page = new Page<>(currentPage, pageSize);
+        IPage<AiKnowledgeBaseVo> result = knowledgeBaseMapper.searchMineExcludeTemp(page, ownerIdStr, keyword);
 
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.like(AiKnowledgeBaseEntity::getTitle, keyword);
-        }
-
-        // TODO: 如果includeOthersPublic=true，还需要查询其他人公开的知识库
-
-        wrapper.orderByDesc(AiKnowledgeBaseEntity::getC_time);
-
-        IPage<AiKnowledgeBaseEntity> entityPage = knowledgeBaseMapper.selectPage(page, wrapper);
-
-        log.info("搜索知识库结果 - 查询到 {} 条记录，总数: {}", entityPage.getRecords().size(), entityPage.getTotal());
-
-        IPage<AiKnowledgeBaseVo> voPage = entityPage.convert(entity -> {
-            AiKnowledgeBaseVo vo = new AiKnowledgeBaseVo();
-            BeanUtils.copyProperties(entity, vo);
-            return vo;
-        });
-
-        return voPage;
+        log.info("搜索知识库结果 - 查询到 {} 条记录，总数: {}", result.getRecords().size(), result.getTotal());
+        return result;
     }
 
     /**
-     * 搜索公开的知识库
+     * 搜索公开的知识库（排除临时知识库）
      */
     public IPage<AiKnowledgeBaseVo> searchPublic(String keyword, Integer currentPage, Integer pageSize) {
-        Page<AiKnowledgeBaseEntity> page = new Page<>(currentPage, pageSize);
-
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getIsPublic, 1);
-
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.like(AiKnowledgeBaseEntity::getTitle, keyword);
-        }
-
-        wrapper.orderByDesc(AiKnowledgeBaseEntity::getStarCount, AiKnowledgeBaseEntity::getC_time);
-
-        IPage<AiKnowledgeBaseEntity> entityPage = knowledgeBaseMapper.selectPage(page, wrapper);
-
-        return entityPage.convert(entity -> {
-            AiKnowledgeBaseVo vo = new AiKnowledgeBaseVo();
-            BeanUtils.copyProperties(entity, vo);
-            return vo;
-        });
+        Page<AiKnowledgeBaseVo> page = new Page<>(currentPage, pageSize);
+        return knowledgeBaseMapper.searchPublicExcludeTemp(page, keyword);
     }
 
     /**
      * 根据UUID获取知识库
      */
     public AiKnowledgeBaseVo getByUuid(String uuid) {
-        LambdaQueryWrapper<AiKnowledgeBaseEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseEntity::getKbUuid, uuid);
-
-        AiKnowledgeBaseEntity entity = knowledgeBaseMapper.selectOne(wrapper);
+        AiKnowledgeBaseEntity entity = knowledgeBaseMapper.selectByKbUuid(uuid);
 
         if (entity == null) {
             return null;

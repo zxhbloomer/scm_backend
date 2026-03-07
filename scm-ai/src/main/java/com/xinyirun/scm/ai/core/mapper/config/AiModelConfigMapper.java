@@ -172,4 +172,47 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfigEntity> {
         WHERE t1.name = #{modelName} AND t1.enabled = 1
     """)
     AiModelConfigVo selectByModelName(@Param("modelName") String modelName);
+
+    /**
+     * 按模型显示名称统计数量（用于唯一性校验）
+     *
+     * @param modelName 模型显示名称（name字段）
+     * @return 记录数量
+     */
+    @Select("""
+        SELECT COUNT(*)
+        FROM ai_model_config
+        WHERE name = #{modelName}
+    """)
+    Long countByModelName(@Param("modelName") String modelName);
+
+    /**
+     * 按model_name字段统计数量，排除指定ID（用于更新时唯一性校验）
+     * model_name为模型标识名称字段
+     *
+     * @param modelName 模型标识名称（model_name字段）
+     * @param excludeId 排除的记录ID
+     * @return 记录数量
+     */
+    @Select("""
+        SELECT COUNT(*)
+        FROM ai_model_config
+        WHERE model_name = #{modelName}
+          AND id != #{excludeId}
+    """)
+    Long countByModelNameExcludeId(@Param("modelName") String modelName, @Param("excludeId") Long excludeId);
+
+    /**
+     * 按model_name字段统计数量（新增时唯一性校验）
+     * model_name为模型标识名称字段
+     *
+     * @param modelName 模型标识名称（model_name字段）
+     * @return 记录数量
+     */
+    @Select("""
+        SELECT COUNT(*)
+        FROM ai_model_config
+        WHERE model_name = #{modelName}
+    """)
+    Long countByModelNameField(@Param("modelName") String modelName);
 }

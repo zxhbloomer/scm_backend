@@ -240,11 +240,7 @@ public class AiConversationRuntimeService extends ServiceImpl<AiConversationRunt
      * @return 运行实例
      */
     public AiConversationRuntimeEntity getByUuid(String runtimeUuid) {
-        return conversationRuntimeMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiConversationRuntimeEntity>()
-                        .eq(AiConversationRuntimeEntity::getRuntimeUuid, runtimeUuid)
-                        .last("LIMIT 1")
-        );
+        return conversationRuntimeMapper.selectByRuntimeUuid(runtimeUuid);
     }
 
     /**
@@ -359,14 +355,14 @@ public class AiConversationRuntimeService extends ServiceImpl<AiConversationRunt
      * @return 删除的运行实例数量
      */
     public int deleteByConversationId(String conversationId) {
-        log.info("🗑️【Runtime删除】开始删除对话关联的workflow运行记录 - conversationId: {}", conversationId);
+        log.info("开始删除对话关联的workflow运行记录 - conversationId: {}", conversationId);
 
         // 1. 查询该对话下的所有运行实例ID列表
         java.util.List<Long> runtimeIds = conversationRuntimeMapper.selectIdsByConversationId(conversationId);
-        log.info("🗑️【Runtime删除】查询到runtime实例ID列表: {}", runtimeIds);
+        log.info("查询到runtime实例ID列表: {}", runtimeIds);
 
         if (runtimeIds.isEmpty()) {
-            log.info("🗑️【Runtime删除】对话没有workflow运行记录,跳过删除 - conversationId: {}", conversationId);
+            log.info("对话没有workflow运行记录,跳过删除 - conversationId: {}", conversationId);
             return 0;
         }
 
@@ -374,16 +370,16 @@ public class AiConversationRuntimeService extends ServiceImpl<AiConversationRunt
         int totalNodeCount = 0;
         for (Long runtimeId : runtimeIds) {
             int nodeCount = conversationRuntimeNodeService.deleteByRuntimeId(runtimeId);
-            log.info("🗑️【Runtime删除】删除runtime_node - runtimeId: {}, 删除节点数: {}", runtimeId, nodeCount);
+            log.info("删除runtime_node - runtimeId: {}, 删除节点数: {}", runtimeId, nodeCount);
             totalNodeCount += nodeCount;
         }
-        log.info("🗑️【Runtime删除】步骤2-删除runtime_node完成 - conversationId: {}, 总节点数: {}", conversationId, totalNodeCount);
+        log.info("删除runtime_node完成 - conversationId: {}, 总节点数: {}", conversationId, totalNodeCount);
 
         // 3. 删除运行实例主记录
         int runtimeCount = conversationRuntimeMapper.deleteByConversationId(conversationId);
-        log.info("🗑️【Runtime删除】步骤3-删除runtime完成 - conversationId: {}, 删除runtime数: {}", conversationId, runtimeCount);
+        log.info("删除runtime完成 - conversationId: {}, 删除runtime数: {}", conversationId, runtimeCount);
 
-        log.info("🗑️【Runtime删除】全部完成 - conversationId: {}, 删除runtime: {}, 删除node: {}",
+        log.info("全部完成 - conversationId: {}, 删除runtime: {}, 删除node: {}",
                 conversationId, runtimeCount, totalNodeCount);
 
         return runtimeCount;

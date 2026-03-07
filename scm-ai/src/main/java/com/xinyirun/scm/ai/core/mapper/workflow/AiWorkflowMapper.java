@@ -1,6 +1,8 @@
 package com.xinyirun.scm.ai.core.mapper.workflow;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowVo;
 import org.apache.ibatis.annotations.*;
@@ -344,4 +346,94 @@ public interface AiWorkflowMapper extends BaseMapper<AiWorkflowEntity> {
         @Param("userId") Long userId,
         @Param("category") String category
     );
+
+    /**
+     * 分页搜索用户自己的工作流
+     * 状态值：is_deleted 0-未删除,1-已删除；is_public 0-私有,1-公开
+     *
+     * @param page 分页参数
+     * @param userId 用户ID
+     * @param isPublic 是否公开（null表示不过滤）
+     * @param keyword 关键词（模糊匹配title或remark）
+     * @return 分页结果
+     */
+    @Select("""
+        <script>
+        SELECT
+            id,
+            workflow_uuid AS workflowUuid,
+            title,
+            remark,
+            user_id AS userId,
+            is_public AS isPublic,
+            is_enable AS isEnable,
+            is_deleted AS isDeleted,
+            `desc`,
+            keywords,
+            category,
+            priority,
+            last_test_time AS lastTestTime,
+            c_time AS cTime,
+            c_id AS cId,
+            u_time AS uTime,
+            u_id AS uId,
+            dbversion
+        FROM ai_workflow
+        WHERE user_id = #{userId}
+          AND is_deleted = 0
+        <if test="isPublic != null">
+            AND is_public = #{isPublic}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%') OR remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY u_time DESC
+        </script>
+    """)
+    IPage<AiWorkflowEntity> searchMine(Page<AiWorkflowEntity> page,
+                                        @Param("userId") Long userId,
+                                        @Param("isPublic") Boolean isPublic,
+                                        @Param("keyword") String keyword);
+
+    /**
+     * 分页搜索公开的工作流
+     * 状态值：is_public 1-公开；is_enable 1-启用；is_deleted 0-未删除
+     *
+     * @param page 分页参数
+     * @param keyword 关键词（模糊匹配title或remark）
+     * @return 分页结果
+     */
+    @Select("""
+        <script>
+        SELECT
+            id,
+            workflow_uuid AS workflowUuid,
+            title,
+            remark,
+            user_id AS userId,
+            is_public AS isPublic,
+            is_enable AS isEnable,
+            is_deleted AS isDeleted,
+            `desc`,
+            keywords,
+            category,
+            priority,
+            last_test_time AS lastTestTime,
+            c_time AS cTime,
+            c_id AS cId,
+            u_time AS uTime,
+            u_id AS uId,
+            dbversion
+        FROM ai_workflow
+        WHERE is_public = 1
+          AND is_deleted = 0
+          AND is_enable = 1
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%') OR remark LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY u_time DESC
+        </script>
+    """)
+    IPage<AiWorkflowEntity> searchPublic(Page<AiWorkflowEntity> page,
+                                          @Param("keyword") String keyword);
 }

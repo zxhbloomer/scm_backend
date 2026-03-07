@@ -692,10 +692,7 @@ public class Neo4jGraphIndexingService {
             int deletedNodes = nodeResult.hasNext() ? nodeResult.next().get("deletedNodes").asInt() : 0;
 
             // 3. 删除MySQL中的segment数据
-            com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiKnowledgeBaseGraphSegmentEntity> wrapper =
-                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-            wrapper.eq(AiKnowledgeBaseGraphSegmentEntity::getKbItemUuid, itemUuid);
-            int deletedSegments = graphSegmentService.remove(wrapper) ? 1 : 0;
+            int deletedSegments = graphSegmentService.getBaseMapper().deleteByKbItemUuid(itemUuid);
 
             log.info("文档图谱删除完成，item_uuid: {}, 删除实体: {}, 删除关系: {}, 删除segment: {}",
                     itemUuid, deletedNodes, deletedRelations, deletedSegments);

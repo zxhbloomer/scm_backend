@@ -26,4 +26,16 @@ public interface AiKnowledgeBaseGraphSegmentMapper extends BaseMapper<AiKnowledg
         WHERE kb_uuid = #{kb_uuid}
     """)
     int deleteByKbUuid(@Param("kb_uuid") String kb_uuid);
+
+    /**
+     * 按kbItemUuid物理删除图谱分段数据
+     *
+     * @param kbItemUuid 知识点UUID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_knowledge_base_graph_segment
+        WHERE kb_item_uuid = #{kbItemUuid}
+    """)
+    int deleteByKbItemUuid(@Param("kbItemUuid") String kbItemUuid);
 }

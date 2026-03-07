@@ -89,7 +89,8 @@ public interface PermissionAiMapper {
             t6.page_code,
             t6.name,
             t6.meta_title,
-            t6.path
+            t6.path,
+            t6.component
         FROM m_staff_org t1
         INNER JOIN m_role_position t2 ON t1.serial_id = t2.position_id
         INNER JOIN s_role t3 ON t3.id = t2.role_id AND t3.is_del = 0

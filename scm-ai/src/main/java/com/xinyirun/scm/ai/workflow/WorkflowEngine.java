@@ -7,10 +7,12 @@ import com.xinyirun.scm.ai.bean.vo.workflow.*;
 import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeNodeService;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowInteractionService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowRuntimeNodeService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowRuntimeService;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
+import com.xinyirun.scm.ai.workflow.node.humanfeedback.HumanFeedbackNodeConfig;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -52,6 +54,7 @@ public class WorkflowEngine {
     private final AiWorkflowRuntimeNodeService workflowRuntimeNodeService;
     private final AiConversationRuntimeService conversationRuntimeService;
     private final AiConversationRuntimeNodeService conversationRuntimeNodeService;
+    private final AiWorkflowInteractionService interactionService;
 
     private final Map<String, List<StateGraph>> stateGraphNodes = new HashMap<>();
     private final Map<String, List<StateGraph>> stateGraphEdges = new HashMap<>();
@@ -119,10 +122,12 @@ public class WorkflowEngine {
             AiWorkflowRuntimeService workflowRuntimeService,
             AiWorkflowRuntimeNodeService workflowRuntimeNodeService,
             AiConversationRuntimeService conversationRuntimeService,
-            AiConversationRuntimeNodeService conversationRuntimeNodeService) {
+            AiConversationRuntimeNodeService conversationRuntimeNodeService,
+            AiWorkflowInteractionService interactionService) {
         this(workflow, components, nodes, wfEdges,
             callSource, workflowRuntimeService, workflowRuntimeNodeService,
-            conversationRuntimeService, conversationRuntimeNodeService, null);
+            conversationRuntimeService, conversationRuntimeNodeService,
+            interactionService, null);
     }
 
     /**
@@ -141,6 +146,7 @@ public class WorkflowEngine {
             AiWorkflowRuntimeNodeService workflowRuntimeNodeService,
             AiConversationRuntimeService conversationRuntimeService,
             AiConversationRuntimeNodeService conversationRuntimeNodeService,
+            AiWorkflowInteractionService interactionService,
             String parentRuntimeUuid) {
         this.workflow = workflow;
         this.components = components;
@@ -151,6 +157,7 @@ public class WorkflowEngine {
         this.workflowRuntimeNodeService = workflowRuntimeNodeService;
         this.conversationRuntimeService = conversationRuntimeService;
         this.conversationRuntimeNodeService = conversationRuntimeNodeService;
+        this.interactionService = interactionService;
         this.parentRuntimeUuid = parentRuntimeUuid;
 
         // 识别所有 HumanFeedbackNode
@@ -335,9 +342,14 @@ public class WorkflowEngine {
                         // 工作流完成时更新状态（对齐Spring AI Alibaba Flux.complete()信号）
                         updateWorkflowComplete();
                         // OpenPage节点：将JSON数据通过事件流传递给前端
-                        if (wfState.getAi_open_dialog_para() != null && localSink != null) {
+                        if ((wfState.getAi_open_dialog_para() != null
+                                || wfState.getOpen_page_command() != null
+                                || wfState.getInteraction_request() != null) && localSink != null) {
                             localSink.tryEmitNext(
-                                WorkflowEventVo.createAiOpenDialogParaEvent(wfState.getAi_open_dialog_para())
+                                WorkflowEventVo.createAiOpenDialogParaEvent(
+                                    wfState.getAi_open_dialog_para(),
+                                    wfState.getOpen_page_command(),
+                                    wfState.getInteraction_request())
                             );
                         }
                         // 图执行完成后关闭Sink，触发节点事件流完成
@@ -487,7 +499,7 @@ public class WorkflowEngine {
 
     /**
      * 处理人机交互中断
-     * 对齐Spring AI Alibaba：发送interrupt数据（type=interrupt）
+     * 读取节点config，构建交互参数，创建DB记录，发送扩展SSE事件
      */
     private Flux<WorkflowEventVo> handleInterruption(GraphResponse<NodeOutput> graphResponse) {
         DataSourceHelper.use(this.tenantCode);
@@ -500,7 +512,6 @@ public class WorkflowEngine {
             .orElse(null);
 
         if (nextInterruptNode != null) {
-            String intTip = getHumanFeedbackTip(nextInterruptNode);
             InterruptedFlow.RUNTIME_TO_GRAPH.put(wfState.getUuid(), this);
 
             wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_READY);
@@ -510,11 +521,122 @@ public class WorkflowEngine {
                 conversationRuntimeService.updateOutput(conversationRuntimeResp.getId(), wfState);
             }
 
-            // 对齐Spring AI Alibaba：发送interrupt数据
-            return Flux.just(WorkflowEventVo.createInterruptData(nextInterruptNode, intTip));
+            // 读取节点配置
+            HumanFeedbackNodeConfig nodeConfig = getHumanFeedbackConfig(nextInterruptNode);
+            String interactionType = nodeConfig.getEffectiveInteractionType();
+            String tip = nodeConfig.getTip() != null ? nodeConfig.getTip() : "请输入您的反馈";
+
+            // 构建交互参数JSON
+            JSONObject interactionParams = buildInteractionParams(nodeConfig, interactionType);
+
+            // 映射交互类型: text→user_text, confirm→user_confirm, select→user_select, form→user_form
+            String dbInteractionType = "user_" + interactionType;
+
+            // 创建DB交互记录（如果interactionService可用）
+            JSONObject interactionRequest = null;
+            if (interactionService != null) {
+                try {
+                    com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowInteractionEntity entity =
+                        interactionService.createInteraction(
+                            wfState.getConversationId(),
+                            wfState.getUuid(),
+                            nextInterruptNode,
+                            dbInteractionType,
+                            interactionParams.toJSONString(),
+                            tip,
+                            nodeConfig.getEffectiveTimeoutMinutes()
+                        );
+
+                    // 构建interaction_request（发送给前端）
+                    interactionRequest = new JSONObject();
+                    interactionRequest.put("interaction_uuid", entity.getInteractionUuid());
+                    interactionRequest.put("type", dbInteractionType);
+                    interactionRequest.put("description", tip);
+                    interactionRequest.put("timeout_minutes", entity.getTimeoutMinutes());
+                    interactionRequest.put("timeout_at", entity.getTimeoutAt() != null
+                        ? entity.getTimeoutAt().toString() : null);
+                    interactionRequest.put("params", interactionParams);
+
+                    log.info("人机交互DB记录已创建: interactionUuid={}, type={}",
+                        entity.getInteractionUuid(), dbInteractionType);
+                } catch (Exception e) {
+                    log.error("创建人机交互DB记录失败，降级为基础中断", e);
+                }
+            }
+
+            // 发送SSE事件（带交互信息或降级为基础中断）
+            if (interactionRequest != null) {
+                return Flux.just(WorkflowEventVo.createInterruptDataWithInteraction(
+                    nextInterruptNode, tip, interactionType, interactionRequest));
+            } else {
+                return Flux.just(WorkflowEventVo.createInterruptData(nextInterruptNode, tip));
+            }
         }
 
         return Flux.<WorkflowEventVo>empty();
+    }
+
+    /**
+     * 构建交互参数JSON
+     */
+    private JSONObject buildInteractionParams(HumanFeedbackNodeConfig config, String interactionType) {
+        JSONObject params = new JSONObject();
+
+        switch (interactionType) {
+            case "confirm":
+                params.put("confirm_text", config.getConfirmText() != null ? config.getConfirmText() : "确认");
+                params.put("reject_text", config.getRejectText() != null ? config.getRejectText() : "驳回");
+                if (config.getDetail() != null) {
+                    params.put("detail", config.getDetail());
+                }
+                break;
+
+            case "select":
+                params.put("options", resolveSelectOptions(config));
+                break;
+
+            case "form":
+                if (config.getFields() != null) {
+                    params.put("fields", config.getFields());
+                }
+                break;
+
+            default:
+                // text类型无额外参数
+                break;
+        }
+
+        return params;
+    }
+
+    /**
+     * 解析select选项（支持静态和动态）
+     */
+    private List<HumanFeedbackNodeConfig.SelectOption> resolveSelectOptions(HumanFeedbackNodeConfig config) {
+        // 动态选项: 从上游节点输出中获取
+        if ("dynamic".equals(config.getOptionsSource()) && config.getDynamicOptionsParam() != null) {
+            String paramName = config.getDynamicOptionsParam();
+            for (AbstractWfNode completedNode : wfState.getCompletedNodes()) {
+                List<NodeIOData> outputs = completedNode.getState().getOutputs();
+                if (outputs == null) continue;
+
+                for (NodeIOData output : outputs) {
+                    if (paramName.equals(output.getName())) {
+                        try {
+                            String jsonStr = output.valueToString();
+                            return com.alibaba.fastjson2.JSON.parseArray(
+                                jsonStr, HumanFeedbackNodeConfig.SelectOption.class);
+                        } catch (Exception e) {
+                            log.warn("解析动态选项失败, paramName={}, error={}", paramName, e.getMessage());
+                        }
+                    }
+                }
+            }
+            log.warn("未找到动态选项参数: {}", paramName);
+        }
+
+        // 静态选项或动态解析失败回退
+        return config.getOptions() != null ? config.getOptions() : List.of();
     }
 
     /**
@@ -1106,12 +1228,25 @@ public class WorkflowEngine {
                 .orElseThrow(() -> new RuntimeException("未找到节点: " + nodeUuid));
     }
 
-    private String getHumanFeedbackTip(String nextNode) {
+    /**
+     * 获取人机交互节点的完整配置
+     */
+    private HumanFeedbackNodeConfig getHumanFeedbackConfig(String nodeUuid) {
         return wfNodes.stream()
-                .filter(node -> node.getUuid().equals(nextNode))
+                .filter(node -> node.getUuid().equals(nodeUuid))
                 .findFirst()
-                .map(node -> "等待用户输入: " + node.getTitle())
-                .orElse("等待用户输入");
+                .map(node -> {
+                    try {
+                        com.alibaba.fastjson2.JSONObject configObj = node.getNodeConfig();
+                        if (configObj != null && !configObj.isEmpty()) {
+                            return configObj.toJavaObject(HumanFeedbackNodeConfig.class);
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析人机交互节点配置失败: {}", e.getMessage());
+                    }
+                    return new HumanFeedbackNodeConfig();
+                })
+                .orElseGet(HumanFeedbackNodeConfig::new);
     }
 
     /**

@@ -1,6 +1,5 @@
 package com.xinyirun.scm.ai.core.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseItemEntity;
 import com.xinyirun.scm.ai.common.constant.AiConstant;
@@ -108,10 +107,7 @@ public class DocumentIndexingService {
                     tenantCode, itemUuid, kbUuid, fileName, indexTypes);
 
             // 1. 查询知识库配置
-            AiKnowledgeBaseEntity kb = kbMapper.selectOne(
-                    new LambdaQueryWrapper<AiKnowledgeBaseEntity>()
-                            .eq(AiKnowledgeBaseEntity::getKbUuid, kbUuid)
-            );
+            AiKnowledgeBaseEntity kb = kbMapper.selectByKbUuid(kbUuid);
             if (kb == null) {
                 throw new RuntimeException("知识库不存在: " + kbUuid);
             }
@@ -119,10 +115,7 @@ public class DocumentIndexingService {
             ownerId = kb.getOwnerId();
 
             // 2. 查询文档项
-            AiKnowledgeBaseItemEntity item = itemMapper.selectOne(
-                    new LambdaQueryWrapper<AiKnowledgeBaseItemEntity>()
-                            .eq(AiKnowledgeBaseItemEntity::getItemUuid, itemUuid)
-            );
+            AiKnowledgeBaseItemEntity item = itemMapper.selectByItemUuid(itemUuid);
             if (item == null) {
                 throw new RuntimeException("文档项不存在: " + itemUuid);
             }
@@ -177,10 +170,7 @@ public class DocumentIndexingService {
             log.error("文档索引处理失败，item_uuid: {}, 错误: {}", itemUuid, e.getMessage(), e);
 
             // 更新状态为索引失败（4=失败）
-            AiKnowledgeBaseItemEntity failedItem = itemMapper.selectOne(
-                    new LambdaQueryWrapper<AiKnowledgeBaseItemEntity>()
-                            .eq(AiKnowledgeBaseItemEntity::getItemUuid, itemUuid)
-            );
+            AiKnowledgeBaseItemEntity failedItem = itemMapper.selectByItemUuid(itemUuid);
             if (failedItem != null) {
                 failedItem.setEmbeddingStatus(4);
                 failedItem.setEmbeddingStatusChangeTime(LocalDateTime.now());
@@ -246,10 +236,7 @@ public class DocumentIndexingService {
                 milvusVectorIndexingService.deleteDocumentEmbeddings(itemUuid);
 
                 // 更新向量化状态为待处理（1=待处理）
-                AiKnowledgeBaseItemEntity item = itemMapper.selectOne(
-                        new LambdaQueryWrapper<AiKnowledgeBaseItemEntity>()
-                                .eq(AiKnowledgeBaseItemEntity::getItemUuid, itemUuid)
-                );
+                AiKnowledgeBaseItemEntity item = itemMapper.selectByItemUuid(itemUuid);
                 if (item != null) {
                     item.setEmbeddingStatus(1);
                     item.setEmbeddingStatusChangeTime(LocalDateTime.now());

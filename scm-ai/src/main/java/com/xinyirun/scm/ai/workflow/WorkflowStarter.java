@@ -57,6 +57,9 @@ public class WorkflowStarter {
     @Resource
     private AiConversationRuntimeNodeService conversationRuntimeNodeService;
 
+    @Resource
+    private AiWorkflowInteractionService interactionService;
+
     /**
      * 流式执行工作流
      *
@@ -128,7 +131,8 @@ public class WorkflowStarter {
                     workflowRuntimeService,
                     workflowRuntimeNodeService,
                     conversationRuntimeService,
-                    conversationRuntimeNodeService
+                    conversationRuntimeNodeService,
+                    interactionService
             );
 
             // 设置页面上下文(用于MCP工具)
@@ -320,6 +324,7 @@ public class WorkflowStarter {
                     workflowRuntimeNodeService,
                     conversationRuntimeService,
                     conversationRuntimeNodeService,
+                    interactionService,
                     parentRuntimeUuid
             );
 

@@ -231,11 +231,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
      * @return 运行实例
      */
     public AiWorkflowRuntimeEntity getByUuid(String runtimeUuid) {
-        return aiWorkflowRuntimeMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
-                        .eq(AiWorkflowRuntimeEntity::getRuntimeUuid, runtimeUuid)
-                        .last("LIMIT 1")
-        );
+        return aiWorkflowRuntimeMapper.selectByRuntimeUuid(runtimeUuid);
     }
 
     /**
@@ -249,11 +245,8 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
     public Page<AiWorkflowRuntimeVo> page(String workflowUuid, Integer currentPage, Integer pageSize) {
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
-        Page<AiWorkflowRuntimeEntity> entityPage = aiWorkflowRuntimeMapper.selectPage(
-                new Page<>(currentPage, pageSize),
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
-                        .eq(AiWorkflowRuntimeEntity::getWorkflowId, workflow.getId())
-                        .orderByDesc(AiWorkflowRuntimeEntity::getUTime)
+        Page<AiWorkflowRuntimeEntity> entityPage = (Page<AiWorkflowRuntimeEntity>) aiWorkflowRuntimeMapper.selectPageByWorkflowId(
+                new Page<>(currentPage, pageSize), workflow.getId()
         );
 
         Page<AiWorkflowRuntimeVo> voPage = new Page<>();
@@ -266,7 +259,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
             AiWorkflowRuntimeVo vo = new AiWorkflowRuntimeVo();
             BeanUtils.copyProperties(entity, vo);
 
-            // 手动转换 JSON 字段: String → JSONObject
+            // 手动转换 JSON 字段: String -> JSONObject
             if (StringUtils.isNotBlank(entity.getInputData())) {
                 vo.setInputData(JSON.parseObject(entity.getInputData()));
             }
@@ -310,10 +303,7 @@ public class AiWorkflowRuntimeService extends ServiceImpl<AiWorkflowRuntimeMappe
         AiWorkflowEntity workflow = workflowService.getOrThrow(workflowUuid);
 
         // 查询该工作流的所有运行记录
-        List<AiWorkflowRuntimeEntity> runtimeList = aiWorkflowRuntimeMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeEntity>()
-                        .eq(AiWorkflowRuntimeEntity::getWorkflowId, workflow.getId())
-        );
+        List<AiWorkflowRuntimeEntity> runtimeList = aiWorkflowRuntimeMapper.selectListByWorkflowId(workflow.getId());
 
         if (runtimeList.isEmpty()) {
             log.info("工作流没有运行记录, workflow_uuid={}", workflowUuid);

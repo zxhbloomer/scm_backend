@@ -42,4 +42,31 @@ public interface AiWorkflowRuntimeNodeMapper extends BaseMapper<AiWorkflowRuntim
         WHERE workflow_runtime_id = #{runtimeId}
     """)
     int deleteByRuntimeId(@Param("runtimeId") Long runtimeId);
+
+    /**
+     * 按运行实例ID查询所有节点列表
+     *
+     * @param runtimeId 运行实例ID
+     * @return 节点列表
+     */
+    @Select("""
+        SELECT
+            id,
+            runtime_node_uuid AS runtimeNodeUuid,
+            workflow_runtime_id AS workflowRuntimeId,
+            node_id AS nodeId,
+            input_data AS inputData,
+            output_data AS outputData,
+            status,
+            status_remark AS statusRemark,
+            c_time AS cTime,
+            u_time AS uTime,
+            c_id AS cId,
+            u_id AS uId,
+            dbversion
+        FROM ai_workflow_runtime_node
+        WHERE workflow_runtime_id = #{runtimeId}
+        ORDER BY id ASC
+    """)
+    List<AiWorkflowRuntimeNodeEntity> selectListByRuntimeId(@Param("runtimeId") Long runtimeId);
 }

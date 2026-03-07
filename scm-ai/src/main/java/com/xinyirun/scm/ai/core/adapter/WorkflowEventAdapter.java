@@ -89,13 +89,28 @@ public class WorkflowEventAdapter {
                     break;
 
                 case "interrupt":
-                    // 人机交互中断：解析node和tip字段
+                    // 人机交互中断：解析node、tip、交互类型和交互请求
                     ChatResponseVo interruptResponse = builder.build();
                     interruptResponse.setIsWaitingInput(true);
-                    // interrupt消息中包含node（中断节点UUID）和tip（提示信息）
                     String interruptNode = dataJson.getString("node");
                     String interruptTip = dataJson.getString("tip");
-                    log.debug("人机交互中断: node={}, tip={}", interruptNode, interruptTip);
+                    // 传递tip文本作为消息内容
+                    if (interruptTip != null && !interruptTip.isEmpty()) {
+                        interruptResponse.setResults(List.of(
+                            ChatResponseVo.Generation.builder()
+                                .output(ChatResponseVo.AssistantMessage.builder()
+                                    .content(interruptTip)
+                                    .build())
+                                .build()
+                        ));
+                    }
+                    // 传递interaction_request给前端（触发交互组件渲染）
+                    JSONObject interactionReq = dataJson.getJSONObject("interaction_request");
+                    if (interactionReq != null) {
+                        interruptResponse.setInteraction_request(interactionReq.toJSONString());
+                    }
+                    log.debug("人机交互中断: node={}, tip={}, interactionType={}",
+                        interruptNode, interruptTip, dataJson.getString("interactionType"));
                     return interruptResponse;
 
                 case "node_start": {

@@ -1,6 +1,5 @@
 package com.xinyirun.scm.ai.core.service.config;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.xinyirun.scm.ai.bean.entity.config.AiModelConfigEntity;
 import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
@@ -88,15 +87,11 @@ public class AiModelConfigService {
      * 验证模型名称是否重复
      */
     private boolean isModelNameDuplicated(String name, Long id, boolean isAddOperation) {
-        QueryWrapper<AiModelConfigEntity> wrapper = new QueryWrapper<>();
-        wrapper.eq("model_name", name);
-
-        // 更新操作时排除当前记录
-        if (!isAddOperation) {
-            wrapper.ne("id", id);
+        if (isAddOperation) {
+            return aiModelConfigMapper.countByModelNameField(name) > 0;
+        } else {
+            return aiModelConfigMapper.countByModelNameExcludeId(name, id) > 0;
         }
-
-        return aiModelConfigMapper.selectCount(wrapper) > 0;
     }
 
     /**

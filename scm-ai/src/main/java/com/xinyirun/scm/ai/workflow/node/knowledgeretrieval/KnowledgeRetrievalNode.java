@@ -19,7 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
@@ -28,17 +31,13 @@ import static com.xinyirun.scm.ai.workflow.WorkflowConstants.NODE_OUTPUT_KEY_PRE
 /**
  * 工作流知识检索节点
  *
- * 此节点负责从知识库中检索相关文档内容。
- * 使用向量检索技术，从Milvus中检索与用户问题最相似的文本段。
- *
- * 核心流程：
- * 1. 从配置中获取知识库UUID、检索参数
- * 2. 调用VectorRetrievalService进行向量检索
- * 3. 将检索结果拼接成字符串返回
- * 4. 如果严格模式且检索结果为空，抛出异常
+ * 支持单个或多个知识库的向量检索和图谱检索。
+ * 多知识库时使用CompletableFuture并行检索，按score降序合并结果。
  */
 @Slf4j
 public class KnowledgeRetrievalNode extends AbstractWfNode {
+
+    private static final int RETRIEVAL_TIMEOUT_SECONDS = 30;
 
     public KnowledgeRetrievalNode(AiWorkflowComponentEntity wfComponent, AiWorkflowNodeVo nodeDef, WfState wfState, WfNodeState nodeState) {
         super(wfComponent, nodeDef, wfState, nodeState);
@@ -48,75 +47,14 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
     public NodeProcessResult onProcess() {
         KnowledgeRetrievalNodeConfig nodeConfig = checkAndGetConfig(KnowledgeRetrievalNodeConfig.class);
 
-        if (StringUtils.isBlank(nodeConfig.getKnowledgeBaseUuid())) {
-            log.warn("知识检索节点缺少知识库UUID");
+        // 1. 获取知识库UUID列表（兼容新旧格式）
+        List<String> kbUuids = resolveKbUuids(nodeConfig);
+        if (kbUuids.isEmpty()) {
             throw new BusinessException("知识库UUID不能为空");
         }
 
-        String kbUuid = nodeConfig.getKnowledgeBaseUuid();
-
-        // 检查是否使用临时知识库
-        if (Boolean.TRUE.equals(nodeConfig.getIsTempKb())) {
-            String tempKbNodeUuid = nodeConfig.getTempKbNodeUuid();
-            log.info("使用临时知识库,临时知识库节点UUID: {}, 配置的变量引用: {}",
-                    tempKbNodeUuid, kbUuid);
-
-            // 直接从state.data()获取临时知识库节点的输出
-            // 使用NODE_OUTPUT_KEY_PREFIX + tempKbNodeUuid作为key
-            String outputKey = NODE_OUTPUT_KEY_PREFIX + tempKbNodeUuid;
-            Object tempKbOutput = state.data().get(outputKey);
-            log.info("从state.data()获取临时知识库输出: key={}, value={}", outputKey, tempKbOutput);
-
-            if (tempKbOutput instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<NodeIOData> outputs = (List<NodeIOData>) tempKbOutput;
-                if (!outputs.isEmpty()) {
-                    String upstreamJson = outputs.get(0).valueToString();
-                    log.info("临时知识库节点输出JSON: {}", upstreamJson);
-                    try {
-                        com.alibaba.fastjson2.JSONObject jsonObj = com.alibaba.fastjson2.JSON.parseObject(upstreamJson);
-                        String extractedKbUuid = jsonObj.getString("kbUuid");
-                        if (StringUtils.isNotBlank(extractedKbUuid)) {
-                            kbUuid = extractedKbUuid;
-                            log.info("从临时知识库节点输出中提取kbUuid: {}", kbUuid);
-                        } else {
-                            log.warn("临时知识库节点输出JSON中未找到kbUuid字段");
-                        }
-                    } catch (Exception e) {
-                        log.warn("解析临时知识库节点输出JSON失败: {}", e.getMessage());
-                    }
-                }
-            } else {
-                log.warn("未找到临时知识库节点输出或格式不正确: key={}", outputKey);
-            }
-        }
-
-        // 如果仍是变量引用格式(格式:{nodeUuid_paramName}),尝试变量渲染(兼容旧逻辑)
-        if (kbUuid.startsWith("{") && kbUuid.endsWith("}")) {
-            String originalKbUuid = kbUuid;
-            kbUuid = WorkflowUtil.renderTemplate(kbUuid, state.getInputs());
-            log.info("渲染临时知识库变量引用: {} -> {}", originalKbUuid, kbUuid);
-
-            // 验证渲染后的知识库UUID
-            if (StringUtils.isBlank(kbUuid) || (kbUuid.startsWith("{") && kbUuid.endsWith("}"))) {
-                throw new BusinessException("知识库UUID解析失败,请确保上游临时知识库节点已执行并正确输出kbUuid");
-            }
-        }
-
-        log.info("KnowledgeRetrievalNode config: {}", nodeConfig);
-
-        // 获取查询关键词(支持模板渲染)
-        String textInput;
-        if (StringUtils.isNotBlank(nodeConfig.getQueryTemplate())) {
-            // 使用配置的查询模板,通过WorkflowUtil渲染变量引用
-            textInput = WorkflowUtil.renderTemplate(nodeConfig.getQueryTemplate(), state.getInputs());
-            log.info("使用查询模板,模板内容: {}, 渲染后查询关键词: {}", nodeConfig.getQueryTemplate(), textInput);
-        } else {
-            // 未配置模板时使用上游节点的默认输出,保持向后兼容
-            textInput = getFirstInputText();
-            log.info("未配置查询模板,使用上游节点输出作为查询关键词: {}", textInput);
-        }
-
+        // 2. 获取查询关键词
+        String textInput = resolveQueryText(nodeConfig);
         if (StringUtils.isBlank(textInput)) {
             log.warn("知识检索节点输入内容为空");
             return NodeProcessResult.builder()
@@ -124,122 +62,48 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
                     .build();
         }
 
-        // 从配置中获取检索参数
+        // 3. 获取检索参数
         int topN = nodeConfig.getTopN() != null ? nodeConfig.getTopN() : 5;
         double minScore = nodeConfig.getScore() != null ? nodeConfig.getScore() : 0.3;
         boolean isStrict = Boolean.TRUE.equals(nodeConfig.getIsStrict());
         boolean enableGraph = Boolean.TRUE.equals(nodeConfig.getEnableGraphRetrieval());
         String graphModelName = nodeConfig.getGraphModelName();
 
-        // 图谱检索模型验证（与生成回答节点逻辑一致：不配置就报错，不使用默认模型）
         if (enableGraph && StringUtils.isBlank(graphModelName)) {
-            log.error("❌ 启用图谱检索时必须配置图谱检索模型");
             throw new BusinessException("启用图谱检索时必须配置图谱检索模型。请在节点属性中选择模型，或关闭图谱检索开关。");
         }
 
-        log.info("开始知识库检索，知识库UUID: {}, 查询内容: {}, topN: {}, minScore: {}, isStrict: {}, enableGraph: {}, graphModel: {}",
-                kbUuid, textInput, topN, minScore, isStrict, enableGraph, graphModelName);
+        log.info("开始知识库检索，知识库数量: {}, UUIDs: {}, 查询内容: {}, topN: {}, minScore: {}", kbUuids.size(), kbUuids, textInput, topN, minScore);
 
         StringBuilder resp = new StringBuilder();
 
         try {
-            // 获取MilvusVectorRetrievalService实例
             MilvusVectorRetrievalService vectorRetrievalService = SpringUtil.getBean(MilvusVectorRetrievalService.class);
 
-            // 1. 调用向量检索服务
-            List<VectorSearchResultVo> searchResults = vectorRetrievalService.searchSimilarDocuments(
-                    textInput, kbUuid, topN, minScore
-            );
+            // 4. 并行向量检索所有知识库
+            List<VectorSearchResultVo> searchResults = parallelVectorSearch(vectorRetrievalService, textInput, kbUuids, topN, minScore);
+            log.info("向量检索完成，合并后结果数: {}", searchResults.size());
 
-            log.info("向量检索完成，结果数: {}", searchResults.size());
-
-            // 2. 图谱检索（仅在启用时调用）
+            // 5. 并行图谱检索（若启用）
             List<GraphSearchResultVo> graphResults = new ArrayList<>();
-
             if (enableGraph) {
-                log.info("=== 图谱检索已启用 ===");
-                log.info("图谱检索参数 - kbUuid: {}, 查询内容: {}, topN: {}", kbUuid, textInput, topN);
-
-                try {
-                    // 从kbUuid提取租户编码（格式：scm_tenant_20250519_001::uuid）
-                    String tenantCode = kbUuid.split("::", 2)[0];
-                    log.info("从kbUuid提取租户编码: {}", tenantCode);
-
-                    // 获取GraphRetrievalService实例
-                    GraphRetrievalService graphRetrievalService = SpringUtil.getBean(GraphRetrievalService.class);
-
-                    // 调用图谱检索服务（使用指定模型）
-                    log.info("===== 图谱检索调用信息 =====");
-                    log.info("graphModelName 参数值: [{}]", graphModelName);
-                    log.info("graphModelName 是否为空: {}", StringUtils.isBlank(graphModelName));
-                    log.info("开始调用 GraphRetrievalService.searchRelatedEntities");
-                    log.info("传递的参数: question=[{}], kbUuid=[{}], tenantCode=[{}], topN=[{}], modelName=[{}]",
-                            textInput, kbUuid, tenantCode, topN, graphModelName);
-
-                    graphResults = graphRetrievalService.searchRelatedEntities(
-                            textInput, kbUuid, tenantCode, topN, graphModelName
-                    );
-
-                    log.info("===== 图谱检索调用完成 =====");
-
-                    // 详细记录图谱检索结果
-                    log.info("图谱检索完成，返回结果数: {}", graphResults.size());
-
-                    if (!graphResults.isEmpty()) {
-                        // 统计实体和关系数量
-                        long entityCount = graphResults.stream()
-                                .map(GraphSearchResultVo::getEntityName)
-                                .distinct()
-                                .count();
-                        long relationCount = graphResults.stream()
-                                .filter(r -> r.getRelations() != null)
-                                .mapToLong(r -> r.getRelations().size())
-                                .sum();
-
-                        log.info("图谱检索统计 - 唯一实体数: {}, 关系数: {}", entityCount, relationCount);
-
-                        // 记录实体名称
-                        String entityNames = graphResults.stream()
-                                .map(GraphSearchResultVo::getEntityName)
-                                .distinct()
-                                .collect(Collectors.joining("、"));
-                        log.info("检索到的实体: {}", entityNames);
-                    } else {
-                        log.warn("图谱检索结果为空，可能原因：1)知识库未完成图谱化索引 2)问题中无可识别实体 3)图谱中无相关数据");
-                    }
-
-                } catch (Exception e) {
-                    log.error("图谱检索失败，错误类型: {}, 错误信息: {}", e.getClass().getSimpleName(), e.getMessage(), e);
-                    log.warn("图谱检索失败降级处理：继续使用向量检索结果");
-                    // 图谱检索失败不影响向量检索结果，继续处理
-                }
-            } else {
-                log.info("图谱检索未启用，仅使用向量检索结果");
+                graphResults = parallelGraphSearch(textInput, kbUuids, topN, graphModelName);
+                log.info("图谱检索完成，合并后结果数: {}", graphResults.size());
             }
 
-            // 3. 检查检索结果
-            boolean vectorEmpty = searchResults == null || searchResults.isEmpty();
+            // 6. 检查检索结果
+            boolean vectorEmpty = searchResults.isEmpty();
             boolean graphEmpty = !enableGraph || graphResults.isEmpty();
 
             if (vectorEmpty && graphEmpty) {
-                log.warn("知识库检索结果为空，kbUuid: {}, 查询内容: {}", kbUuid, textInput);
-
-                // 严格模式下检索结果为空时抛出异常
+                log.warn("知识库检索结果为空，查询内容: {}", textInput);
                 if (isStrict) {
                     throw new BusinessException("严格模式：知识库中未找到相关答案，请补充知识库内容或调整检索参数");
                 }
-
-                // 非严格模式下使用默认响应或返回空
-                log.info("非严格模式：检索结果为空，返回默认响应");
             }
 
-            // 4. 合并向量和图谱结果
-            log.info("=== 开始合并检索结果 ===");
-            log.info("合并策略 - 向量结果: {}, 图谱结果: {}", !vectorEmpty ? "有" : "无", !graphEmpty ? "有" : "无");
-
-            // 4.1 拼接向量检索结果
+            // 7. 拼接向量检索结果
             if (!vectorEmpty) {
-                log.info("拼接向量检索结果，数量: {}", searchResults.size());
                 resp.append("=== 向量检索结果 ===\n");
                 for (int i = 0; i < searchResults.size(); i++) {
                     VectorSearchResultVo result = searchResults.get(i);
@@ -250,50 +114,38 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
                 }
             }
 
-            // 4.2 拼接图谱检索结果
+            // 8. 拼接图谱检索结果
             if (!graphEmpty) {
-                log.info("拼接图谱检索结果，数量: {}", graphResults.size());
                 resp.append("=== 图谱检索结果 ===\n");
-
-                // 提取实体
                 resp.append("实体：");
                 String entities = graphResults.stream()
                         .map(GraphSearchResultVo::getEntityName)
                         .distinct()
                         .collect(Collectors.joining("、"));
                 resp.append(entities).append("\n");
-                log.info("合并实体信息: {}", entities);
 
-                // 提取关系
                 resp.append("关系：\n");
-                int relationCount = 0;
                 for (GraphSearchResultVo result : graphResults) {
-                    if (result.getRelations() != null && !result.getRelations().isEmpty()) {
+                    if (result.getRelations() != null) {
                         for (GraphRelationVo relation : result.getRelations()) {
                             resp.append("  - ")
                                     .append(relation.getSourceEntityName())
                                     .append(" [").append(relation.getRelationType()).append("] ")
                                     .append(relation.getTargetEntityName())
                                     .append("\n");
-                            relationCount++;
                         }
                     }
                 }
                 resp.append("\n");
-                log.info("合并关系信息，数量: {}", relationCount);
             }
 
-            log.info("检索结果合并完成，输出文本长度: {}", resp.length());
-
         } catch (BusinessException e) {
-            // 业务异常直接向上抛出
             throw e;
         } catch (Exception e) {
             log.error("知识检索异常: {}", e.getMessage(), e);
             throw new BusinessException("知识检索失败: " + e.getMessage());
         }
 
-        // 获取最终响应文本
         String respText = resp.toString();
         if (StringUtils.isBlank(respText) && StringUtils.isNotBlank(nodeConfig.getDefaultResponse())) {
             respText = nodeConfig.getDefaultResponse();
@@ -304,5 +156,166 @@ public class KnowledgeRetrievalNode extends AbstractWfNode {
         return NodeProcessResult.builder()
                 .content(List.of(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", respText)))
                 .build();
+    }
+
+    /**
+     * 解析知识库UUID列表，兼容新格式（多知识库数组）和旧格式（单知识库字符串）
+     */
+    private List<String> resolveKbUuids(KnowledgeRetrievalNodeConfig nodeConfig) {
+        List<String> kbUuids = new ArrayList<>();
+
+        // 新格式：多知识库列表
+        if (nodeConfig.getKnowledgeBaseList() != null && !nodeConfig.getKnowledgeBaseList().isEmpty()) {
+            for (KnowledgeRetrievalNodeConfig.KbItem item : nodeConfig.getKnowledgeBaseList()) {
+                String uuid = resolveOneKbUuid(item.getUuid(), item.getIsTemp(), item.getTempNodeUuid());
+                if (StringUtils.isNotBlank(uuid)) {
+                    kbUuids.add(uuid);
+                }
+            }
+            log.info("使用多知识库模式，解析后UUID数量: {}", kbUuids.size());
+            return kbUuids;
+        }
+
+        // 旧格式：单知识库字符串
+        if (StringUtils.isNotBlank(nodeConfig.getKnowledgeBaseUuid())) {
+            String uuid = resolveOneKbUuid(
+                    nodeConfig.getKnowledgeBaseUuid(),
+                    nodeConfig.getIsTempKb(),
+                    nodeConfig.getTempKbNodeUuid()
+            );
+            if (StringUtils.isNotBlank(uuid)) {
+                kbUuids.add(uuid);
+            }
+            log.info("使用单知识库模式（向后兼容），UUID: {}", uuid);
+        }
+
+        return kbUuids;
+    }
+
+    /**
+     * 解析单个知识库UUID，处理临时知识库和变量引用
+     */
+    private String resolveOneKbUuid(String rawUuid, Boolean isTemp, String tempKbNodeUuid) {
+        String kbUuid = rawUuid;
+
+        // 临时知识库：从上游节点输出中提取kbUuid
+        if (Boolean.TRUE.equals(isTemp) && StringUtils.isNotBlank(tempKbNodeUuid)) {
+            String outputKey = NODE_OUTPUT_KEY_PREFIX + tempKbNodeUuid;
+            Object tempKbOutput = state.data().get(outputKey);
+
+            if (tempKbOutput instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<NodeIOData> outputs = (List<NodeIOData>) tempKbOutput;
+                if (!outputs.isEmpty()) {
+                    try {
+                        com.alibaba.fastjson2.JSONObject jsonObj = com.alibaba.fastjson2.JSON.parseObject(outputs.get(0).valueToString());
+                        String extracted = jsonObj.getString("kbUuid");
+                        if (StringUtils.isNotBlank(extracted)) {
+                            kbUuid = extracted;
+                            log.info("从临时知识库节点提取kbUuid: {}", kbUuid);
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析临时知识库节点输出失败: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // 变量引用格式兼容
+        if (kbUuid != null && kbUuid.startsWith("{") && kbUuid.endsWith("}")) {
+            kbUuid = WorkflowUtil.renderTemplate(kbUuid, state.getInputs());
+            if (StringUtils.isBlank(kbUuid) || (kbUuid.startsWith("{") && kbUuid.endsWith("}"))) {
+                log.warn("知识库UUID变量引用解析失败: {}", rawUuid);
+                return null;
+            }
+        }
+
+        return kbUuid;
+    }
+
+    /**
+     * 解析查询关键词
+     */
+    private String resolveQueryText(KnowledgeRetrievalNodeConfig nodeConfig) {
+        if (StringUtils.isNotBlank(nodeConfig.getQueryTemplate())) {
+            String text = WorkflowUtil.renderTemplate(nodeConfig.getQueryTemplate(), state.getInputs());
+            log.info("使用查询模板，渲染后: {}", text);
+            return text;
+        }
+        String text = getFirstInputText();
+        log.info("使用上游节点输出作为查询关键词: {}", text);
+        return text;
+    }
+
+    /**
+     * 并行向量检索多个知识库，合并结果按score降序排列
+     */
+    private List<VectorSearchResultVo> parallelVectorSearch(
+            MilvusVectorRetrievalService service, String question, List<String> kbUuids, int topN, double minScore) {
+
+        // 单个知识库直接调用，无需并行
+        if (kbUuids.size() == 1) {
+            return service.searchSimilarDocuments(question, kbUuids.get(0), topN, minScore);
+        }
+
+        // 多个知识库并行检索
+        List<CompletableFuture<List<VectorSearchResultVo>>> futures = kbUuids.stream()
+                .map(kbUuid -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return service.searchSimilarDocuments(question, kbUuid, topN, minScore);
+                    } catch (Exception e) {
+                        log.warn("知识库 {} 向量检索失败: {}", kbUuid, e.getMessage());
+                        return List.<VectorSearchResultVo>of();
+                    }
+                }))
+                .collect(Collectors.toList());
+
+        // 收集所有结果
+        List<VectorSearchResultVo> allResults = new ArrayList<>();
+        for (CompletableFuture<List<VectorSearchResultVo>> future : futures) {
+            try {
+                allResults.addAll(future.get(RETRIEVAL_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            } catch (Exception e) {
+                log.warn("向量检索超时或异常: {}", e.getMessage());
+            }
+        }
+
+        // 按score降序排列，限制topN
+        return allResults.stream()
+                .sorted(Comparator.comparingDouble(VectorSearchResultVo::getScore).reversed())
+                .limit(topN)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 并行图谱检索多个知识库
+     */
+    private List<GraphSearchResultVo> parallelGraphSearch(
+            String question, List<String> kbUuids, int topN, String graphModelName) {
+
+        GraphRetrievalService graphService = SpringUtil.getBean(GraphRetrievalService.class);
+
+        List<CompletableFuture<List<GraphSearchResultVo>>> futures = kbUuids.stream()
+                .map(kbUuid -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        String tenantCode = kbUuid.split("::", 2)[0];
+                        return graphService.searchRelatedEntities(question, kbUuid, tenantCode, topN, graphModelName);
+                    } catch (Exception e) {
+                        log.warn("知识库 {} 图谱检索失败: {}", kbUuid, e.getMessage());
+                        return List.<GraphSearchResultVo>of();
+                    }
+                }))
+                .collect(Collectors.toList());
+
+        List<GraphSearchResultVo> allResults = new ArrayList<>();
+        for (CompletableFuture<List<GraphSearchResultVo>> future : futures) {
+            try {
+                allResults.addAll(future.get(RETRIEVAL_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+            } catch (Exception e) {
+                log.warn("图谱检索超时或异常: {}", e.getMessage());
+            }
+        }
+
+        return allResults;
     }
 }

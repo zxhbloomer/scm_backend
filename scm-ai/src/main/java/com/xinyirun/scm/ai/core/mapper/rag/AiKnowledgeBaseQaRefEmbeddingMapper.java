@@ -3,6 +3,7 @@ package com.xinyirun.scm.ai.core.mapper.rag;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaRefEmbeddingEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.QaRefEmbeddingVo;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -35,5 +36,49 @@ public interface AiKnowledgeBaseQaRefEmbeddingMapper extends BaseMapper<AiKnowle
         )
     """)
     Integer deleteByKbUuid(@Param("kbUuid") String kbUuid);
+
+    /**
+     * 按qaRecordId查询向量引用列表
+     *
+     * @param qaRecordId 问答记录ID
+     * @return 向量引用列表
+     */
+    @Select("""
+        SELECT
+            id AS id,
+            qa_record_id AS qaRecordId,
+            embedding_id AS embeddingId,
+            score AS score,
+            content AS content,
+            user_id AS userId,
+            create_time AS createTime
+        FROM ai_knowledge_base_qa_ref_embedding
+        WHERE qa_record_id = #{qaRecordId}
+    """)
+    List<AiKnowledgeBaseQaRefEmbeddingEntity> selectListByQaRecordId(@Param("qaRecordId") String qaRecordId);
+
+    /**
+     * 按qaRecordId物理删除向量引用记录
+     *
+     * @param qaRecordId 问答记录ID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_knowledge_base_qa_ref_embedding
+        WHERE qa_record_id = #{qaRecordId}
+    """)
+    int deleteByQaRecordId(@Param("qaRecordId") String qaRecordId);
+
+    /**
+     * 按userId物理删除所有向量引用记录
+     *
+     * @param userId 用户ID
+     * @return 删除的行数
+     */
+    @Delete("""
+        DELETE FROM ai_knowledge_base_qa_ref_embedding
+        WHERE user_id = #{userId}
+    """)
+    int deleteByUserId(@Param("userId") Long userId);
 
 }

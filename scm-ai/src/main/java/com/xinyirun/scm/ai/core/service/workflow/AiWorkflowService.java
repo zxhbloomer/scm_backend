@@ -324,25 +324,8 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
     public Page<AiWorkflowVo> search(String keyword, Boolean isPublic, Integer currentPage, Integer pageSize) {
         Long userId = SecurityUtil.getStaff_id();
 
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowEntity> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-
-        wrapper.eq(AiWorkflowEntity::getUserId, userId);
-        wrapper.eq(AiWorkflowEntity::getIsDeleted, false);
-
-        if (isPublic != null) {
-            wrapper.eq(AiWorkflowEntity::getIsPublic, isPublic);
-        }
-
-        if (org.apache.commons.lang3.StringUtils.isNotBlank(keyword)) {
-            wrapper.and(w -> w.like(AiWorkflowEntity::getTitle, keyword)
-                    .or().like(AiWorkflowEntity::getRemark, keyword));
-        }
-
-        wrapper.orderByDesc(AiWorkflowEntity::getUTime);
-
-        Page<AiWorkflowEntity> entityPage = aiWorkflowMapper.selectPage(
-                new Page<>(currentPage, pageSize), wrapper
+        Page<AiWorkflowEntity> entityPage = (Page<AiWorkflowEntity>) aiWorkflowMapper.searchMine(
+                new Page<>(currentPage, pageSize), userId, isPublic, keyword
         );
 
         Page<AiWorkflowVo> voPage = new Page<>();
@@ -379,22 +362,8 @@ public class AiWorkflowService extends ServiceImpl<AiWorkflowMapper, AiWorkflowE
      * @return 分页结果
      */
     public Page<AiWorkflowVo> searchPublic(String keyword, Integer currentPage, Integer pageSize) {
-        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowEntity> wrapper =
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
-
-        wrapper.eq(AiWorkflowEntity::getIsPublic, true); // true-公开
-        wrapper.eq(AiWorkflowEntity::getIsDeleted, false);
-        wrapper.eq(AiWorkflowEntity::getIsEnable, true); // true-启用
-
-        if (org.apache.commons.lang3.StringUtils.isNotBlank(keyword)) {
-            wrapper.and(w -> w.like(AiWorkflowEntity::getTitle, keyword)
-                    .or().like(AiWorkflowEntity::getRemark, keyword));
-        }
-
-        wrapper.orderByDesc(AiWorkflowEntity::getUTime);
-
-        Page<AiWorkflowEntity> entityPage = aiWorkflowMapper.selectPage(
-                new Page<>(currentPage, pageSize), wrapper
+        Page<AiWorkflowEntity> entityPage = (Page<AiWorkflowEntity>) aiWorkflowMapper.searchPublic(
+                new Page<>(currentPage, pageSize), keyword
         );
 
         Page<AiWorkflowVo> voPage = new Page<>();

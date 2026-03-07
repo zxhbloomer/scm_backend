@@ -1,6 +1,5 @@
 package com.xinyirun.scm.ai.core.service.rag;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -8,14 +7,13 @@ import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseQaVo;
 import com.xinyirun.scm.ai.bean.vo.rag.AiKnowledgeBaseVo;
 import com.xinyirun.scm.ai.bean.vo.request.QARecordRequestVo;
-import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseMapper;
 import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaMapper;
-import com.xinyirun.scm.ai.core.mapper.rag.AiKnowledgeBaseQaRefGraphMapper;
 import com.xinyirun.scm.ai.core.service.KnowledgeBaseService;
 import com.xinyirun.scm.common.utils.UuidUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 /**
@@ -105,14 +103,7 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
 
         // 4. 转换为VO返回
         AiKnowledgeBaseQaVo vo = new AiKnowledgeBaseQaVo();
-        vo.setId(entity.getId());
-        vo.setUuid(entity.getUuid());
-        vo.setKbId(entity.getKbId());
-        vo.setKbUuid(entity.getKbUuid());
-        vo.setQuestion(entity.getQuestion());
-        vo.setUserId(entity.getUserId());
-        vo.setAiModelId(entity.getAiModelId());
-        vo.setCreateTime(entity.getCreateTime());
+        BeanUtils.copyProperties(entity, vo);
 
         return vo;
     }
@@ -129,45 +120,8 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
      */
     public IPage<AiKnowledgeBaseQaVo> search(String kbUuid, String keyword, Long userId,
                                               Integer currentPage, Integer pageSize) {
-        // 构建查询条件
-        LambdaQueryWrapper<AiKnowledgeBaseQaEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaEntity::getKbUuid, kbUuid);
-        wrapper.eq(AiKnowledgeBaseQaEntity::getUserId, userId);
-        wrapper.eq(AiKnowledgeBaseQaEntity::getIsDeleted, 0);
-
-        // 关键词模糊搜索
-        if (StringUtils.isNotBlank(keyword)) {
-            wrapper.like(AiKnowledgeBaseQaEntity::getQuestion, keyword);
-        }
-
-        // 按更新时间降序
-        wrapper.orderByDesc(AiKnowledgeBaseQaEntity::getUpdateTime);
-
-        // 分页查询
-        Page<AiKnowledgeBaseQaEntity> page = this.page(
-                new Page<>(currentPage, pageSize), wrapper
-        );
-
-        // 转换为VO
-        IPage<AiKnowledgeBaseQaVo> result = page.convert(entity -> {
-            AiKnowledgeBaseQaVo vo = new AiKnowledgeBaseQaVo();
-            vo.setId(entity.getId());
-            vo.setUuid(entity.getUuid());
-            vo.setKbId(entity.getKbId());
-            vo.setKbUuid(entity.getKbUuid());
-            vo.setQuestion(entity.getQuestion());
-            vo.setPrompt(entity.getPrompt());
-            vo.setPromptTokens(entity.getPromptTokens());
-            vo.setAnswer(entity.getAnswer());
-            vo.setAnswerTokens(entity.getAnswerTokens());
-            vo.setUserId(entity.getUserId());
-            vo.setAiModelId(entity.getAiModelId());
-            vo.setCreateTime(entity.getCreateTime());
-
-            return vo;
-        });
-
-        return result;
+        Page<AiKnowledgeBaseQaVo> page = new Page<>(currentPage, pageSize);
+        return baseMapper.searchByKbUuidAndUserId(page, kbUuid, userId, keyword);
     }
 
     /**
@@ -180,9 +134,7 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
      * @return 是否成功
      */
     public boolean delete(String qaUuid, Long userId) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaEntity> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AiKnowledgeBaseQaEntity::getUuid, qaUuid);
-        AiKnowledgeBaseQaEntity exist = this.getOne(queryWrapper);
+        AiKnowledgeBaseQaEntity exist = baseMapper.selectByUuid(qaUuid);
 
         if (exist == null) {
             log.error("问答记录不存在，qaUuid: {}", qaUuid);
@@ -221,9 +173,7 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
      * @return 是否成功
      */
     public boolean clearByCurrentUser(Long userId) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaEntity> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AiKnowledgeBaseQaEntity::getUserId, userId);
-        long count = this.count(queryWrapper);
+        long count = baseMapper.countByUserId(userId);
 
         if (count == 0) {
             log.info("用户没有问答记录需要清空，userId: {}", userId);
@@ -237,7 +187,7 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
                 userId, embeddingCount, graphCount);
 
         // 再删除主表记录
-        boolean success = this.remove(queryWrapper);
+        boolean success = baseMapper.deleteByUserId(userId) > 0;
 
         if (success) {
             log.info("清空用户问答记录成功，userId: {}, 清空数量: {}", userId, count);
@@ -253,9 +203,6 @@ public class AiKnowledgeBaseQaService extends ServiceImpl<AiKnowledgeBaseQaMappe
      * @return 问答记录实体，不存在则返回null
      */
     public AiKnowledgeBaseQaEntity getByQaUuid(String qaUuid) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaEntity::getUuid, qaUuid);
-        wrapper.eq(AiKnowledgeBaseQaEntity::getIsDeleted, 0);
-        return this.getOne(wrapper);
+        return baseMapper.selectByUuid(qaUuid);
     }
 }

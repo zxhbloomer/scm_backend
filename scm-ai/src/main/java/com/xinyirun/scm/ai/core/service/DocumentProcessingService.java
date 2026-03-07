@@ -1,7 +1,5 @@
 package com.xinyirun.scm.ai.core.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseEntity;
@@ -172,45 +170,26 @@ public class DocumentProcessingService {
      * 搜索文档
      */
     public IPage<AiKnowledgeBaseItemVo> search(String kbUuid, String keyword, Integer currentPage, Integer pageSize) {
-        Page<AiKnowledgeBaseItemEntity> page = new Page<>(currentPage, pageSize);
+        Page<AiKnowledgeBaseItemVo> page = new Page<>(currentPage, pageSize);
+        IPage<AiKnowledgeBaseItemVo> entityPage = itemMapper.searchByKbUuid(page, kbUuid, keyword);
 
-        LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseItemEntity::getKbUuid, kbUuid);
-
-        if (keyword != null && !keyword.isEmpty()) {
-            wrapper.and(w -> w.like(AiKnowledgeBaseItemEntity::getTitle, keyword)
-                    .or()
-                    .like(AiKnowledgeBaseItemEntity::getSourceFileName, keyword));
-        }
-
-        wrapper.orderByDesc(AiKnowledgeBaseItemEntity::getC_time);
-
-        IPage<AiKnowledgeBaseItemEntity> entityPage = itemMapper.selectPage(page, wrapper);
-
-        // 转换为VO
-        return entityPage.convert(entity -> {
-            AiKnowledgeBaseItemVo voItem = new AiKnowledgeBaseItemVo();
-            BeanUtils.copyProperties(entity, voItem);
-
-            // 查询并填充附件信息
+        // 填充附件信息
+        entityPage.getRecords().forEach(voItem -> {
             List<SFileInfoVo> files = sFileService.selectFileInfoBySerialTypeAndId(
                 "ai_knowledge_base_item",
-                entity.getId()
+                voItem.getId()
             );
             voItem.setDoc_att_files(files);
-
-            return voItem;
         });
+
+        return entityPage;
     }
 
     /**
      * 根据UUID获取文档
      */
     public AiKnowledgeBaseItemVo getByUuid(String uuid) {
-        LambdaQueryWrapper<AiKnowledgeBaseItemEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, uuid);
-
-        AiKnowledgeBaseItemEntity entity = itemMapper.selectOne(wrapper);
+        AiKnowledgeBaseItemEntity entity = itemMapper.selectByItemUuid(uuid);
 
         if (entity == null) {
             return null;
@@ -241,9 +220,7 @@ public class DocumentProcessingService {
         log.info("删除知识项, uuid: {}", uuid);
 
         // 1. 查询实体（select-then-delete模式）
-        LambdaQueryWrapper<AiKnowledgeBaseItemEntity> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(AiKnowledgeBaseItemEntity::getItemUuid, uuid);
-        AiKnowledgeBaseItemEntity entity = itemMapper.selectOne(queryWrapper);
+        AiKnowledgeBaseItemEntity entity = itemMapper.selectByItemUuid(uuid);
 
         if (entity == null) {
             log.warn("知识项不存在, uuid: {}", uuid);

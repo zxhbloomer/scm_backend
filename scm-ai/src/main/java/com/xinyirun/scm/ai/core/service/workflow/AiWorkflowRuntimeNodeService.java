@@ -44,11 +44,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      * @return 节点执行记录VO列表
      */
     public List<AiWorkflowRuntimeNodeVo> listByWfRuntimeId(Long wfRuntimeId) {
-        List<AiWorkflowRuntimeNodeEntity> entityList = aiWorkflowRuntimeNodeMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiWorkflowRuntimeNodeEntity>()
-                        .eq(AiWorkflowRuntimeNodeEntity::getWorkflowRuntimeId, wfRuntimeId)
-                        .orderByAsc(AiWorkflowRuntimeNodeEntity::getId)
-        );
+        List<AiWorkflowRuntimeNodeEntity> entityList = aiWorkflowRuntimeNodeMapper.selectListByRuntimeId(wfRuntimeId);
 
         List<AiWorkflowRuntimeNodeVo> result = new ArrayList<>();
         for (AiWorkflowRuntimeNodeEntity entity : entityList) {
@@ -63,7 +59,7 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
                 vo.setOutputData(JSON.parseObject(entity.getOutputData()));
             }
 
-            // ⭐ 填充节点标题：通过nodeId查询ai_workflow_node表获取title
+            // 填充节点标题：通过nodeId查询ai_workflow_node表获取title
             // 前端执行详情页面直接使用nodeTitle字段显示节点名称，避免通过nodeId匹配workflow.nodes
             if (entity.getNodeId() != null) {
                 var node = workflowNodeService.getById(entity.getNodeId());

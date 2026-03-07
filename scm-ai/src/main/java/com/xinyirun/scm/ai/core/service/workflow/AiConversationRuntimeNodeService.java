@@ -47,11 +47,7 @@ public class AiConversationRuntimeNodeService extends ServiceImpl<AiConversation
      * @return 节点执行记录VO列表
      */
     public List<AiConversationRuntimeNodeVo> listByWfRuntimeId(Long wfRuntimeId) {
-        List<AiConversationRuntimeNodeEntity> entityList = conversationRuntimeNodeMapper.selectList(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiConversationRuntimeNodeEntity>()
-                        .eq(AiConversationRuntimeNodeEntity::getConversationWorkflowRuntimeId, wfRuntimeId)
-                        .orderByAsc(AiConversationRuntimeNodeEntity::getId)
-        );
+        List<AiConversationRuntimeNodeEntity> entityList = conversationRuntimeNodeMapper.selectListByRuntimeId(wfRuntimeId);
 
         List<AiConversationRuntimeNodeVo> result = new ArrayList<>();
         for (AiConversationRuntimeNodeEntity entity : entityList) {
@@ -66,7 +62,7 @@ public class AiConversationRuntimeNodeService extends ServiceImpl<AiConversation
                 vo.setOutputData(JSON.parseObject(entity.getOutputData()));
             }
 
-            // ⭐ 填充节点标题：通过nodeId查询ai_workflow_node表获取title
+            // 填充节点标题：通过nodeId查询ai_workflow_node表获取title
             // 前端执行详情页面直接使用nodeTitle字段显示节点名称，避免通过nodeId匹配workflow.nodes
             if (entity.getNodeId() != null) {
                 var node = workflowNodeService.getById(entity.getNodeId());
@@ -75,7 +71,7 @@ public class AiConversationRuntimeNodeService extends ServiceImpl<AiConversation
                 }
             }
 
-            // 📊 填充Token消耗信息：从ai_token_usage查询该节点的Token统计
+            // 填充Token消耗信息：从ai_token_usage查询该节点的Token统计
             if (entity.getId() != null) {
                 com.xinyirun.scm.ai.bean.vo.chat.NodeTokenUsageVo tokenUsage =
                         aiTokenUsageService.getNodeTokenUsage(entity.getId());
@@ -83,7 +79,7 @@ public class AiConversationRuntimeNodeService extends ServiceImpl<AiConversation
                     vo.setPromptTokens(tokenUsage.getPromptTokens());
                     vo.setCompletionTokens(tokenUsage.getCompletionTokens());
                     vo.setTotalTokens(tokenUsage.getTotalTokens());
-                    log.debug("📊【Token统计】节点Token填充 - nodeId={}, totalTokens={}",
+                    log.debug("节点Token填充 - nodeId={}, totalTokens={}",
                             entity.getId(), tokenUsage.getTotalTokens());
                 }
             }
@@ -246,13 +242,11 @@ public class AiConversationRuntimeNodeService extends ServiceImpl<AiConversation
      * @return 第一个节点的u_time,如果无节点返回null
      */
     public java.time.LocalDateTime getFirstNodeEndTime(Long wfRuntimeId) {
-        AiConversationRuntimeNodeEntity firstNode = conversationRuntimeNodeMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiConversationRuntimeNodeEntity>()
-                        .eq(AiConversationRuntimeNodeEntity::getConversationWorkflowRuntimeId, wfRuntimeId)
-                        .orderByAsc(AiConversationRuntimeNodeEntity::getId)
-                        .last("LIMIT 1")
-        );
-        return firstNode != null ? firstNode.getU_time() : null;
+        List<AiConversationRuntimeNodeEntity> list = conversationRuntimeNodeMapper.selectListByRuntimeId(wfRuntimeId);
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(0).getU_time();
     }
 
     /**
@@ -262,12 +256,10 @@ public class AiConversationRuntimeNodeService extends ServiceImpl<AiConversation
      * @return 最后一个节点的u_time,如果无节点返回null
      */
     public java.time.LocalDateTime getLastNodeEndTime(Long wfRuntimeId) {
-        AiConversationRuntimeNodeEntity lastNode = conversationRuntimeNodeMapper.selectOne(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<AiConversationRuntimeNodeEntity>()
-                        .eq(AiConversationRuntimeNodeEntity::getConversationWorkflowRuntimeId, wfRuntimeId)
-                        .orderByDesc(AiConversationRuntimeNodeEntity::getId)
-                        .last("LIMIT 1")
-        );
-        return lastNode != null ? lastNode.getU_time() : null;
+        List<AiConversationRuntimeNodeEntity> list = conversationRuntimeNodeMapper.selectListByRuntimeId(wfRuntimeId);
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.get(list.size() - 1).getU_time();
     }
 }

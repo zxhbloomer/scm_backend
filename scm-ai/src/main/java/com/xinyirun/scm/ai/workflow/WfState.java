@@ -94,6 +94,21 @@ public class WfState {
     private String ai_open_dialog_para;
 
     /**
+     * 页面导航指令JSON（OpenPage route模式侧通道）
+     */
+    private String open_page_command;
+
+    /**
+     * 人机交互请求JSON（OpenPage交互模式侧通道）
+     */
+    private String interaction_request;
+
+    /**
+     * 是否等待用户交互输入（OpenPage交互模式设置）
+     */
+    private boolean waitingInteraction = false;
+
+    /**
      * 事件Sink引用，供LLM流式调用时发送chunk事件到前端
      */
     private transient Sinks.Many<WorkflowEventVo> eventSink;

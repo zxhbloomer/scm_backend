@@ -110,6 +110,22 @@ public class ChatResponseVo {
     private String ai_open_dialog_para;
 
     /**
+     * 页面导航指令（JSON字符串）
+     * OpenPage节点route模式输出，触发前端RouterTab导航
+     *
+     * @since 2026-03-06 AI快速打开页面
+     */
+    private String open_page_command;
+
+    /**
+     * 人机交互请求（JSON字符串）
+     * OpenPage节点交互模式输出，触发前端Chat交互组件
+     *
+     * @since 2026-03-06 AI人机交互
+     */
+    private String interaction_request;
+
+    /**
      * 节点事件类型（node_start 或 node_complete）
      * 用于前端展示工作流执行步骤
      *

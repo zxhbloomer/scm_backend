@@ -105,6 +105,30 @@ public class WorkflowEventVo {
     }
 
     /**
+     * 创建带交互信息的人机交互数据
+     * 工作流暂停等待用户输入，携带交互类型和完整交互请求
+     *
+     * @param nodeUuid 节点UUID
+     * @param tip 提示信息
+     * @param interactionType 交互类型(text/confirm/select/form)
+     * @param interactionRequest 交互请求JSON对象(含interaction_uuid/params等)
+     * @return 人机交互事件
+     */
+    public static WorkflowEventVo createInterruptDataWithInteraction(
+            String nodeUuid, String tip, String interactionType,
+            JSONObject interactionRequest) {
+        JSONObject json = new JSONObject();
+        json.put("type", "interrupt");
+        json.put("node", nodeUuid);
+        json.put("tip", tip != null ? tip : "请输入您的反馈");
+        json.put("interactionType", interactionType);
+        if (interactionRequest != null) {
+            json.put("interaction_request", interactionRequest);
+        }
+        return WorkflowEventVo.builder().data(json.toJSONString()).build();
+    }
+
+    /**
      * 创建节点开始事件
      * 节点开始执行前发送，用于前端展示执行步骤
      *
@@ -156,12 +180,22 @@ public class WorkflowEventVo {
      * OpenPage节点设置的JSON数据，通过此事件传递给前端
      *
      * @param outputData 工作流输出数据（含ai_new_route的JSON字符串）
+     * @param openPageCommand 页面导航指令JSON
+     * @param interactionRequest 人机交互请求JSON
      * @return 工作流输出数据事件
      */
-    public static WorkflowEventVo createAiOpenDialogParaEvent(String outputData) {
+    public static WorkflowEventVo createAiOpenDialogParaEvent(
+            String outputData, String openPageCommand, String interactionRequest) {
         JSONObject json = new JSONObject();
         json.put("type", "workflow_output_data");
         json.put("data", outputData);
+        if (openPageCommand != null) {
+            json.put("open_page_command", openPageCommand);
+        }
+        if (interactionRequest != null) {
+            json.put("interaction_request", interactionRequest);
+            json.put("waiting_interaction", true);
+        }
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 }

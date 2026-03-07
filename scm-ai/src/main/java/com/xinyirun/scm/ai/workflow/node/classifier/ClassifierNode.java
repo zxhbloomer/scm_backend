@@ -65,8 +65,8 @@ public class ClassifierNode extends AbstractWfNode {
             throw new BusinessException("分类器缺少输入数据");
         }
 
-        // 生成分类提示词
-        String prompt = ClassifierPrompt.createPrompt(defaultInputOpt.get().valueToString(), nodeConfig.getCategories());
+        // 生成分类提示词（支持可选的分类指令）
+        String prompt = ClassifierPrompt.createPrompt(defaultInputOpt.get().valueToString(), nodeConfig.getCategories(), nodeConfig.getInstruction());
 
         // 调用LLM进行分类
         NodeIOData llmOutput = WorkflowUtil.invokeLLM(wfState, nodeConfig.getModelName(), prompt);

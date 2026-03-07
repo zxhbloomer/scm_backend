@@ -3,6 +3,8 @@ package com.xinyirun.scm.ai.workflow.node.knowledgeretrieval;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 工作流知识检索节点配置
  */
@@ -10,16 +12,46 @@ import lombok.Data;
 public class KnowledgeRetrievalNodeConfig {
 
     /**
-     * 知识库UUID
+     * 知识库UUID（旧字段，向后兼容）
      */
     @JsonProperty("knowledge_base_uuid")
     private String knowledgeBaseUuid;
 
     /**
-     * 知识库名称
+     * 知识库名称（旧字段，向后兼容）
      */
     @JsonProperty("knowledge_base_name")
     private String knowledgeBaseName;
+
+    /**
+     * 多知识库UUID列表
+     */
+    @JsonProperty("knowledge_base_uuids")
+    private List<String> knowledgeBaseUuids;
+
+    /**
+     * 多知识库信息列表（含名称、临时知识库标识等）
+     */
+    @JsonProperty("knowledge_base_list")
+    private List<KbItem> knowledgeBaseList;
+
+    /**
+     * 知识库选择项
+     */
+    @Data
+    public static class KbItem {
+        @JsonProperty("uuid")
+        private String uuid;
+
+        @JsonProperty("name")
+        private String name;
+
+        @JsonProperty("is_temp")
+        private Boolean isTemp;
+
+        @JsonProperty("temp_node_uuid")
+        private String tempNodeUuid;
+    }
 
     /**
      * 相似度阈值（0.0-1.0）

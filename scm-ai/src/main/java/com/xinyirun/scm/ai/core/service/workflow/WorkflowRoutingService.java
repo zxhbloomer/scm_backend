@@ -923,6 +923,17 @@ public class WorkflowRoutingService {
      * @return true-继续当前工作流, false-新意图需要路由
      */
     public boolean isInputContinuation(String userInput, String currentWorkflowUuid, Long userId) {
+        // 策略0: 结构化交互反馈（前端AiInteractionManager发送的JSON）
+        try {
+            JSONObject inputJson = JSONObject.parseObject(userInput);
+            if (inputJson != null && "ai_interaction_feedback".equals(inputJson.getString("type"))) {
+                log.info("【isInputContinuation】策略0命中: 结构化交互反馈");
+                return true;
+            }
+        } catch (Exception e) {
+            // 非JSON格式，继续其他策略
+        }
+
         // 策略1: 明确的继续关键词 (支持中英文,大小写不敏感)
         // 使用contains方式,避免正则表达式对中文的处理问题
         String normalizedInput = userInput.trim().toLowerCase();
@@ -1021,6 +1032,13 @@ public class WorkflowRoutingService {
         String paramName = "user_input";
         try {
             AiWorkflowEntity workflow = aiWorkflowService.getOrThrow(workflowUuid);
+
+            // 检查工作流是否已发布(is_enable)，停用的工作流不允许执行
+            if (!Boolean.TRUE.equals(workflow.getIsEnable())) {
+                log.warn("【executeWorkflowByUuid】工作流已停用, workflowUuid={}", workflowUuid);
+                return Flux.just(ChatResponseVo.createContentChunk("该工作流已停用，无法执行"));
+            }
+
             AiWorkflowNodeVo startNode = aiWorkflowNodeService.getStartNode(workflow.getId());
             if (startNode != null && startNode.getInputConfig() != null) {
                 List<AiWfNodeIOVo> userInputDefs = startNode.getInputConfig().getUserInputs();
@@ -1059,6 +1077,9 @@ public class WorkflowRoutingService {
         final String[] capturedRuntimeUuid = {null};
         final Long[] capturedRuntimeId = {null};
         final String[] capturedAiOpenDialogPara = {null};
+        final String[] capturedOpenPageCommand = {null};
+        final String[] capturedInteractionRequest = {null};
+        final boolean[] capturedWaitingInteraction = {false};
 
         Flux<ChatResponseVo> contentFlux = eventFlux.map(event -> {
             JSONObject eventData = JSON.parseObject(event.getData());
@@ -1068,6 +1089,9 @@ public class WorkflowRoutingService {
                 capturedRuntimeId[0] = eventData.getLong("runtimeId");
             } else if ("workflow_output_data".equals(type)) {
                 capturedAiOpenDialogPara[0] = eventData.getString("data");
+                capturedOpenPageCommand[0] = eventData.getString("open_page_command");
+                capturedInteractionRequest[0] = eventData.getString("interaction_request");
+                capturedWaitingInteraction[0] = Boolean.TRUE.equals(eventData.getBoolean("waiting_interaction"));
                 return ChatResponseVo.createContentChunk("");
             }
             return convertWorkflowEventToChatResponse(event);
@@ -1082,6 +1106,11 @@ public class WorkflowRoutingService {
             completeResponse.setRuntimeId(capturedRuntimeId[0]);
             completeResponse.setWorkflowUuid(wfUuid);
             completeResponse.setAi_open_dialog_para(capturedAiOpenDialogPara[0]);
+            completeResponse.setOpen_page_command(capturedOpenPageCommand[0]);
+            completeResponse.setInteraction_request(capturedInteractionRequest[0]);
+            if (capturedWaitingInteraction[0]) {
+                completeResponse.setIsWaitingInput(true);
+            }
             return Flux.just(completeResponse);
         }));
     }

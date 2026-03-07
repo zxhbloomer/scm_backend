@@ -15,6 +15,7 @@ import com.xinyirun.scm.ai.bean.vo.response.ChatResponseVo;
 import com.xinyirun.scm.ai.core.adapter.WorkflowEventAdapter;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationContentService;
 import com.xinyirun.scm.ai.core.service.chat.AiConversationService;
+import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowInteractionService;
 import com.xinyirun.scm.ai.core.service.workflow.WorkflowRoutingService;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeService;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeNodeService;
@@ -76,6 +77,9 @@ public class AiConversationController {
 
     @Resource
     private WorkflowRoutingService workflowRoutingService;
+
+    @Resource
+    private AiWorkflowInteractionService interactionService;
 
     @Resource
     private AiConversationRuntimeNodeService conversationRuntimeNodeService;
@@ -328,18 +332,62 @@ public class AiConversationController {
                         );
 
                         if (isContinuation) {
+                            // 解析用户输入，提取交互反馈信息
+                            String resumeInput = request.getPrompt();
+                            String feedbackAction = "submit";
+                            String feedbackData = request.getPrompt();
+
+                            try {
+                                JSONObject inputJson = JSONObject.parseObject(request.getPrompt());
+                                if (inputJson != null && "ai_interaction_feedback".equals(inputJson.getString("type"))) {
+                                    // 结构化交互反馈: 提取action和data，构建节点期望的格式
+                                    feedbackAction = inputJson.getString("action");
+                                    JSONObject nodeInput = new JSONObject();
+                                    nodeInput.put("action", feedbackAction);
+                                    // 将data中的字段合并到顶层
+                                    JSONObject data = inputJson.getJSONObject("data");
+                                    if (data != null) {
+                                        nodeInput.putAll(data);
+                                    }
+                                    resumeInput = nodeInput.toJSONString();
+                                    feedbackData = resumeInput;
+                                }
+                            } catch (Exception e) {
+                                // 非JSON格式，使用原始文本
+                                log.debug("用户输入非JSON格式，使用原始文本");
+                            }
+
+                            // 提交人机交互反馈（如果存在WAITING状态的交互记录）
+                            var waitingInteraction = interactionService.findWaitingByConversationId(conversationId);
+                            if (waitingInteraction != null) {
+                                interactionService.submitFeedback(
+                                    waitingInteraction.getInteractionUuid(),
+                                    feedbackAction,
+                                    feedbackData
+                                );
+                                log.info("【chatStream】已提交交互反馈, interactionUuid={}, action={}, conversationId={}",
+                                    waitingInteraction.getInteractionUuid(), feedbackAction, conversationId);
+                            }
+
                             // 继续当前工作流
                             log.info("【chatStream】继续工作流, conversationId={}, runtimeUuid={}, workflowUuid={}",
                                 conversationId, conversation.getCurrentRuntimeUuid(), conversation.getCurrentWorkflowUuid());
                             return workflowRoutingService.resumeWorkflow(
                                 conversation.getCurrentRuntimeUuid(),
                                 conversation.getCurrentWorkflowUuid(),
-                                request.getPrompt(),
+                                resumeInput,
                                 tenantId,
                                 conversationId
                             );
                         } else {
-                            // 新意图,清理旧状态
+                            // 新意图,取消WAITING状态的交互记录
+                            var waitingInteraction = interactionService.findWaitingByConversationId(conversationId);
+                            if (waitingInteraction != null) {
+                                interactionService.cancelInteraction(waitingInteraction.getInteractionUuid());
+                                log.info("【chatStream】新意图取消交互, interactionUuid={}", waitingInteraction.getInteractionUuid());
+                            }
+
+                            // 清理旧状态
                             log.info("【chatStream】检测到新意图, 清理旧工作流状态, conversationId={}, 旧workflowUuid={}",
                                 conversationId, conversation.getCurrentWorkflowUuid());
                             aiConversationService.updateWorkflowState(
@@ -374,6 +422,11 @@ public class AiConversationController {
                     // 取消时重置状态,防止状态泄漏
                     try {
                         DataSourceHelper.use(tenantId);
+                        // 取消WAITING状态的交互记录
+                        var waitingInteraction = interactionService.findWaitingByConversationId(conversationId);
+                        if (waitingInteraction != null) {
+                            interactionService.cancelInteraction(waitingInteraction.getInteractionUuid());
+                        }
                         aiConversationService.updateWorkflowState(
                             conversationId,
                             WorkflowStateConstant.STATE_IDLE,

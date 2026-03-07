@@ -17,14 +17,21 @@ public class ClassifierPrompt {
      *
      * @param input 输入文本
      * @param categories 分类列表
+     * @param instruction 分类指令（可选），为空时注入空字符串
      * @return LLM提示词
      */
-    public static String createPrompt(String input, List<ClassifierCategory> categories) {
+    public static String createPrompt(String input, List<ClassifierCategory> categories, String instruction) {
         List<PromptCategory> promptCategories = categories.stream().map(item -> {
             PromptCategory promptCategory = new PromptCategory();
             BeanUtils.copyProperties(item, promptCategory);
             return promptCategory;
         }).toList();
+
+        // 用对象序列化构造 User Input，避免手拼 JSON 导致特殊字符破坏结构
+        UserInput userInput = new UserInput();
+        userInput.setInputText(List.of(input));
+        userInput.setCategories(promptCategories);
+        userInput.setClassificationInstructions(List.of(instruction == null ? "" : instruction));
 
         return """
                 ### Job Description
@@ -44,9 +51,9 @@ public class ClassifierPrompt {
                 Assistant:{"keywords": ["bad service", "slow", "food", "tip", "terrible", "waitresses"],"category_uuid": "f6ff5bc3-aca0-4e4a-8627-e760d0aca78f","category_name": "Experience"}
                 </example>
                 ### User Input
-                {"input_text" : ["%s"], "categories" : %s}
+                %s
                 ### Assistant Output
-                """.formatted(input, JsonUtil.toJson(promptCategories));
+                """.formatted(JsonUtil.toJson(userInput));
     }
 
     /**
@@ -59,5 +66,19 @@ public class ClassifierPrompt {
 
         @JsonProperty("category_name")
         private String categoryName;
+    }
+
+    /**
+     * User Input 结构体，用于序列化生成安全的 JSON，避免手拼字符串导致注入
+     */
+    @Data
+    public static class UserInput {
+        @JsonProperty("input_text")
+        private List<String> inputText;
+
+        private List<PromptCategory> categories;
+
+        @JsonProperty("classification_instructions")
+        private List<String> classificationInstructions;
     }
 }

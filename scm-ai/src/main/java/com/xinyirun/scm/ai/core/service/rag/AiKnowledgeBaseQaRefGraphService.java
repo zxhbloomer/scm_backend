@@ -1,7 +1,6 @@
 package com.xinyirun.scm.ai.core.service.rag;
 
 import com.alibaba.fastjson2.JSON;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xinyirun.scm.ai.bean.entity.rag.AiKnowledgeBaseQaRefGraphEntity;
 import com.xinyirun.scm.ai.bean.vo.rag.RefGraphVo;
@@ -35,10 +34,7 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
      * @return 图谱引用VO
      */
     public RefGraphVo getByQaUuid(String qaRecordId) {
-        // 查询该问答记录的图谱引用
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefGraphEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefGraphEntity::getQaRecordId, qaRecordId);
-        List<AiKnowledgeBaseQaRefGraphEntity> list = this.list(wrapper);
+        List<AiKnowledgeBaseQaRefGraphEntity> list = baseMapper.selectListByQaRecordId(qaRecordId);
 
         if (list.isEmpty()) {
             return RefGraphVo.builder()
@@ -136,9 +132,7 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
      * @return 删除的记录数
      */
     public int deleteByQaRecordId(String qaRecordId) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefGraphEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefGraphEntity::getQaRecordId, qaRecordId);
-        return baseMapper.delete(wrapper);
+        return baseMapper.deleteByQaRecordId(qaRecordId);
     }
 
     /**
@@ -148,9 +142,7 @@ public class AiKnowledgeBaseQaRefGraphService extends ServiceImpl<AiKnowledgeBas
      * @return 删除的记录数
      */
     public int deleteByUserId(Long userId) {
-        LambdaQueryWrapper<AiKnowledgeBaseQaRefGraphEntity> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(AiKnowledgeBaseQaRefGraphEntity::getUserId, userId);
-        int count = baseMapper.delete(wrapper);
+        int count = baseMapper.deleteByUserId(userId);
         log.info("删除用户图谱引用记录，userId: {}, 删除数量: {}", userId, count);
         return count;
     }

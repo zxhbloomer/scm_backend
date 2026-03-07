@@ -2,15 +2,116 @@ package com.xinyirun.scm.ai.workflow.node.humanfeedback;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 工作流人机交互节点配置
+ * 支持4种交互类型: text(自由文本) / confirm(确认驳回) / select(单项选择) / form(表单填写)
  */
 @Data
 public class HumanFeedbackNodeConfig {
 
     /**
-     * 提示文本
-     * 展示给用户的引导提示信息
+     * 提示文本(向后兼容)
      */
     private String tip;
+
+    /**
+     * 交互类型: text / confirm / select / form，默认text
+     */
+    private String interactionType;
+
+    /**
+     * 超时时间(分钟)，默认30
+     */
+    private Integer timeoutMinutes;
+
+    // --- confirm 类型参数 ---
+
+    /**
+     * 确认按钮文本，默认"确认"
+     */
+    private String confirmText;
+
+    /**
+     * 驳回按钮文本，默认"驳回"
+     */
+    private String rejectText;
+
+    /**
+     * 详情说明文本
+     */
+    private String detail;
+
+    // --- select 类型参数 ---
+
+    /**
+     * 选项来源: static / dynamic，默认static
+     */
+    private String optionsSource;
+
+    /**
+     * 静态选项列表
+     */
+    private List<SelectOption> options;
+
+    /**
+     * 动态选项: 上游节点输出参数名
+     */
+    private String dynamicOptionsParam;
+
+    // --- form 类型参数 ---
+
+    /**
+     * 表单字段列表
+     */
+    private List<FormField> fields;
+
+    /**
+     * 获取有效的交互类型，默认text
+     */
+    public String getEffectiveInteractionType() {
+        return (interactionType != null && !interactionType.isEmpty()) ? interactionType : "text";
+    }
+
+    /**
+     * 获取有效的超时时间，默认30分钟
+     */
+    public int getEffectiveTimeoutMinutes() {
+        return (timeoutMinutes != null && timeoutMinutes > 0) ? timeoutMinutes : 30;
+    }
+
+    @Data
+    public static class SelectOption {
+        private String key;
+        private String label;
+    }
+
+    @Data
+    public static class FormField {
+        /**
+         * 字段标识
+         */
+        private String key;
+
+        /**
+         * 显示名称
+         */
+        private String label;
+
+        /**
+         * 字段类型: text / textarea / number / select
+         */
+        private String type;
+
+        /**
+         * 是否必填
+         */
+        private Boolean required;
+
+        /**
+         * type=select时的选项
+         */
+        private List<SelectOption> options;
+    }
 }
