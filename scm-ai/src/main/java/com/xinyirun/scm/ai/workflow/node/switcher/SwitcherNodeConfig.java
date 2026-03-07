@@ -19,6 +19,9 @@ public class SwitcherNodeConfig {
     @JsonProperty("default_target_node_uuid")
     private String defaultTargetNodeUuid;
 
+    @JsonProperty("default_case_name")
+    private String defaultCaseName;   // 默认分支名称，可为空，前端降级显示"默认分支"
+
     /**
      * 是否显示执行过程输出到chat流
      * true(默认): 流式输出显示在聊天界面

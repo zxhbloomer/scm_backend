@@ -15,6 +15,7 @@ import java.util.List;
 public class SwitcherCase {
 
     private String uuid;
+    private String name;   // 分支名称，可为空，前端降级显示"分支情况N"
     private String operator;
     private List<Condition> conditions;
     @JsonProperty("target_node_uuid")
