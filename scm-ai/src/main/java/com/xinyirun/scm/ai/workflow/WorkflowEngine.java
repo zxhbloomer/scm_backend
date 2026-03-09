@@ -1,6 +1,7 @@
 package com.xinyirun.scm.ai.workflow;
 
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.*;
 import com.xinyirun.scm.ai.bean.vo.workflow.*;
@@ -1594,10 +1595,10 @@ public class WorkflowEngine {
     private class NodeEventListener implements GraphLifecycleListener {
 
         // 展示的节点类型（设计文档3.2节定义）
-        // 不展示：Start、End、Template、SubWorkflow、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
+        // 不展示：Start、End、Template、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
         private static final Set<String> VISIBLE_NODES = Set.of(
             "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
-            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher"
+            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher", "SubWorkflow"
         );
 
         @Override
@@ -1706,6 +1707,23 @@ public class WorkflowEngine {
                         if (caseName != null && showOutput) {
                             summary = new HashMap<>();
                             summary.put("outputText", "→ " + caseName);
+                        }
+                        break;
+                    }
+                    case "SubWorkflow": {
+                        // 读取子工作流名称（SubWorkflowNodeConfig 的 JSON key 是 workflow_name）
+                        String workflowName = wfNodes.stream()
+                            .filter(n -> nodeId.equals(n.getUuid()))
+                            .findFirst()
+                            .map(n -> n.getNodeConfig() != null ? n.getNodeConfig().getString("workflow_name") : null)
+                            .orElse(null);
+                        // 读取子步骤（SubWorkflowNode 序列化存入的 JSON 字符串）
+                        String subStepsJson = findOutputValue(outputList, "__sub_steps__");
+                        if (subStepsJson != null) {
+                            summary = new HashMap<>();
+                            if (workflowName != null) summary.put("workflowName", workflowName);
+                            // 反序列化为 List，前端直接使用
+                            summary.put("steps", JSON.parseArray(subStepsJson));
                         }
                         break;
                     }

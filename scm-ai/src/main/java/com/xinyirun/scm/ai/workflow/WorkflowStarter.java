@@ -7,6 +7,7 @@ import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.common.constant.WorkflowCallSource;
+import com.xinyirun.scm.ai.workflow.node.subworkflow.SubWorkflowResult;
 import com.xinyirun.scm.ai.core.service.workflow.*;
 import com.xinyirun.scm.bean.utils.security.SecurityUtil;
 import com.xinyirun.scm.common.exception.system.BusinessException;
@@ -18,6 +19,7 @@ import reactor.core.publisher.Flux;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -286,7 +288,7 @@ public class WorkflowStarter {
      * @param callSource 调用来源标识
      * @return 工作流输出结果
      */
-    public Map<String, Object> runSync(String workflowUuid,
+    public SubWorkflowResult runSync(String workflowUuid,
                                        List<JSONObject> userInputs,
                                        String tenantCode,
                                        Long userId,
@@ -332,6 +334,7 @@ public class WorkflowStarter {
             // 使用blockLast()阻塞等待Flux完成，获取最后一个事件
             // 对齐Spring AI Alibaba：通过data中的type字段区分消息类型
             final Map<String, Object> result = new HashMap<>();
+            final List<Map<String, Object>> subSteps = new ArrayList<>();
             WorkflowEventVo lastEvent = workflowEngine.run(userId, userInputs, tenantCode, parentConversationId)
                     .doOnNext(event -> {
                         // 解析data中的type字段
@@ -361,6 +364,19 @@ public class WorkflowStarter {
                                     }
                                 }
                             }
+                            // 收集 node_complete 事件作为子步骤（注意：JSON key 是 "node" 不是 "nodeUuid"）
+                            if ("node_complete".equals(type)) {
+                                Map<String, Object> step = new HashMap<>();
+                                step.put("nodeUuid", dataJson.getString("node"));
+                                step.put("nodeName", dataJson.getString("nodeName"));
+                                step.put("nodeTitle", dataJson.getString("nodeTitle"));
+                                step.put("duration", dataJson.getLong("duration"));
+                                Object summaryObj = dataJson.get("summary");
+                                if (summaryObj != null) {
+                                    step.put("summary", summaryObj);
+                                }
+                                subSteps.add(step);
+                            }
                         } catch (Exception e) {
                             log.warn("解析子工作流输出失败: {}", data, e);
                         }
@@ -368,7 +384,10 @@ public class WorkflowStarter {
                     .blockLast();
 
             log.info("SubWorkflow runSync completed: workflowUuid={}, result={}", workflowUuid, result);
-            return result;
+            return SubWorkflowResult.builder()
+                    .outputs(result)
+                    .subSteps(subSteps)
+                    .build();
 
         } catch (Exception e) {
             log.error("子工作流同步执行异常: workflowUuid={}, userId={}", workflowUuid, userId, e);

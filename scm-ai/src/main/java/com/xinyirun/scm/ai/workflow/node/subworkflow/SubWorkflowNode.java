@@ -14,6 +14,7 @@ import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.ArrayList;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_INPUT_PARAM_NAME;
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
@@ -69,7 +70,7 @@ public class SubWorkflowNode extends AbstractWfNode {
             WorkflowStarter workflowStarter = SpringUtil.getBean(WorkflowStarter.class);
 
             // 同步执行子工作流（传递父conversationId以继承对话上下文，传递父runtime_uuid避免创建新记录）
-            Map<String, Object> subOutputs = workflowStarter.runSync(
+            SubWorkflowResult subResult = workflowStarter.runSync(
                 subWorkflowUuid,
                 convertToInputList(subInputs),
                 wfState.getTenantCode(),
@@ -79,6 +80,7 @@ public class SubWorkflowNode extends AbstractWfNode {
                 wfState.getUuid(),  // 传递父runtime_uuid，子工作流将复用此UUID
                 wfState.getCallSource()  // 传递父工作流的callSource，子工作流继承父工作流的调用来源
             );
+            Map<String, Object> subOutputs = subResult.getOutputs();
 
             // 日志：子工作流执行结果
             log.debug("子工作流执行完成 - subWorkflowUuid: {}, outputs: {}", subWorkflowUuid, subOutputs);
@@ -100,16 +102,25 @@ public class SubWorkflowNode extends AbstractWfNode {
             }
 
             // 6. 设置输出
-            NodeIOData output = NodeIOData.createByText(
+            List<NodeIOData> content = new ArrayList<>();
+            content.add(NodeIOData.createByText(
                 DEFAULT_OUTPUT_PARAM_NAME,
                 "",
                 outputValue
-            );
+            ));
+            // 将子步骤序列化为 JSON 字符串，存入特殊字段，供父工作流 buildSummary 读取
+            if (subResult.getSubSteps() != null && !subResult.getSubSteps().isEmpty()) {
+                content.add(NodeIOData.createByText(
+                    "__sub_steps__",
+                    "子步骤",
+                    JSON.toJSONString(subResult.getSubSteps())
+                ));
+            }
 
             log.info("子工作流节点执行完成: {}", node.getTitle());
 
             // 6. 返回结果
-            return NodeProcessResult.builder().content(List.of(output)).build();
+            return NodeProcessResult.builder().content(content).build();
 
         } catch (Exception e) {
             log.error("子工作流节点执行失败: {}", node.getTitle(), e);
