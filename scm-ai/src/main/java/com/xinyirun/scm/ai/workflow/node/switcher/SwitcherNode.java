@@ -90,13 +90,14 @@ public class SwitcherNode extends AbstractWfNode {
 
         // 构建输出：透传输入 + 追加匹配的分支名称（供 buildSummary 读取）
         List<NodeIOData> outputs = new ArrayList<>(changeInputsToOutputs(state.getInputs()));
+        final String finalMatchedHandle = matchedSourceHandle;
         String caseName;
-        if ("default_handle".equals(matchedSourceHandle)) {
+        if ("default_handle".equals(finalMatchedHandle)) {
             caseName = nodeConfig.getDefaultCaseName() != null && !nodeConfig.getDefaultCaseName().isEmpty()
                 ? nodeConfig.getDefaultCaseName() : "默认分支";
         } else {
             caseName = nodeConfig.getCases().stream()
-                .filter(c -> matchedSourceHandle.equals(c.getUuid()))
+                .filter(c -> finalMatchedHandle.equals(c.getUuid()))
                 .findFirst()
                 .map(c -> c.getName() != null && !c.getName().isEmpty() ? c.getName() : "分支")
                 .orElse("分支");
