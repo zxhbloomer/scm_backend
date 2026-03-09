@@ -283,7 +283,7 @@ public class WorkflowEngine {
                             : this.wfRuntimeResp.getId();
                     log.info("[WorkflowEngine] 准备发送runtime数据并执行工作流, runtime_uuid: {}", runtimeUuid);
                     return Flux.just(WorkflowEventVo.createRuntimeData(runtimeUuid, runtimeId,
-                                    workflow.getWorkflowUuid(), conversationId))
+                                    workflow.getWorkflowUuid(), conversationId, workflow.getTitle()))
                             .doOnNext(event -> log.info("[WorkflowEngine] 发送runtime数据: data={}", event.getData()))
                             .concatWith(executeWorkflow(false)
                                     .doOnSubscribe(sub -> log.info("[WorkflowEngine] executeWorkflow() Flux已订阅"))
@@ -1593,11 +1593,11 @@ public class WorkflowEngine {
      */
     private class NodeEventListener implements GraphLifecycleListener {
 
-        // 展示的6种节点类型（设计文档3.2节定义）
+        // 展示的节点类型（设计文档3.2节定义）
         // 不展示：Start、End、Template、Switcher、SubWorkflow、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
         private static final Set<String> VISIBLE_NODES = Set.of(
             "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
-            "Answer", "McpTool", "DocumentExtractor", "LLM"
+            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage"
         );
 
         @Override
@@ -1650,43 +1650,54 @@ public class WorkflowEngine {
                 .orElse("");
         }
 
-        @SuppressWarnings("unchecked")
         private Map<String, Object> buildSummary(String componentName, String nodeId, Map<String, Object> state) {
             Map<String, Object> summary = null;
             try {
                 String outputKey = NODE_OUTPUT_KEY_PREFIX + nodeId;
                 Object outputObj = state.get(outputKey);
-                Map<String, Object> outputMap = (outputObj instanceof Map) ? (Map<String, Object>) outputObj : null;
+                @SuppressWarnings("unchecked")
+                List<NodeIOData> outputList = (outputObj instanceof List) ? (List<NodeIOData>) outputObj : null;
+
+                // 读取节点的 show_process_output 配置
+                boolean showOutput = getNodeShowProcessOutput(nodeId);
 
                 switch (componentName) {
                     case "KnowledgeRetrieval": {
-                        if (outputMap != null) {
-                            Object matchCount = outputMap.get("matchCount");
-                            if (matchCount != null) {
-                                summary = new HashMap<>();
-                                summary.put("matchCount", matchCount);
-                            }
+                        String matchCount = findOutputValue(outputList, "matchCount");
+                        if (matchCount != null) {
+                            summary = new HashMap<>();
+                            summary.put("matchCount", matchCount);
                         }
                         break;
                     }
                     case "Classifier": {
-                        if (outputMap != null) {
-                            Object result = outputMap.get("result");
-                            if (result == null) result = outputMap.get("output");
-                            if (result != null) {
-                                summary = new HashMap<>();
-                                summary.put("result", String.valueOf(result));
+                        String result = findOutputValue(outputList, "result");
+                        if (result == null) result = findOutputValue(outputList, "output");
+                        if (result != null) {
+                            summary = new HashMap<>();
+                            summary.put("result", result);
+                            if (showOutput) {
+                                summary.put("outputText", result);
                             }
                         }
                         break;
                     }
                     case "McpTool": {
-                        if (outputMap != null) {
-                            Object toolName = outputMap.get("toolName");
-                            if (toolName != null) {
-                                summary = new HashMap<>();
-                                summary.put("toolName", String.valueOf(toolName));
-                            }
+                        String toolName = findOutputValue(outputList, "toolName");
+                        if (toolName != null) {
+                            summary = new HashMap<>();
+                            summary.put("toolName", toolName);
+                        }
+                        break;
+                    }
+                    case "OpenPage": {
+                        if (showOutput) {
+                            String pageMode = findOutputValue(outputList, "page_mode");
+                            String modeLabel = "new".equals(pageMode) ? "新增页面"
+                                : "edit".equals(pageMode) ? "编辑页面"
+                                : "view".equals(pageMode) ? "查看页面" : "页面";
+                            summary = new HashMap<>();
+                            summary.put("outputText", "已为您打开" + modeLabel);
                         }
                         break;
                     }
@@ -1701,6 +1712,37 @@ public class WorkflowEngine {
                 summary.put("totalTokens", tokens[0] + tokens[1]);
             }
             return summary;
+        }
+
+        /**
+         * 从节点输出列表中按 name 查找值，null-safe
+         */
+        private String findOutputValue(List<NodeIOData> list, String name) {
+            if (list == null) return null;
+            return list.stream()
+                .filter(d -> name.equals(d.getName()))
+                .findFirst()
+                .map(d -> {
+                    if (d.getContent() == null || d.getContent().getValue() == null) return null;
+                    return String.valueOf(d.getContent().getValue());
+                })
+                .orElse(null);
+        }
+
+        /**
+         * 读取节点的 show_process_output 配置，默认 true
+         */
+        private boolean getNodeShowProcessOutput(String nodeId) {
+            return wfNodes.stream()
+                .filter(n -> nodeId.equals(n.getUuid()))
+                .findFirst()
+                .map(n -> {
+                    JSONObject cfg = n.getNodeConfig();
+                    if (cfg == null) return true;
+                    Boolean val = cfg.getBoolean("show_process_output");
+                    return val == null || val;
+                })
+                .orElse(true);
         }
     }
 }
