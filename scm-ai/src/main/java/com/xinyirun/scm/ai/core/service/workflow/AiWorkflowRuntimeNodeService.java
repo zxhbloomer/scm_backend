@@ -87,19 +87,15 @@ public class AiWorkflowRuntimeNodeService extends ServiceImpl<AiWorkflowRuntimeN
      */
     public AiWorkflowRuntimeNodeVo createByState(Long userId, Long wfNodeId,
                                                   Long wfRuntimeId, WfNodeState state) {
-        // 参考 aideepin:46-52
         AiWorkflowRuntimeNodeEntity runtimeNode = new AiWorkflowRuntimeNodeEntity();
         runtimeNode.setRuntimeNodeUuid(state.getUuid());
         runtimeNode.setWorkflowRuntimeId(wfRuntimeId);
         runtimeNode.setNodeId(wfNodeId);
         runtimeNode.setStatus(state.getProcessStatus());
-        // 不设置 c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowRuntimeNodeMapper.insert(runtimeNode);
 
-        // 参考 aideepin:53 - 重新查询获取完整数据
         runtimeNode = aiWorkflowRuntimeNodeMapper.selectById(runtimeNode.getId());
 
-        // 参考 aideepin:55-58 - 转换为 VO
         AiWorkflowRuntimeNodeVo vo = new AiWorkflowRuntimeNodeVo();
         BeanUtils.copyProperties(runtimeNode, vo);
 

@@ -95,6 +95,13 @@ public class WorkflowEngine {
     private final ConcurrentHashMap<String, Long> nodeStartTimes = new ConcurrentHashMap<>();
 
     /**
+     * 节点输出缓存，用于在after回调中获取当前节点输出
+     * 框架after回调时当前节点输出尚未合并进state，通过此缓存传递
+     * 格式：nodeUuid → 节点输出列表
+     */
+    private final ConcurrentHashMap<String, List<NodeIOData>> nodeOutputCache = new ConcurrentHashMap<>();
+
+    /**
      * 获取租户编码（用于数据源切换）
      * @return 租户编码
      */
@@ -850,6 +857,9 @@ public class WorkflowEngine {
         String outputKey = NODE_OUTPUT_KEY_PREFIX + wfNode.getUuid();
         resultMap.put(outputKey, nodeState.getOutputs());
 
+        // 缓存节点输出，供after回调中的buildSummary使用（框架after时输出尚未合并进state）
+        nodeOutputCache.put(wfNode.getUuid(), nodeState.getOutputs());
+
         log.debug("runNode执行完成: nodeUuid={}, 耗时={}ms, outputs数量={}",
                 wfNode.getUuid(), System.currentTimeMillis() - startTime, nodeState.getOutputs().size());
 
@@ -1594,9 +1604,10 @@ public class WorkflowEngine {
      */
     private class NodeEventListener implements GraphLifecycleListener {
 
-        // 展示的节点类型（设计文档3.2节定义）
-        // 不展示：Start、End、Template、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
+        // 展示的节点类型
+        // Start/End作为结构性节点展示，不展示：Template、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
         private static final Set<String> VISIBLE_NODES = Set.of(
+            "Start", "End",
             "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
             "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher", "SubWorkflow"
         );
@@ -1619,12 +1630,15 @@ public class WorkflowEngine {
         public void after(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
             String componentName = findComponentName(nodeId);
             if (!VISIBLE_NODES.contains(componentName)) {
+                nodeOutputCache.remove(nodeId);
                 return;
             }
             Long startTime = nodeStartTimes.remove(nodeId);
             long duration = (startTime != null) ? (curTime - startTime) : 0L;
             String nodeTitle = findNodeTitle(nodeId);
             Map<String, Object> summary = buildSummary(componentName, nodeId, state);
+            // 清理缓存
+            nodeOutputCache.remove(nodeId);
             Sinks.Many<WorkflowEventVo> sink = sinkRef.get();
             if (sink != null) {
                 sink.tryEmitNext(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
@@ -1654,15 +1668,46 @@ public class WorkflowEngine {
         private Map<String, Object> buildSummary(String componentName, String nodeId, Map<String, Object> state) {
             Map<String, Object> summary = null;
             try {
-                String outputKey = NODE_OUTPUT_KEY_PREFIX + nodeId;
-                Object outputObj = state.get(outputKey);
-                @SuppressWarnings("unchecked")
-                List<NodeIOData> outputList = (outputObj instanceof List) ? (List<NodeIOData>) outputObj : null;
+                // 优先从nodeOutputCache取（runNode完成后写入，after回调时state尚未合并当前节点输出）
+                List<NodeIOData> outputList = nodeOutputCache.get(nodeId);
+                if (outputList == null) {
+                    // 降级：从state取（兼容并行节点等特殊场景）
+                    String outputKey = NODE_OUTPUT_KEY_PREFIX + nodeId;
+                    Object outputObj = state.get(outputKey);
+                    @SuppressWarnings("unchecked")
+                    List<NodeIOData> stateOutput = (outputObj instanceof List) ? (List<NodeIOData>) outputObj : null;
+                    outputList = stateOutput;
+                }
 
                 // 读取节点的 show_process_output 配置
                 boolean showOutput = getNodeShowProcessOutput(nodeId);
 
                 switch (componentName) {
+                    case "Start": {
+                        // 携带Start节点的输入参数定义及实际值，前端动态显示
+                        // 注意：after回调时当前节点输出尚未合并进state，需从state直接取初始输入值
+                        // createOverAllState()将wfState.getInput()以name为key放入stateData
+                        AiWorkflowNodeVo startNodeVo = wfNodes.stream()
+                            .filter(n -> nodeId.equals(n.getUuid())).findFirst().orElse(null);
+                        if (startNodeVo != null && startNodeVo.getInputConfig() != null
+                                && startNodeVo.getInputConfig().getUserInputs() != null) {
+                            summary = new HashMap<>();
+                            List<Map<String, String>> params = new ArrayList<>();
+                            for (AiWfNodeIOVo io : startNodeVo.getInputConfig().getUserInputs()) {
+                                Map<String, String> p = new HashMap<>();
+                                p.put("name", io.getName());
+                                p.put("title", io.getTitle());
+                                // 直接从state取初始输入值（key即参数名）
+                                Object stateValue = state.get(io.getName());
+                                if (stateValue != null) {
+                                    p.put("value", String.valueOf(stateValue));
+                                }
+                                params.add(p);
+                            }
+                            summary.put("params", params);
+                        }
+                        break;
+                    }
                     case "KnowledgeRetrieval": {
                         String matchCount = findOutputValue(outputList, "matchCount");
                         if (matchCount != null) {
@@ -1685,9 +1730,11 @@ public class WorkflowEngine {
                     }
                     case "McpTool": {
                         String toolName = findOutputValue(outputList, "toolName");
-                        if (toolName != null) {
+                        String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                        if (toolName != null || outputText != null) {
                             summary = new HashMap<>();
-                            summary.put("toolName", toolName);
+                            if (toolName != null) summary.put("toolName", toolName);
+                            if (showOutput && outputText != null) summary.put("outputText", outputText);
                         }
                         break;
                     }

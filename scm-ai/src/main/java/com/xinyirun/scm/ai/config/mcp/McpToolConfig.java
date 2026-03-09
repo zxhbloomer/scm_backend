@@ -185,7 +185,6 @@ class McpToolCallbackAdapter {
                         mcpCallRecord.put("success", callSuccess);
                         mcpCallRecord.put("error", errorMessage);
 
-                        // ✅ 关键修复: 添加工具的实际返回值
                         // 如果工具返回的是JSON字符串,解析为Map对象;否则保持原样
                         if (result != null && callSuccess) {
                             try {

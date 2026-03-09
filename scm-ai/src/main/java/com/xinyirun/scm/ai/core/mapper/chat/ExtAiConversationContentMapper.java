@@ -70,4 +70,15 @@ public interface ExtAiConversationContentMapper {
         ORDER BY c_time ASC
         """)
     List<AiConversationContentVo> selectByConversationId(@Param("conversationId") String conversationId);
+
+    /**
+     * 根据messageId更新工作流思考步骤JSON
+     */
+    @Update("""
+        UPDATE ai_conversation_content
+        SET workflow_steps = #{workflowSteps}
+        WHERE message_id = #{messageId}
+        """)
+    int updateWorkflowStepsByMessageId(@Param("messageId") String messageId,
+                                       @Param("workflowSteps") String workflowSteps);
 }

@@ -86,6 +86,13 @@ public class ChatResponseVo {
     private String workflowUuid;
 
     /**
+     * 工作流名称（runtime事件时携带，用于前端展示"调用agent：xxx"行）
+     *
+     * @since 2026-03-08 ThinkingSteps工作流详情展示
+     */
+    private String workflowTitle;
+
+    /**
      * AI消息ID(数据库message_id字段)
      * 用于前端在完成后更新本地消息ID,支持删除等操作
      *

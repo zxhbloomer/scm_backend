@@ -84,19 +84,14 @@ public abstract class AbstractWfNode {
         // 参照Spring AI Alibaba方式：通过state.data()获取，框架自动合并并行节点输出
         Map<String, Object> stateData = state.data();
 
-        // 调试日志：打印state.data()中的所有key，检查是否包含node_output_前缀的数据
-        log.info("[initInput调试] state.data()包含{}个key: {}", stateData.size(), stateData.keySet());
-
         for (Map.Entry<String, Object> entry : stateData.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith(NODE_OUTPUT_KEY_PREFIX)) {
-                log.info("[initInput调试] 找到上游节点输出: key={}", key);
                 Object value = entry.getValue();
                 if (value instanceof List) {
                     @SuppressWarnings("unchecked")
                     List<NodeIOData> nodeOutputs = (List<NodeIOData>) value;
                     inputs.addAll(new ArrayList<>(deepCopyList(nodeOutputs)));
-                    log.info("[initInput调试] 添加{}个输出到inputs", nodeOutputs.size());
                 }
             }
         }

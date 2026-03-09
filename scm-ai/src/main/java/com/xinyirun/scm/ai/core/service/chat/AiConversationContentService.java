@@ -6,6 +6,7 @@ import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationRuntimeNodeVo;
 import com.xinyirun.scm.ai.common.constant.AiMessageTypeConstant;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
+import com.xinyirun.scm.ai.core.mapper.chat.ExtAiConversationContentMapper;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeNodeService;
 import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowNodeService;
@@ -44,6 +45,9 @@ public class AiConversationContentService {
 
     @Resource
     private AiConversationContentMapper aiConversationContentMapper;
+
+    @Resource
+    private ExtAiConversationContentMapper extAiConversationContentMapper;
 
     @Autowired
     private LogAiChatProducer logAiChatProducer;
@@ -364,6 +368,14 @@ public class AiConversationContentService {
         }
 
         return stepsArray.toJSONString();
+    }
+
+    /**
+     * 根据messageId更新工作流思考步骤JSON
+     * 前端流结束后上报完整steps（含虚拟节点和summary），直接覆盖保存
+     */
+    public void updateWorkflowSteps(String messageId, String workflowSteps) {
+        extAiConversationContentMapper.updateWorkflowStepsByMessageId(messageId, workflowSteps);
     }
 
 }

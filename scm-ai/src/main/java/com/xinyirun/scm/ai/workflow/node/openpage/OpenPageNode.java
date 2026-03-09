@@ -67,13 +67,22 @@ public class OpenPageNode extends AbstractWfNode {
      * route模式：构建导航指令，可选启用人机交互
      */
     private NodeProcessResult processRouteMode(OpenPageNodeConfig nodeConfig) {
-        log.info("OpenPage节点[route模式]开始，route={}, pageMode={}",
-                nodeConfig.getRoute(), nodeConfig.getPageMode());
+        // 优先从上游输入读取路由，fallback 到静态配置
+        String path = extractInputValue("path");
+        // 如果没有名为 path 的直接输入，尝试从上游 output 文本解析 JSON（MCP节点输出场景）
+        if (path == null) {
+            path = extractPathFromOutputJson();
+        }
+        if (path == null) path = nodeConfig.getRoute();
 
-        // 构建open_page_command JSON
+        String pageMode = extractInputValue("page_mode");
+        if (pageMode == null) pageMode = nodeConfig.getPageMode();
+
+        log.info("OpenPage节点[route模式]开始，path={}, pageMode={}", path, pageMode);
+
         JSONObject command = new JSONObject();
-        command.put("route", nodeConfig.getRoute());
-        command.put("page_mode", nodeConfig.getPageMode());
+        command.put("route", path);
+        command.put("page_mode", pageMode);
 
         // 从上游节点输入中提取动态参数
         JSONObject queryParams = extractInputAsJson("query_params");
@@ -88,10 +97,8 @@ public class OpenPageNode extends AbstractWfNode {
         wfState.setOpen_page_command(commandJson);
         log.info("OpenPage节点[route模式]导航指令: {}", commandJson);
 
-        // 输出到节点output
         state.getOutputs().add(NodeIOData.createByText("open_page_command", "页面导航指令", commandJson));
 
-        // 人机交互处理
         if (Boolean.TRUE.equals(nodeConfig.getInteractionEnabled())) {
             return processInteraction(nodeConfig);
         }
@@ -175,6 +182,38 @@ public class OpenPageNode extends AbstractWfNode {
         for (NodeIOData input : state.getInputs()) {
             if (name.equals(input.getName())) {
                 return input.valueToString();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 从上游所有已完成节点的 output 中查找包含 routes[0].path 的 JSON
+     * 适用于 MCP 节点输出 {"found_count":1,"routes":[{"path":"/po/project",...}]} 的场景
+     */
+    private String extractPathFromOutputJson() {
+        for (AbstractWfNode completedNode : wfState.getCompletedNodes()) {
+            for (NodeIOData ioData : completedNode.getState().getOutputs()) {
+                if (!"output".equals(ioData.getName())) continue;
+                String value = ioData.valueToString();
+                if (value == null || value.isEmpty()) continue;
+                try {
+                    int start = value.indexOf('{');
+                    int end = value.lastIndexOf('}');
+                    if (start < 0 || end < 0) continue;
+                    JSONObject json = JSONObject.parseObject(value.substring(start, end + 1));
+                    com.alibaba.fastjson2.JSONArray routes = json.getJSONArray("routes");
+                    if (routes != null && !routes.isEmpty()) {
+                        JSONObject first = routes.getJSONObject(0);
+                        String path = first != null ? first.getString("path") : null;
+                        if (path != null && !path.isEmpty()) {
+                            log.info("从上游output JSON解析到path={}", path);
+                            return path;
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("解析output JSON失败，跳过: {}", e.getMessage());
+                }
             }
         }
         return null;

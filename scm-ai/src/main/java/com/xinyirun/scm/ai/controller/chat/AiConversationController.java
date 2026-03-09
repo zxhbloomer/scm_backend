@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.controller.chat;
 
+import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiConversationRuntimeVo;
@@ -485,6 +486,17 @@ public class AiConversationController {
             if (fullContent.isEmpty()) {
                 fullContent = aiResponseAccumulator.get();
             }
+            // OpenPage工作流：LLM不生成文本，用open_page_command生成结果文字持久化
+            if (fullContent.isEmpty() && response.getOpen_page_command() != null) {
+                try {
+                    JSONObject cmd = JSON.parseObject(response.getOpen_page_command());
+                    String pageMode = cmd.getString("page_mode");
+                    String modeLabel = "new".equals(pageMode) ? "新增页面" : ("edit".equals(pageMode) ? "编辑页面" : "页面");
+                    fullContent = "已为您打开" + modeLabel;
+                } catch (Exception e) {
+                    fullContent = "已为您打开页面";
+                }
+            }
 
             aiConversationService.updateWorkflowState(
                 conversationId,
@@ -655,39 +667,22 @@ public class AiConversationController {
 
             // 累积AI回复内容（用于注入到done事件）
             StringBuilder aiResponseBuilder = new StringBuilder();
-            log.info("【Workflow Slash Command-调试】创建StringBuilder用于累积内容");
 
             // 转换为ChatResponseVo流,并累积内容注入done事件
             return workflowEvents
-                .map(event -> {
-                    log.info("【Workflow Slash Command-调试】收到WorkflowEventVo, data长度={}",
-                        event.getData() != null ? event.getData().length() : 0);
-                    return workflowEventAdapter.convert(event);
-                })
+                .map(event -> workflowEventAdapter.convert(event))
                 .map(response -> {
-                    log.info("【Workflow Slash Command-调试】进入map处理response, isComplete={}, results={}",
-                        response.getIsComplete(),
-                        response.getResults() != null ? response.getResults().size() : 0);
-
                     // 累积LLM输出内容
                     if (response.getResults() != null && !response.getResults().isEmpty()) {
                         ChatResponseVo.Generation generation = response.getResults().get(0);
                         if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
-                            String content = generation.getOutput().getContent();
-                            aiResponseBuilder.append(content);
-                            log.info("【Workflow Slash Command-调试】累积内容chunk, length={}, 当前总长度={}",
-                                content.length(), aiResponseBuilder.length());
+                            aiResponseBuilder.append(generation.getOutput().getContent());
                         }
                     }
 
                     // 在done事件中注入累积的完整内容（与/chat/stream保持一致）
                     if (Boolean.TRUE.equals(response.getIsComplete())) {
-                        log.info("【Workflow Slash Command-调试】检测到done事件, 准备注入累积内容");
                         String fullContent = aiResponseBuilder.toString();
-                        log.info("【Workflow Slash Command-调试】累积内容总长度={}, 内容预览={}",
-                            fullContent.length(),
-                            fullContent.length() > 50 ? fullContent.substring(0, 50) + "..." : fullContent);
-
                         if (!fullContent.isEmpty()) {
                             response.setResults(List.of(
                                 ChatResponseVo.Generation.builder()
@@ -698,7 +693,7 @@ public class AiConversationController {
                             ));
                             log.info("【Workflow Slash Command】done事件已注入累积内容, length={}", fullContent.length());
                         } else {
-                            log.warn("【Workflow Slash Command-调试】累积内容为空,未注入");
+                            log.warn("【Workflow Slash Command】done事件累积内容为空,未注入");
                         }
                     }
 
@@ -796,6 +791,18 @@ public class AiConversationController {
     /**
      * Workflow命令请求参数
      */
+    /**
+     * 更新消息的工作流思考步骤
+     * 前端流结束后上报完整steps（含虚拟节点和summary），直接覆盖保存
+     */
+    @PostMapping(value = "/chat/workflow-steps/{messageId}")
+    @Operation(summary = "更新工作流思考步骤")
+    public ResponseEntity<Void> updateWorkflowSteps(@PathVariable String messageId,
+                                                    @RequestBody String workflowSteps) {
+        aiConversationContentService.updateWorkflowSteps(messageId, workflowSteps);
+        return ResponseEntity.ok().build();
+    }
+
     @Data
     public static class WorkflowCommandRequest {
         private String conversationId;

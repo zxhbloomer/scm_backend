@@ -41,16 +41,19 @@ public class WorkflowEventVo {
      * @param runtimeId 运行时ID
      * @param workflowUuid 工作流UUID
      * @param conversationId 对话ID
+     * @param workflowTitle 工作流标题
      * @return 运行时初始化事件
      */
     public static WorkflowEventVo createRuntimeData(String runtimeUuid, Long runtimeId,
-                                                     String workflowUuid, String conversationId) {
+                                                     String workflowUuid, String conversationId,
+                                                     String workflowTitle) {
         JSONObject json = new JSONObject();
         json.put("type", "runtime");
         json.put("runtimeUuid", runtimeUuid);
         json.put("runtimeId", runtimeId);
         json.put("workflowUuid", workflowUuid);
         json.put("conversationId", conversationId);
+        json.put("workflowTitle", workflowTitle != null ? workflowTitle : "");
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 

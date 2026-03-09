@@ -413,13 +413,6 @@ public class RagService {
             for (int i = 0; i < vectorResults.size(); i++) {
                 VectorSearchResultVo result = vectorResults.get(i);
 
-                // 调试日志: 打印检索结果的metadata
-                log.info("[METADATA调试] 第{}个检索结果 - title: [{}], brief: [{}], content长度: {}",
-                        i + 1,
-                        result.getMetadata() != null ? result.getMetadata().get("title") : "null",
-                        result.getMetadata() != null ? result.getMetadata().get("brief") : "null",
-                        result.getContent() != null ? result.getContent().length() : 0);
-
                 userMessageBuilder.append("[").append(i + 1).append("] ")
                         .append(result.getContent())
                         .append(" (相似度: ").append(String.format("%.2f", result.getScore()))

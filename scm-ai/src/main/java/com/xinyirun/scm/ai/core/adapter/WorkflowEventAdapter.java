@@ -44,11 +44,14 @@ public class WorkflowEventAdapter {
                     String runtimeUuid = dataJson.getString("runtimeUuid");
                     Long runtimeId = dataJson.getLong("runtimeId");
                     String workflowUuid = dataJson.getString("workflowUuid");
+                    String workflowTitle = dataJson.getString("workflowTitle");
 
                     ChatResponseVo runtimeResponse = builder.build();
                     runtimeResponse.setRuntimeUuid(runtimeUuid);
                     runtimeResponse.setRuntimeId(runtimeId);
                     runtimeResponse.setWorkflowUuid(workflowUuid);
+                    runtimeResponse.setWorkflowTitle(workflowTitle);
+                    runtimeResponse.setNodeEventType("runtime");
                     return runtimeResponse;
 
                 case "chunk":

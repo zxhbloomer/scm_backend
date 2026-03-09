@@ -70,7 +70,10 @@ public class ClassifierNode extends AbstractWfNode {
 
         // 调用LLM进行分类
         NodeIOData llmOutput = WorkflowUtil.invokeLLM(wfState, nodeConfig.getModelName(), prompt);
-        ClassifierLLMResp classifierResp = JsonUtil.fromJson(llmOutput.valueToString(), ClassifierLLMResp.class);
+        // LLM有时返回markdown代码块包装（如 ```json{...}```），需要提取纯JSON
+        String llmRawText = llmOutput.valueToString();
+        String llmJsonText = extractJson(llmRawText);
+        ClassifierLLMResp classifierResp = JsonUtil.fromJson(llmJsonText, ClassifierLLMResp.class);
 
         // 验证LLM响应
         if (classifierResp == null || StringUtils.isBlank(classifierResp.getCategoryUuid())) {
@@ -120,5 +123,23 @@ public class ClassifierNode extends AbstractWfNode {
                 .nextSourceHandle(matchedSourceHandle)
                 .content(outputs)
                 .build();
+    }
+
+    /**
+     * 从LLM响应中提取JSON字符串
+     * LLM有时会用markdown代码块包装JSON，如 ```json{...}``` 或 ```{...}```
+     */
+    private String extractJson(String text) {
+        if (text == null) return null;
+        String trimmed = text.trim();
+        // 去除 ```json ... ``` 或 ``` ... ``` 包装
+        if (trimmed.startsWith("```")) {
+            int firstNewline = trimmed.indexOf('\n');
+            int lastFence = trimmed.lastIndexOf("```");
+            if (firstNewline > 0 && lastFence > firstNewline) {
+                return trimmed.substring(firstNewline + 1, lastFence).trim();
+            }
+        }
+        return trimmed;
     }
 }

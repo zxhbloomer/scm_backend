@@ -189,6 +189,11 @@ public class WorkflowRoutingService {
                 你是一个智能工作流路由助手。根据用户问题选择最合适的工作流
                 根据用户输入选择最合适的工作流。如果没有合适的返回null。
 
+                【重要路由规则】
+                如果用户输入包含"打开"、"导航"、"跳转"、"帮我打开"、"去某个页面"等页面导航意图，
+                必须优先选择 title 包含"打开页面"的工作流，而不是具体业务工作流。
+                例如："帮我打开采购订单新增页面" → 选"通用-打开页面-流程"，而不是"采购-项目管理-新增"
+
                 用户输入: "%s"
 
                 可用工作流: [%s]
@@ -1080,6 +1085,8 @@ public class WorkflowRoutingService {
         final String[] capturedOpenPageCommand = {null};
         final String[] capturedInteractionRequest = {null};
         final boolean[] capturedWaitingInteraction = {false};
+        // 跟踪当前正在执行的节点组件名称，用于过滤中间节点的chunk输出
+        final String[] currentNodeComponentName = {null};
 
         Flux<ChatResponseVo> contentFlux = eventFlux.map(event -> {
             JSONObject eventData = JSON.parseObject(event.getData());
@@ -1093,6 +1100,15 @@ public class WorkflowRoutingService {
                 capturedInteractionRequest[0] = eventData.getString("interaction_request");
                 capturedWaitingInteraction[0] = Boolean.TRUE.equals(eventData.getBoolean("waiting_interaction"));
                 return ChatResponseVo.createContentChunk("");
+            } else if ("node_start".equals(type)) {
+                // 记录当前节点组件名称
+                currentNodeComponentName[0] = eventData.getString("nodeName");
+            } else if ("chunk".equals(type)) {
+                // 仅Answer/LLM终端节点的chunk输出给用户，中间节点（McpTool/Classifier等）的chunk忽略
+                String nodeName = currentNodeComponentName[0];
+                if (nodeName != null && !"Answer".equals(nodeName) && !"LLM".equals(nodeName)) {
+                    return ChatResponseVo.createContentChunk("");
+                }
             }
             return convertWorkflowEventToChatResponse(event);
         });
@@ -1220,7 +1236,7 @@ public class WorkflowRoutingService {
 
         log.info("【Synthesizer】调用LLM生成回复, prompt长度={}", synthesizerPrompt.length());
 
-        // 【关键修复】在Synthesizer层累积完整内容，确保isComplete事件包含完整回复
+        // 在Synthesizer层累积完整内容，确保isComplete事件包含完整回复
         // 使用final数组包装StringBuilder，解决lambda中变量必须是effectively final的问题
         final StringBuilder[] contentAccumulator = { new StringBuilder() };
 
@@ -1414,9 +1430,14 @@ public class WorkflowRoutingService {
             String type = eventData.getString("type");
 
             switch (type != null ? type : "") {
-                case "runtime":
-                    // runtime数据: 返回空内容块(前端需要这个事件来初始化)
-                    return ChatResponseVo.createContentChunk("");
+                case "runtime": {
+                    // runtime数据：透传workflowTitle，触发前端插入"调用agent：xxx"行
+                    ChatResponseVo runtimeResp = ChatResponseVo.createContentChunk("");
+                    runtimeResp.setNodeEventType("runtime");
+                    runtimeResp.setWorkflowUuid(eventData.getString("workflowUuid"));
+                    runtimeResp.setWorkflowTitle(eventData.getString("workflowTitle"));
+                    return runtimeResp;
+                }
 
                 case "chunk":
                     // LLM流式输出

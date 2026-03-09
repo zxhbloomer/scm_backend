@@ -279,7 +279,7 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
     public AiWorkflowNodeEntity createStartNode(AiWorkflowEntity workflow) {
         Long startComponentId = workflowComponentService.getStartComponent().getId();
 
-        // 创建用户输入参数定义（参考 aideepin 的 WfNodeIOText）
+        // 创建用户输入参数定义
         AiWfNodeIOVo userInputDef = new AiWfNodeIOVo();
         userInputDef.setUuid(UuidUtil.createShort());
         userInputDef.setType(1); // TEXT 类型
@@ -288,7 +288,7 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         userInputDef.setRequired(false);
         userInputDef.setMaxLength(1000);
 
-        // 创建输入配置（参考 aideepin 的 WfNodeInputConfig）
+        // 创建输入配置
         AiWfNodeInputConfigVo inputConfig = new AiWfNodeInputConfigVo();
         List<AiWfNodeIOVo> userInputs = new ArrayList<>();
         userInputs.add(userInputDef);
@@ -309,14 +309,10 @@ public class AiWorkflowNodeService extends ServiceImpl<AiWorkflowNodeMapper, AiW
         node.setNodeConfig("{}");
 
         // 设置位置为 0，前端会把 0 当作未设置，使用默认值 (10, 50)
-        // 参考 aideepin 的 WorkflowNodeService.createStartNode 方法
-        // aideepin 使用 PostgreSQL，数据库默认值 0 会自动填充
-        // scm-ai 使用 MySQL + MyBatis Plus，需要显式设置为 0
         // 前端逻辑：0 || 10 → 10 (JavaScript 中 0 是 falsy 值)
         node.setPositionX(new BigDecimal("0"));
         node.setPositionY(new BigDecimal("0"));
 
-        // 不设置c_time, u_time, c_id, u_id, dbversion - 自动填充
         aiWorkflowNodeMapper.insert(node);
 
         return node;

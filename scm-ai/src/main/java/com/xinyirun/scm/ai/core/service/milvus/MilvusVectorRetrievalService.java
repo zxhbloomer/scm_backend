@@ -65,18 +65,12 @@ public class MilvusVectorRetrievalService {
             // 1. 构建Milvus原生过滤表达式
             // 注意: kb_uuid存储在metadata JSON字段中,需要使用JSON路径语法
             String nativeFilter = String.format("metadata[\"kb_uuid\"] == \"%s\"", kbUuid);
-            log.info("[METADATA调试] 使用nativeFilter: {}, 原始minScore: {}", nativeFilter, minScore);
-
-            // 临时调试: 先不使用阈值过滤,看看Milvus原始返回了多少结果
-            // TODO: 调试完成后恢复minScore
-            double debugMinScore = 0.0;
-            log.info("[METADATA调试] 临时使用debugMinScore: {} (原始: {})", debugMinScore, minScore);
 
             // 2. 使用MilvusSearchRequest构建请求(绕过Spring AI的FilterExpressionConverter)
             MilvusSearchRequest request = MilvusSearchRequest.milvusBuilder()
                     .query(question)
                     .topK(maxResults)
-                    .similarityThreshold(debugMinScore)
+                    .similarityThreshold(minScore)
                     .nativeExpression(nativeFilter)
                     .build();
 
@@ -88,9 +82,6 @@ public class MilvusVectorRetrievalService {
             List<VectorSearchResultVo> results = new ArrayList<>();
             for (Document doc : documents) {
                 String embeddingId = doc.getId();
-
-                // 调试日志: 打印完整metadata
-                log.info("[METADATA调试] 检索到文档 - embeddingId: {}, metadata: {}", embeddingId, doc.getMetadata());
 
                 // 从metadata获取相似度分数
                 Double score = doc.getMetadata().containsKey("score")
