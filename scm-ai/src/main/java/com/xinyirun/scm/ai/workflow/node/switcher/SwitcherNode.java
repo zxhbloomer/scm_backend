@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.xinyirun.scm.ai.workflow.WfNodeIODataUtil.changeInputsToOutputs;
@@ -87,11 +88,23 @@ public class SwitcherNode extends AbstractWfNode {
         log.info("Switcher条件路由结果: matchedSourceHandle={}, nodeUuid={}, title={}",
                 matchedSourceHandle, node.getUuid(), node.getTitle());
 
-        // 返回 sourceHandle 而非 targetNodeUuid
-        // WorkflowEngine 会根据 sourceHandle 从 edge 表查找所有目标节点
+        // 构建输出：透传输入 + 追加匹配的分支名称（供 buildSummary 读取）
+        List<NodeIOData> outputs = new ArrayList<>(changeInputsToOutputs(state.getInputs()));
+        String caseName;
+        if ("default_handle".equals(matchedSourceHandle)) {
+            caseName = nodeConfig.getDefaultCaseName() != null && !nodeConfig.getDefaultCaseName().isEmpty()
+                ? nodeConfig.getDefaultCaseName() : "默认分支";
+        } else {
+            caseName = nodeConfig.getCases().stream()
+                .filter(c -> matchedSourceHandle.equals(c.getUuid()))
+                .findFirst()
+                .map(c -> c.getName() != null && !c.getName().isEmpty() ? c.getName() : "分支")
+                .orElse("分支");
+        }
+        outputs.add(NodeIOData.createByText("matched_case_name", "匹配分支", caseName));
         return NodeProcessResult.builder()
                 .nextSourceHandle(matchedSourceHandle)
-                .content(changeInputsToOutputs(state.getInputs()))
+                .content(outputs)
                 .build();
     }
 

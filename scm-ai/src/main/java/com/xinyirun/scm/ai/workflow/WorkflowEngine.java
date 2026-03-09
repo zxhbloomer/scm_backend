@@ -1594,10 +1594,10 @@ public class WorkflowEngine {
     private class NodeEventListener implements GraphLifecycleListener {
 
         // 展示的节点类型（设计文档3.2节定义）
-        // 不展示：Start、End、Template、Switcher、SubWorkflow、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
+        // 不展示：Start、End、Template、SubWorkflow、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
         private static final Set<String> VISIBLE_NODES = Set.of(
             "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
-            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage"
+            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher"
         );
 
         @Override
@@ -1698,6 +1698,14 @@ public class WorkflowEngine {
                                 : "view".equals(pageMode) ? "查看页面" : "页面";
                             summary = new HashMap<>();
                             summary.put("outputText", "已为您打开" + modeLabel);
+                        }
+                        break;
+                    }
+                    case "Switcher": {
+                        String caseName = findOutputValue(outputList, "matched_case_name");
+                        if (caseName != null && showOutput) {
+                            summary = new HashMap<>();
+                            summary.put("outputText", "→ " + caseName);
                         }
                         break;
                     }
