@@ -335,6 +335,7 @@ public class WorkflowStarter {
             // 对齐Spring AI Alibaba：通过data中的type字段区分消息类型
             final Map<String, Object> result = new HashMap<>();
             final List<Map<String, Object>> subSteps = new ArrayList<>();
+            final String[] openPageCommandHolder = {null};
             WorkflowEventVo lastEvent = workflowEngine.run(userId, userInputs, tenantCode, parentConversationId)
                     .doOnNext(event -> {
                         // 解析data中的type字段
@@ -381,6 +382,8 @@ public class WorkflowStarter {
                             if ("workflow_output_data".equals(type)) {
                                 String openPageCommand = dataJson.getString("open_page_command");
                                 if (openPageCommand != null && !openPageCommand.isEmpty()) {
+                                    // 保存到 holder，供父工作流传播
+                                    openPageCommandHolder[0] = openPageCommand;
                                     try {
                                         JSONObject cmd = JSONObject.parseObject(openPageCommand);
                                         String pageMode = cmd.getString("page_mode");
@@ -411,6 +414,7 @@ public class WorkflowStarter {
             return SubWorkflowResult.builder()
                     .outputs(result)
                     .subSteps(subSteps)
+                    .openPageCommand(openPageCommandHolder[0])
                     .build();
 
         } catch (Exception e) {

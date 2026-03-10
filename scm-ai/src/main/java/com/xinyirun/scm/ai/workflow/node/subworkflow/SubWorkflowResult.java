@@ -17,4 +17,6 @@ public class SubWorkflowResult {
     private Map<String, Object> outputs;
     /** 子工作流内部节点步骤（node_complete 事件摘要列表） */
     private List<Map<String, Object>> subSteps;
+    /** 子工作流产生的打开页面指令（JSON字符串），需传播到父工作流 */
+    private String openPageCommand;
 }

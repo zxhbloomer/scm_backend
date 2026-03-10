@@ -117,6 +117,12 @@ public class SubWorkflowNode extends AbstractWfNode {
                 ));
             }
 
+            // 传播子工作流的 open_page_command 到父工作流 WfState
+            if (subResult.getOpenPageCommand() != null && !subResult.getOpenPageCommand().isEmpty()) {
+                wfState.setOpen_page_command(subResult.getOpenPageCommand());
+                log.info("子工作流 open_page_command 已传播到父工作流: {}", subResult.getOpenPageCommand());
+            }
+
             log.info("子工作流节点执行完成: {}", node.getTitle());
 
             // 6. 返回结果
