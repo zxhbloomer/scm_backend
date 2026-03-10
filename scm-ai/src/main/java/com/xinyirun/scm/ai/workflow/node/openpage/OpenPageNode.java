@@ -2,16 +2,13 @@ package com.xinyirun.scm.ai.workflow.node.openpage;
 
 import com.alibaba.fastjson2.JSONObject;
 import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowComponentEntity;
-import com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowInteractionEntity;
 import com.xinyirun.scm.ai.bean.vo.workflow.AiWorkflowNodeVo;
-import com.xinyirun.scm.ai.core.service.workflow.AiWorkflowInteractionService;
 import com.xinyirun.scm.ai.workflow.NodeProcessResult;
 import com.xinyirun.scm.ai.workflow.WfNodeState;
 import com.xinyirun.scm.ai.workflow.WfState;
 import com.xinyirun.scm.ai.workflow.WorkflowUtil;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
-import cn.hutool.extra.spring.SpringUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -20,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
  * 支持两种模式：
  * 1. dialog模式（默认）：调用LLM生成业务JSON，通过ai_open_dialog_para触发前端弹窗
  * 2. route模式：构建导航指令，通过open_page_command触发前端RouterTab导航
- *    可选启用人机交互，通过interaction_request触发Chat交互组件
+ *    可选配置prompt调用LLM动态解析page_mode/form_data等参数
  */
 @Slf4j
 public class OpenPageNode extends AbstractWfNode {
@@ -64,31 +61,85 @@ public class OpenPageNode extends AbstractWfNode {
     }
 
     /**
-     * route模式：构建导航指令，可选启用人机交互
+     * route模式：构建导航指令
+     * 如果配置了prompt，先调用LLM动态解析参数（page_mode/form_data等）
+     * 否则从上游输入变量或MCP output JSON中读取
      */
     private NodeProcessResult processRouteMode(OpenPageNodeConfig nodeConfig) {
-        // 优先从上游输入读取路由，fallback 到静态配置
+        // 优先从上游输入读取路由，fallback到上游MCP output JSON
         String path = extractInputValue("path");
-        // 如果没有名为 path 的直接输入，尝试从上游 output 文本解析 JSON（MCP节点输出场景）
         if (path == null) {
-            path = extractPathFromOutputJson();
+            path = extractFromRoutesJson("path");
         }
-        if (path == null) path = nodeConfig.getRoute();
 
-        String pageMode = extractInputValue("page_mode");
-        if (pageMode == null) pageMode = nodeConfig.getPageMode();
+        log.info("OpenPage节点[route模式]开始，path={}", path);
 
-        log.info("OpenPage节点[route模式]开始，path={}, pageMode={}", path, pageMode);
+        String pageMode = null;
+        JSONObject formData = null;
+        JSONObject queryParams = null;
+        String recordId = null;
+
+        // 如果配置了prompt，调用LLM动态解析参数
+        String promptTemplate = nodeConfig.getPrompt();
+        if (promptTemplate != null && !promptTemplate.trim().isEmpty()) {
+            String prompt = WorkflowUtil.renderTemplate(promptTemplate, state.getInputs());
+            log.info("OpenPage节点[route模式]调用LLM，prompt长度: {}", prompt.length());
+
+            NodeIOData llmOutput = WorkflowUtil.invokeLLM(wfState, nodeConfig.getModelName(), prompt);
+            state.getOutputs().add(llmOutput);
+
+            String llmResult = llmOutput.valueToString();
+            log.info("OpenPage节点[route模式]LLM输出: {}", llmResult);
+
+            // 解析LLM输出的JSON
+            if (llmResult != null && !llmResult.isEmpty()) {
+                try {
+                    int start = llmResult.indexOf('{');
+                    int end = llmResult.lastIndexOf('}');
+                    if (start >= 0 && end > start) {
+                        JSONObject llmJson = JSONObject.parseObject(llmResult.substring(start, end + 1));
+                        if (llmJson.getString("page_mode") != null) {
+                            pageMode = llmJson.getString("page_mode");
+                        }
+                        if (llmJson.getJSONObject("form_data") != null) {
+                            formData = llmJson.getJSONObject("form_data");
+                        }
+                        if (llmJson.getJSONObject("query_params") != null) {
+                            queryParams = llmJson.getJSONObject("query_params");
+                        }
+                        if (llmJson.getString("record_id") != null) {
+                            recordId = llmJson.getString("record_id");
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("OpenPage节点解析LLM输出JSON失败: {}", e.getMessage());
+                }
+            }
+        }
+
+        // LLM未提供的字段，fallback到上游输入/routes JSON/静态配置
+        if (pageMode == null) {
+            pageMode = extractInputValue("page_mode");
+        }
+        if (pageMode == null) {
+            pageMode = extractFromRoutesJson("page_mode");
+        }
+        if (pageMode == null) {
+            pageMode = nodeConfig.getPageMode();
+        }
+        if (formData == null) {
+            formData = extractInputAsJson("form_data");
+        }
+        if (queryParams == null) {
+            queryParams = extractInputAsJson("query_params");
+        }
+        if (recordId == null) {
+            recordId = extractInputValue("record_id");
+        }
 
         JSONObject command = new JSONObject();
         command.put("route", path);
-        command.put("page_mode", pageMode);
-
-        // 从上游节点输入中提取动态参数
-        JSONObject queryParams = extractInputAsJson("query_params");
-        JSONObject formData = extractInputAsJson("form_data");
-        String recordId = extractInputValue("record_id");
-
+        if (pageMode != null) command.put("page_mode", pageMode);
         command.put("query_params", queryParams);
         command.put("form_data", formData);
         command.put("record_id", recordId);
@@ -98,60 +149,6 @@ public class OpenPageNode extends AbstractWfNode {
         log.info("OpenPage节点[route模式]导航指令: {}", commandJson);
 
         state.getOutputs().add(NodeIOData.createByText("open_page_command", "页面导航指令", commandJson));
-
-        if (Boolean.TRUE.equals(nodeConfig.getInteractionEnabled())) {
-            return processInteraction(nodeConfig);
-        }
-
-        return new NodeProcessResult();
-    }
-
-    /**
-     * 处理人机交互：创建交互记录，设置侧通道
-     */
-    private NodeProcessResult processInteraction(OpenPageNodeConfig nodeConfig) {
-        log.info("OpenPage节点[route模式]启用人机交互，type={}", nodeConfig.getInteractionType());
-
-        AiWorkflowInteractionService interactionService =
-                SpringUtil.getBean(AiWorkflowInteractionService.class);
-
-        // 从上游输入中提取交互参数（如选项列表）
-        String interactionParams = extractInputValue("interaction_params");
-        if (interactionParams == null) {
-            interactionParams = "{}";
-        }
-
-        // 创建交互记录
-        AiWorkflowInteractionEntity interaction = interactionService.createInteraction(
-                wfState.getConversationId(),
-                wfState.getUuid(),
-                node.getUuid(),
-                nodeConfig.getInteractionType(),
-                interactionParams,
-                nodeConfig.getInteractionDescription(),
-                nodeConfig.getTimeoutMinutes()
-        );
-
-        // 构建interaction_request JSON
-        JSONObject request = new JSONObject();
-        request.put("interaction_uuid", interaction.getInteractionUuid());
-        request.put("type", nodeConfig.getInteractionType());
-        request.put("description", nodeConfig.getInteractionDescription());
-        try {
-            request.put("params", JSONObject.parseObject(interactionParams));
-        } catch (Exception e) {
-            log.warn("解析交互参数JSON失败，使用空对象: {}", interactionParams);
-            request.put("params", new JSONObject());
-        }
-        request.put("timeout_minutes", interaction.getTimeoutMinutes());
-        request.put("timeout_at", interaction.getTimeoutAt() != null ? interaction.getTimeoutAt().toString() : null);
-
-        String requestJson = request.toJSONString();
-        wfState.setInteraction_request(requestJson);
-        wfState.setWaitingInteraction(true);
-        log.info("OpenPage节点[route模式]交互请求: {}", requestJson);
-
-        state.getOutputs().add(NodeIOData.createByText("interaction_request", "交互请求", requestJson));
 
         return new NodeProcessResult();
     }
@@ -188,10 +185,10 @@ public class OpenPageNode extends AbstractWfNode {
     }
 
     /**
-     * 从上游所有已完成节点的 output 中查找包含 routes[0].path 的 JSON
-     * 适用于 MCP 节点输出 {"found_count":1,"routes":[{"path":"/po/project",...}]} 的场景
+     * 从上游所有已完成节点的 output 中查找包含 routes[0] 的 JSON，返回指定字段值
+     * 适用于 MCP 节点输出 {"found_count":1,"routes":[{"path":"/po/project","page_mode":"new",...}]} 的场景
      */
-    private String extractPathFromOutputJson() {
+    private String extractFromRoutesJson(String field) {
         for (AbstractWfNode completedNode : wfState.getCompletedNodes()) {
             for (NodeIOData ioData : completedNode.getState().getOutputs()) {
                 if (!"output".equals(ioData.getName())) continue;
@@ -205,10 +202,10 @@ public class OpenPageNode extends AbstractWfNode {
                     com.alibaba.fastjson2.JSONArray routes = json.getJSONArray("routes");
                     if (routes != null && !routes.isEmpty()) {
                         JSONObject first = routes.getJSONObject(0);
-                        String path = first != null ? first.getString("path") : null;
-                        if (path != null && !path.isEmpty()) {
-                            log.info("从上游output JSON解析到path={}", path);
-                            return path;
+                        String result = first != null ? first.getString(field) : null;
+                        if (result != null && !result.isEmpty()) {
+                            log.info("从上游output JSON解析到{}={}", field, result);
+                            return result;
                         }
                     }
                 } catch (Exception e) {
