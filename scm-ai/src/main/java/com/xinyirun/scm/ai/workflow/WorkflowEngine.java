@@ -1609,7 +1609,7 @@ public class WorkflowEngine {
         private static final Set<String> VISIBLE_NODES = Set.of(
             "Start", "End",
             "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
-            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher", "SubWorkflow"
+            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher", "SubWorkflow", "Template"
         );
 
         @Override
@@ -1697,8 +1697,17 @@ public class WorkflowEngine {
                                 Map<String, String> p = new HashMap<>();
                                 p.put("name", io.getName());
                                 p.put("title", io.getTitle());
-                                // 直接从state取初始输入值（key即参数名）
+                                // 优先从state取初始输入值（key即参数名）
                                 Object stateValue = state.get(io.getName());
+                                // state中没有时，从wfState.getInput()查找（子工作流场景state可能不含初始参数）
+                                if (stateValue == null) {
+                                    for (NodeIOData wfInput : wfState.getInput()) {
+                                        if (io.getName().equals(wfInput.getName())) {
+                                            stateValue = wfInput.getContent().getValue();
+                                            break;
+                                        }
+                                    }
+                                }
                                 if (stateValue != null) {
                                     p.put("value", String.valueOf(stateValue));
                                 }
@@ -1754,6 +1763,16 @@ public class WorkflowEngine {
                         if (caseName != null && showOutput) {
                             summary = new HashMap<>();
                             summary.put("outputText", "→ " + caseName);
+                        }
+                        break;
+                    }
+                    case "Template": {
+                        if (showOutput) {
+                            String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                            if (outputText != null) {
+                                summary = new HashMap<>();
+                                summary.put("outputText", outputText);
+                            }
                         }
                         break;
                     }
