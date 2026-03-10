@@ -1748,13 +1748,47 @@ public class WorkflowEngine {
                         break;
                     }
                     case "OpenPage": {
+                        String commandJson = findOutputValue(outputList, "open_page_command");
+                        String route = null;
+                        String pageMode = null;
+                        if (commandJson != null) {
+                            try {
+                                com.alibaba.fastjson2.JSONObject cmd = com.alibaba.fastjson2.JSONObject.parseObject(commandJson);
+                                route = cmd.getString("route");
+                                pageMode = cmd.getString("page_mode");
+                            } catch (Exception ignored) {}
+                        }
+                        // params：显示导航指令的关键参数
+                        summary = new HashMap<>();
+                        List<Map<String, String>> params = new ArrayList<>();
+                        if (route != null) {
+                            Map<String, String> p = new HashMap<>();
+                            p.put("name", "route");
+                            p.put("title", "路由");
+                            p.put("value", route);
+                            params.add(p);
+                        }
+                        if (pageMode != null) {
+                            Map<String, String> p = new HashMap<>();
+                            p.put("name", "page_mode");
+                            p.put("title", "页面模式");
+                            p.put("value", pageMode);
+                            params.add(p);
+                        }
+                        if (!params.isEmpty()) {
+                            summary.put("params", params);
+                        }
+                        // outputText：含page_mode的中文描述
                         if (showOutput) {
-                            String pageMode = findOutputValue(outputList, "page_mode");
-                            String modeLabel = "new".equals(pageMode) ? "新增页面"
-                                : "edit".equals(pageMode) ? "编辑页面"
-                                : "view".equals(pageMode) ? "查看页面" : "页面";
-                            summary = new HashMap<>();
-                            summary.put("outputText", "已为您打开" + modeLabel);
+                            String modeLabel = "new".equals(pageMode) ? "新增"
+                                : "edit".equals(pageMode) ? "编辑"
+                                : "view".equals(pageMode) ? "查看"
+                                : "approve".equals(pageMode) ? "审批"
+                                : "list".equals(pageMode) ? "列表" : "";
+                            String text = route != null
+                                ? "已为您打开" + modeLabel + "页面: " + route
+                                : "已为您打开页面";
+                            summary.put("outputText", text);
                         }
                         break;
                     }
