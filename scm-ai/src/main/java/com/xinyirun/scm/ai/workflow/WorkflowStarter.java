@@ -377,6 +377,30 @@ public class WorkflowStarter {
                                 }
                                 subSteps.add(step);
                             }
+                            // 收集 workflow_output_data 事件：若含 open_page_command，补一个 OpenPage 子步骤
+                            if ("workflow_output_data".equals(type)) {
+                                String openPageCommand = dataJson.getString("open_page_command");
+                                if (openPageCommand != null && !openPageCommand.isEmpty()) {
+                                    try {
+                                        JSONObject cmd = JSONObject.parseObject(openPageCommand);
+                                        String pageMode = cmd.getString("page_mode");
+                                        String modeLabel = "new".equals(pageMode) ? "新增页面"
+                                            : "edit".equals(pageMode) ? "编辑页面"
+                                            : "view".equals(pageMode) ? "查看页面" : "页面";
+                                        Map<String, Object> openPageStep = new HashMap<>();
+                                        openPageStep.put("nodeUuid", "__open_page__");
+                                        openPageStep.put("nodeName", "OpenPage");
+                                        openPageStep.put("nodeTitle", "打开前端页面");
+                                        openPageStep.put("duration", 0L);
+                                        Map<String, Object> summary = new HashMap<>();
+                                        summary.put("outputText", "已为您打开" + modeLabel);
+                                        openPageStep.put("summary", summary);
+                                        subSteps.add(openPageStep);
+                                    } catch (Exception ex) {
+                                        log.debug("解析open_page_command失败: {}", ex.getMessage());
+                                    }
+                                }
+                            }
                         } catch (Exception e) {
                             log.warn("解析子工作流输出失败: {}", data, e);
                         }

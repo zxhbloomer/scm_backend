@@ -1,5 +1,6 @@
 package com.xinyirun.scm.ai.workflow.node.openpage;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -25,40 +26,24 @@ public class OpenPageNodeConfig {
      * 打开模式：dialog(弹窗，默认) / route(页面导航)
      */
     @JsonProperty("open_mode")
+    @JSONField(name = "open_mode")
     private String openMode;
 
     /**
-     * 目标路由路径（route模式），如 /po/order
-     */
-    private String route;
-
-    /**
-     * 页面模式（route模式）：list/new/view/edit/approve
+     * 页面模式（兼容旧配置）：list/new/view/edit/approve
+     * 前端UI已移除此配置项，但保留字段以兼容数据库中已保存的旧工作流配置
+     * 优先级低于上游输入变量中的 page_mode
      */
     @JsonProperty("page_mode")
+    @JSONField(name = "page_mode")
     private String pageMode;
 
     /**
-     * 是否启用人机交互（route模式）
+     * 是否显示执行过程输出到chat流
+     * true(默认): 显示在聊天界面
+     * false: 不显示，但结果仍传递给下游节点
      */
-    @JsonProperty("interaction_enabled")
-    private Boolean interactionEnabled;
-
-    /**
-     * 交互类型：user_select/user_confirm/user_form
-     */
-    @JsonProperty("interaction_type")
-    private String interactionType;
-
-    /**
-     * 交互描述（显示给用户的提示文字）
-     */
-    @JsonProperty("interaction_description")
-    private String interactionDescription;
-
-    /**
-     * 超时时间（分钟），默认30
-     */
-    @JsonProperty("timeout_minutes")
-    private Integer timeoutMinutes;
+    @JsonProperty("show_process_output")
+    @JSONField(name = "show_process_output")
+    private Boolean showProcessOutput = true;
 }
