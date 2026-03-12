@@ -1803,16 +1803,21 @@ public class WorkflowEngine {
                         if (!params.isEmpty()) {
                             summary.put("params", params);
                         }
-                        // 追加节点输入参数（var_data、var_outer等）
+                        // 追加节点输入参数（var_data、var_outer等，排除默认input参数和重复项）
                         List<NodeIOData> nodeInputs = nodeInputCache.get(nodeId);
                         if (nodeInputs != null) {
+                            Set<String> addedNames = new HashSet<>();
                             for (NodeIOData input : nodeInputs) {
-                                if (input.getName() != null && input.getContent() != null
-                                        && input.getContent().getValue() != null) {
+                                String inputName = input.getName();
+                                // 排除默认input参数（上游节点默认输出改名而来），只显示明确命名的变量
+                                if (inputName == null || "input".equals(inputName)) continue;
+                                // 排除重复
+                                if (!addedNames.add(inputName)) continue;
+                                if (input.getContent() != null && input.getContent().getValue() != null) {
                                     Map<String, String> p = new HashMap<>();
-                                    p.put("name", input.getName());
+                                    p.put("name", inputName);
                                     String inputTitle = input.getContent().getTitle();
-                                    p.put("title", inputTitle != null && !inputTitle.isEmpty() ? inputTitle : input.getName());
+                                    p.put("title", inputTitle != null && !inputTitle.isEmpty() ? inputTitle : inputName);
                                     p.put("value", input.valueToString());
                                     params.add(p);
                                 }
