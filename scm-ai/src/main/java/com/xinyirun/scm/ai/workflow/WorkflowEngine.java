@@ -1811,7 +1811,8 @@ public class WorkflowEngine {
                                         && input.getContent().getValue() != null) {
                                     Map<String, String> p = new HashMap<>();
                                     p.put("name", input.getName());
-                                    p.put("title", input.getTitle() != null ? input.getTitle() : input.getName());
+                                    String inputTitle = input.getContent().getTitle();
+                                    p.put("title", inputTitle != null && !inputTitle.isEmpty() ? inputTitle : input.getName());
                                     p.put("value", input.valueToString());
                                     params.add(p);
                                 }
