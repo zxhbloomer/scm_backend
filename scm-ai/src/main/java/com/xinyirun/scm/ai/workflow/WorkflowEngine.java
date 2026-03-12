@@ -1803,17 +1803,39 @@ public class WorkflowEngine {
                         if (!params.isEmpty()) {
                             summary.put("params", params);
                         }
-                        // outputText：含page_mode的中文描述
+                        // 追加节点输入参数（var_data、var_outer等）
+                        List<NodeIOData> nodeInputs = nodeInputCache.get(nodeId);
+                        if (nodeInputs != null) {
+                            for (NodeIOData input : nodeInputs) {
+                                if (input.getName() != null && input.getContent() != null
+                                        && input.getContent().getValue() != null) {
+                                    Map<String, String> p = new HashMap<>();
+                                    p.put("name", input.getName());
+                                    p.put("title", input.getTitle() != null ? input.getTitle() : input.getName());
+                                    p.put("value", input.valueToString());
+                                    params.add(p);
+                                }
+                            }
+                            if (!params.isEmpty()) {
+                                summary.put("params", params);
+                            }
+                        }
+                        // outputText：优先显示LLM原始输出，fallback到中文描述
                         if (showOutput) {
-                            String modeLabel = "new".equals(pageMode) ? "新增"
-                                : "edit".equals(pageMode) ? "编辑"
-                                : "view".equals(pageMode) ? "查看"
-                                : "approve".equals(pageMode) ? "审批"
-                                : "list".equals(pageMode) ? "列表" : "";
-                            String text = route != null
-                                ? "已为您打开" + modeLabel + "页面: " + route
-                                : "已为您打开页面";
-                            summary.put("outputText", text);
+                            String llmRawOutput = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                            if (llmRawOutput != null && !llmRawOutput.isEmpty()) {
+                                summary.put("outputText", llmRawOutput);
+                            } else {
+                                String modeLabel = "new".equals(pageMode) ? "新增"
+                                    : "edit".equals(pageMode) ? "编辑"
+                                    : "view".equals(pageMode) ? "查看"
+                                    : "approve".equals(pageMode) ? "审批"
+                                    : "list".equals(pageMode) ? "列表" : "";
+                                String text = route != null
+                                    ? "已为您打开" + modeLabel + "页面: " + route
+                                    : "已为您打开页面";
+                                summary.put("outputText", text);
+                            }
                         }
                         break;
                     }
