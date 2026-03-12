@@ -102,6 +102,12 @@ public class WorkflowEngine {
     private final ConcurrentHashMap<String, List<NodeIOData>> nodeOutputCache = new ConcurrentHashMap<>();
 
     /**
+     * 节点输入缓存：nodeUuid → 节点输入列表
+     * 供after回调中的buildSummary读取（after时WfNodeState已不可访问）
+     */
+    private final ConcurrentHashMap<String, List<NodeIOData>> nodeInputCache = new ConcurrentHashMap<>();
+
+    /**
      * 获取租户编码（用于数据源切换）
      * @return 租户编码
      */
@@ -859,6 +865,8 @@ public class WorkflowEngine {
 
         // 缓存节点输出，供after回调中的buildSummary使用（框架after时输出尚未合并进state）
         nodeOutputCache.put(wfNode.getUuid(), nodeState.getOutputs());
+        // 缓存节点输入，供after回调中的buildSummary使用
+        nodeInputCache.put(wfNode.getUuid(), nodeState.getInputs());
 
         log.debug("runNode执行完成: nodeUuid={}, 耗时={}ms, outputs数量={}",
                 wfNode.getUuid(), System.currentTimeMillis() - startTime, nodeState.getOutputs().size());
@@ -874,6 +882,8 @@ public class WorkflowEngine {
      * @return 正确的用户输入列表
      */
     private List<NodeIOData> getAndCheckUserInput(List<JSONObject> userInputs, AiWorkflowNodeVo startNode) {
+        // 子流程调用时跳过长度校验：节点间传递的数据不受 UI 输入框 maxLength 限制
+        boolean isSubWorkflow = parentRuntimeUuid != null;
         // 获取 Start 节点的输入定义列表
         List<AiWfNodeIOVo> defList = startNode.getInputConfig().getUserInputs();
         List<NodeIOData> wfInputs = new ArrayList<>();
@@ -908,11 +918,13 @@ public class WorkflowEngine {
 
                 requiredParamMissing = false;
 
-                // 调用 checkValue 验证
-                boolean valid = paramDefinition.checkValue(nodeIOData);
-                if (!valid) {
-                    log.error("用户输入无效,workflowId:{}", startNode.getWorkflowId());
-                    throw new RuntimeException("用户输入无效");
+                // 子流程调用时跳过 checkValue：节点间传递的数据不受 UI 输入框限制（如 maxLength）
+                if (!isSubWorkflow) {
+                    boolean valid = paramDefinition.checkValue(nodeIOData);
+                    if (!valid) {
+                        log.error("用户输入无效,workflowId:{}", startNode.getWorkflowId());
+                        throw new RuntimeException("用户输入无效");
+                    }
                 }
 
                 wfInputs.add(nodeIOData);
@@ -1631,6 +1643,7 @@ public class WorkflowEngine {
             String componentName = findComponentName(nodeId);
             if (!VISIBLE_NODES.contains(componentName)) {
                 nodeOutputCache.remove(nodeId);
+                nodeInputCache.remove(nodeId);
                 return;
             }
             Long startTime = nodeStartTimes.remove(nodeId);
@@ -1639,6 +1652,7 @@ public class WorkflowEngine {
             Map<String, Object> summary = buildSummary(componentName, nodeId, state);
             // 清理缓存
             nodeOutputCache.remove(nodeId);
+            nodeInputCache.remove(nodeId);
             Sinks.Many<WorkflowEventVo> sink = sinkRef.get();
             if (sink != null) {
                 sink.tryEmitNext(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
@@ -1775,6 +1789,17 @@ public class WorkflowEngine {
                             p.put("value", pageMode);
                             params.add(p);
                         }
+                        try {
+                            com.alibaba.fastjson2.JSONObject cmd2 = com.alibaba.fastjson2.JSONObject.parseObject(commandJson);
+                            Object formData = cmd2.get("form_data");
+                            if (formData != null) {
+                                Map<String, String> p = new HashMap<>();
+                                p.put("name", "form_data");
+                                p.put("title", "参数");
+                                p.put("value", formData.toString());
+                                params.add(p);
+                            }
+                        } catch (Exception ignored) {}
                         if (!params.isEmpty()) {
                             summary.put("params", params);
                         }
