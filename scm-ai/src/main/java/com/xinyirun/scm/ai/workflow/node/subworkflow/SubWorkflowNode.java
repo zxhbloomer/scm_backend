@@ -14,9 +14,7 @@ import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
-import java.util.ArrayList;
 
-import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_INPUT_PARAM_NAME;
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
 
 /**
@@ -157,18 +155,35 @@ public class SubWorkflowNode extends AbstractWfNode {
             log.debug("传递父工作流开始节点参数: {}", subInputs);
         }
 
-        // 第二步：添加上一个节点的默认输出作为input参数
+        // 第二步：传递当前节点所有输入变量（包含上游节点输出的命名变量）
         List<NodeIOData> currentNodeInputs = state.getInputs();
         for (NodeIOData input : currentNodeInputs) {
-            // 查找默认输入参数（名为"input"的参数）
-            if (DEFAULT_INPUT_PARAM_NAME.equals(input.getName())) {
-                subInputs.put(DEFAULT_INPUT_PARAM_NAME, input.getContent().getValue());
-                log.debug("添加上一节点默认输出作为input参数: {}", input.getContent().getValue());
-                break;
+            if (input.getName() != null && input.getContent() != null) {
+                subInputs.put(input.getName(), input.getContent().getValue());
+                log.debug("传递当前节点输入变量: {}", input.getName());
             }
         }
 
-        log.info("子工作流最终输入参数: {}", subInputs);
+        // 第三步：按 input_mapping 配置覆盖/补充参数
+        List<SubWorkflowNodeConfig.InputMapping> mappings = config.getInputMapping();
+        if (mappings != null && !mappings.isEmpty()) {
+            for (SubWorkflowNodeConfig.InputMapping mapping : mappings) {
+                String sourceKey = mapping.getSourceKey();
+                String targetKey = mapping.getTargetKey();
+                if (sourceKey == null || sourceKey.isEmpty() || targetKey == null || targetKey.isEmpty()) {
+                    continue;
+                }
+                for (NodeIOData input : currentNodeInputs) {
+                    if (sourceKey.equals(input.getName()) && input.getContent() != null) {
+                        subInputs.put(targetKey, input.getContent().getValue());
+                        log.debug("input_mapping 参数传递: {} → {}", sourceKey, targetKey);
+                        break;
+                    }
+                }
+            }
+        }
+
+        log.info("子工作流最终输入参数数量: {}", subInputs.size());
         return subInputs;
     }
 

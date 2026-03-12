@@ -4,13 +4,16 @@ import com.xinyirun.scm.ai.config.AiModelProvider;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -77,9 +80,8 @@ public class AiChatMemoryConfig {
         ChatModel chatModel = aiModelProvider.getChatModel();
         ChatClient.Builder builder = ChatClient.builder(chatModel);
 
-        // 如果 MCP Client 已启用，注入工具回调
         if (toolCallbackProvider != null) {
-            builder.defaultToolCallbacks(toolCallbackProvider);
+            builder.defaultToolCallbacks(sanitizeProvider(toolCallbackProvider));
         }
 
         return builder.build();
@@ -131,9 +133,8 @@ public class AiChatMemoryConfig {
                     workflowConversationAdvisor        // 保存新对话
                 );
 
-        // 如果 MCP Client 已启用，注入工具回调
         if (toolCallbackProvider != null) {
-            builder.defaultToolCallbacks(toolCallbackProvider);
+            builder.defaultToolCallbacks(sanitizeProvider(toolCallbackProvider));
         }
 
         return builder.build();
@@ -170,7 +171,7 @@ public class AiChatMemoryConfig {
                 .defaultSystem(mcpToolSystemPrompt);
 
         if (toolCallbackProvider != null) {
-            builder.defaultToolCallbacks(toolCallbackProvider);
+            builder.defaultToolCallbacks(sanitizeProvider(toolCallbackProvider));
         }
 
         return builder.build();
@@ -182,29 +183,18 @@ public class AiChatMemoryConfig {
      * <p>用于LLM智能路由的专用ChatClient，配置为：</p>
      * <ul>
      *   <li>无历史记忆: 路由决策基于当前输入，不需要上下文</li>
-     *   <li>无特殊参数: 使用默认模型配置</li>
+     *   <li>无MCP工具: 路由只做决策，不调用工具，避免推理模型的Function Calling兼容性问题</li>
      * </ul>
      *
      * 使用@Lazy延迟初始化，避免启动时因租户上下文未设置导致无法获取模型配置
      *
      * @param aiModelProvider AI模型提供者，用于获取ChatModel实例
-     * @param toolCallbackProvider MCP Client工具回调提供者（可选，仅在MCP Client启用时注入）
      * @return 配置好的ChatClient实例
      */
     @Lazy
     @Bean("workflowRoutingChatClient")
-    public ChatClient workflowRoutingChatClient(
-            AiModelProvider aiModelProvider,
-            @Autowired(required = false) ToolCallbackProvider toolCallbackProvider) {
-        ChatModel chatModel = aiModelProvider.getChatModel();
-        ChatClient.Builder builder = ChatClient.builder(chatModel);
-
-        // 如果 MCP Client 已启用，注入工具回调
-        if (toolCallbackProvider != null) {
-            builder.defaultToolCallbacks(toolCallbackProvider);
-        }
-
-        return builder.build();
+    public ChatClient workflowRoutingChatClient(AiModelProvider aiModelProvider) {
+        return ChatClient.builder(aiModelProvider.getChatModel()).build();
     }
 
     /**
@@ -290,12 +280,62 @@ public class AiChatMemoryConfig {
             return new HashMap<>();
         }
 
-        // 将ToolCallbackProvider的所有工具转换为Map
         Map<String, ToolCallback> map = new HashMap<>();
         for (ToolCallback callback : toolCallbackProvider.getToolCallbacks()) {
-            String toolName = callback.getToolDefinition().name();
-            map.put(toolName, callback);
+            ToolCallback sanitized = sanitizeToolCallback(callback);
+            map.put(sanitized.getToolDefinition().name(), sanitized);
         }
         return map;
+    }
+
+    /**
+     * 将工具名中的点替换为下划线，使其符合 DeepSeek 等模型的命名规范
+     *
+     * DeepSeek API 要求工具名匹配 ^[a-zA-Z0-9_-]+ 模式，不允许包含点。
+     * Spring AI MCP 框架生成的工具名格式为 ClassName.methodName，需要转换。
+     *
+     * @param provider 原始 ToolCallbackProvider
+     * @return 工具名已 sanitize 的 ToolCallbackProvider
+     */
+    private ToolCallbackProvider sanitizeProvider(ToolCallbackProvider provider) {
+        if (provider == null) {
+            return null;
+        }
+        ToolCallback[] sanitized = Arrays.stream(provider.getToolCallbacks())
+                .map(this::sanitizeToolCallback)
+                .toArray(ToolCallback[]::new);
+        return ToolCallbackProvider.from(sanitized);
+    }
+
+    /**
+     * 包装单个 ToolCallback，将工具名中的点替换为下划线
+     */
+    private ToolCallback sanitizeToolCallback(ToolCallback original) {
+        String originalName = original.getToolDefinition().name();
+        if (!originalName.contains(".")) {
+            return original;
+        }
+        String sanitizedName = originalName.replace(".", "_");
+        ToolDefinition sanitizedDef = ToolDefinition.builder()
+                .name(sanitizedName)
+                .description(original.getToolDefinition().description())
+                .inputSchema(original.getToolDefinition().inputSchema())
+                .build();
+        return new ToolCallback() {
+            @Override
+            public ToolDefinition getToolDefinition() {
+                return sanitizedDef;
+            }
+
+            @Override
+            public String call(String toolInput) {
+                return original.call(toolInput);
+            }
+
+            @Override
+            public String call(String toolInput, ToolContext toolContext) {
+                return original.call(toolInput, toolContext);
+            }
+        };
     }
 }

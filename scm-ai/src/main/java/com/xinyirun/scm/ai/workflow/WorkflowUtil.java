@@ -284,8 +284,12 @@ public class WorkflowUtil {
             NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);
             nodeState.getOutputs().add(output);
         } catch (Exception e) {
-            log.error("invoke LLM (streaming) failed, conversationId: {}", conversationId, e);
-            throw new RuntimeException("LLM 流式调用失败: " + e.getMessage(), e);
+            String errorDetail = e.getMessage();
+            if (e instanceof org.springframework.web.reactive.function.client.WebClientResponseException webEx) {
+                errorDetail = webEx.getMessage() + " | body: " + webEx.getResponseBodyAsString();
+            }
+            log.error("invoke LLM (streaming) failed, conversationId: {}, detail: {}", conversationId, errorDetail, e);
+            throw new RuntimeException("LLM 流式调用失败: " + errorDetail, e);
         }
     }
 

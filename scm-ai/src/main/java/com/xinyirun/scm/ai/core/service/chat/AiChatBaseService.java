@@ -189,6 +189,7 @@ public class AiChatBaseService {
         // 指定了工具名称 → 过滤加载
         if (toolNames != null && !toolNames.isEmpty()) {
             ToolCallback[] filteredCallbacks = toolNames.stream()
+                    .map(name -> name.replace(".", "_"))
                     .filter(mcpToolCallbackMap::containsKey)
                     .map(mcpToolCallbackMap::get)
                     .toArray(ToolCallback[]::new);
@@ -212,9 +213,13 @@ public class AiChatBaseService {
             log.warn("指定的工具名称均未找到: {}, 降级为全部工具", toolNames);
         }
 
-        // 未指定或过滤后为空 → 使用全部工具（向后兼容）
+        // 未指定或过滤后为空 → 使用全部工具（向后兼容），动态获取ChatModel避免缓存旧模型
         log.info("MCP工具节点使用无记忆模式, 避免对话历史干扰工具调用");
-        ChatClient.ChatClientRequestSpec requestSpec = mcpToolOnlyChatClient
+        ChatClient dynamicMcpClient = ChatClient.builder(aiModelProvider.getChatModel())
+                .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
+                .defaultToolCallbacks(mcpToolCallbackMap.values().toArray(new ToolCallback[0]))
+                .build();
+        ChatClient.ChatClientRequestSpec requestSpec = dynamicMcpClient
                 .prompt()
                 .user(aiChatOption.getPrompt());
 

@@ -5,6 +5,7 @@ import com.xinyirun.scm.ai.bean.vo.config.AiModelConfigVo;
 import com.xinyirun.scm.ai.bean.vo.config.DefaultModelsVo;
 import com.xinyirun.scm.ai.bean.vo.config.FetchRemoteModelsVo;
 import com.xinyirun.scm.ai.bean.vo.request.AiModelSourceRequestVo;
+import com.xinyirun.scm.ai.config.AiModelProvider;
 import com.xinyirun.scm.ai.core.service.config.AiConfigService;
 import com.xinyirun.scm.ai.core.service.config.AiModelConfigService;
 import com.xinyirun.scm.bean.system.ao.result.JsonResultAo;
@@ -35,6 +36,9 @@ public class AiModelConfigController {
     @Resource
     private AiConfigService aiConfigService;
 
+    @Resource
+    private AiModelProvider aiModelProvider;
+
     @PostMapping("/edit-source")
     @Operation(summary = "系统设置-编辑模型设置")
     @SysLogAnnotion("编辑模型设置")
@@ -42,7 +46,10 @@ public class AiModelConfigController {
     public AiModelConfigVo editModelConfig(@Validated @RequestBody AiModelConfigVo aiModelConfigVo) {
         Long operatorId = SecurityUtil.getStaff_id();
         String userId = operatorId != null ? operatorId.toString() : ModelConstants.SYSTEM_OWNER;
-        return aiModelConfigService.editModelConfig(aiModelConfigVo, userId);
+        AiModelConfigVo result = aiModelConfigService.editModelConfig(aiModelConfigVo, userId);
+        // 清除模型缓存，使新配置立即生效
+        aiModelProvider.clearAllCache();
+        return result;
     }
 
     @DeleteMapping("/delete/{id}")
@@ -126,6 +133,8 @@ public class AiModelConfigController {
         }
 
         aiConfigService.setDefaultModel(modelType, modelId);
+        // 清除模型缓存，使新配置立即生效
+        aiModelProvider.clearAllCache();
     }
 
     @PostMapping("/fetch-remote-models")

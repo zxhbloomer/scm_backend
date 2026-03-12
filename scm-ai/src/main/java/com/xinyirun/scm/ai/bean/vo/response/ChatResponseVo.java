@@ -333,14 +333,15 @@ public class ChatResponseVo {
      */
     public static ChatResponseVo createErrorResponse(String errorMessage) {
         return ChatResponseVo.builder()
-            .isError(true)  // ✅ 顶层错误标识
+            .isError(true)
+            .isComplete(true)
             .results(List.of(
                 Generation.builder()
                     .output(AssistantMessage.builder()
                         .content(errorMessage)
                         .build())
                     .metadata(GenerationMetadata.builder()
-                        .finishReason("error")  // ✅ 保留原有标识(双重保险)
+                        .finishReason("error")
                         .build())
                     .build()
             ))

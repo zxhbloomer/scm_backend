@@ -32,6 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ToolContext;
+import com.xinyirun.scm.ai.config.AiModelProvider;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -71,8 +72,7 @@ public class WorkflowRoutingService {
 
     @Lazy
     @Resource
-    @Qualifier("workflowRoutingChatClient")
-    private ChatClient routingChatClient;
+    private AiModelProvider aiModelProvider;
 
     @Lazy
     @Resource
@@ -215,8 +215,9 @@ public class WorkflowRoutingService {
 
             log.debug("LLM路由提示词: {}", prompt);
 
-            // 调用LLM获取路由决策
-            WorkflowRouteDecision decision = routingChatClient.prompt()
+            // 调用LLM获取路由决策（动态创建ChatClient，避免缓存旧模型）
+            WorkflowRouteDecision decision = ChatClient.builder(aiModelProvider.getChatModel()).build()
+                .prompt()
                 .user(prompt)
                 .call()
                 .entity(WorkflowRouteDecision.class);
