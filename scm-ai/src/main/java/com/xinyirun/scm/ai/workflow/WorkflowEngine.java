@@ -1829,9 +1829,6 @@ public class WorkflowEngine {
                         // outputText：优先显示LLM原始输出，fallback到中文描述
                         if (showOutput) {
                             String llmRawOutput = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
-                            log.debug("OpenPage buildSummary: outputList size={}, llmRawOutput={}",
-                                outputList != null ? outputList.size() : 0,
-                                llmRawOutput != null ? llmRawOutput.substring(0, Math.min(50, llmRawOutput.length())) : "null");
                             if (llmRawOutput != null && !llmRawOutput.isEmpty()) {
                                 summary.put("outputText", llmRawOutput);
                             } else {
