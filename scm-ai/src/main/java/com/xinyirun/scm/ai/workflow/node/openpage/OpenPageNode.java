@@ -101,9 +101,8 @@ public class OpenPageNode extends AbstractWfNode {
                         if (llmJson.getString("page_mode") != null) {
                             pageMode = llmJson.getString("page_mode");
                         }
-                        if (llmJson.getJSONObject("form_data") != null) {
-                            formData = llmJson.getJSONObject("form_data");
-                        }
+                        // LLM输出的整个JSON就是业务表单数据（平铺字段），直接作为form_data
+                        formData = llmJson;
                         if (llmJson.getJSONObject("query_params") != null) {
                             queryParams = llmJson.getJSONObject("query_params");
                         }
