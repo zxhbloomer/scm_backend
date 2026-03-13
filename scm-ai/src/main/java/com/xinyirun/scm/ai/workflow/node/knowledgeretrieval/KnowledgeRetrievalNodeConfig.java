@@ -128,4 +128,10 @@ public class KnowledgeRetrievalNodeConfig {
      */
     @JsonProperty("show_process_output")
     private Boolean showProcessOutput = true;
+
+    /**
+     * 工作流共享输出，开启后其他节点可引用本节点输出
+     */
+    @JsonProperty("shared_output")
+    private Boolean sharedOutput = false;
 }

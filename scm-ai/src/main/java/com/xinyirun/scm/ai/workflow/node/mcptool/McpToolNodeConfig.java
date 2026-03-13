@@ -59,4 +59,10 @@ public class McpToolNodeConfig {
      */
     @JSONField(name = "tool_names")
     private List<String> toolNames;
+
+    /**
+     * 工作流共享输出，开启后其他节点可引用本节点输出
+     */
+    @JSONField(name = "shared_output")
+    private Boolean sharedOutput = false;
 }

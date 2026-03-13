@@ -28,4 +28,10 @@ public class LLMAnswerNodeConfig {
      * 是否使用流式回复
      */
     private Boolean streaming;
+
+    /**
+     * 工作流共享输出，开启后其他节点可引用本节点输出
+     */
+    @JsonProperty("shared_output")
+    private Boolean sharedOutput = false;
 }

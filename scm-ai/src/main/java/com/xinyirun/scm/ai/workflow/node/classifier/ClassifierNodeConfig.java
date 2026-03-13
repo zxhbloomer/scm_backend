@@ -28,4 +28,10 @@ public class ClassifierNodeConfig {
      * 对应 Dify 的 instruction 字段
      */
     private String instruction;
+
+    /**
+     * 工作流共享输出，开启后其他节点可引用本节点输出
+     */
+    @JsonProperty("shared_output")
+    private Boolean sharedOutput = false;
 }
