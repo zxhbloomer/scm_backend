@@ -85,6 +85,10 @@ public class HumanFeedbackNodeConfig {
     public static class SelectOption {
         private String key;
         private String label;
+        /**
+         * 选项携带的完整业务数据，选中后传给下游节点
+         */
+        private java.util.Map<String, Object> data;
     }
 
     @Data

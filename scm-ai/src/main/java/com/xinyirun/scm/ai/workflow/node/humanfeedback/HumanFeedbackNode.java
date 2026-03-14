@@ -82,12 +82,19 @@ public class HumanFeedbackNode extends AbstractWfNode {
                     break;
 
                 case "select_record":
-                    String selectedKey = feedback.getString("selectedKey");
-                    String selectedLabel = feedback.getString("selectedLabel");
+                    // 前端发送结构: { action: "select_record", data: { key, label, ...业务数据 } }
+                    JSONObject selectData = feedback.getJSONObject("data");
+                    String selectedKey = selectData != null ? selectData.getString("key") : null;
+                    String selectedLabel = selectData != null ? selectData.getString("label") : null;
                     result.add(NodeIOData.createByText("selectedKey", "选中项Key",
                         selectedKey != null ? selectedKey : ""));
                     result.add(NodeIOData.createByText("output", "操作结果",
                         "用户选择: " + (selectedLabel != null ? selectedLabel : selectedKey)));
+                    // 输出完整业务数据，供下游节点（如OpenPage预填）使用
+                    if (selectData != null) {
+                        result.add(NodeIOData.createByText("selectedData", "选中项完整数据",
+                            selectData.toJSONString()));
+                    }
                     break;
 
                 case "form_submit":

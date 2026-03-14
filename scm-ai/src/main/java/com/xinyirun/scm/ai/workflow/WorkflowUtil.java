@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
+import org.springframework.ai.chat.model.ChatResponse;
 
 import java.util.HashMap;
 import java.util.List;
@@ -198,9 +199,7 @@ public class WorkflowUtil {
             log.info("节点类型判断 - 节点UUID: {}, 标题: {}, 是否MCP工具节点: {}",
                     node.getUuid(), node.getTitle(), isMcpToolNode);
 
-            StringBuilder fullResponse = new StringBuilder();
-
-            // 构建toolContext（MCP工具节点和有记忆模式都需要）
+            // 构建toolContext
             Map<String, Object> toolContextMap = new HashMap<>();
             toolContextMap.put("tenantCode", wfState.getTenantCode());
             toolContextMap.put("staffId", wfState.getUserId());
@@ -210,14 +209,36 @@ public class WorkflowUtil {
             }
             chatOption.setToolContext(toolContextMap);
 
-            // 获取流式响应：根据节点类型和conversationId选择不同模式
+            // MCP工具节点：使用非流式调用，工具调用结果无需逐字展示
+            if (isMcpToolNode) {
+                log.info("MCP工具节点使用非流式模式");
+                ChatClient.CallResponseSpec callSpec = aiChatBaseService.chatWithMcpTools(chatOption);
+                ChatResponse mcpResponse = callSpec.chatResponse();
+                String response = "";
+                if (mcpResponse != null && mcpResponse.getResult() != null
+                        && mcpResponse.getResult().getOutput() != null) {
+                    response = StringUtils.defaultString(mcpResponse.getResult().getOutput().getText(), "").trim();
+                    if (mcpResponse.getMetadata() != null && mcpResponse.getMetadata().getUsage() != null) {
+                        finalUsage[0] = mcpResponse.getMetadata().getUsage();
+                    }
+                }
+                recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
+                if (finalUsage[0] != null) {
+                    long pt = finalUsage[0].getPromptTokens() != null ? finalUsage[0].getPromptTokens() : 0;
+                    long ct = finalUsage[0].getCompletionTokens() != null ? finalUsage[0].getCompletionTokens() : 0;
+                    wfState.recordNodeTokens(node.getUuid(), pt, ct);
+                }
+                log.info("MCP工具节点非流式调用完成, 结果长度: {}", response.length());
+                nodeState.getOutputs().add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response));
+                return;
+            }
+
+            StringBuilder fullResponse = new StringBuilder();
+
+            // 获取流式响应：根据conversationId选择不同模式
             ChatClient.StreamResponseSpec streamSpec;
 
-            if (isMcpToolNode) {
-                // MCP工具节点：使用MCP工具但不加载对话历史，避免知识库内容干扰工具调用
-                log.info("MCP工具节点使用无记忆模式, 避免对话历史干扰工具调用");
-                streamSpec = aiChatBaseService.chatStreamWithMcpTools(chatOption);
-            } else if (StringUtils.isBlank(conversationId)) {
+            if (StringUtils.isBlank(conversationId)) {
                 log.warn("conversationId is null, fallback to no-memory mode");
                 streamSpec = aiChatBaseService.chatStream(chatOption);
             } else {

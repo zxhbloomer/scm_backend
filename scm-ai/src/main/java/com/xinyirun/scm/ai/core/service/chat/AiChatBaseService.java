@@ -231,6 +231,59 @@ public class AiChatBaseService {
     }
 
     /**
+     * 非流式调用MCP工具（用于McpTool节点，工具调用结果无需流式展示）
+     *
+     * @param aiChatOption 聊天选项配置对象，包含提示词和toolContext
+     * @return ChatClient.CallResponseSpec 非流式响应
+     */
+    public ChatClient.CallResponseSpec chatWithMcpTools(AIChatOptionVo aiChatOption) {
+        List<String> toolNames = aiChatOption.getToolNames();
+
+        // 指定了工具名称 → 过滤加载
+        if (toolNames != null && !toolNames.isEmpty()) {
+            ToolCallback[] filteredCallbacks = toolNames.stream()
+                    .map(name -> name.replace(".", "_"))
+                    .filter(mcpToolCallbackMap::containsKey)
+                    .map(mcpToolCallbackMap::get)
+                    .toArray(ToolCallback[]::new);
+
+            if (filteredCallbacks.length > 0) {
+                log.info("MCP工具节点使用过滤模式(非流式), 加载工具: {}/{}", filteredCallbacks.length, toolNames.size());
+                ChatClient filteredClient = ChatClient.builder(aiModelProvider.getChatModel())
+                        .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
+                        .defaultToolCallbacks(filteredCallbacks)
+                        .build();
+
+                ChatClient.ChatClientRequestSpec requestSpec = filteredClient
+                        .prompt()
+                        .user(aiChatOption.getPrompt());
+
+                if (aiChatOption.getToolContext() != null && !aiChatOption.getToolContext().isEmpty()) {
+                    requestSpec.toolContext(aiChatOption.getToolContext());
+                }
+                return requestSpec.call();
+            }
+            log.warn("指定的工具名称均未找到: {}, 降级为全部工具", toolNames);
+        }
+
+        // 未指定或过滤后为空 → 使用全部工具
+        log.info("MCP工具节点使用无记忆模式(非流式)");
+        ChatClient dynamicMcpClient = ChatClient.builder(aiModelProvider.getChatModel())
+                .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
+                .defaultToolCallbacks(mcpToolCallbackMap.values().toArray(new ToolCallback[0]))
+                .build();
+        ChatClient.ChatClientRequestSpec requestSpec = dynamicMcpClient
+                .prompt()
+                .user(aiChatOption.getPrompt());
+
+        if (aiChatOption.getToolContext() != null && !aiChatOption.getToolContext().isEmpty()) {
+            requestSpec.toolContext(aiChatOption.getToolContext());
+        }
+
+        return requestSpec.call();
+    }
+
+    /**
      * 执行AI流式聊天（带记忆模式）
      *
      * 流式聊天可以实时接收AI回复的内容片段，提供更好的用户体验

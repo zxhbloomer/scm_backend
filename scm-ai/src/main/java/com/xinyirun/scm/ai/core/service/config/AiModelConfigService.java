@@ -165,14 +165,12 @@ public class AiModelConfigService {
             entity.setTopP(BigDecimal.ONE);
         }
 
-        // Max Tokens校验：>0，默认4096
+        // Max Tokens校验：>0，不设默认值（null表示由模型自行决定输出长度）
         if (vo.getMaxTokens() != null) {
             if (vo.getMaxTokens() <= 0) {
                 throw new RuntimeException("Max Tokens必须大于0");
             }
             entity.setMaxTokens(vo.getMaxTokens());
-        } else if (entity.getMaxTokens() == null) {
-            entity.setMaxTokens(4096);
         }
 
         // Timeout校验：>0，默认60秒
