@@ -20,17 +20,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
+import reactor.core.Disposable;
+import reactor.core.publisher.FluxSink;
 
 import com.alibaba.cloud.ai.graph.*;
+import com.alibaba.cloud.ai.graph.action.AsyncMultiCommandAction;
 import static com.alibaba.cloud.ai.graph.StateGraph.END;
 import static com.alibaba.cloud.ai.graph.StateGraph.START;
-import static com.alibaba.cloud.ai.graph.action.AsyncEdgeAction.edge_async;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.*;
@@ -81,12 +81,6 @@ public class WorkflowEngine {
      * 需要在执行前中断的节点UUID集合（HumanFeedbackNode）
      */
     private final Set<String> humanFeedbackNodeUuids = new HashSet<>();
-
-    /**
-     * 节点事件Sink引用，用于在GraphLifecycleListener回调中发送节点事件
-     * 使用AtomicReference确保resume()调用时创建新Sink不发生订阅冲突
-     */
-    private final AtomicReference<Sinks.Many<WorkflowEventVo>> sinkRef = new AtomicReference<>();
 
     /**
      * 节点开始时间记录，用于计算节点执行耗时
@@ -281,9 +275,6 @@ public class WorkflowEngine {
                 // 4. 构建 StateGraph 并编译
                 StateGraph mainStateGraph = new StateGraph();
                 buildStateGraph(mainStateGraph, startNode);
-                Sinks.Many<WorkflowEventVo> newSink = Sinks.many().unicast().onBackpressureBuffer();
-                sinkRef.set(newSink);
-                wfState.setEventSink(newSink);
                 CompileConfig compileConfig = CompileConfig.builder()
                     .withLifecycleListener(new NodeEventListener())
                     .build();
@@ -342,56 +333,50 @@ public class WorkflowEngine {
                 Flux<GraphResponse<NodeOutput>> graphStream = app.graphResponseStream(initialState, invokeConfig);
                 log.info("[WorkflowEngine] graphResponseStream创建完成(Flux对象已创建，但尚未订阅)");
 
-                // 获取当前Sink，用于在graphStream完成时关闭Sink
-                Sinks.Many<WorkflowEventVo> localSink = sinkRef.get();
+                // 将 fluxSink 注入 wfState，供 NodeEventListener.before/after 使用
+                return Flux.create(fluxSink -> {
+                    wfState.setEventSink(fluxSink);
 
-                // 合并图执行流和节点事件流：节点事件在图执行过程中通过Sink侧道发送
-                Flux<WorkflowEventVo> graphEventFlux = graphStream
-                    .doOnSubscribe(sub -> log.info("[graphStream] 已被订阅"))
-                    .doFirst(() -> log.info("[graphStream] 开始执行"))
-                    .doOnNext(resp -> log.info("[graphStream] 收到元素: isDone={}, isError={}, hasOutput={}",
-                            resp.isDone(), resp.isError(), resp.getOutput() != null))
-                    .doOnComplete(() -> {
-                        log.info("[graphStream] 完成");
-                        // 工作流完成时更新状态（对齐Spring AI Alibaba Flux.complete()信号）
-                        updateWorkflowComplete();
-                        // OpenPage节点：将JSON数据通过事件流传递给前端
-                        if ((wfState.getAi_open_dialog_para() != null
-                                || wfState.getOpen_page_command() != null
-                                || wfState.getInteraction_request() != null) && localSink != null) {
-                            localSink.tryEmitNext(
-                                WorkflowEventVo.createAiOpenDialogParaEvent(
-                                    wfState.getAi_open_dialog_para(),
-                                    wfState.getOpen_page_command(),
-                                    wfState.getInteraction_request())
-                            );
-                        }
-                        // 图执行完成后关闭Sink，触发节点事件流完成
-                        if (localSink != null) {
-                            localSink.tryEmitComplete();
-                        }
-                    })
-                    .doOnError(e -> {
-                        log.error("[graphStream] 错误", e);
-                        if (localSink != null) {
-                            localSink.tryEmitError(e);
-                        }
-                    })
-                    .doOnCancel(() -> log.warn("[graphStream] 被取消"))
-                    .flatMap(graphResponse -> {
-                        log.info("[flatMap] 处理graphResponse, isDone={}, isError={}",
-                                graphResponse.isDone(), graphResponse.isError());
-                        return handleGraphResponse(graphResponse)
-                                .doOnNext(evt -> log.info("[flatMap] handleGraphResponse返回事件"))
-                                .doOnComplete(() -> log.debug("[flatMap] handleGraphResponse Flux完成"));
-                    })
-                    .doOnNext(evt -> log.info("[executeWorkflow] flatMap后收到事件"))
-                    .doOnSubscribe(sub -> log.info("[executeWorkflow] 最终Flux已被订阅"))
-                    .doOnComplete(() -> log.info("[executeWorkflow] 最终Flux完成"));
+                    Disposable d = graphStream
+                        .doOnSubscribe(sub -> log.info("[graphStream] 已被订阅"))
+                        .doFirst(() -> log.info("[graphStream] 开始执行"))
+                        .doOnNext(resp -> log.info("[graphStream] 收到元素: isDone={}, isError={}, hasOutput={}",
+                                resp.isDone(), resp.isError(), resp.getOutput() != null))
+                        .doOnCancel(() -> log.warn("[graphStream] 被取消"))
+                        .flatMap(graphResponse -> {
+                            log.info("[flatMap] 处理graphResponse, isDone={}, isError={}",
+                                    graphResponse.isDone(), graphResponse.isError());
+                            return handleGraphResponse(graphResponse)
+                                    .doOnNext(evt -> log.info("[flatMap] handleGraphResponse返回事件"))
+                                    .doOnComplete(() -> log.debug("[flatMap] handleGraphResponse Flux完成"));
+                        })
+                        .doOnNext(evt -> log.info("[executeWorkflow] flatMap后收到事件"))
+                        .doOnComplete(() -> {
+                            log.info("[graphStream] 完成");
+                            // 工作流完成时更新状态
+                            updateWorkflowComplete();
+                            // OpenPage节点：将JSON数据通过事件流传递给前端
+                            if (wfState.getAi_open_dialog_para() != null
+                                    || wfState.getOpen_page_command() != null
+                                    || wfState.getInteraction_request() != null) {
+                                fluxSink.next(
+                                    WorkflowEventVo.createAiOpenDialogParaEvent(
+                                        wfState.getAi_open_dialog_para(),
+                                        wfState.getOpen_page_command(),
+                                        wfState.getInteraction_request())
+                                );
+                            }
+                            fluxSink.complete();
+                        })
+                        .subscribe(
+                            fluxSink::next,
+                            fluxSink::error,
+                            () -> {} // complete 已在 doOnComplete 里处理
+                        );
 
-                Flux<WorkflowEventVo> nodeEventFlux = (localSink != null) ? localSink.asFlux() : Flux.empty();
-
-                return Flux.merge(graphEventFlux, nodeEventFlux);
+                    // SSE 断开时取消工作流执行
+                    fluxSink.onDispose(d::dispose);
+                });
 
             } catch (Exception e) {
                 log.error("工作流执行失败", e);
@@ -855,6 +840,11 @@ public class WorkflowEngine {
             throw new RuntimeException(e);
         }
 
+        // 检测 streamingFlux：若非 null，放入 Map 供框架 getEmbedFlux 使用（LLM 打字机效果）
+        if (processResult.getStreamingFlux() != null) {
+            resultMap.put(wfNode.getUuid() + "_flux", processResult.getStreamingFlux());
+        }
+
         // 7. 设置节点名称
         resultMap.put("name", wfNode.getTitle());
 
@@ -1061,7 +1051,8 @@ public class WorkflowEngine {
      * 处理条件分支边
      *
      * <p>只处理Switcher和Classifier组件的边作为条件边，普通节点的边不应被处理为条件边</p>
-     * <p>支持同一sourceHandle对应多个目标节点的并行执行：通过创建虚拟并行分发节点来桥接</p>
+     * <p>汇聚并行（多目标→同一汇聚点）：使用框架原生addParallelConditionalEdges，
+     * 由ConditionalParallelNode并行执行各分支，通过GraphLifecycleListener触发节点事件</p>
      *
      * @param stateGraph 状态图
      * @throws GraphStateException 状态图异常
@@ -1099,74 +1090,77 @@ public class WorkflowEngine {
             log.info("[processConditionalEdges] Switcher节点 {} 的边按sourceHandle分组: {}",
                     switcherUuid, edgesBySourceHandle.keySet());
 
-            // 构建条件路由映射: sourceHandle -> 目标节点UUID
-            Map<String, String> mappings = new HashMap<>();
+            // 构建每个handle对应的目标节点列表（单目标或多目标）
+            // handle → List<targetUuid>
+            Map<String, List<String>> handleToTargets = new HashMap<>();
+            // 所有目标节点 → 自身（用于addParallelConditionalEdges的mappings参数）
+            Map<String, String> allMappings = new HashMap<>();
 
             for (Map.Entry<String, List<AiWorkflowEdgeEntity>> entry : edgesBySourceHandle.entrySet()) {
                 String sourceHandle = entry.getKey();
                 List<AiWorkflowEdgeEntity> edges = entry.getValue();
 
                 // 去重：同一sourceHandle可能有重复的边记录
-                Set<String> uniqueTargets = edges.stream()
+                List<String> uniqueTargets = edges.stream()
                     .map(AiWorkflowEdgeEntity::getTargetNodeUuid)
-                    .collect(Collectors.toSet());
+                    .distinct()
+                    .collect(Collectors.toList());
 
                 if (uniqueTargets.size() == 1) {
-                    // 单目标：直接映射到目标节点
-                    String targetUuid = uniqueTargets.iterator().next();
-                    mappings.put(sourceHandle, targetUuid);
-                    log.info("[processConditionalEdges] sourceHandle {} -> 单目标 {}", sourceHandle, targetUuid);
+                    // 单目标
+                    handleToTargets.put(sourceHandle, uniqueTargets);
+                    allMappings.put(uniqueTargets.get(0), uniqueTargets.get(0));
+                    log.info("[processConditionalEdges] sourceHandle {} -> 单目标 {}", sourceHandle, uniqueTargets.get(0));
                 } else {
-                    // 多目标：创建虚拟并行节点，并行执行所有分支链后汇聚
-                    String convergenceNodeId = findConvergenceNodeUuid(uniqueTargets);
+                    // 多目标：汇聚并行，使用框架原生ConditionalParallelNode
+                    String convergenceNodeId = findConvergenceNodeUuid(new HashSet<>(uniqueTargets));
                     if (convergenceNodeId == null) {
-                        // 找不到汇聚点，退化为取第一个，保证工作流不中断
-                        String targetUuid = new ArrayList<>(uniqueTargets).get(0);
-                        mappings.put(sourceHandle, targetUuid);
+                        // 找不到汇聚点，退化为单目标（取第一个）
+                        String fallback = uniqueTargets.get(0);
+                        handleToTargets.put(sourceHandle, List.of(fallback));
+                        allMappings.put(fallback, fallback);
                         log.warn("[processConditionalEdges] sourceHandle {} 的多目标分支找不到汇聚点，退化为单目标: {}",
-                                sourceHandle, targetUuid);
-                        continue;
+                                sourceHandle, fallback);
+                    } else {
+                        handleToTargets.put(sourceHandle, uniqueTargets);
+                        for (String t : uniqueTargets) {
+                            allMappings.put(t, t);
+                        }
+                        log.info("[processConditionalEdges] sourceHandle {} -> 并行目标 {}, 汇聚点 {}",
+                                sourceHandle, uniqueTargets, convergenceNodeId);
                     }
-
-                    // 追踪每条分支链（从各目标节点到汇聚点，不含汇聚点自身）
-                    List<List<String>> chains = new ArrayList<>();
-                    for (String targetId : uniqueTargets) {
-                        chains.add(traceChainNodeUuids(targetId, convergenceNodeId));
-                    }
-
-                    // 创建虚拟并行节点，负责并行执行所有分支链
-                    String virtualNodeId = VIRTUAL_PARALLEL_PREFIX + switcherUuid + "_" + sourceHandle;
-                    final List<List<String>> finalChains = chains;
-                    stateGraph.addNode(virtualNodeId, state ->
-                            CompletableFuture.supplyAsync(() -> executeParallelChains(finalChains, state)));
-
-                    mappings.put(sourceHandle, virtualNodeId);
-                    addEdgeToStateGraph(stateGraph, virtualNodeId, convergenceNodeId);
-                    log.info("[processConditionalEdges] sourceHandle {} -> 并行节点 {}, 汇聚点 {}, 分支数 {}",
-                            sourceHandle, virtualNodeId, convergenceNodeId, chains.size());
                 }
             }
 
-            // 添加条件边：使用next_source_handle进行路由
-            stateGraph.addConditionalEdges(
-                switcherUuid,
-                edge_async(state -> {
-                    Object nextSourceHandle = state.data().get("next_source_handle");
-                    if (nextSourceHandle == null) {
-                        // 兼容旧版本：如果没有next_source_handle，尝试使用next
-                        Object next = state.data().get("next");
-                        if (next != null) {
-                            log.info("[条件路由] 使用旧版next字段: {}", next);
-                            return next.toString();
-                        }
+            // 使用addParallelConditionalEdges统一处理（单目标返回单元素列表，框架自动走单节点路径）
+            final Map<String, List<String>> finalHandleToTargets = handleToTargets;
+            AsyncMultiCommandAction multiAction = AsyncMultiCommandAction.of(state -> {
+                Object nextSourceHandle = state.data().get("next_source_handle");
+                String handle;
+                if (nextSourceHandle != null) {
+                    handle = nextSourceHandle.toString();
+                } else {
+                    Object next = state.data().get("next");
+                    if (next != null) {
+                        log.info("[条件路由] 使用旧版next字段: {}", next);
+                        handle = next.toString();
+                    } else {
                         log.warn("[条件路由] Switcher[{}]未设置next_source_handle，使用default_handle", switcherUuid);
-                        return "default_handle";
+                        handle = "default_handle";
                     }
-                    log.info("[条件路由] Switcher[{}] -> sourceHandle: {}", switcherUuid, nextSourceHandle);
-                    return nextSourceHandle.toString();
-                }),
-                mappings
-            );
+                }
+                log.info("[条件路由] Switcher[{}] -> sourceHandle: {}", switcherUuid, handle);
+                List<String> targets = finalHandleToTargets.get(handle);
+                if (targets == null || targets.isEmpty()) {
+                    log.warn("[条件路由] Switcher[{}] handle {} 无对应目标节点", switcherUuid, handle);
+                    return CompletableFuture.completedFuture(List.of());
+                }
+                return CompletableFuture.completedFuture(targets);
+            });
+
+            stateGraph.addParallelConditionalEdges(switcherUuid, multiAction, allMappings);
+            log.info("[processConditionalEdges] Switcher[{}] 注册addParallelConditionalEdges, mappings={}",
+                    switcherUuid, allMappings.keySet());
         }
     }
 
@@ -1489,122 +1483,6 @@ public class WorkflowEngine {
         return false;
     }
 
-    /**
-     * 追踪从 startNodeId 到 convergenceNodeId 之间的所有节点（BFS，不含汇聚点自身）。
-     * 支持多出边场景：一个节点可能有多个后继。
-     */
-    private List<String> traceChainNodeUuids(String startNodeId, String convergenceNodeId) {
-        List<String> chain = new ArrayList<>();
-        Set<String> visited = new HashSet<>();
-        Queue<String> queue = new LinkedList<>();
-        queue.add(startNodeId);
-        visited.add(startNodeId);
-        while (!queue.isEmpty()) {
-            String current = queue.poll();
-            if (current.equals(convergenceNodeId)) {
-                continue; // 不含汇聚点
-            }
-            chain.add(current);
-            for (String next : getAllNextNodeUuids(current)) {
-                if (!visited.contains(next)) {
-                    visited.add(next);
-                    queue.add(next);
-                }
-            }
-        }
-        return chain;
-    }
-
-    /**
-     * 并行执行多条节点链，合并所有链的输出结果。
-     * 每条链内部顺序执行，多条链之间并行执行。
-     * 支持共享节点：出现在多条链中的节点只执行一次（在合并阶段顺序执行）。
-     */
-    private Map<String, Object> executeParallelChains(List<List<String>> chains, OverAllState parentState) {
-        // 统计每个节点出现在几条链中
-        Map<String, Integer> nodeAppearCount = new HashMap<>();
-        for (List<String> chain : chains) {
-            for (String nodeUuid : chain) {
-                nodeAppearCount.merge(nodeUuid, 1, Integer::sum);
-            }
-        }
-
-        // 分离：共享节点（出现在多条链） vs 独占节点
-        Set<String> sharedNodes = new HashSet<>();
-        for (Map.Entry<String, Integer> entry : nodeAppearCount.entrySet()) {
-            if (entry.getValue() > 1) {
-                sharedNodes.add(entry.getKey());
-            }
-        }
-
-        // 构建去重后的独占链
-        List<List<String>> uniqueChains = new ArrayList<>();
-        for (List<String> chain : chains) {
-            List<String> uniqueChain = chain.stream()
-                    .filter(n -> !sharedNodes.contains(n))
-                    .collect(Collectors.toList());
-            if (!uniqueChain.isEmpty()) {
-                uniqueChains.add(uniqueChain);
-            }
-        }
-
-        Map<String, Object> snapshotData = new HashMap<>(parentState.data());
-        Map<String, Object> merged = new HashMap<>();
-
-        // 阶段1：并行执行独占链
-        if (!uniqueChains.isEmpty()) {
-            merged.putAll(runChainsInParallel(uniqueChains, snapshotData));
-        }
-
-        // 阶段2：顺序执行共享节点（使用合并后的状态）
-        if (!sharedNodes.isEmpty()) {
-            Map<String, Object> mergedState = new HashMap<>(snapshotData);
-            mergedState.putAll(merged);
-            for (String nodeUuid : sharedNodes) {
-                AiWorkflowNodeVo node = getNodeByUuid(nodeUuid);
-                WfNodeState nodeState = new WfNodeState(mergedState);
-                Map<String, Object> nodeResult = runNode(node, nodeState);
-                mergedState.putAll(nodeResult);
-                merged.putAll(nodeResult);
-            }
-        }
-
-        return merged;
-    }
-
-    /**
-     * 并行执行多条独占链，返回合并结果。
-     */
-    private Map<String, Object> runChainsInParallel(List<List<String>> chains, Map<String, Object> snapshotData) {
-        List<CompletableFuture<Map<String, Object>>> futures = chains.stream()
-                .map(chain -> CompletableFuture.supplyAsync(() -> {
-                    DataSourceHelper.use(this.tenantCode);
-                    Map<String, Object> chainState = new HashMap<>(snapshotData);
-                    Map<String, Object> chainResult = new HashMap<>();
-                    for (String nodeUuid : chain) {
-                        AiWorkflowNodeVo node = getNodeByUuid(nodeUuid);
-                        WfNodeState nodeState = new WfNodeState(chainState);
-                        Map<String, Object> nodeResult = runNode(node, nodeState);
-                        chainState.putAll(nodeResult);
-                        chainResult.putAll(nodeResult);
-                    }
-                    return chainResult;
-                }))
-                .collect(Collectors.toList());
-
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
-
-        Map<String, Object> merged = new HashMap<>();
-        for (CompletableFuture<Map<String, Object>> future : futures) {
-            try {
-                merged.putAll(future.get());
-            } catch (Exception e) {
-                throw new RuntimeException("并行分支执行失败", e);
-            }
-        }
-        return merged;
-    }
-
     public CompiledGraph getApp() {
         return app;
     }
@@ -1612,7 +1490,7 @@ public class WorkflowEngine {
     /**
      * 节点生命周期监听器
      * 在每个节点执行前后发送node_start和node_complete事件
-     * 通过sinkRef发送到Flux管道，前端实时展示执行步骤
+     * 通过wfState.getEventSink()发送到Flux管道，前端实时展示执行步骤
      */
     private class NodeEventListener implements GraphLifecycleListener {
 
@@ -1627,14 +1505,15 @@ public class WorkflowEngine {
         @Override
         public void before(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
             String componentName = findComponentName(nodeId);
+            log.debug("[NodeEventListener.before] nodeId={}, componentName={}, thread={}", nodeId, componentName, Thread.currentThread().getName());
             if (!VISIBLE_NODES.contains(componentName)) {
                 return;
             }
             nodeStartTimes.put(nodeId, curTime);
             String nodeTitle = findNodeTitle(nodeId);
-            Sinks.Many<WorkflowEventVo> sink = sinkRef.get();
+            FluxSink<WorkflowEventVo> sink = wfState.getEventSink();
             if (sink != null) {
-                sink.tryEmitNext(WorkflowEventVo.createNodeStartData(nodeId, componentName, nodeTitle, curTime));
+                sink.next(WorkflowEventVo.createNodeStartData(nodeId, componentName, nodeTitle, curTime));
             }
         }
 
@@ -1653,9 +1532,9 @@ public class WorkflowEngine {
             // 清理缓存
             nodeOutputCache.remove(nodeId);
             nodeInputCache.remove(nodeId);
-            Sinks.Many<WorkflowEventVo> sink = sinkRef.get();
+            FluxSink<WorkflowEventVo> sink = wfState.getEventSink();
             if (sink != null) {
-                sink.tryEmitNext(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
+                sink.next(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
             }
         }
 

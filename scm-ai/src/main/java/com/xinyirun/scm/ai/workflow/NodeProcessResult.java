@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.ai.chat.model.ChatResponse;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,4 +38,10 @@ public class NodeProcessResult {
      * WorkflowEngine 会创建虚拟并行分发节点来实现并行执行
      */
     private String nextSourceHandle;
+
+    /**
+     * LLM流式输出Flux（非silentMode时由LLMAnswerNode设置）
+     * WorkflowEngine.runNode()检测此字段，若非null则放入返回Map供框架getEmbedFlux使用
+     */
+    private Flux<ChatResponse> streamingFlux;
 }

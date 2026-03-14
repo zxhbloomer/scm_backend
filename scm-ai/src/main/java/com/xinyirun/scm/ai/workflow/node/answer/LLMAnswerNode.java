@@ -9,6 +9,8 @@ import com.xinyirun.scm.ai.workflow.WorkflowUtil;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.chat.model.ChatResponse;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -39,9 +41,9 @@ public class LLMAnswerNode extends AbstractWfNode {
         log.info("LLM prompt: {}", prompt);
 
         String modelName = nodeConfig.getModelName();
-        // 调用LLM接口进行流式处理
-        WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt);
+        // 调用LLM接口进行流式处理，返回Flux供框架getEmbedFlux实现打字机效果
+        Flux<ChatResponse> streamingFlux = WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt, false);
 
-        return new NodeProcessResult();
+        return NodeProcessResult.builder().streamingFlux(streamingFlux).build();
     }
 }

@@ -10,7 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
-import reactor.core.publisher.Sinks;
+import reactor.core.publisher.FluxSink;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -109,9 +109,9 @@ public class WfState {
     private boolean waitingInteraction = false;
 
     /**
-     * 事件Sink引用，供LLM流式调用时发送chunk事件到前端
+     * FluxSink引用，供NodeEventListener和handleInterruption发送事件到前端
      */
-    private transient Sinks.Many<WorkflowEventVo> eventSink;
+    private transient FluxSink<WorkflowEventVo> eventSink;
 
     /**
      * 已通过chunk事件流式输出的节点UUID集合
@@ -132,11 +132,11 @@ public class WfState {
         return nodeTokens.get(nodeUuid);
     }
 
-    public Sinks.Many<WorkflowEventVo> getEventSink() {
+    public FluxSink<WorkflowEventVo> getEventSink() {
         return eventSink;
     }
 
-    public void setEventSink(Sinks.Many<WorkflowEventVo> eventSink) {
+    public void setEventSink(FluxSink<WorkflowEventVo> eventSink) {
         this.eventSink = eventSink;
     }
 

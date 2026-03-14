@@ -12,21 +12,20 @@ import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 import com.xinyirun.scm.ai.workflow.node.AbstractWfNode;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.ai.tool.ToolCallback;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.DEFAULT_OUTPUT_PARAM_NAME;
 
 /**
  * MCP工具节点
- * 功能：通过LLM的Function Calling能力自动选择和调用MCP工具
- *
- * 执行流程:
- * 1. 解析节点配置,获取tool_input和model_name
- * 2. 自动发现系统中所有带@McpTool注解的工具
- * 3. 将这些工具作为Function Call提供给LLM
- * 4. LLM根据输入智能选择并调用合适的工具
- * 5. 收集工具执行结果并流式返回
+ * 支持两种执行模式：
+ * 1. LLM模式(默认): 通过LLM的Function Calling能力自动选择和调用工具
+ * 2. 直接调用模式(direct_call=true): 跳过LLM，直接调用指定工具，适合参数确定的查询场景
  *
  * @author zzxxhh
  * @since 2025-11-19
@@ -41,35 +40,32 @@ public class McpToolNode extends AbstractWfNode {
         super(wfComponent, node, wfState, nodeState);
     }
 
-    /**
-     * mcp 被大模型调用的入口
-     * @return
-     */
     @Override
     protected NodeProcessResult onProcess() {
         log.info("开始执行MCP工具节点: {}", node.getTitle());
 
         try {
-            // 1. 解析配置
             McpToolNodeConfig config = checkAndGetConfig(McpToolNodeConfig.class);
 
-            // 2. 构建输入
+            // direct_call=true：跳过LLM，直接调用工具
+            if (Boolean.TRUE.equals(config.getDirectCall())) {
+                executeDirectCall(config);
+                return new NodeProcessResult();
+            }
+
+            // 默认：LLM Function Calling模式
             String inputText = getFirstInputText();
             String toolInput = config.getToolInput();
 
-            // 构建prompt: 如果配置了tool_input,将其作为系统指令与用户输入组合
             String prompt;
             if (StringUtils.isNotBlank(toolInput)) {
-                // 渲染tool_input模板
                 String renderedToolInput = WorkflowUtil.renderTemplate(toolInput, state.getInputs());
-                // 组合: 系统指令 + 用户输入
                 if (StringUtils.isNotBlank(inputText)) {
                     prompt = renderedToolInput + "\n\n用户问题: " + inputText;
                 } else {
                     prompt = renderedToolInput;
                 }
             } else {
-                // 没有配置tool_input,直接使用上游节点输出
                 prompt = inputText;
             }
 
@@ -79,26 +75,72 @@ public class McpToolNode extends AbstractWfNode {
 
             log.info("MCP工具节点输入: {}", prompt);
 
-            // 3. 获取模型名称（为空时由WorkflowUtil.resolveModelConfig降级到系统默认模型）
-            String modelName = config.getModelName();
-
-            // 4. 使用LLM的Function Calling能力自动选择和调用工具
-            // WorkflowUtil.streamingInvokeLLM会自动:
-            // - 发现所有@McpTool注解的工具
-            // - 将工具定义作为Function Call提供给LLM
-            // - LLM根据输入智能选择工具并调用
-            // - 流式返回工具执行结果
             boolean silentMode = config.getShowProcessOutput() != null && !config.getShowProcessOutput();
-            WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt, silentMode);
+            WorkflowUtil.streamingInvokeLLM(wfState, state, node, config.getModelName(), prompt, silentMode);
 
-            log.info("MCP工具节点执行完成: {}, 模型: {}", node.getTitle(), modelName);
-
-            // 流式输出时,实际内容通过StreamHandler实时发送
+            log.info("MCP工具节点执行完成: {}", node.getTitle());
             return new NodeProcessResult();
 
         } catch (Exception e) {
             log.error("MCP工具节点执行失败: {}", node.getTitle(), e);
             throw new RuntimeException("MCP工具执行失败: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 直接调用模式：跳过LLM，直接调用tool_names[0]指定的工具
+     * 参数从direct_params读取，支持${varName}变量引用
+     */
+    @SuppressWarnings("unchecked")
+    private void executeDirectCall(McpToolNodeConfig config) {
+        List<String> toolNames = config.getToolNames();
+        if (toolNames == null || toolNames.isEmpty()) {
+            throw new RuntimeException("direct_call=true时必须在tool_names中指定工具名");
+        }
+
+        // direct_call模式下tool_names[0]必须是mcpToolCallbackMap的key格式：ClassName_methodName
+        // 例如: "GoodsQueryMcpTools_queryGoodsByName"（注意是下划线，不是点）
+        // 兼容写法：如果配置了点分隔格式也自动转换
+        String toolName = toolNames.get(0).replace(".", "_");
+
+        Map<String, ToolCallback> mcpToolCallbackMap =
+                SpringUtil.getBean("mcpToolCallbackMap", Map.class);
+
+        ToolCallback toolCallback = mcpToolCallbackMap.get(toolName);
+        if (toolCallback == null) {
+            throw new RuntimeException("未找到工具: " + toolName
+                    + "，direct_call模式tool_names格式应为 ClassName_methodName，可用工具: "
+                    + mcpToolCallbackMap.keySet());
+        }
+
+        // 渲染direct_params中的变量引用，构建工具入参JSON
+        Map<String, Object> params = new HashMap<>();
+        if (config.getDirectParams() != null) {
+            for (Map.Entry<String, Object> entry : config.getDirectParams().entrySet()) {
+                Object val = entry.getValue();
+                if (val instanceof String) {
+                    // 渲染 ${varName} 变量
+                    val = WorkflowUtil.renderTemplate((String) val, state.getInputs());
+                }
+                params.put(entry.getKey(), val);
+            }
+        }
+        String toolInput = JSON.toJSONString(params);
+
+        // 构建ToolContext（tenantCode、staffId、nodeState与LLM模式保持一致）
+        Map<String, Object> contextMap = new HashMap<>();
+        contextMap.put("tenantCode", wfState.getTenantCode());
+        contextMap.put("staffId", wfState.getUserId());
+        contextMap.put("nodeState", state);
+        if (wfState.getPageContext() != null) {
+            contextMap.put("pageContext", wfState.getPageContext());
+        }
+        ToolContext toolContext = new ToolContext(contextMap);
+
+        log.info("MCP直接调用: 工具={}, 参数={}", toolName, toolInput);
+        String result = toolCallback.call(toolInput, toolContext);
+        log.info("MCP直接调用完成: 工具={}, 结果长度={}", toolName, result != null ? result.length() : 0);
+
+        state.getOutputs().add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", result != null ? result : ""));
     }
 }

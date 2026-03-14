@@ -12,15 +12,17 @@ import java.util.List;
  * {
  *   "tool_input": "查询库位信息,条件: {input.query_condition}",
  *   "model_name": "gj-deepseek",
- *   "tool_names": ["querySupplier", "queryInventory"]
+ *   "tool_names": ["querySupplier", "queryInventory"],
+ *   "direct_call": false,
+ *   "direct_params": {"keyword": "${var_user_input}"}
  * }
  *
  * 简化设计:
- * - tool_input: 传递给MCP工具的输入参数,支持变量引用
- * - model_name: LLM模型名称,用于Function Calling智能选择工具
- * - tool_names: 指定加载的MCP工具名称列表,null或空表示加载全部工具
- * - MCP工具会被自动发现并作为Function Call提供给LLM
- * - LLM根据输入智能选择并调用合适的工具
+ * - tool_input: LLM模式下的自然语言指令，支持变量引用
+ * - model_name: LLM模型名称，用于Function Calling智能选择工具
+ * - tool_names: 指定加载的MCP工具名称列表，null或空表示加载全部工具
+ * - direct_call: true时跳过LLM，直接调用tool_names[0]指定的工具
+ * - direct_params: direct_call=true时传给工具的参数Map，支持${var}变量引用
  *
  * @author zzxxhh
  * @since 2025-11-19
@@ -65,4 +67,22 @@ public class McpToolNodeConfig {
      */
     @JSONField(name = "shared_output")
     private Boolean sharedOutput = false;
+
+    /**
+     * 是否直接调用工具，跳过LLM
+     * false(默认): 走LLM Function Calling流程
+     * true: 直接调用tool_names[0]指定的工具，配合direct_params使用
+     */
+    @JSONField(name = "direct_call")
+    private Boolean directCall = false;
+
+    /**
+     * 直接调用模式下传给工具的参数Map
+     * 仅在direct_call=true时生效
+     * 支持${varName}变量引用，引用上游节点输出
+     * 示例: {"keyword": "${var_user_input}"}
+     *       {"page_code": "P00000170"}
+     */
+    @JSONField(name = "direct_params")
+    private java.util.Map<String, Object> directParams;
 }

@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+import reactor.core.publisher.Flux;
 
 import java.util.HashMap;
 import java.util.List;
@@ -121,9 +122,9 @@ public class WorkflowUtil {
      * @param modelName 模型名称
      * @param prompt 提示词/问题
      */
-    public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
+    public static Flux<ChatResponse> streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
                                            String modelName, String prompt) {
-        streamingInvokeLLM(wfState, nodeState, node, modelName, prompt, false);
+        return streamingInvokeLLM(wfState, nodeState, node, modelName, prompt, false);
     }
 
     /**
@@ -144,9 +145,9 @@ public class WorkflowUtil {
      * @param node 工作流节点定义
      * @param modelName 模型名称
      * @param prompt 提示词/问题
-     * @param silentMode 静默模式，true时不流式推送输出到前端，但数据仍传递给下游节点
+     * @param silentMode 静默模式，true时内部blockLast消费并返回null，false时返回Flux<ChatResponse>供框架流式输出
      */
-    public static void streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
+    public static Flux<ChatResponse> streamingInvokeLLM(WfState wfState, WfNodeState nodeState, AiWorkflowNodeVo node,
                                            String modelName, String prompt, boolean silentMode) {
         String conversationId = wfState.getConversationId();
 
@@ -230,7 +231,7 @@ public class WorkflowUtil {
                 }
                 log.info("MCP工具节点非流式调用完成, 结果长度: {}", response.length());
                 nodeState.getOutputs().add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response));
-                return;
+                return null;
             }
 
             StringBuilder fullResponse = new StringBuilder();
@@ -249,29 +250,63 @@ public class WorkflowUtil {
                 streamSpec = aiChatBaseService.chatWithWorkflowMemoryStream(chatOption, runtimeUuid, originalUserInput, wfState.getCallSource());
             }
 
-            // 统一的流式处理逻辑
-            streamSpec.chatResponse()
+            if (silentMode) {
+                // silentMode=true：内部blockLast消费，不向前端推送chunk，返回null
+                streamSpec.chatResponse()
+                        .doOnSubscribe(sub -> log.debug("LLM Flux已订阅"))
+                        .doOnNext(chatResponse -> {
+                            if (wfState.getTenantCode() != null) {
+                                DataSourceHelper.use(wfState.getTenantCode());
+                            }
+                            String content = chatResponse.getResult().getOutput().getText();
+                            if (StringUtils.isNotEmpty(content)) {
+                                fullResponse.append(content);
+                            }
+                            if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
+                                finalUsage[0] = chatResponse.getMetadata().getUsage();
+                            }
+                        })
+                        .doOnComplete(() -> {
+                            log.debug("LLM Flux完成(onComplete)");
+                            recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
+                        })
+                        .doOnError(e -> log.error("LLM Flux发生错误(onError)", e))
+                        .doOnCancel(() -> log.warn("LLM Flux被取消(onCancel)"))
+                        .timeout(java.time.Duration.ofSeconds(120))
+                        .blockLast();
+
+                log.debug("LLM blockLast()已返回 - conversationId: {}", conversationId);
+
+                if (finalUsage[0] != null) {
+                    long pt = finalUsage[0].getPromptTokens() != null ? finalUsage[0].getPromptTokens() : 0;
+                    long ct = finalUsage[0].getCompletionTokens() != null ? finalUsage[0].getCompletionTokens() : 0;
+                    wfState.recordNodeTokens(node.getUuid(), pt, ct);
+                }
+
+                String response = fullResponse.toString();
+                if (StringUtils.isNotBlank(response)) {
+                    response = response.trim();
+                }
+                log.info("LLM streaming response completed (silentMode), conversationId: {}, total length: {}",
+                        conversationId, response.length());
+
+                nodeState.getOutputs().add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response));
+                return null;
+            }
+
+            // silentMode=false：返回Flux<ChatResponse>，由框架getEmbedFlux消费实现打字机效果
+            // doOnNext/doOnComplete中的副作用在Flux被框架消费时执行
+            return streamSpec.chatResponse()
                     .doOnSubscribe(sub -> log.debug("LLM Flux已订阅"))
                     .doOnNext(chatResponse -> {
-                        // 在Reactor流回调中设置租户上下文，防止线程切换导致上下文丢失
                         if (wfState.getTenantCode() != null) {
                             DataSourceHelper.use(wfState.getTenantCode());
                         }
-
                         String content = chatResponse.getResult().getOutput().getText();
                         if (StringUtils.isNotEmpty(content)) {
                             fullResponse.append(content);
-
-                            // 通过Sink发送chunk事件到前端（打字机效果）
-                            if (!silentMode && wfState.getEventSink() != null) {
-                                wfState.markNodeStreamed(node.getUuid());
-                                wfState.getEventSink().tryEmitNext(
-                                    WorkflowEventVo.createChunkData(node.getUuid(), content)
-                                );
-                            }
+                            wfState.markNodeStreamed(node.getUuid());
                         }
-
-                        // 累积Usage信息（通常在最后一个响应中包含完整Usage）
                         if (chatResponse.getMetadata() != null && chatResponse.getMetadata().getUsage() != null) {
                             finalUsage[0] = chatResponse.getMetadata().getUsage();
                         }
@@ -279,31 +314,23 @@ public class WorkflowUtil {
                     .doOnComplete(() -> {
                         log.debug("LLM Flux完成(onComplete)");
                         recordWorkflowTokenUsage(wfState, node, finalUsage[0], modelConfig, startTime);
+                        if (finalUsage[0] != null) {
+                            long pt = finalUsage[0].getPromptTokens() != null ? finalUsage[0].getPromptTokens() : 0;
+                            long ct = finalUsage[0].getCompletionTokens() != null ? finalUsage[0].getCompletionTokens() : 0;
+                            wfState.recordNodeTokens(node.getUuid(), pt, ct);
+                        }
+                        String response = fullResponse.toString();
+                        if (StringUtils.isNotBlank(response)) {
+                            response = response.trim();
+                        }
+                        log.info("LLM streaming response completed, conversationId: {}, total length: {}",
+                                conversationId, response.length());
+                        nodeState.getOutputs().add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response));
                     })
                     .doOnError(e -> log.error("LLM Flux发生错误(onError)", e))
                     .doOnCancel(() -> log.warn("LLM Flux被取消(onCancel)"))
-                    .timeout(java.time.Duration.ofSeconds(120))
-                    .blockLast();
+                    .timeout(java.time.Duration.ofSeconds(120));
 
-            log.debug("LLM blockLast()已返回 - conversationId: {}", conversationId);
-
-            // 保存Token消耗到WfState，供node_complete事件携带
-            if (finalUsage[0] != null) {
-                long pt = finalUsage[0].getPromptTokens() != null ? finalUsage[0].getPromptTokens() : 0;
-                long ct = finalUsage[0].getCompletionTokens() != null ? finalUsage[0].getCompletionTokens() : 0;
-                wfState.recordNodeTokens(node.getUuid(), pt, ct);
-            }
-
-            String response = fullResponse.toString();
-            // 移除前导和尾随空白字符,避免Markdown渲染为代码块
-            if (StringUtils.isNotBlank(response)) {
-                response = response.trim();
-            }
-            log.info("LLM streaming response completed, conversationId: {}, total length: {}",
-                    conversationId, response.length());
-
-            NodeIOData output = NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "", response);
-            nodeState.getOutputs().add(output);
         } catch (Exception e) {
             String errorDetail = e.getMessage();
             if (e instanceof org.springframework.web.reactive.function.client.WebClientResponseException webEx) {
