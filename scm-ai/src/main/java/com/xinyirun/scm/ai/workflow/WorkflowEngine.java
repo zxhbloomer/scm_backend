@@ -722,6 +722,37 @@ public class WorkflowEngine {
                 String componentName = findComponentName(nodeId);
                 List<WorkflowEventVo> events = new ArrayList<>();
 
+                // 并行节点特殊处理：框架将并行子节点合并为 __PARALLEL__(xxx) 输出
+                // 此时需要对所有在 nodeStartTimes 中有记录的并行子节点发送 node_complete
+                if (nodeId.startsWith("__PARALLEL__")) {
+                    long now = System.currentTimeMillis();
+                    // 遍历 nodeStartTimes 中所有还未发 node_complete 的节点（即并行子节点）
+                    for (Map.Entry<String, Long> entry : new ArrayList<>(nodeStartTimes.entrySet())) {
+                        String parallelChildId = entry.getKey();
+                        String childComponentName = findComponentName(parallelChildId);
+                        if (!VISIBLE_NODES.contains(childComponentName)) continue;
+                        Long startTime = nodeStartTimes.remove(parallelChildId);
+                        if (startTime == null) continue;
+                        long duration = now - startTime;
+                        String childTitle = findNodeTitle(parallelChildId);
+                        nodeOutputCache.remove(parallelChildId);
+                        nodeInputCache.remove(parallelChildId);
+                        events.add(WorkflowEventVo.createNodeCompleteData(parallelChildId, childComponentName, childTitle, duration, null));
+                        // output 事件
+                        AbstractWfNode childNode = wfState.getCompletedNodes().stream()
+                            .filter(item -> item.getNode().getUuid().equals(parallelChildId))
+                            .findFirst().orElse(null);
+                        if (childNode != null && !wfState.hasNodeStreamed(parallelChildId)) {
+                            List<NodeIOData> outputList = childNode.getState().getOutputs();
+                            Map<String, Object> outputs = outputList.stream()
+                                .collect(Collectors.toMap(NodeIOData::getName, d -> d, (v1, v2) -> v2));
+                            String compName = childNode.getWfComponent() != null ? childNode.getWfComponent().getName() : "";
+                            events.add(WorkflowEventVo.createNodeOutputData(parallelChildId, compName, outputs));
+                        }
+                    }
+                    return Flux.fromIterable(events);
+                }
+
                 // 发送 node_complete（当前节点完成）+ 预告下一个节点（node_start）
                 // 用 nodeStartTimes.remove 的返回值判断：只有第一次（startTime != null）才发送，避免流式节点每个chunk都重复发送
                 if (VISIBLE_NODES.contains(componentName)) {
