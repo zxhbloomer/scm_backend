@@ -217,7 +217,9 @@ public class WfState {
      */
     public void addEdge(String sourceNodeUuid, String targetNodeUuid) {
         List<String> targetNodeUuids = edges.computeIfAbsent(sourceNodeUuid, k -> new ArrayList<>());
-        targetNodeUuids.add(targetNodeUuid);
+        if (!targetNodeUuids.contains(targetNodeUuid)) {
+            targetNodeUuids.add(targetNodeUuid);
+        }
     }
 
     /**
