@@ -14,6 +14,7 @@ import reactor.core.publisher.FluxSink;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.WORKFLOW_PROCESS_STATUS_READY;
 
@@ -60,9 +61,16 @@ public class WfState {
     private Map<String, List<String>> conditionalEdges = new HashMap<>();
 
     /**
+     * 条件分支边（按handle分组）
+     * key: sourceNodeUuid + "|" + sourceHandle
+     * value: 该handle对应的目标节点UUID列表
+     */
+    private Map<String, List<String>> conditionalEdgesByHandle = new HashMap<>();
+
+    /**
      * 已运行节点列表
      */
-    private List<AbstractWfNode> completedNodes = new LinkedList<>();
+    private List<AbstractWfNode> completedNodes = new CopyOnWriteArrayList<>();
 
     private List<AiWorkflowRuntimeNodeVo> runtimeNodes = new ArrayList<>();
 
@@ -222,6 +230,42 @@ public class WfState {
     public void addConditionalEdge(String sourceNodeUuid, String targetNodeUuid) {
         List<String> targetNodeUuids = conditionalEdges.computeIfAbsent(sourceNodeUuid, k -> new ArrayList<>());
         targetNodeUuids.add(targetNodeUuid);
+    }
+
+    /**
+     * 新增条件分支边（按handle分组）
+     *
+     * @param sourceNodeUuid  条件节点UUID
+     * @param sourceHandle    sourceHandle（如 "case_uuid_xxx" 或 "default_handle"）
+     * @param targetNodeUuids 该handle对应的目标节点UUID列表
+     */
+    public void addConditionalEdgeByHandle(String sourceNodeUuid, String sourceHandle, List<String> targetNodeUuids) {
+        String key = sourceNodeUuid + "|" + sourceHandle;
+        conditionalEdgesByHandle.put(key, new ArrayList<>(targetNodeUuids));
+    }
+
+    /**
+     * 获取条件分支节点指定handle的目标节点列表
+     *
+     * @param sourceNodeUuid 条件节点UUID
+     * @param sourceHandle   sourceHandle
+     * @return 目标节点UUID列表，未找到返回空列表
+     */
+    public List<String> getConditionalEdgeTargets(String sourceNodeUuid, String sourceHandle) {
+        String key = sourceNodeUuid + "|" + sourceHandle;
+        List<String> targets = conditionalEdgesByHandle.get(key);
+        return targets != null ? targets : Collections.emptyList();
+    }
+
+    /**
+     * 获取普通边的目标节点列表
+     *
+     * @param sourceNodeUuid 源节点UUID
+     * @return 目标节点UUID列表，未找到返回空列表
+     */
+    public List<String> getEdgeTargets(String sourceNodeUuid) {
+        List<String> targets = edges.get(sourceNodeUuid);
+        return targets != null ? targets : Collections.emptyList();
     }
 
     public List<NodeIOData> getIOByNodeUuid(String nodeUuid) {

@@ -21,7 +21,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.Disposable;
-import reactor.core.publisher.FluxSink;
 
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.action.AsyncMultiCommandAction;
@@ -100,6 +99,20 @@ public class WorkflowEngine {
      * 供after回调中的buildSummary读取（after时WfNodeState已不可访问）
      */
     private final ConcurrentHashMap<String, List<NodeIOData>> nodeInputCache = new ConcurrentHashMap<>();
+
+    /**
+     * 条件分支节点UUID集合（Switcher/Classifier），buildStateGraph 阶段填充
+     */
+    private Set<String> conditionalNodeUuids = new HashSet<>();
+
+    /**
+     * 展示的节点类型
+     */
+    private static final Set<String> VISIBLE_NODES = Set.of(
+        "Start", "End",
+        "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
+        "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher", "SubWorkflow", "Template"
+    );
 
     /**
      * 获取租户编码（用于数据源切换）
@@ -422,6 +435,245 @@ public class WorkflowEngine {
         }
     }
 
+    private String findComponentName(String nodeId) {
+        return wfNodes.stream()
+            .filter(n -> nodeId.equals(n.getUuid()))
+            .findFirst()
+            .map(n -> components.stream()
+                .filter(c -> c.getId().equals(n.getWorkflowComponentId()))
+                .findFirst()
+                .map(AiWorkflowComponentEntity::getName)
+                .orElse(""))
+            .orElse("");
+    }
+
+    private String findNodeTitle(String nodeId) {
+        return wfNodes.stream()
+            .filter(n -> nodeId.equals(n.getUuid()))
+            .findFirst()
+            .map(AiWorkflowNodeVo::getTitle)
+            .orElse("");
+    }
+
+    /**
+     * 推断当前节点完成后的下一个节点列表
+     * 用于 handleGraphResponse 发送 node_start 预告事件
+     */
+    private List<String> resolveNextNodes(String currentNodeId, NodeOutput nodeOutput) {
+        List<String> result = new ArrayList<>();
+        if (conditionalNodeUuids.contains(currentNodeId)) {
+            Object nextSourceHandle = nodeOutput.state().data().get("next_source_handle");
+            if (nextSourceHandle != null) {
+                List<String> targets = wfState.getConditionalEdgeTargets(currentNodeId, nextSourceHandle.toString());
+                result.addAll(targets);
+            }
+            return result;
+        }
+        result.addAll(wfState.getEdgeTargets(currentNodeId));
+        return result;
+    }
+
+    private Map<String, Object> buildSummaryFromNodeOutput(String componentName, String nodeId, NodeOutput nodeOutput) {
+        Map<String, Object> summary = null;
+        try {
+            List<NodeIOData> outputList = nodeOutputCache.get(nodeId);
+            if (outputList == null) {
+                String outputKey = NODE_OUTPUT_KEY_PREFIX + nodeId;
+                Object outputObj = nodeOutput.state().data().get(outputKey);
+                @SuppressWarnings("unchecked")
+                List<NodeIOData> stateOutput = (outputObj instanceof List) ? (List<NodeIOData>) outputObj : null;
+                outputList = stateOutput;
+            }
+
+            boolean showOutput = getNodeShowProcessOutput(nodeId);
+
+            switch (componentName) {
+                case "Start": {
+                    AiWorkflowNodeVo startNodeVo = wfNodes.stream()
+                        .filter(n -> nodeId.equals(n.getUuid())).findFirst().orElse(null);
+                    if (startNodeVo != null && startNodeVo.getInputConfig() != null
+                            && startNodeVo.getInputConfig().getUserInputs() != null) {
+                        summary = new HashMap<>();
+                        List<Map<String, String>> params = new ArrayList<>();
+                        for (AiWfNodeIOVo io : startNodeVo.getInputConfig().getUserInputs()) {
+                            Map<String, String> p = new HashMap<>();
+                            p.put("name", io.getName());
+                            p.put("title", io.getTitle());
+                            Object stateValue = nodeOutput.state().data().get(io.getName());
+                            if (stateValue == null) {
+                                for (NodeIOData wfInput : wfState.getInput()) {
+                                    if (io.getName().equals(wfInput.getName())) {
+                                        stateValue = wfInput.getContent().getValue();
+                                        break;
+                                    }
+                                }
+                            }
+                            if (stateValue != null) {
+                                p.put("value", String.valueOf(stateValue));
+                            }
+                            params.add(p);
+                        }
+                        summary.put("params", params);
+                    }
+                    break;
+                }
+                case "KnowledgeRetrieval": {
+                    String matchCount = findOutputValue(outputList, "matchCount");
+                    if (matchCount != null) {
+                        summary = new HashMap<>();
+                        summary.put("matchCount", matchCount);
+                    }
+                    break;
+                }
+                case "Classifier": {
+                    String result = findOutputValue(outputList, "result");
+                    if (result == null) result = findOutputValue(outputList, "output");
+                    if (result != null) {
+                        summary = new HashMap<>();
+                        summary.put("result", result);
+                        if (showOutput) {
+                            summary.put("outputText", result);
+                        }
+                    }
+                    break;
+                }
+                case "McpTool": {
+                    String toolName = findOutputValue(outputList, "toolName");
+                    String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                    if (toolName != null || outputText != null) {
+                        summary = new HashMap<>();
+                        if (toolName != null) summary.put("toolName", toolName);
+                        if (showOutput && outputText != null) summary.put("outputText", outputText);
+                    }
+                    break;
+                }
+                case "OpenPage": {
+                    String commandJson = findOutputValue(outputList, "open_page_command");
+                    String route = null;
+                    String pageMode = null;
+                    if (commandJson != null) {
+                        try {
+                            com.alibaba.fastjson2.JSONObject cmd = com.alibaba.fastjson2.JSONObject.parseObject(commandJson);
+                            route = cmd.getString("route");
+                            pageMode = cmd.getString("page_mode");
+                        } catch (Exception ignored) {}
+                    }
+                    summary = new HashMap<>();
+                    List<Map<String, String>> params = new ArrayList<>();
+                    if (route != null) {
+                        Map<String, String> p = new HashMap<>();
+                        p.put("name", "route");
+                        p.put("title", "路由");
+                        p.put("value", route);
+                        params.add(p);
+                    }
+                    if (pageMode != null) {
+                        Map<String, String> p = new HashMap<>();
+                        p.put("name", "page_mode");
+                        p.put("title", "页面模式");
+                        p.put("value", pageMode);
+                        params.add(p);
+                    }
+                    try {
+                        com.alibaba.fastjson2.JSONObject cmd2 = com.alibaba.fastjson2.JSONObject.parseObject(commandJson);
+                        Object formData = cmd2.get("form_data");
+                        if (formData != null) {
+                            Map<String, String> p = new HashMap<>();
+                            p.put("name", "form_data");
+                            p.put("title", "参数");
+                            p.put("value", formData.toString());
+                            params.add(p);
+                        }
+                    } catch (Exception ignored) {}
+                    if (!params.isEmpty()) {
+                        summary.put("params", params);
+                    }
+                    List<NodeIOData> nodeInputs = nodeInputCache.get(nodeId);
+                    if (nodeInputs != null) {
+                        Set<String> addedNames = new HashSet<>();
+                        for (NodeIOData input : nodeInputs) {
+                            String inputName = input.getName();
+                            if (inputName == null || "input".equals(inputName)) continue;
+                            if (!addedNames.add(inputName)) continue;
+                            if (input.getContent() != null && input.getContent().getValue() != null) {
+                                Map<String, String> p = new HashMap<>();
+                                p.put("name", inputName);
+                                String inputTitle = input.getContent().getTitle();
+                                p.put("title", inputTitle != null && !inputTitle.isEmpty() ? inputTitle : inputName);
+                                p.put("value", input.valueToString());
+                                params.add(p);
+                            }
+                        }
+                        if (!params.isEmpty()) {
+                            summary.put("params", params);
+                        }
+                    }
+                    String llmRawOutput = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                    if (llmRawOutput != null && !llmRawOutput.isEmpty()) {
+                        Map<String, String> p = new HashMap<>();
+                        p.put("name", "llm_output");
+                        p.put("title", "大模型返回");
+                        p.put("value", llmRawOutput);
+                        params.add(p);
+                        summary.put("params", params);
+                    }
+                    if (showOutput) {
+                        String modeLabel = "new".equals(pageMode) ? "新增"
+                            : "edit".equals(pageMode) ? "编辑"
+                            : "view".equals(pageMode) ? "查看"
+                            : "approve".equals(pageMode) ? "审批"
+                            : "list".equals(pageMode) ? "列表" : "";
+                        String text = route != null
+                            ? "已为您打开" + modeLabel + "页面: " + route
+                            : "已为您打开页面";
+                        summary.put("outputText", text);
+                    }
+                    break;
+                }
+                case "Switcher": {
+                    String caseName = findOutputValue(outputList, "matched_case_name");
+                    if (caseName != null && showOutput) {
+                        summary = new HashMap<>();
+                        summary.put("outputText", "-> " + caseName);
+                    }
+                    break;
+                }
+                case "Template": {
+                    if (showOutput) {
+                        String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                        if (outputText != null) {
+                            summary = new HashMap<>();
+                            summary.put("outputText", outputText);
+                        }
+                    }
+                    break;
+                }
+                case "SubWorkflow": {
+                    String workflowName = wfNodes.stream()
+                        .filter(n -> nodeId.equals(n.getUuid()))
+                        .findFirst()
+                        .map(n -> n.getNodeConfig() != null ? n.getNodeConfig().getString("workflow_name") : null)
+                        .orElse(null);
+                    String subStepsJson = findOutputValue(outputList, "__sub_steps__");
+                    if (subStepsJson != null) {
+                        summary = new HashMap<>();
+                        if (workflowName != null) summary.put("workflowName", workflowName);
+                        summary.put("steps", JSON.parseArray(subStepsJson));
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.debug("获取{}节点摘要失败: {}", componentName, e.getMessage());
+        }
+        long[] tokens = wfState.getNodeTokens(nodeId);
+        if (tokens != null) {
+            if (summary == null) summary = new HashMap<>();
+            summary.put("totalTokens", tokens[0] + tokens[1]);
+        }
+        return summary;
+    }
+
     /**
      * 处理GraphResponse事件 - 核心适配逻辑
      *
@@ -466,29 +718,52 @@ public class WorkflowEngine {
                 // 处理节点输出（更新数据库、记录状态等）
                 processNodeOutput(nodeOutput);
 
-                // 获取节点输出数据并发送（对齐Spring AI Alibaba）
                 String nodeId = nodeOutput.node();
+                String componentName = findComponentName(nodeId);
+                List<WorkflowEventVo> events = new ArrayList<>();
+
+                // 发送 node_complete（当前节点完成）
+                if (VISIBLE_NODES.contains(componentName)) {
+                    Long startTime = nodeStartTimes.remove(nodeId);
+                    long duration = (startTime != null) ? (System.currentTimeMillis() - startTime) : 0L;
+                    String nodeTitle = findNodeTitle(nodeId);
+                    Map<String, Object> summary = buildSummaryFromNodeOutput(componentName, nodeId, nodeOutput);
+                    nodeOutputCache.remove(nodeId);
+                    nodeInputCache.remove(nodeId);
+                    events.add(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
+                }
+
+                // 预告下一个节点（node_start）
+                List<String> nextNodes = resolveNextNodes(nodeId, nodeOutput);
+                for (String nextNodeId : nextNodes) {
+                    String nextComponentName = findComponentName(nextNodeId);
+                    if (VISIBLE_NODES.contains(nextComponentName)) {
+                        String nextTitle = findNodeTitle(nextNodeId);
+                        long now = System.currentTimeMillis();
+                        events.add(WorkflowEventVo.createNodeStartData(nextNodeId, nextComponentName, nextTitle, now));
+                    }
+                }
+
+                // 原有的 output 事件逻辑（保持不变）
                 AbstractWfNode abstractWfNode = wfState.getCompletedNodes().stream()
                     .filter(item -> item.getNode().getUuid().equals(nodeId))
                     .findFirst()
                     .orElse(null);
 
                 if (abstractWfNode != null) {
-                    // 已通过chunk事件流式输出的节点，跳过output事件避免内容重复
                     if (wfState.hasNodeStreamed(nodeId)) {
                         log.debug("节点{}已流式输出，跳过output事件", nodeId);
-                        return Flux.<WorkflowEventVo>empty();
+                        return Flux.fromIterable(events);
                     }
                     List<NodeIOData> outputList = abstractWfNode.getState().getOutputs();
-                    // 保留完整NodeIOData结构，前端需要name和content.value字段
                     Map<String, Object> outputs = outputList.stream()
                         .collect(Collectors.toMap(NodeIOData::getName, nodeIOData -> nodeIOData, (v1, v2) -> v2));
-                    String componentName = abstractWfNode.getWfComponent() != null ? abstractWfNode.getWfComponent().getName() : "";
-                    log.debug("发送output数据: nodeId={}, componentName={}, outputs数量={}", nodeId, componentName, outputs.size());
-                    return Flux.just(WorkflowEventVo.createNodeOutputData(nodeId, componentName, outputs));
+                    String compName = abstractWfNode.getWfComponent() != null ? abstractWfNode.getWfComponent().getName() : "";
+                    log.debug("发送output数据: nodeId={}, componentName={}, outputs数量={}", nodeId, compName, outputs.size());
+                    events.add(WorkflowEventVo.createNodeOutputData(nodeId, compName, outputs));
                 }
 
-                return Flux.<WorkflowEventVo>empty();
+                return Flux.fromIterable(events);
             })
             .onErrorResume(e -> {
                 log.error("处理节点输出失败", e);
@@ -698,7 +973,8 @@ public class WorkflowEngine {
                 } else {
                     workflowRuntimeNodeService.updateOutput(runtimeNodeId, abstractWfNode.getState());
                 }
-            } else {
+            } else if (callSource != WorkflowCallSource.AI_CHAT) {
+                // AI_CHAT场景下runtimeNodeId为null是预期行为，不打印WARN
                 log.warn("Can not find runtime node, node uuid:{}", nodeId);
             }
 
@@ -835,14 +1111,14 @@ public class WorkflowEngine {
                 log.info("[runNode] 条件分支返回sourceHandle: {}", processResult.getNextSourceHandle());
             }
 
+            // 检测 streamingFlux：若非 null，放入 Map 供框架 getEmbedFlux 使用（LLM 打字机效果）
+            if (processResult.getStreamingFlux() != null) {
+                resultMap.put(wfNode.getUuid() + "_flux", processResult.getStreamingFlux());
+            }
+
         } catch (Exception e) {
             log.error("Node run error: {} ({})", wfNode.getTitle(), wfNode.getUuid(), e);
             throw new RuntimeException(e);
-        }
-
-        // 检测 streamingFlux：若非 null，放入 Map 供框架 getEmbedFlux 使用（LLM 打字机效果）
-        if (processResult.getStreamingFlux() != null) {
-            resultMap.put(wfNode.getUuid() + "_flux", processResult.getStreamingFlux());
         }
 
         // 7. 设置节点名称
@@ -1007,7 +1283,7 @@ public class WorkflowEngine {
 
         // 3. 找出所有条件分支节点的UUID（Switcher和Classifier组件）
         // 注意：sourceHandle="right"只是X6图的默认连接点，不代表条件分支
-        Set<String> conditionalNodeUuids = new HashSet<>();
+        this.conditionalNodeUuids = new HashSet<>();
         for (AiWorkflowNodeVo node : wfNodes) {
             AiWorkflowComponentEntity component = components.stream()
                 .filter(c -> c.getId().equals(node.getWorkflowComponentId()))
@@ -1018,7 +1294,15 @@ public class WorkflowEngine {
             }
         }
 
-        // 3.5 线性化发散并行路径，绕过Alibaba框架的汇聚验证
+        // 3.5 填充 wfState.edges（基于原始拓扑，在线性化之前）
+        // 只填充普通边（非条件分支节点的出边），条件边在 processConditionalEdges 中填充
+        for (AiWorkflowEdgeEntity edge : wfEdges) {
+            if (!conditionalNodeUuids.contains(edge.getSourceNodeUuid())) {
+                wfState.addEdge(edge.getSourceNodeUuid(), edge.getTargetNodeUuid());
+            }
+        }
+
+        // 3.6 线性化发散并行路径，绕过Alibaba框架的汇聚验证
         // 将 fork→A→End1, fork→B→End2 转为 fork→A→End1→B→End2 顺序链
         Set<String> intermediateEndNodes = linearizeDivergentPaths(conditionalNodeUuids);
 
@@ -1058,18 +1342,7 @@ public class WorkflowEngine {
      * @throws GraphStateException 状态图异常
      */
     private void processConditionalEdges(StateGraph stateGraph) throws GraphStateException {
-        // 找出所有条件分支节点的UUID（Switcher和Classifier组件）
-        Set<String> conditionalNodeUuids = new HashSet<>();
-        for (AiWorkflowNodeVo node : wfNodes) {
-            AiWorkflowComponentEntity component = components.stream()
-                .filter(c -> c.getId().equals(node.getWorkflowComponentId()))
-                .findFirst()
-                .orElse(null);
-            // 只有Switcher和Classifier组件才是条件分支节点
-            if (component != null && ("Switcher".equals(component.getName()) || "Classifier".equals(component.getName()))) {
-                conditionalNodeUuids.add(node.getUuid());
-            }
-        }
+        // 直接使用实例字段 conditionalNodeUuids（buildStateGraph 阶段已填充）
 
         // 为每个条件分支节点处理其出边
         for (String switcherUuid : conditionalNodeUuids) {
@@ -1105,6 +1378,9 @@ public class WorkflowEngine {
                     .map(AiWorkflowEdgeEntity::getTargetNodeUuid)
                     .distinct()
                     .collect(Collectors.toList());
+
+                // 填充 wfState.conditionalEdgesByHandle，供 resolveNextNodes 推断下一个节点
+                wfState.addConditionalEdgeByHandle(switcherUuid, sourceHandle, uniqueTargets);
 
                 if (uniqueTargets.size() == 1) {
                     // 单目标
@@ -1488,19 +1764,11 @@ public class WorkflowEngine {
     }
 
     /**
-     * 节点生命周期监听器
-     * 在每个节点执行前后发送node_start和node_complete事件
-     * 通过wfState.getEventSink()发送到Flux管道，前端实时展示执行步骤
+     * 节点生命周期监听器（纯观察者）
+     * before() 只记录节点开始时间，after() 只记录日志
+     * 节点事件发送已移入 handleGraphResponse 主流
      */
     private class NodeEventListener implements GraphLifecycleListener {
-
-        // 展示的节点类型
-        // Start/End作为结构性节点展示，不展示：Template、HttpRequest、MailSend、KeywordExtractor、FaqExtractor
-        private static final Set<String> VISIBLE_NODES = Set.of(
-            "Start", "End",
-            "Classifier", "KnowledgeRetrieval", "TempKnowledgeBase",
-            "Answer", "McpTool", "DocumentExtractor", "LLM", "OpenPage", "Switcher", "SubWorkflow", "Template"
-        );
 
         @Override
         public void before(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
@@ -1510,302 +1778,37 @@ public class WorkflowEngine {
                 return;
             }
             nodeStartTimes.put(nodeId, curTime);
-            String nodeTitle = findNodeTitle(nodeId);
-            FluxSink<WorkflowEventVo> sink = wfState.getEventSink();
-            if (sink != null) {
-                sink.next(WorkflowEventVo.createNodeStartData(nodeId, componentName, nodeTitle, curTime));
-            }
         }
 
         @Override
         public void after(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
             String componentName = findComponentName(nodeId);
-            if (!VISIBLE_NODES.contains(componentName)) {
-                nodeOutputCache.remove(nodeId);
-                nodeInputCache.remove(nodeId);
-                return;
-            }
-            Long startTime = nodeStartTimes.remove(nodeId);
-            long duration = (startTime != null) ? (curTime - startTime) : 0L;
-            String nodeTitle = findNodeTitle(nodeId);
-            Map<String, Object> summary = buildSummary(componentName, nodeId, state);
-            // 清理缓存
-            nodeOutputCache.remove(nodeId);
-            nodeInputCache.remove(nodeId);
-            FluxSink<WorkflowEventVo> sink = wfState.getEventSink();
-            if (sink != null) {
-                sink.next(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
-            }
+            log.debug("[NodeEventListener.after] nodeId={}, componentName={}, thread={}", nodeId, componentName, Thread.currentThread().getName());
         }
+    }
 
-        private String findComponentName(String nodeId) {
-            return wfNodes.stream()
-                .filter(n -> nodeId.equals(n.getUuid()))
-                .findFirst()
-                .map(n -> components.stream()
-                    .filter(c -> c.getId().equals(n.getWorkflowComponentId()))
-                    .findFirst()
-                    .map(AiWorkflowComponentEntity::getName)
-                    .orElse(""))
-                .orElse("");
-        }
+    private String findOutputValue(List<NodeIOData> list, String name) {
+        if (list == null) return null;
+        return list.stream()
+            .filter(d -> name.equals(d.getName()))
+            .findFirst()
+            .map(d -> {
+                if (d.getContent() == null || d.getContent().getValue() == null) return null;
+                return String.valueOf(d.getContent().getValue());
+            })
+            .orElse(null);
+    }
 
-        private String findNodeTitle(String nodeId) {
-            return wfNodes.stream()
-                .filter(n -> nodeId.equals(n.getUuid()))
-                .findFirst()
-                .map(AiWorkflowNodeVo::getTitle)
-                .orElse("");
-        }
-
-        private Map<String, Object> buildSummary(String componentName, String nodeId, Map<String, Object> state) {
-            Map<String, Object> summary = null;
-            try {
-                // 优先从nodeOutputCache取（runNode完成后写入，after回调时state尚未合并当前节点输出）
-                List<NodeIOData> outputList = nodeOutputCache.get(nodeId);
-                if (outputList == null) {
-                    // 降级：从state取（兼容并行节点等特殊场景）
-                    String outputKey = NODE_OUTPUT_KEY_PREFIX + nodeId;
-                    Object outputObj = state.get(outputKey);
-                    @SuppressWarnings("unchecked")
-                    List<NodeIOData> stateOutput = (outputObj instanceof List) ? (List<NodeIOData>) outputObj : null;
-                    outputList = stateOutput;
-                }
-
-                // 读取节点的 show_process_output 配置
-                boolean showOutput = getNodeShowProcessOutput(nodeId);
-
-                switch (componentName) {
-                    case "Start": {
-                        // 携带Start节点的输入参数定义及实际值，前端动态显示
-                        // 注意：after回调时当前节点输出尚未合并进state，需从state直接取初始输入值
-                        // createOverAllState()将wfState.getInput()以name为key放入stateData
-                        AiWorkflowNodeVo startNodeVo = wfNodes.stream()
-                            .filter(n -> nodeId.equals(n.getUuid())).findFirst().orElse(null);
-                        if (startNodeVo != null && startNodeVo.getInputConfig() != null
-                                && startNodeVo.getInputConfig().getUserInputs() != null) {
-                            summary = new HashMap<>();
-                            List<Map<String, String>> params = new ArrayList<>();
-                            for (AiWfNodeIOVo io : startNodeVo.getInputConfig().getUserInputs()) {
-                                Map<String, String> p = new HashMap<>();
-                                p.put("name", io.getName());
-                                p.put("title", io.getTitle());
-                                // 优先从state取初始输入值（key即参数名）
-                                Object stateValue = state.get(io.getName());
-                                // state中没有时，从wfState.getInput()查找（子工作流场景state可能不含初始参数）
-                                if (stateValue == null) {
-                                    for (NodeIOData wfInput : wfState.getInput()) {
-                                        if (io.getName().equals(wfInput.getName())) {
-                                            stateValue = wfInput.getContent().getValue();
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (stateValue != null) {
-                                    p.put("value", String.valueOf(stateValue));
-                                }
-                                params.add(p);
-                            }
-                            summary.put("params", params);
-                        }
-                        break;
-                    }
-                    case "KnowledgeRetrieval": {
-                        String matchCount = findOutputValue(outputList, "matchCount");
-                        if (matchCount != null) {
-                            summary = new HashMap<>();
-                            summary.put("matchCount", matchCount);
-                        }
-                        break;
-                    }
-                    case "Classifier": {
-                        String result = findOutputValue(outputList, "result");
-                        if (result == null) result = findOutputValue(outputList, "output");
-                        if (result != null) {
-                            summary = new HashMap<>();
-                            summary.put("result", result);
-                            if (showOutput) {
-                                summary.put("outputText", result);
-                            }
-                        }
-                        break;
-                    }
-                    case "McpTool": {
-                        String toolName = findOutputValue(outputList, "toolName");
-                        String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
-                        if (toolName != null || outputText != null) {
-                            summary = new HashMap<>();
-                            if (toolName != null) summary.put("toolName", toolName);
-                            if (showOutput && outputText != null) summary.put("outputText", outputText);
-                        }
-                        break;
-                    }
-                    case "OpenPage": {
-                        String commandJson = findOutputValue(outputList, "open_page_command");
-                        String route = null;
-                        String pageMode = null;
-                        if (commandJson != null) {
-                            try {
-                                com.alibaba.fastjson2.JSONObject cmd = com.alibaba.fastjson2.JSONObject.parseObject(commandJson);
-                                route = cmd.getString("route");
-                                pageMode = cmd.getString("page_mode");
-                            } catch (Exception ignored) {}
-                        }
-                        // params：显示导航指令的关键参数
-                        summary = new HashMap<>();
-                        List<Map<String, String>> params = new ArrayList<>();
-                        if (route != null) {
-                            Map<String, String> p = new HashMap<>();
-                            p.put("name", "route");
-                            p.put("title", "路由");
-                            p.put("value", route);
-                            params.add(p);
-                        }
-                        if (pageMode != null) {
-                            Map<String, String> p = new HashMap<>();
-                            p.put("name", "page_mode");
-                            p.put("title", "页面模式");
-                            p.put("value", pageMode);
-                            params.add(p);
-                        }
-                        try {
-                            com.alibaba.fastjson2.JSONObject cmd2 = com.alibaba.fastjson2.JSONObject.parseObject(commandJson);
-                            Object formData = cmd2.get("form_data");
-                            if (formData != null) {
-                                Map<String, String> p = new HashMap<>();
-                                p.put("name", "form_data");
-                                p.put("title", "参数");
-                                p.put("value", formData.toString());
-                                params.add(p);
-                            }
-                        } catch (Exception ignored) {}
-                        if (!params.isEmpty()) {
-                            summary.put("params", params);
-                        }
-                        // 追加节点输入参数（var_data、var_outer等，排除默认input参数和重复项）
-                        List<NodeIOData> nodeInputs = nodeInputCache.get(nodeId);
-                        if (nodeInputs != null) {
-                            Set<String> addedNames = new HashSet<>();
-                            for (NodeIOData input : nodeInputs) {
-                                String inputName = input.getName();
-                                // 排除默认input参数（上游节点默认输出改名而来），只显示明确命名的变量
-                                if (inputName == null || "input".equals(inputName)) continue;
-                                // 排除重复
-                                if (!addedNames.add(inputName)) continue;
-                                if (input.getContent() != null && input.getContent().getValue() != null) {
-                                    Map<String, String> p = new HashMap<>();
-                                    p.put("name", inputName);
-                                    String inputTitle = input.getContent().getTitle();
-                                    p.put("title", inputTitle != null && !inputTitle.isEmpty() ? inputTitle : inputName);
-                                    p.put("value", input.valueToString());
-                                    params.add(p);
-                                }
-                            }
-                            if (!params.isEmpty()) {
-                                summary.put("params", params);
-                            }
-                        }
-                        // 大模型返回：加入params列表显示（支持截断+悬浮+复制）
-                        String llmRawOutput = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
-                        if (llmRawOutput != null && !llmRawOutput.isEmpty()) {
-                            Map<String, String> p = new HashMap<>();
-                            p.put("name", "llm_output");
-                            p.put("title", "大模型返回");
-                            p.put("value", llmRawOutput);
-                            params.add(p);
-                            summary.put("params", params);
-                        }
-                        // outputText：中文描述
-                        if (showOutput) {
-                            String modeLabel = "new".equals(pageMode) ? "新增"
-                                : "edit".equals(pageMode) ? "编辑"
-                                : "view".equals(pageMode) ? "查看"
-                                : "approve".equals(pageMode) ? "审批"
-                                : "list".equals(pageMode) ? "列表" : "";
-                            String text = route != null
-                                ? "已为您打开" + modeLabel + "页面: " + route
-                                : "已为您打开页面";
-                            summary.put("outputText", text);
-                        }
-                        break;
-                    }
-                    case "Switcher": {
-                        String caseName = findOutputValue(outputList, "matched_case_name");
-                        if (caseName != null && showOutput) {
-                            summary = new HashMap<>();
-                            summary.put("outputText", "→ " + caseName);
-                        }
-                        break;
-                    }
-                    case "Template": {
-                        if (showOutput) {
-                            String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
-                            if (outputText != null) {
-                                summary = new HashMap<>();
-                                summary.put("outputText", outputText);
-                            }
-                        }
-                        break;
-                    }
-                    case "SubWorkflow": {
-                        // 读取子工作流名称（SubWorkflowNodeConfig 的 JSON key 是 workflow_name）
-                        String workflowName = wfNodes.stream()
-                            .filter(n -> nodeId.equals(n.getUuid()))
-                            .findFirst()
-                            .map(n -> n.getNodeConfig() != null ? n.getNodeConfig().getString("workflow_name") : null)
-                            .orElse(null);
-                        // 读取子步骤（SubWorkflowNode 序列化存入的 JSON 字符串）
-                        String subStepsJson = findOutputValue(outputList, "__sub_steps__");
-                        if (subStepsJson != null) {
-                            summary = new HashMap<>();
-                            if (workflowName != null) summary.put("workflowName", workflowName);
-                            // 反序列化为 List，前端直接使用
-                            summary.put("steps", JSON.parseArray(subStepsJson));
-                        }
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("获取{}节点摘要失败: {}", componentName, e.getMessage());
-            }
-            // 追加Token消耗（Classifier/Answer/LLM等调用LLM的节点）
-            long[] tokens = wfState.getNodeTokens(nodeId);
-            if (tokens != null) {
-                if (summary == null) summary = new HashMap<>();
-                summary.put("totalTokens", tokens[0] + tokens[1]);
-            }
-            return summary;
-        }
-
-        /**
-         * 从节点输出列表中按 name 查找值，null-safe
-         */
-        private String findOutputValue(List<NodeIOData> list, String name) {
-            if (list == null) return null;
-            return list.stream()
-                .filter(d -> name.equals(d.getName()))
-                .findFirst()
-                .map(d -> {
-                    if (d.getContent() == null || d.getContent().getValue() == null) return null;
-                    return String.valueOf(d.getContent().getValue());
-                })
-                .orElse(null);
-        }
-
-        /**
-         * 读取节点的 show_process_output 配置，默认 true
-         */
-        private boolean getNodeShowProcessOutput(String nodeId) {
-            return wfNodes.stream()
-                .filter(n -> nodeId.equals(n.getUuid()))
-                .findFirst()
-                .map(n -> {
-                    JSONObject cfg = n.getNodeConfig();
-                    if (cfg == null) return true;
-                    Boolean val = cfg.getBoolean("show_process_output");
-                    return val == null || val;
-                })
-                .orElse(true);
-        }
+    private boolean getNodeShowProcessOutput(String nodeId) {
+        return wfNodes.stream()
+            .filter(n -> nodeId.equals(n.getUuid()))
+            .findFirst()
+            .map(n -> {
+                JSONObject cfg = n.getNodeConfig();
+                if (cfg == null) return true;
+                Boolean val = cfg.getBoolean("show_process_output");
+                return val == null || val;
+            })
+            .orElse(true);
     }
 }
