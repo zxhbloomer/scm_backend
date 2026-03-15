@@ -722,25 +722,27 @@ public class WorkflowEngine {
                 String componentName = findComponentName(nodeId);
                 List<WorkflowEventVo> events = new ArrayList<>();
 
-                // 发送 node_complete（当前节点完成）
+                // 发送 node_complete（当前节点完成）+ 预告下一个节点（node_start）
+                // 用 nodeStartTimes.remove 的返回值判断：只有第一次（startTime != null）才发送，避免流式节点每个chunk都重复发送
                 if (VISIBLE_NODES.contains(componentName)) {
                     Long startTime = nodeStartTimes.remove(nodeId);
-                    long duration = (startTime != null) ? (System.currentTimeMillis() - startTime) : 0L;
-                    String nodeTitle = findNodeTitle(nodeId);
-                    Map<String, Object> summary = buildSummaryFromNodeOutput(componentName, nodeId, nodeOutput);
-                    nodeOutputCache.remove(nodeId);
-                    nodeInputCache.remove(nodeId);
-                    events.add(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
-                }
+                    if (startTime != null) {
+                        long duration = System.currentTimeMillis() - startTime;
+                        String nodeTitle = findNodeTitle(nodeId);
+                        Map<String, Object> summary = buildSummaryFromNodeOutput(componentName, nodeId, nodeOutput);
+                        nodeOutputCache.remove(nodeId);
+                        nodeInputCache.remove(nodeId);
+                        events.add(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
 
-                // 预告下一个节点（node_start）
-                List<String> nextNodes = resolveNextNodes(nodeId, nodeOutput);
-                for (String nextNodeId : nextNodes) {
-                    String nextComponentName = findComponentName(nextNodeId);
-                    if (VISIBLE_NODES.contains(nextComponentName)) {
-                        String nextTitle = findNodeTitle(nextNodeId);
-                        long now = System.currentTimeMillis();
-                        events.add(WorkflowEventVo.createNodeStartData(nextNodeId, nextComponentName, nextTitle, now));
+                        // 预告下一个节点（node_start），只在节点真正完成时发一次
+                        List<String> nextNodes = resolveNextNodes(nodeId, nodeOutput);
+                        for (String nextNodeId : nextNodes) {
+                            String nextComponentName = findComponentName(nextNodeId);
+                            if (VISIBLE_NODES.contains(nextComponentName)) {
+                                String nextTitle = findNodeTitle(nextNodeId);
+                                events.add(WorkflowEventVo.createNodeStartData(nextNodeId, nextComponentName, nextTitle, System.currentTimeMillis()));
+                            }
+                        }
                     }
                 }
 
