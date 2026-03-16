@@ -29,7 +29,6 @@ import static com.alibaba.cloud.ai.graph.StateGraph.START;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.*;
@@ -1462,6 +1461,12 @@ public class WorkflowEngine {
         stateGraph.addNode(stateGraphNodeUuid, state -> {
             WfNodeState nodeState = new WfNodeState(state.data());
             long startTime = System.currentTimeMillis();                    // WrapCall before
+            // WrapCall before：发节点运行中事件
+            if (VISIBLE_NODES.contains(componentName) && eventSink != null) {
+                String nodeTitle = findNodeTitle(stateGraphNodeUuid);
+                eventSink.next(WorkflowEventVo.createNodeRunningData(
+                    stateGraphNodeUuid, componentName, nodeTitle));
+            }
             return CompletableFuture.supplyAsync(() -> runNode(wfNode, nodeState))
                 .whenComplete((result, ex) -> {                             // WrapCall after
                     if (ex != null) return;                                 // 节点失败不发事件

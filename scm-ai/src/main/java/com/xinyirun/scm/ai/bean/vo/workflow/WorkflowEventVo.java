@@ -132,23 +132,20 @@ public class WorkflowEventVo {
     }
 
     /**
-     * 创建节点开始事件
-     * 节点开始执行前发送，用于前端展示执行步骤
+     * 创建节点运行中事件
+     * 节点开始执行时发送，用于前端显示蓝色脉冲圆点
      *
      * @param nodeUuid 节点UUID
      * @param nodeName 节点组件名称（如KnowledgeRetrieval）
      * @param nodeTitle 节点标题（用户设置）
-     * @param timestamp 开始时间戳（毫秒）
-     * @return 节点开始事件
+     * @return 节点运行中事件
      */
-    public static WorkflowEventVo createNodeStartData(String nodeUuid, String nodeName,
-                                                       String nodeTitle, long timestamp) {
+    public static WorkflowEventVo createNodeRunningData(String nodeUuid, String nodeName, String nodeTitle) {
         JSONObject json = new JSONObject();
-        json.put("type", "node_start");
+        json.put("type", "node_running");
         json.put("node", nodeUuid);
         json.put("nodeName", nodeName);
         json.put("nodeTitle", nodeTitle);
-        json.put("timestamp", timestamp);
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 

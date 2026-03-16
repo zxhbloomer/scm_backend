@@ -116,15 +116,14 @@ public class WorkflowEventAdapter {
                         interruptNode, interruptTip, dataJson.getString("interactionType"));
                     return interruptResponse;
 
-                case "node_start": {
+                case "node_running": {
                     // 节点开始执行事件
-                    ChatResponseVo nodeStartResp = builder.build();
-                    nodeStartResp.setNodeEventType("node_start");
-                    nodeStartResp.setNodeUuid(dataJson.getString("node"));
-                    nodeStartResp.setNodeName(dataJson.getString("nodeName"));
-                    nodeStartResp.setNodeTitle(dataJson.getString("nodeTitle"));
-                    nodeStartResp.setNodeTimestamp(dataJson.getLong("timestamp"));
-                    return nodeStartResp;
+                    ChatResponseVo nodeRunningResp = ChatResponseVo.createContentChunk("");
+                    nodeRunningResp.setNodeEventType("node_running");
+                    nodeRunningResp.setNodeUuid(dataJson.getString("node"));
+                    nodeRunningResp.setNodeName(dataJson.getString("nodeName"));
+                    nodeRunningResp.setNodeTitle(dataJson.getString("nodeTitle"));
+                    return nodeRunningResp;
                 }
 
                 case "node_complete": {

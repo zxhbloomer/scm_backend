@@ -1086,8 +1086,6 @@ public class WorkflowRoutingService {
         final String[] capturedOpenPageCommand = {null};
         final String[] capturedInteractionRequest = {null};
         final boolean[] capturedWaitingInteraction = {false};
-        // 跟踪当前正在执行的节点组件名称，用于过滤中间节点的chunk输出
-        final String[] currentNodeComponentName = {null};
 
         Flux<ChatResponseVo> contentFlux = eventFlux.map(event -> {
             JSONObject eventData = JSON.parseObject(event.getData());
@@ -1101,15 +1099,6 @@ public class WorkflowRoutingService {
                 capturedInteractionRequest[0] = eventData.getString("interaction_request");
                 capturedWaitingInteraction[0] = Boolean.TRUE.equals(eventData.getBoolean("waiting_interaction"));
                 return ChatResponseVo.createContentChunk("");
-            } else if ("node_start".equals(type)) {
-                // 记录当前节点组件名称
-                currentNodeComponentName[0] = eventData.getString("nodeName");
-            } else if ("chunk".equals(type)) {
-                // 仅Answer/LLM终端节点的chunk输出给用户，中间节点（McpTool/Classifier等）的chunk忽略
-                String nodeName = currentNodeComponentName[0];
-                if (nodeName != null && !"Answer".equals(nodeName) && !"LLM".equals(nodeName)) {
-                    return ChatResponseVo.createContentChunk("");
-                }
             }
             return convertWorkflowEventToChatResponse(event);
         });
@@ -1478,19 +1467,17 @@ public class WorkflowRoutingService {
                     interruptResponse.setIsWaitingInput(true);
                     return interruptResponse;
 
-                case "node_start": {
+                case "node_running": {
                     // 节点开始执行事件
-                    ChatResponseVo nodeStartResp = ChatResponseVo.createContentChunk("");
-                    nodeStartResp.setNodeEventType("node_start");
-                    nodeStartResp.setNodeUuid(eventData.getString("node"));
-                    nodeStartResp.setNodeName(eventData.getString("nodeName"));
-                    nodeStartResp.setNodeTitle(eventData.getString("nodeTitle"));
-                    nodeStartResp.setNodeTimestamp(eventData.getLong("timestamp"));
-                    return nodeStartResp;
+                    ChatResponseVo nodeRunningResp = ChatResponseVo.createContentChunk("");
+                    nodeRunningResp.setNodeEventType("node_running");
+                    nodeRunningResp.setNodeUuid(eventData.getString("node"));
+                    nodeRunningResp.setNodeName(eventData.getString("nodeName"));
+                    nodeRunningResp.setNodeTitle(eventData.getString("nodeTitle"));
+                    return nodeRunningResp;
                 }
 
                 case "node_complete": {
-                    // 节点执行完成事件
                     ChatResponseVo nodeCompleteResp = ChatResponseVo.createContentChunk("");
                     nodeCompleteResp.setNodeEventType("node_complete");
                     nodeCompleteResp.setNodeUuid(eventData.getString("node"));
