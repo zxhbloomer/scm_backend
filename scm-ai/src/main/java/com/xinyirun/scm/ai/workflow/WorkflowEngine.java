@@ -82,23 +82,9 @@ public class WorkflowEngine {
     private final Set<String> humanFeedbackNodeUuids = new HashSet<>();
 
     /**
-     * 节点开始时间记录，用于计算节点执行耗时
-     * 格式：nodeUuid → 开始时间戳（毫秒）
+     * SSE事件流Sink，executeWorkflow()赋值，NodeEventListener读取
      */
-    private final ConcurrentHashMap<String, Long> nodeStartTimes = new ConcurrentHashMap<>();
-
-    /**
-     * 节点输出缓存，用于在after回调中获取当前节点输出
-     * 框架after回调时当前节点输出尚未合并进state，通过此缓存传递
-     * 格式：nodeUuid → 节点输出列表
-     */
-    private final ConcurrentHashMap<String, List<NodeIOData>> nodeOutputCache = new ConcurrentHashMap<>();
-
-    /**
-     * 节点输入缓存：nodeUuid → 节点输入列表
-     * 供after回调中的buildSummary读取（after时WfNodeState已不可访问）
-     */
-    private final ConcurrentHashMap<String, List<NodeIOData>> nodeInputCache = new ConcurrentHashMap<>();
+    private volatile reactor.core.publisher.FluxSink<WorkflowEventVo> eventSink;
 
     /**
      * 条件分支节点UUID集合（Switcher/Classifier），buildStateGraph 阶段填充
@@ -346,9 +332,9 @@ public class WorkflowEngine {
                 Flux<GraphResponse<NodeOutput>> graphStream = app.graphResponseStream(initialState, invokeConfig);
                 log.info("[WorkflowEngine] graphResponseStream创建完成(Flux对象已创建，但尚未订阅)");
 
-                // 将 fluxSink 注入 wfState，供 NodeEventListener.before/after 使用
                 return Flux.create(fluxSink -> {
-                    wfState.setEventSink(fluxSink);
+                    // 保存sink引用，供NodeEventListener使用
+                    eventSink = fluxSink;
 
                     Disposable d = graphStream
                         .doOnSubscribe(sub -> log.info("[graphStream] 已被订阅"))
@@ -456,37 +442,14 @@ public class WorkflowEngine {
     }
 
     /**
-     * 推断当前节点完成后的下一个节点列表
-     * 用于 handleGraphResponse 发送 node_start 预告事件
+     * 从WfNodeState构建节点摘要（WrapCall模式使用）
+     * 替代 buildSummaryFromNodeOutput，直接从闭包内的 nodeState 读取数据
      */
-    private List<String> resolveNextNodes(String currentNodeId, NodeOutput nodeOutput) {
-        List<String> result = new ArrayList<>();
-        if (conditionalNodeUuids.contains(currentNodeId)) {
-            Object nextSourceHandle = nodeOutput.state().data().get("next_source_handle");
-            if (nextSourceHandle != null) {
-                List<String> targets = wfState.getConditionalEdgeTargets(currentNodeId, nextSourceHandle.toString());
-                result.addAll(targets);
-            }
-            return result;
-        }
-        result.addAll(wfState.getEdgeTargets(currentNodeId));
-        return result;
-    }
-
-    private Map<String, Object> buildSummaryFromNodeOutput(String componentName, String nodeId, NodeOutput nodeOutput) {
+    private Map<String, Object> buildSummaryFromNodeState(String componentName, String nodeId, WfNodeState nodeState) {
         Map<String, Object> summary = null;
         try {
-            List<NodeIOData> outputList = nodeOutputCache.get(nodeId);
-            if (outputList == null) {
-                String outputKey = NODE_OUTPUT_KEY_PREFIX + nodeId;
-                Object outputObj = nodeOutput.state().data().get(outputKey);
-                @SuppressWarnings("unchecked")
-                List<NodeIOData> stateOutput = (outputObj instanceof List) ? (List<NodeIOData>) outputObj : null;
-                outputList = stateOutput;
-            }
-
+            List<NodeIOData> outputList = nodeState.getOutputs();
             boolean showOutput = getNodeShowProcessOutput(nodeId);
-
             switch (componentName) {
                 case "Start": {
                     AiWorkflowNodeVo startNodeVo = wfNodes.stream()
@@ -499,7 +462,7 @@ public class WorkflowEngine {
                             Map<String, String> p = new HashMap<>();
                             p.put("name", io.getName());
                             p.put("title", io.getTitle());
-                            Object stateValue = nodeOutput.state().data().get(io.getName());
+                            Object stateValue = nodeState.data().get(io.getName());
                             if (stateValue == null) {
                                 for (NodeIOData wfInput : wfState.getInput()) {
                                     if (io.getName().equals(wfInput.getName())) {
@@ -585,10 +548,7 @@ public class WorkflowEngine {
                             params.add(p);
                         }
                     } catch (Exception ignored) {}
-                    if (!params.isEmpty()) {
-                        summary.put("params", params);
-                    }
-                    List<NodeIOData> nodeInputs = nodeInputCache.get(nodeId);
+                    List<NodeIOData> nodeInputs = nodeState.getInputs();
                     if (nodeInputs != null) {
                         Set<String> addedNames = new HashSet<>();
                         for (NodeIOData input : nodeInputs) {
@@ -604,9 +564,9 @@ public class WorkflowEngine {
                                 params.add(p);
                             }
                         }
-                        if (!params.isEmpty()) {
-                            summary.put("params", params);
-                        }
+                    }
+                    if (!params.isEmpty()) {
+                        summary.put("params", params);
                     }
                     String llmRawOutput = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
                     if (llmRawOutput != null && !llmRawOutput.isEmpty()) {
@@ -635,6 +595,17 @@ public class WorkflowEngine {
                     if (caseName != null && showOutput) {
                         summary = new HashMap<>();
                         summary.put("outputText", "-> " + caseName);
+                    }
+                    break;
+                }
+                case "Answer":
+                case "LLM": {
+                    if (showOutput) {
+                        String outputText = findOutputValue(outputList, DEFAULT_OUTPUT_PARAM_NAME);
+                        if (outputText != null) {
+                            summary = new HashMap<>();
+                            summary.put("outputText", outputText);
+                        }
                     }
                     break;
                 }
@@ -723,21 +694,22 @@ public class WorkflowEngine {
                 List<WorkflowEventVo> events = new ArrayList<>();
 
                 // 并行节点特殊处理：框架将并行子节点合并为 __PARALLEL__(xxx) 输出
-                // 此时需要对所有在 nodeStartTimes 中有记录的并行子节点发送 node_complete
+                // WrapCall模式下各子节点已在 whenComplete 中独立发送 node_complete
+                // 此处只补发 output 事件
                 if (nodeId.startsWith("__PARALLEL__")) {
-                    long now = System.currentTimeMillis();
-                    // 遍历 nodeStartTimes 中所有还未发 node_complete 的节点（即并行子节点）
-                    for (Map.Entry<String, Long> entry : new ArrayList<>(nodeStartTimes.entrySet())) {
-                        String parallelChildId = entry.getKey();
+                    // __PARALLEL__(xxx) 中 xxx 是触发并行的源节点 UUID
+                    String parallelSourceId = nodeId.substring("__PARALLEL__(".length(), nodeId.length() - 1);
+                    List<String> parallelChildren = new ArrayList<>(wfState.getEdgeTargets(parallelSourceId));
+                    if (parallelChildren.isEmpty()) {
+                        for (Map.Entry<String, List<String>> e : wfState.getConditionalEdgesByHandle().entrySet()) {
+                            if (e.getKey().startsWith(parallelSourceId + "|")) {
+                                parallelChildren.addAll(e.getValue());
+                            }
+                        }
+                    }
+                    for (String parallelChildId : parallelChildren) {
                         String childComponentName = findComponentName(parallelChildId);
                         if (!VISIBLE_NODES.contains(childComponentName)) continue;
-                        Long startTime = nodeStartTimes.remove(parallelChildId);
-                        if (startTime == null) continue;
-                        long duration = now - startTime;
-                        String childTitle = findNodeTitle(parallelChildId);
-                        nodeOutputCache.remove(parallelChildId);
-                        nodeInputCache.remove(parallelChildId);
-                        events.add(WorkflowEventVo.createNodeCompleteData(parallelChildId, childComponentName, childTitle, duration, null));
                         // output 事件
                         AbstractWfNode childNode = wfState.getCompletedNodes().stream()
                             .filter(item -> item.getNode().getUuid().equals(parallelChildId))
@@ -751,30 +723,6 @@ public class WorkflowEngine {
                         }
                     }
                     return Flux.fromIterable(events);
-                }
-
-                // 发送 node_complete（当前节点完成）+ 预告下一个节点（node_start）
-                // 用 nodeStartTimes.remove 的返回值判断：只有第一次（startTime != null）才发送，避免流式节点每个chunk都重复发送
-                if (VISIBLE_NODES.contains(componentName)) {
-                    Long startTime = nodeStartTimes.remove(nodeId);
-                    if (startTime != null) {
-                        long duration = System.currentTimeMillis() - startTime;
-                        String nodeTitle = findNodeTitle(nodeId);
-                        Map<String, Object> summary = buildSummaryFromNodeOutput(componentName, nodeId, nodeOutput);
-                        nodeOutputCache.remove(nodeId);
-                        nodeInputCache.remove(nodeId);
-                        events.add(WorkflowEventVo.createNodeCompleteData(nodeId, componentName, nodeTitle, duration, summary));
-
-                        // 预告下一个节点（node_start），只在节点真正完成时发一次
-                        List<String> nextNodes = resolveNextNodes(nodeId, nodeOutput);
-                        for (String nextNodeId : nextNodes) {
-                            String nextComponentName = findComponentName(nextNodeId);
-                            if (VISIBLE_NODES.contains(nextComponentName)) {
-                                String nextTitle = findNodeTitle(nextNodeId);
-                                events.add(WorkflowEventVo.createNodeStartData(nextNodeId, nextComponentName, nextTitle, System.currentTimeMillis()));
-                            }
-                        }
-                    }
                 }
 
                 // 原有的 output 事件逻辑（保持不变）
@@ -1162,11 +1110,6 @@ public class WorkflowEngine {
         String outputKey = NODE_OUTPUT_KEY_PREFIX + wfNode.getUuid();
         resultMap.put(outputKey, nodeState.getOutputs());
 
-        // 缓存节点输出，供after回调中的buildSummary使用（框架after时输出尚未合并进state）
-        nodeOutputCache.put(wfNode.getUuid(), nodeState.getOutputs());
-        // 缓存节点输入，供after回调中的buildSummary使用
-        nodeInputCache.put(wfNode.getUuid(), nodeState.getInputs());
-
         log.debug("runNode执行完成: nodeUuid={}, 耗时={}ms, outputs数量={}",
                 wfNode.getUuid(), System.currentTimeMillis() - startTime, nodeState.getOutputs().size());
 
@@ -1412,7 +1355,7 @@ public class WorkflowEngine {
                     .distinct()
                     .collect(Collectors.toList());
 
-                // 填充 wfState.conditionalEdgesByHandle，供 resolveNextNodes 推断下一个节点
+                // 填充 wfState.conditionalEdgesByHandle，记录条件分支边信息
                 wfState.addConditionalEdgeByHandle(switcherUuid, sourceHandle, uniqueTargets);
 
                 if (uniqueTargets.size() == 1) {
@@ -1514,13 +1457,24 @@ public class WorkflowEngine {
 
         log.info("addNodeToStateGraph,node uuid:{}", stateGraphNodeUuid);
         AiWorkflowNodeVo wfNode = getNodeByUuid(stateGraphNodeUuid);
-        // 使用Spring AI Alibaba的AsyncNodeAction方式添加节点
-        // 注意：OverAllState是final类，WfNodeState使用组合模式包装
-        stateGraph.addNode(stateGraphNodeUuid, state -> CompletableFuture.supplyAsync(() -> {
-            // 从OverAllState创建WfNodeState（复制data数据）
+        // WrapCall模式：startTime和nodeState在闭包内捕获，whenComplete直接发送node_complete
+        String componentName = findComponentName(stateGraphNodeUuid);
+        stateGraph.addNode(stateGraphNodeUuid, state -> {
             WfNodeState nodeState = new WfNodeState(state.data());
-            return runNode(wfNode, nodeState);
-        }));
+            long startTime = System.currentTimeMillis();                    // WrapCall before
+            return CompletableFuture.supplyAsync(() -> runNode(wfNode, nodeState))
+                .whenComplete((result, ex) -> {                             // WrapCall after
+                    if (ex != null) return;                                 // 节点失败不发事件
+                    if (!VISIBLE_NODES.contains(componentName)) return;
+                    if (eventSink == null) return;
+                    long elapsed = System.currentTimeMillis() - startTime;
+                    String nodeTitle = findNodeTitle(stateGraphNodeUuid);
+                    Map<String, Object> summary = buildSummaryFromNodeState(
+                        componentName, stateGraphNodeUuid, nodeState);
+                    eventSink.next(WorkflowEventVo.createNodeCompleteData(
+                        stateGraphNodeUuid, componentName, nodeTitle, elapsed, summary));
+                });
+        });
         stateGraphList.add(stateGraph);
 
         // 记录人机交互节点
@@ -1798,19 +1752,14 @@ public class WorkflowEngine {
 
     /**
      * 节点生命周期监听器（纯观察者）
-     * before() 只记录节点开始时间，after() 只记录日志
-     * 节点事件发送已移入 handleGraphResponse 主流
+     * before() 记录节点开始时间
+     * after() 只记录日志
      */
     private class NodeEventListener implements GraphLifecycleListener {
 
         @Override
         public void before(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
-            String componentName = findComponentName(nodeId);
-            log.debug("[NodeEventListener.before] nodeId={}, componentName={}, thread={}", nodeId, componentName, Thread.currentThread().getName());
-            if (!VISIBLE_NODES.contains(componentName)) {
-                return;
-            }
-            nodeStartTimes.put(nodeId, curTime);
+            log.debug("[NodeEventListener.before] nodeId={}, thread={}", nodeId, Thread.currentThread().getName());
         }
 
         @Override
