@@ -34,4 +34,10 @@ public class LLMAnswerNodeConfig {
      */
     @JsonProperty("shared_output")
     private Boolean sharedOutput = false;
+
+    /**
+     * 执行过程输出，开启后节点执行结果显示在对话中
+     */
+    @JsonProperty("show_process_output")
+    private Boolean showProcessOutput = false;
 }

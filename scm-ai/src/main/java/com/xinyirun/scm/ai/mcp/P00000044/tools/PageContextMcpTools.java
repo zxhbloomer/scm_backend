@@ -34,6 +34,7 @@ public class PageContextMcpTools {
      * @param pageContext 页面上下文（框架自动注入，包含page_code、title、path）
      * @return JSON格式的页面上下文信息
      */
+
     @McpTool(description = """
         P00000044
         获取用户当前正在访问的页面信息。

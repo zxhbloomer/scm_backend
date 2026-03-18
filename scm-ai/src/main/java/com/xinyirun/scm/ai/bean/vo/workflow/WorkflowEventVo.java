@@ -146,6 +146,7 @@ public class WorkflowEventVo {
         json.put("node", nodeUuid);
         json.put("nodeName", nodeName);
         json.put("nodeTitle", nodeTitle);
+        json.put("timestamp", System.currentTimeMillis());
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }
 
@@ -169,6 +170,7 @@ public class WorkflowEventVo {
         json.put("nodeName", nodeName);
         json.put("nodeTitle", nodeTitle);
         json.put("duration", duration);
+        json.put("timestamp", System.currentTimeMillis());
         if (summary != null && !summary.isEmpty()) {
             json.put("summary", summary);
         }

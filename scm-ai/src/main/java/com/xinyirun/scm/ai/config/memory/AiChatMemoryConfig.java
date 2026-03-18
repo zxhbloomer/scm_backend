@@ -8,6 +8,7 @@ import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.definition.ToolDefinition;
+import org.springframework.ai.tool.metadata.ToolMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -325,6 +326,11 @@ public class AiChatMemoryConfig {
             @Override
             public ToolDefinition getToolDefinition() {
                 return sanitizedDef;
+            }
+
+            @Override
+            public ToolMetadata getToolMetadata() {
+                return original.getToolMetadata();
             }
 
             @Override

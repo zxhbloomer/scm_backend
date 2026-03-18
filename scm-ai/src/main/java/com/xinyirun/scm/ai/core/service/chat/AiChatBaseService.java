@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.model.ChatModel;
@@ -199,6 +200,7 @@ public class AiChatBaseService {
                 ChatClient filteredClient = ChatClient.builder(aiModelProvider.getChatModel())
                         .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
                         .defaultToolCallbacks(filteredCallbacks)
+                        .defaultAdvisors(ToolCallAdvisor.builder().build())
                         .build();
 
                 ChatClient.ChatClientRequestSpec requestSpec = filteredClient
@@ -218,6 +220,7 @@ public class AiChatBaseService {
         ChatClient dynamicMcpClient = ChatClient.builder(aiModelProvider.getChatModel())
                 .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
                 .defaultToolCallbacks(mcpToolCallbackMap.values().toArray(new ToolCallback[0]))
+                .defaultAdvisors(ToolCallAdvisor.builder().build())
                 .build();
         ChatClient.ChatClientRequestSpec requestSpec = dynamicMcpClient
                 .prompt()
@@ -252,6 +255,7 @@ public class AiChatBaseService {
                 ChatClient filteredClient = ChatClient.builder(aiModelProvider.getChatModel())
                         .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
                         .defaultToolCallbacks(filteredCallbacks)
+                        .defaultAdvisors(ToolCallAdvisor.builder().build())
                         .build();
 
                 ChatClient.ChatClientRequestSpec requestSpec = filteredClient
@@ -271,6 +275,7 @@ public class AiChatBaseService {
         ChatClient dynamicMcpClient = ChatClient.builder(aiModelProvider.getChatModel())
                 .defaultSystem(MCP_TOOL_SYSTEM_PROMPT)
                 .defaultToolCallbacks(mcpToolCallbackMap.values().toArray(new ToolCallback[0]))
+                .defaultAdvisors(ToolCallAdvisor.builder().build())
                 .build();
         ChatClient.ChatClientRequestSpec requestSpec = dynamicMcpClient
                 .prompt()

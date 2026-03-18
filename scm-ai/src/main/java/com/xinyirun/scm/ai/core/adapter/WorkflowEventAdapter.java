@@ -123,6 +123,7 @@ public class WorkflowEventAdapter {
                     nodeRunningResp.setNodeUuid(dataJson.getString("node"));
                     nodeRunningResp.setNodeName(dataJson.getString("nodeName"));
                     nodeRunningResp.setNodeTitle(dataJson.getString("nodeTitle"));
+                    nodeRunningResp.setNodeTimestamp(dataJson.getLong("timestamp"));
                     return nodeRunningResp;
                 }
 
@@ -134,6 +135,7 @@ public class WorkflowEventAdapter {
                     nodeCompleteResp.setNodeName(dataJson.getString("nodeName"));
                     nodeCompleteResp.setNodeTitle(dataJson.getString("nodeTitle"));
                     nodeCompleteResp.setNodeDuration(dataJson.getLong("duration"));
+                    nodeCompleteResp.setNodeTimestamp(dataJson.getLong("timestamp"));
                     Object summaryObj = dataJson.get("summary");
                     if (summaryObj instanceof Map) {
                         @SuppressWarnings("unchecked")

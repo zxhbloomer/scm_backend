@@ -165,6 +165,21 @@ public class MGoodsSpecVo implements Serializable {
     private String keyword;
 
     /**
+     * AI查询：商品名关键词（对应 m_goods.name，如"焦炭"）
+     */
+    private String ai_goods_name;
+
+    /**
+     * AI查询：规格参数关键词（对应 m_goods_spec.spec，如"30-80mm"）
+     */
+    private String ai_spec;
+
+    /**
+     * AI查询：SKU编码关键词（对应 m_goods_spec.code）
+     */
+    private String ai_code;
+
+    /**
      * 修改人姓名
      */
     private String u_name;

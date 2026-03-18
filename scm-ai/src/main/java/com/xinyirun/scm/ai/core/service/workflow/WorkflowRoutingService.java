@@ -1474,6 +1474,7 @@ public class WorkflowRoutingService {
                     nodeRunningResp.setNodeUuid(eventData.getString("node"));
                     nodeRunningResp.setNodeName(eventData.getString("nodeName"));
                     nodeRunningResp.setNodeTitle(eventData.getString("nodeTitle"));
+                    nodeRunningResp.setNodeTimestamp(eventData.getLong("timestamp"));
                     return nodeRunningResp;
                 }
 
@@ -1484,6 +1485,7 @@ public class WorkflowRoutingService {
                     nodeCompleteResp.setNodeName(eventData.getString("nodeName"));
                     nodeCompleteResp.setNodeTitle(eventData.getString("nodeTitle"));
                     nodeCompleteResp.setNodeDuration(eventData.getLong("duration"));
+                    nodeCompleteResp.setNodeTimestamp(eventData.getLong("timestamp"));
                     Object summaryObj = eventData.get("summary");
                     if (summaryObj instanceof Map) {
                         @SuppressWarnings("unchecked")

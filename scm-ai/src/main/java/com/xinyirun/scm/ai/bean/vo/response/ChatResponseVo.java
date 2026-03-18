@@ -133,7 +133,7 @@ public class ChatResponseVo {
     private String interaction_request;
 
     /**
-     * 节点事件类型（node_start 或 node_complete）
+     * 节点事件类型（node_complete）
      * 用于前端展示工作流执行步骤
      *
      * @since 2026-03-02 AI聊天思考过程展示
@@ -162,7 +162,7 @@ public class ChatResponseVo {
     private String nodeTitle;
 
     /**
-     * 节点开始时间戳（毫秒，node_start事件使用）
+     * 节点完成时间戳（毫秒，node_complete事件使用）
      *
      * @since 2026-03-02 AI聊天思考过程展示
      */

@@ -48,6 +48,41 @@ public interface MGoodsSpecMapper extends BaseMapper<MGoodsSpecEntity> {
             ;
 
     /**
+     * AI专用查询：三字段独立like，enable过滤在SQL层
+     */
+    @Select("    "
+            + common_select
+            + "  where true "
+            + "    and t.is_del = false "
+            + "    and t.enable = true "
+            // 商品名：对应 m_goods.name
+            + "    and (#{p1.ai_goods_name} is null or t6.name like concat('%', #{p1.ai_goods_name,jdbcType=VARCHAR}, '%')) "
+            // 规格参数：对应 m_goods_spec.spec（如 30-80mm）
+            + "    and (#{p1.ai_spec} is null or t.spec like concat('%', #{p1.ai_spec,jdbcType=VARCHAR}, '%')) "
+            // SKU编码：对应 m_goods_spec.code
+            + "    and (#{p1.ai_code} is null or t.code like concat('%', #{p1.ai_code,jdbcType=VARCHAR}, '%')) "
+            + "    order by t.u_time desc "
+            + "      ")
+    IPage<MGoodsSpecVo> selectPageForAi(Page page, @Param("p1") MGoodsSpecVo searchCondition);
+
+    /**
+     * AI专用查询：单关键词全字段OR模糊匹配，enable过滤在SQL层
+     */
+    @Select("    "
+            + common_select
+            + "  where true "
+            + "    and t.is_del = false "
+            + "    and t.enable = true "
+            + "    and (#{p1.keyword} is null "
+            + "         or t6.name like concat('%', #{p1.keyword,jdbcType=VARCHAR}, '%') "
+            + "         or t.spec   like concat('%', #{p1.keyword,jdbcType=VARCHAR}, '%') "
+            + "         or t.code   like concat('%', #{p1.keyword,jdbcType=VARCHAR}, '%') "
+            + "        ) "
+            + "    order by t.u_time desc "
+            + "      ")
+    IPage<MGoodsSpecVo> selectPageForAiByKeyword(Page page, @Param("p1") MGoodsSpecVo searchCondition);
+
+    /**
      * 页面查询列表
      * @param page
      * @param searchCondition

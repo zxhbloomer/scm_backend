@@ -66,7 +66,8 @@ public class ClassifierNode extends AbstractWfNode {
         }
 
         // 生成分类提示词（支持可选的分类指令）
-        String prompt = ClassifierPrompt.createPrompt(defaultInputOpt.get().valueToString(), nodeConfig.getCategories(), nodeConfig.getInstruction());
+        String instruction = WorkflowUtil.renderTemplate(nodeConfig.getInstruction(), state.getInputs());
+        String prompt = ClassifierPrompt.createPrompt(defaultInputOpt.get().valueToString(), nodeConfig.getCategories(), instruction);
 
         // 调用LLM进行分类
         NodeIOData llmOutput = WorkflowUtil.invokeLLM(wfState, nodeConfig.getModelName(), prompt);
@@ -91,18 +92,13 @@ public class ClassifierNode extends AbstractWfNode {
             throw new BusinessException("找不到分类目录");
         }
 
-        // 构造输出：保留原始输入 + 添加分类结果
+        // 构造输出：分类结果名称作为 output（前端执行过程展示），同时输出 classification 变量供下游引用
         List<NodeIOData> outputs = new ArrayList<>();
 
-        // 1. 保留原始输入，传递给下游节点
-        if (defaultInputOpt.isPresent()) {
-            NodeIOData originalInput = SerializationUtils.clone(defaultInputOpt.get());
-            // 关键：必须将参数名改为 "output"，下游节点才能接收到
-            originalInput.setName(DEFAULT_OUTPUT_PARAM_NAME);
-            outputs.add(originalInput);
-        }
+        // 1. output = 分类结果名称，前端执行过程展示
+        outputs.add(NodeIOData.createByText(DEFAULT_OUTPUT_PARAM_NAME, "分类结果", classifierResp.getCategoryName()));
 
-        // 2. 添加分类结果作为额外输出
+        // 2. classification 变量，下游节点可通过 ${classification} 引用
         NodeIODataTextContent classificationContent = new NodeIODataTextContent();
         classificationContent.setValue(classifierResp.getCategoryName());
         classificationContent.setTitle("分类结果");

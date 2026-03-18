@@ -23,6 +23,7 @@ import java.util.List;
 @NoArgsConstructor
 public class NodeProcessResult {
 
+    @Builder.Default
     private List<NodeIOData> content = new ArrayList<>();
 
     /**

@@ -6,7 +6,7 @@ import java.util.List;
 
 /**
  * 工作流人机交互节点配置
- * 支持4种交互类型: text(自由文本) / confirm(确认驳回) / select(单项选择) / form(表单填写)
+ * 支持5种交互类型: text(自由文本) / confirm(确认驳回) / select(单项选择) / form(表单填写) / table_select(表格选择)
  */
 @Data
 public class HumanFeedbackNodeConfig {
@@ -17,7 +17,7 @@ public class HumanFeedbackNodeConfig {
     private String tip;
 
     /**
-     * 交互类型: text / confirm / select / form，默认text
+     * 交互类型: text / confirm / select / form / table_select，默认text
      */
     private String interactionType;
 
@@ -66,6 +66,13 @@ public class HumanFeedbackNodeConfig {
      * 表单字段列表
      */
     private List<FormField> fields;
+
+    // --- table_select 类型参数 ---
+
+    /**
+     * 表格列定义（table_select类型使用）
+     */
+    private List<TableColumn> columns;
 
     /**
      * 获取有效的交互类型，默认text
@@ -117,5 +124,23 @@ public class HumanFeedbackNodeConfig {
          * type=select时的选项
          */
         private List<SelectOption> options;
+    }
+
+    @Data
+    public static class TableColumn {
+        /**
+         * 字段标识，对应 option.data 中的 key
+         */
+        private String key;
+
+        /**
+         * 列头显示名称
+         */
+        private String label;
+
+        /**
+         * 列宽（px），可选
+         */
+        private Integer width;
     }
 }

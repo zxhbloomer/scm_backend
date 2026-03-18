@@ -10,6 +10,7 @@ import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.function.FunctionToolCallback;
+import org.springframework.ai.tool.metadata.ToolMetadata;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.xinyirun.scm.ai.workflow.WfNodeState;
+import com.xinyirun.scm.ai.workflow.WorkflowConstants;
 import com.xinyirun.scm.ai.workflow.data.NodeIOData;
 
 /**
@@ -216,11 +218,17 @@ class McpToolCallbackAdapter {
                 }
             };
 
-        return FunctionToolCallback.builder(toolName, toolFunction)
+        FunctionToolCallback.Builder builder = FunctionToolCallback.builder(toolName, toolFunction)
                 .description(description)
                 .inputType(Map.class)
-                .inputSchema(inputSchema)
-                .build();
+                .inputSchema(inputSchema);
+
+        // returnDirect 白名单：在白名单中的工具调用后直接返回，不经过LLM二次处理
+        if (WorkflowConstants.MCP_RETURN_DIRECT_TOOLS.contains(toolName)) {
+            builder.toolMetadata(ToolMetadata.builder().returnDirect(true).build());
+        }
+
+        return builder.build();
     }
 
     /**

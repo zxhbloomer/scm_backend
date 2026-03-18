@@ -29,6 +29,8 @@ import static com.alibaba.cloud.ai.graph.StateGraph.START;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.*;
@@ -275,6 +277,7 @@ public class WorkflowEngine {
                 buildStateGraph(mainStateGraph, startNode);
                 CompileConfig compileConfig = CompileConfig.builder()
                     .withLifecycleListener(new NodeEventListener())
+                    .interruptsBefore(humanFeedbackNodeUuids)
                     .build();
                 app = mainStateGraph.compile(compileConfig);
 
@@ -758,12 +761,25 @@ public class WorkflowEngine {
     private Flux<WorkflowEventVo> handleInterruption(GraphResponse<NodeOutput> graphResponse) {
         DataSourceHelper.use(this.tenantCode);
 
-        // 获取中断节点信息
-        String nextInterruptNode = wfState.getInterruptNodes().stream()
-            .filter(nodeUuid -> wfState.getCompletedNodes().stream()
-                .noneMatch(completedNode -> completedNode.getNode().getUuid().equals(nodeUuid)))
-            .findFirst()
-            .orElse(null);
+        // 获取中断节点信息：优先从InterruptionMetadata直接获取，降级为completedNodes过滤
+        String nextInterruptNode = null;
+        if (graphResponse.resultValue().isPresent()) {
+            Object result = graphResponse.resultValue().get();
+            if (result instanceof com.alibaba.cloud.ai.graph.action.InterruptionMetadata interruptionMeta) {
+                nextInterruptNode = interruptionMeta.node();
+                log.info("从InterruptionMetadata获取中断节点: {}", nextInterruptNode);
+            }
+        }
+        if (nextInterruptNode == null) {
+            nextInterruptNode = wfState.getInterruptNodes().stream()
+                .filter(nodeUuid -> wfState.getCompletedNodes().stream()
+                    .noneMatch(completedNode -> completedNode.getNode().getUuid().equals(nodeUuid)))
+                .findFirst()
+                .orElse(null);
+            if (nextInterruptNode != null) {
+                log.info("降级：通过completedNodes过滤获取中断节点: {}", nextInterruptNode);
+            }
+        }
 
         if (nextInterruptNode != null) {
             InterruptedFlow.RUNTIME_TO_GRAPH.put(wfState.getUuid(), this);
@@ -847,6 +863,13 @@ public class WorkflowEngine {
 
             case "select":
                 params.put("options", resolveSelectOptions(config));
+                break;
+
+            case "table_select":
+                params.put("options", resolveSelectOptions(config));
+                if (config.getColumns() != null) {
+                    params.put("columns", config.getColumns());
+                }
                 break;
 
             case "form":
@@ -1008,16 +1031,6 @@ public class WorkflowEngine {
             // 在异步线程中重新设置数据源上下文
             // StateGraph异步执行时创建的新线程无法继承ThreadLocal的数据源上下文
             DataSourceHelper.use(this.tenantCode);
-
-            // 检查是否是中断节点且未resume (替代interruptBefore机制)
-            // 如果是首次遇到HumanFeedbackNode,直接返回空结果,不执行节点
-            if (wfState.getInterruptNodes().contains(wfNode.getUuid())
-                    && !nodeState.data().containsKey(HUMAN_FEEDBACK_KEY)) {
-                log.info("检测到中断节点(HumanFeedbackNode),跳过执行: {}", wfNode.getUuid());
-                // 返回空结果,让workflow暂停在此节点之前
-                resultMap.put("name", wfNode.getTitle());
-                return resultMap;
-            }
 
             // 1. 找到对应的组件
             AiWorkflowComponentEntity wfComponent = components.stream()

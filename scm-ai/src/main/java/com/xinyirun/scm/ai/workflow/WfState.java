@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
-import reactor.core.publisher.FluxSink;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -117,11 +116,6 @@ public class WfState {
     private boolean waitingInteraction = false;
 
     /**
-     * FluxSink引用，供NodeEventListener和handleInterruption发送事件到前端
-     */
-    private transient FluxSink<WorkflowEventVo> eventSink;
-
-    /**
      * 已通过chunk事件流式输出的节点UUID集合
      * 用于handleGraphResponse中跳过output事件，避免内容重复
      */
@@ -138,14 +132,6 @@ public class WfState {
 
     public long[] getNodeTokens(String nodeUuid) {
         return nodeTokens.get(nodeUuid);
-    }
-
-    public FluxSink<WorkflowEventVo> getEventSink() {
-        return eventSink;
-    }
-
-    public void setEventSink(FluxSink<WorkflowEventVo> eventSink) {
-        this.eventSink = eventSink;
     }
 
     public void markNodeStreamed(String nodeUuid) {
@@ -257,6 +243,13 @@ public class WfState {
         String key = sourceNodeUuid + "|" + sourceHandle;
         List<String> targets = conditionalEdgesByHandle.get(key);
         return targets != null ? targets : Collections.emptyList();
+    }
+
+    /**
+     * 获取条件分支边 Map（供并行节点推断合并节点使用）
+     */
+    public Map<String, List<String>> getConditionalEdgesByHandle() {
+        return conditionalEdgesByHandle;
     }
 
     /**

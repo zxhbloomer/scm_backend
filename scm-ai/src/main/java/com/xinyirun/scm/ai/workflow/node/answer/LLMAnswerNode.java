@@ -41,9 +41,14 @@ public class LLMAnswerNode extends AbstractWfNode {
         log.info("LLM prompt: {}", prompt);
 
         String modelName = nodeConfig.getModelName();
-        // 调用LLM接口进行流式处理，返回Flux供框架getEmbedFlux实现打字机效果
-        Flux<ChatResponse> streamingFlux = WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt, false);
+        // show_process_output=true 时用同步模式，确保 node_complete 时 outputs 已就绪
+        boolean silentMode = Boolean.TRUE.equals(nodeConfig.getShowProcessOutput());
+        Flux<ChatResponse> streamingFlux = WorkflowUtil.streamingInvokeLLM(wfState, state, node, modelName, prompt, silentMode);
 
+        if (silentMode) {
+            // 同步模式：outputs 已写入，直接返回，不需要 streamingFlux
+            return NodeProcessResult.builder().build();
+        }
         return NodeProcessResult.builder().streamingFlux(streamingFlux).build();
     }
 }

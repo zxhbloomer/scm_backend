@@ -1,5 +1,7 @@
 package com.xinyirun.scm.ai.workflow;
 
+import java.util.Set;
+
 /**
  * Workflow常量定义
  *
@@ -29,6 +31,16 @@ public class WorkflowConstants {
      * 人机交互的KEY
      */
     public static final String HUMAN_FEEDBACK_KEY = "human_feedback";
+
+    /**
+     * returnDirect 白名单工具集合
+     * 这些工具调用后直接返回结果，不再经过LLM二次处理
+     * 格式：ClassName.methodName（与 McpToolConfig 中 createToolCallback 的 toolName 一致）
+     */
+    public static final Set<String> MCP_RETURN_DIRECT_TOOLS = Set.of(
+        "GoodsQueryMcpTools.queryGoodsByKeywordJson",
+        "GoodsQueryMcpTools.queryGoodsByName"
+    );
 
     /**
      * 虚拟并行节点ID前缀
