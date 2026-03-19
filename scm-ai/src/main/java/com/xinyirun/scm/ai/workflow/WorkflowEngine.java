@@ -24,6 +24,7 @@ import reactor.core.Disposable;
 
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.action.AsyncMultiCommandAction;
+import com.alibaba.cloud.ai.graph.action.AsyncEdgeAction;
 import static com.alibaba.cloud.ai.graph.StateGraph.END;
 import static com.alibaba.cloud.ai.graph.StateGraph.START;
 
@@ -699,6 +700,11 @@ public class WorkflowEngine {
                 // WrapCall模式下各子节点已在 whenComplete 中独立发送 node_complete
                 // 此处只补发 output 事件
                 if (nodeId.startsWith("__PARALLEL__")) {
+                    // 并行路径中断检测：如果有子节点触发了 HumanFeedback 中断，跳过 output 事件
+                    if (wfState.isWaitingInteraction()) {
+                        log.info("[handleGraphResponse] 并行路径已中断，跳过 __PARALLEL__ output 事件, nodeId={}", nodeId);
+                        return Flux.empty();
+                    }
                     // __PARALLEL__(xxx) 中 xxx 是触发并行的源节点 UUID
                     String parallelSourceId = nodeId.substring("__PARALLEL__(".length(), nodeId.length() - 1);
                     List<String> parallelChildren = new ArrayList<>(wfState.getEdgeTargets(parallelSourceId));
@@ -761,13 +767,23 @@ public class WorkflowEngine {
     private Flux<WorkflowEventVo> handleInterruption(GraphResponse<NodeOutput> graphResponse) {
         DataSourceHelper.use(this.tenantCode);
 
-        // 获取中断节点信息：优先从InterruptionMetadata直接获取，降级为completedNodes过滤
+        // 获取中断节点信息：优先从InterruptionMetadata获取，再查出边找真正的HumanFeedback节点，降级为completedNodes过滤
         String nextInterruptNode = null;
         if (graphResponse.resultValue().isPresent()) {
             Object result = graphResponse.resultValue().get();
             if (result instanceof com.alibaba.cloud.ai.graph.action.InterruptionMetadata interruptionMeta) {
-                nextInterruptNode = interruptionMeta.node();
-                log.info("从InterruptionMetadata获取中断节点: {}", nextInterruptNode);
+                String metaNode = interruptionMeta.node();
+                log.info("从InterruptionMetadata获取节点: {}", metaNode);
+                // interruptsBefore语义：metaNode是已完成节点，真正的中断节点是其出边中的HumanFeedback节点
+                if (humanFeedbackNodeUuids.contains(metaNode)) {
+                    nextInterruptNode = metaNode;
+                } else {
+                    nextInterruptNode = wfState.getEdgeTargets(metaNode).stream()
+                        .filter(humanFeedbackNodeUuids::contains)
+                        .findFirst()
+                        .orElse(metaNode);
+                }
+                log.info("确定中断节点: {}", nextInterruptNode);
             }
         }
         if (nextInterruptNode == null) {
@@ -797,7 +813,7 @@ public class WorkflowEngine {
             String tip = nodeConfig.getTip() != null ? nodeConfig.getTip() : "请输入您的反馈";
 
             // 构建交互参数JSON
-            JSONObject interactionParams = buildInteractionParams(nodeConfig, interactionType);
+            JSONObject interactionParams = buildInteractionParams(nodeConfig, interactionType, nextInterruptNode);
 
             // 映射交互类型: text→user_text, confirm→user_confirm, select→user_select, form→user_form
             String dbInteractionType = "user_" + interactionType;
@@ -806,7 +822,7 @@ public class WorkflowEngine {
             JSONObject interactionRequest = null;
             if (interactionService != null) {
                 try {
-                    com.xinyirun.scm.ai.bean.entity.workflow.AiWorkflowInteractionEntity entity =
+                    AiWorkflowInteractionEntity entity =
                         interactionService.createInteraction(
                             wfState.getConversationId(),
                             wfState.getUuid(),
@@ -847,9 +863,79 @@ public class WorkflowEngine {
     }
 
     /**
+     * 处理并行路径人机交互中断（通过 NodeEventListener.after() 触发）
+     *
+     * 与 handleInterruption(GraphResponse) 逻辑相同，但：
+     * 1. 不依赖 GraphResponse，直接接收 nodeUuid
+     * 2. 不调用 eventSink.complete()，避免提前关闭 SSE 流
+     *    （SSE 流由 graphStream 的 doOnComplete 自然关闭）
+     *
+     * @param interruptNodeUuid 中断节点UUID
+     */
+    private void handleParallelInterruption(String interruptNodeUuid) {
+        try {
+            DataSourceHelper.use(this.tenantCode);
+
+            InterruptedFlow.RUNTIME_TO_GRAPH.put(wfState.getUuid(), this);
+            wfState.setProcessStatus(WORKFLOW_PROCESS_STATUS_READY);
+            if (this.wfRuntimeResp != null) {
+                workflowRuntimeService.updateOutput(wfRuntimeResp.getId(), wfState);
+            } else if (this.conversationRuntimeResp != null) {
+                conversationRuntimeService.updateOutput(conversationRuntimeResp.getId(), wfState);
+            }
+
+            HumanFeedbackNodeConfig nodeConfig = getHumanFeedbackConfig(interruptNodeUuid);
+            String interactionType = nodeConfig.getEffectiveInteractionType();
+            String tip = nodeConfig.getTip() != null ? nodeConfig.getTip() : "请输入您的反馈";
+            JSONObject interactionParams = buildInteractionParams(nodeConfig, interactionType, interruptNodeUuid);
+            String dbInteractionType = "user_" + interactionType;
+
+            JSONObject interactionRequest = null;
+            if (interactionService != null) {
+                try {
+                    AiWorkflowInteractionEntity entity = interactionService.createInteraction(
+                        wfState.getConversationId(),
+                        wfState.getUuid(),
+                        interruptNodeUuid,
+                        dbInteractionType,
+                        interactionParams.toJSONString(),
+                        tip,
+                        nodeConfig.getEffectiveTimeoutMinutes()
+                    );
+                    interactionRequest = new JSONObject();
+                    interactionRequest.put("interaction_uuid", entity.getInteractionUuid());
+                    interactionRequest.put("type", dbInteractionType);
+                    interactionRequest.put("description", tip);
+                    interactionRequest.put("timeout_minutes", entity.getTimeoutMinutes());
+                    interactionRequest.put("timeout_at", entity.getTimeoutAt() != null
+                        ? entity.getTimeoutAt().toString() : null);
+                    interactionRequest.put("params", interactionParams);
+                    log.info("并行路径人机交互DB记录已创建: interactionUuid={}, type={}",
+                        entity.getInteractionUuid(), dbInteractionType);
+                } catch (Exception e) {
+                    log.error("创建并行路径人机交互DB记录失败，降级为基础中断", e);
+                }
+            }
+
+            if (eventSink != null) {
+                WorkflowEventVo interruptEvent = interactionRequest != null
+                    ? WorkflowEventVo.createInterruptDataWithInteraction(
+                        interruptNodeUuid, tip, interactionType, interactionRequest)
+                    : WorkflowEventVo.createInterruptData(interruptNodeUuid, tip);
+                eventSink.next(interruptEvent);
+                log.info("并行路径中断事件已发送, nodeUuid={}", interruptNodeUuid);
+            }
+        } catch (Exception e) {
+            log.error("处理并行路径中断失败, nodeUuid={}", interruptNodeUuid, e);
+        } finally {
+            DataSourceHelper.close();
+        }
+    }
+
+    /**
      * 构建交互参数JSON
      */
-    private JSONObject buildInteractionParams(HumanFeedbackNodeConfig config, String interactionType) {
+    private JSONObject buildInteractionParams(HumanFeedbackNodeConfig config, String interactionType, String nodeUuid) {
         JSONObject params = new JSONObject();
 
         switch (interactionType) {
@@ -862,11 +948,11 @@ public class WorkflowEngine {
                 break;
 
             case "select":
-                params.put("options", resolveSelectOptions(config));
+                params.put("options", resolveSelectOptions(config, nodeUuid));
                 break;
 
             case "table_select":
-                params.put("options", resolveSelectOptions(config));
+                params.put("options", resolveSelectOptions(config, nodeUuid));
                 if (config.getColumns() != null) {
                     params.put("columns", config.getColumns());
                 }
@@ -887,32 +973,29 @@ public class WorkflowEngine {
     }
 
     /**
-     * 解析select选项（支持静态和动态）
+     * 解析select选项
+     * 优先从节点输入参数（ref_inputs映射）中读取名为"options"的参数
+     * 回退到静态配置的options列表
      */
-    private List<HumanFeedbackNodeConfig.SelectOption> resolveSelectOptions(HumanFeedbackNodeConfig config) {
-        // 动态选项: 从上游节点输出中获取
-        if ("dynamic".equals(config.getOptionsSource()) && config.getDynamicOptionsParam() != null) {
-            String paramName = config.getDynamicOptionsParam();
-            for (AbstractWfNode completedNode : wfState.getCompletedNodes()) {
-                List<NodeIOData> outputs = completedNode.getState().getOutputs();
-                if (outputs == null) continue;
-
-                for (NodeIOData output : outputs) {
-                    if (paramName.equals(output.getName())) {
-                        try {
-                            String jsonStr = output.valueToString();
-                            return com.alibaba.fastjson2.JSON.parseArray(
-                                jsonStr, HumanFeedbackNodeConfig.SelectOption.class);
-                        } catch (Exception e) {
-                            log.warn("解析动态选项失败, paramName={}, error={}", paramName, e.getMessage());
-                        }
+    private List<HumanFeedbackNodeConfig.SelectOption> resolveSelectOptions(
+            HumanFeedbackNodeConfig config, String nodeUuid) {
+        // 从节点暂存的 inputs 中读取（通过 ref_inputs 连线映射进来的）
+        List<NodeIOData> inputs = wfState.getPendingNodeInputs(nodeUuid);
+        for (NodeIOData input : inputs) {
+            if ("options".equals(input.getName())) {
+                try {
+                    String jsonStr = input.valueToString();
+                    List<HumanFeedbackNodeConfig.SelectOption> result =
+                        com.alibaba.fastjson2.JSON.parseArray(jsonStr, HumanFeedbackNodeConfig.SelectOption.class);
+                    if (result != null && !result.isEmpty()) {
+                        return result;
                     }
+                } catch (Exception e) {
+                    log.warn("解析输入选项失败, nodeUuid={}, error={}", nodeUuid, e.getMessage());
                 }
             }
-            log.warn("未找到动态选项参数: {}", paramName);
         }
-
-        // 静态选项或动态解析失败回退
+        // 回退到静态选项
         return config.getOptions() != null ? config.getOptions() : List.of();
     }
 
@@ -1396,35 +1479,68 @@ public class WorkflowEngine {
                 }
             }
 
-            // 使用addParallelConditionalEdges统一处理（单目标返回单元素列表，框架自动走单节点路径）
-            final Map<String, List<String>> finalHandleToTargets = handleToTargets;
-            AsyncMultiCommandAction multiAction = AsyncMultiCommandAction.of(state -> {
-                Object nextSourceHandle = state.data().get("next_source_handle");
-                String handle;
-                if (nextSourceHandle != null) {
-                    handle = nextSourceHandle.toString();
-                } else {
-                    Object next = state.data().get("next");
-                    if (next != null) {
-                        log.info("[条件路由] 使用旧版next字段: {}", next);
-                        handle = next.toString();
-                    } else {
-                        log.warn("[条件路由] Switcher[{}]未设置next_source_handle，使用default_handle", switcherUuid);
-                        handle = "default_handle";
-                    }
-                }
-                log.info("[条件路由] Switcher[{}] -> sourceHandle: {}", switcherUuid, handle);
-                List<String> targets = finalHandleToTargets.get(handle);
-                if (targets == null || targets.isEmpty()) {
-                    log.warn("[条件路由] Switcher[{}] handle {} 无对应目标节点", switcherUuid, handle);
-                    return CompletableFuture.completedFuture(List.of());
-                }
-                return CompletableFuture.completedFuture(targets);
-            });
+            // 判断是否有任何handle有多目标（真正的并行分支）
+            boolean hasParallelHandle = handleToTargets.values().stream().anyMatch(t -> t.size() > 1);
 
-            stateGraph.addParallelConditionalEdges(switcherUuid, multiAction, allMappings);
-            log.info("[processConditionalEdges] Switcher[{}] 注册addParallelConditionalEdges, mappings={}",
-                    switcherUuid, allMappings.keySet());
+            final Map<String, List<String>> finalHandleToTargets = handleToTargets;
+
+            if (hasParallelHandle) {
+                // 有多目标handle：使用addParallelConditionalEdges
+                AsyncMultiCommandAction multiAction = AsyncMultiCommandAction.of(state -> {
+                    Object nextSourceHandle = state.data().get("next_source_handle");
+                    String handle;
+                    if (nextSourceHandle != null) {
+                        handle = nextSourceHandle.toString();
+                    } else {
+                        Object next = state.data().get("next");
+                        if (next != null) {
+                            log.info("[条件路由] 使用旧版next字段: {}", next);
+                            handle = next.toString();
+                        } else {
+                            log.warn("[条件路由] Switcher[{}]未设置next_source_handle，使用default_handle", switcherUuid);
+                            handle = "default_handle";
+                        }
+                    }
+                    log.info("[条件路由] Switcher[{}] -> sourceHandle: {}", switcherUuid, handle);
+                    List<String> targets = finalHandleToTargets.get(handle);
+                    if (targets == null || targets.isEmpty()) {
+                        log.warn("[条件路由] Switcher[{}] handle {} 无对应目标节点", switcherUuid, handle);
+                        return CompletableFuture.completedFuture(List.of());
+                    }
+                    return CompletableFuture.completedFuture(targets);
+                });
+                stateGraph.addParallelConditionalEdges(switcherUuid, multiAction, allMappings);
+                log.info("[processConditionalEdges] Switcher[{}] 注册addParallelConditionalEdges, mappings={}",
+                        switcherUuid, allMappings.keySet());
+            } else {
+                // 所有handle都是单目标：使用addConditionalEdges，框架会沿选中路径继续执行
+                AsyncEdgeAction edgeAction = state -> {
+                    Object nextSourceHandle = state.data().get("next_source_handle");
+                    String handle;
+                    if (nextSourceHandle != null) {
+                        handle = nextSourceHandle.toString();
+                    } else {
+                        Object next = state.data().get("next");
+                        if (next != null) {
+                            log.info("[条件路由] 使用旧版next字段: {}", next);
+                            handle = next.toString();
+                        } else {
+                            log.warn("[条件路由] Switcher[{}]未设置next_source_handle，使用default_handle", switcherUuid);
+                            handle = "default_handle";
+                        }
+                    }
+                    log.info("[条件路由] Switcher[{}] -> sourceHandle: {}", switcherUuid, handle);
+                    List<String> targets = finalHandleToTargets.get(handle);
+                    if (targets == null || targets.isEmpty()) {
+                        log.warn("[条件路由] Switcher[{}] handle {} 无对应目标节点", switcherUuid, handle);
+                        return CompletableFuture.completedFuture(handle);
+                    }
+                    return CompletableFuture.completedFuture(targets.get(0));
+                };
+                stateGraph.addConditionalEdges(switcherUuid, edgeAction, allMappings);
+                log.info("[processConditionalEdges] Switcher[{}] 注册addConditionalEdges, mappings={}",
+                        switcherUuid, allMappings.keySet());
+            }
         }
     }
 
@@ -1784,6 +1900,21 @@ public class WorkflowEngine {
         public void after(String nodeId, Map<String, Object> state, RunnableConfig config, Long curTime) {
             String componentName = findComponentName(nodeId);
             log.debug("[NodeEventListener.after] nodeId={}, componentName={}, thread={}", nodeId, componentName, Thread.currentThread().getName());
+
+            // 并行路径 HumanFeedback 中断检测
+            // 条件说明：
+            // 1. wfState.isWaitingInteraction() - HumanFeedbackNode.onProcess() 设置了等待标志
+            //    非并行路径通过 interruptsBefore 在节点执行前中断，onProcess() 不会被调用，
+            //    所以 waitingInteraction=true 本身就是"并行路径触发"的充分标志
+            // 2. humanFeedbackNodeUuids.contains(nodeId) - 当前节点是 HumanFeedback 节点
+            // 3. wfState.tryFireParallelInterrupt() - CAS 保证只触发一次（多个并行子节点竞争时）
+            if (wfState != null
+                    && wfState.isWaitingInteraction()
+                    && humanFeedbackNodeUuids.contains(nodeId)
+                    && wfState.tryFireParallelInterrupt()) {
+                log.info("[NodeEventListener.after] 检测到并行路径中断, nodeId={}", nodeId);
+                handleParallelInterruption(nodeId);
+            }
         }
     }
 
