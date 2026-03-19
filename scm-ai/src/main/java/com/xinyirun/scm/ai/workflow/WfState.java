@@ -14,6 +14,7 @@ import com.xinyirun.scm.ai.bean.vo.workflow.WorkflowEventVo;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.xinyirun.scm.ai.workflow.WorkflowConstants.WORKFLOW_PROCESS_STATUS_READY;
 
@@ -113,13 +114,43 @@ public class WfState {
     /**
      * 是否等待用户交互输入（OpenPage交互模式设置）
      */
-    private boolean waitingInteraction = false;
+    private volatile boolean waitingInteraction = false;
 
     /**
      * 已通过chunk事件流式输出的节点UUID集合
      * 用于handleGraphResponse中跳过output事件，避免内容重复
      */
     private final Set<String> streamedNodeUuids = ConcurrentHashMap.newKeySet();
+
+    /**
+     * 并行路径人机交互中断锁
+     * 防止多个并行子节点同时完成时重复触发中断
+     * true=已触发中断，false=未触发
+     */
+    private final AtomicBoolean parallelInterruptFired = new AtomicBoolean(false);
+
+    /**
+     * 人机交互节点暂存的输入参数（nodeUuid → inputs）
+     * HumanFeedbackNode.onProcess() 设置等待标志时写入，供 resolveSelectOptions 读取
+     * 原因：节点中断时尚未进入 completedNodes，但 initInput() 已执行完毕
+     */
+    private final Map<String, List<NodeIOData>> pendingNodeInputs = new ConcurrentHashMap<>();
+
+    public void savePendingNodeInputs(String nodeUuid, List<NodeIOData> inputs) {
+        pendingNodeInputs.put(nodeUuid, new ArrayList<>(inputs));
+    }
+
+    public List<NodeIOData> getPendingNodeInputs(String nodeUuid) {
+        return pendingNodeInputs.getOrDefault(nodeUuid, List.of());
+    }
+
+    /**
+     * 尝试触发并行中断（CAS操作，只有第一个调用者返回true）
+     * @return true=本次调用成功抢占中断权，false=已被其他线程抢占
+     */
+    public boolean tryFireParallelInterrupt() {
+        return parallelInterruptFired.compareAndSet(false, true);
+    }
 
     /**
      * 各节点Token消耗记录（nodeUuid → [promptTokens, completionTokens]）

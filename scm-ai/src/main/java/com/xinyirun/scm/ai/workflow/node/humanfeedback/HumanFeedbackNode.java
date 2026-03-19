@@ -37,7 +37,10 @@ public class HumanFeedbackNode extends AbstractWfNode {
         // 获取用户反馈输入
         Object feedbackData = state.data().get(HUMAN_FEEDBACK_KEY);
         if (feedbackData == null) {
-            log.warn("人机交互节点未获取到用户反馈, nodeUuid: {}", node.getUuid());
+            log.info("人机交互节点等待用户输入，设置等待标志, nodeUuid: {}", node.getUuid());
+            // 暂存已初始化的 inputs，供 resolveSelectOptions 读取（此时节点尚未进入 completedNodes）
+            wfState.savePendingNodeInputs(node.getUuid(), state.getInputs());
+            wfState.setWaitingInteraction(true);
             return NodeProcessResult.builder().content(List.of()).build();
         }
 
