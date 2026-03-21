@@ -414,7 +414,7 @@ public class AiConversationController {
                 .map(response -> {
                     // 在每次map操作前确保数据源上下文正确
                     DataSourceHelper.use(tenantId);
-                    return handleResponse(response, conversationId, userPrompt, operatorId, aiResponseAccumulator);
+                    return handleResponse(response, conversationId, userPrompt, operatorId, aiResponseAccumulator, workflowState);
                 })
                 .timeout(Duration.ofMinutes(30))
                 .onErrorResume(e -> handleError(e, conversationId, tenantId))
@@ -453,7 +453,8 @@ public class AiConversationController {
      * @return 处理后的响应
      */
     private ChatResponseVo handleResponse(ChatResponseVo response, String conversationId,
-            String userPrompt, Long operatorId, AtomicReference<String> aiResponseAccumulator) {
+            String userPrompt, Long operatorId, AtomicReference<String> aiResponseAccumulator,
+            String workflowState) {
         // 累积AI回复内容 (使用AtomicReference保证线程安全)
         if (!Boolean.TRUE.equals(response.getIsComplete())) {
             if (response.getResults() != null && !response.getResults().isEmpty()) {
@@ -473,6 +474,18 @@ public class AiConversationController {
                 response.getWorkflowUuid(),
                 response.getRuntimeUuid()
             );
+            // 第一轮中断：保存原始用户问题
+            // workflowState != STATE_WORKFLOW_WAITING_INPUT 确保多节点场景下只保存第一次原始问题
+            try {
+                if (userPrompt != null && !userPrompt.isEmpty()
+                        && !WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT.equals(workflowState)) {
+                    aiConversationContentService.saveContent(
+                        conversationId, 1, userPrompt, operatorId, null, null, null
+                    );
+                }
+            } catch (Exception e) {
+                log.error("保存用户消息失败(中断场景): conversationId={}", conversationId, e);
+            }
         }
 
         if (Boolean.TRUE.equals(response.getIsComplete())) {
@@ -513,11 +526,16 @@ public class AiConversationController {
                 log.info("【AI-Chat-保存】准备保存对话内容: conversationId={}, runtimeUuid={}",
                     conversationId, runtimeUuid);
 
-                if (!userPrompt.isEmpty() || !finalAiResponse.isEmpty()) {
+                // resume 场景（第二轮）：跳过 USER 消息保存，原始问题已在第一轮保存
+                boolean isResume = WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT.equals(workflowState);
+                if (!isResume && userPrompt != null && !userPrompt.isEmpty()) {
                     aiConversationContentService.saveContent(
                         conversationId, 1, userPrompt, operatorId, null, null, null
                     );
+                }
 
+                // 保存 AI 消息（普通对话和 resume 都保存）
+                if (!finalAiResponse.isEmpty()) {
                     // 构建工作流思考步骤JSON（根据runtimeId查询节点执行记录）
                     String workflowSteps = null;
                     if (response.getRuntimeId() != null) {
