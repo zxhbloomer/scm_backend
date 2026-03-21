@@ -306,6 +306,8 @@ public class AiConversationController {
         // 使用AtomicReference解决Reactor流中的线程安全问题
         // StringBuilder不是线程安全的,在Flux的map操作中可能被多个线程访问
         AtomicReference<String> aiResponseAccumulator = new AtomicReference<>("");
+        // 捕获请求进入时的 workflowState，供 .map() 里的 handleResponse() 判断 resume 场景
+        AtomicReference<String> workflowStateRef = new AtomicReference<>(WorkflowStateConstant.STATE_IDLE);
 
         // Spring AI模式：Mono → Flux 链式调用
         return Mono.fromCallable(() -> {
@@ -316,7 +318,7 @@ public class AiConversationController {
                     }
                     return conversation;
                 })
-                .flatMapMany(conversation -> {
+                .<ChatResponseVo>flatMapMany(conversation -> {
                     // 在flatMapMany内部重新设置数据源,防止线程切换导致ThreadLocal丢失
                     DataSourceHelper.use(tenantId);
 
@@ -324,6 +326,8 @@ public class AiConversationController {
                     if (workflowState == null) {
                         workflowState = WorkflowStateConstant.STATE_IDLE;
                     }
+                    // 存入 AtomicReference，供 .map() 里的 handleResponse() 读取
+                    workflowStateRef.set(workflowState);
 
                     if (WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT.equals(workflowState)) {
                         boolean isContinuation = workflowRoutingService.isInputContinuation(
@@ -414,7 +418,7 @@ public class AiConversationController {
                 .map(response -> {
                     // 在每次map操作前确保数据源上下文正确
                     DataSourceHelper.use(tenantId);
-                    return handleResponse(response, conversationId, userPrompt, operatorId, aiResponseAccumulator, workflowState);
+                    return handleResponse(response, conversationId, userPrompt, operatorId, aiResponseAccumulator, workflowStateRef.get());
                 })
                 .timeout(Duration.ofMinutes(30))
                 .onErrorResume(e -> handleError(e, conversationId, tenantId))
