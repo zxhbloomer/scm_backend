@@ -476,103 +476,70 @@ public class AiConversationController {
         }
 
         if (Boolean.TRUE.equals(response.getIsComplete())) {
-            if (response.getInteraction_request() != null) {
-                // 情况A：第一轮中断（HumanFeedback节点）— 只保存原始用户问题
+            String fullContent = "";
+            if (response.getResults() != null && !response.getResults().isEmpty()) {
+                ChatResponseVo.Generation generation = response.getResults().get(0);
+                if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
+                    fullContent = generation.getOutput().getContent();
+                }
+            }
+            if (fullContent.isEmpty()) {
+                fullContent = aiResponseAccumulator.get();
+            }
+            // OpenPage工作流：LLM不生成文本，用open_page_command生成结果文字持久化
+            if (fullContent.isEmpty() && response.getOpen_page_command() != null) {
                 try {
-                    if (!userPrompt.isEmpty()) {
-                        aiConversationContentService.saveContent(
-                            conversationId, 1, userPrompt, operatorId, null, null, null
-                        );
-                        log.info("【AI-Chat-保存】中断场景保存用户问题: conversationId={}", conversationId);
-                    }
+                    JSONObject cmd = JSON.parseObject(response.getOpen_page_command());
+                    String pageMode = cmd.getString("page_mode");
+                    String modeLabel = "new".equals(pageMode) ? "新增页面" : ("edit".equals(pageMode) ? "编辑页面" : "页面");
+                    fullContent = "已为您打开" + modeLabel;
                 } catch (Exception e) {
-                    log.error("保存用户消息失败(中断场景): conversationId={}", conversationId, e);
+                    fullContent = "已为您打开页面";
                 }
-            } else {
-                // 情况B：工作流完成（普通对话 或 第二轮resume）
-                String fullContent = "";
-                if (response.getResults() != null && !response.getResults().isEmpty()) {
-                    ChatResponseVo.Generation generation = response.getResults().get(0);
-                    if (generation.getOutput() != null && generation.getOutput().getContent() != null) {
-                        fullContent = generation.getOutput().getContent();
-                    }
-                }
-                if (fullContent.isEmpty()) {
-                    fullContent = aiResponseAccumulator.get();
-                }
-                // OpenPage工作流：LLM不生成文本，用open_page_command生成结果文字持久化
-                if (fullContent.isEmpty() && response.getOpen_page_command() != null) {
-                    try {
-                        JSONObject cmd = JSON.parseObject(response.getOpen_page_command());
-                        String pageMode = cmd.getString("page_mode");
-                        String modeLabel = "new".equals(pageMode) ? "新增页面" : ("edit".equals(pageMode) ? "编辑页面" : "页面");
-                        fullContent = "已为您打开" + modeLabel;
-                    } catch (Exception e) {
-                        fullContent = "已为您打开页面";
-                    }
-                }
+            }
 
-                aiConversationService.updateWorkflowState(
-                    conversationId,
-                    WorkflowStateConstant.STATE_IDLE,
-                    null,
-                    null
-                );
+            aiConversationService.updateWorkflowState(
+                conversationId,
+                WorkflowStateConstant.STATE_IDLE,
+                null,
+                null
+            );
 
-                // 保存对话内容
-                try {
-                    String finalAiResponse = fullContent;
-                    String runtimeUuid = response.getRuntimeUuid();
+            // 保存对话内容
+            try {
+                String finalAiResponse = fullContent;
+                String runtimeUuid = response.getRuntimeUuid();
 
-                    log.info("【AI-Chat-保存】准备保存对话内容: conversationId={}, runtimeUuid={}, isFeedbackResume={}",
-                        conversationId, runtimeUuid, isInteractionFeedback(userPrompt));
+                log.info("【AI-Chat-保存】准备保存对话内容: conversationId={}, runtimeUuid={}",
+                    conversationId, runtimeUuid);
 
-                    if (!isInteractionFeedback(userPrompt) && !userPrompt.isEmpty()) {
-                        // 普通对话：保存用户消息（第二轮resume时跳过，原始问题已在第一轮保存）
-                        aiConversationContentService.saveContent(
-                            conversationId, 1, userPrompt, operatorId, null, null, null
-                        );
-                    }
+                if (!userPrompt.isEmpty() || !finalAiResponse.isEmpty()) {
+                    aiConversationContentService.saveContent(
+                        conversationId, 1, userPrompt, operatorId, null, null, null
+                    );
 
-                    if (!finalAiResponse.isEmpty()) {
-                        // 构建工作流思考步骤JSON（根据runtimeId查询节点执行记录）
-                        String workflowSteps = null;
-                        if (response.getRuntimeId() != null) {
-                            try {
-                                workflowSteps = aiConversationContentService.buildWorkflowStepsJson(response.getRuntimeId());
-                            } catch (Exception e) {
-                                log.warn("构建工作流思考步骤失败, runtimeId={}", response.getRuntimeId(), e);
-                            }
-                        }
-
-                        var aiContentVo = aiConversationContentService.saveContent(
-                            conversationId, 2, finalAiResponse, operatorId, runtimeUuid, response.getAi_open_dialog_para(), workflowSteps
-                        );
-                        if (aiContentVo != null && aiContentVo.getMessage_id() != null) {
-                            response.setMessageId(aiContentVo.getMessage_id());
+                    // 构建工作流思考步骤JSON（根据runtimeId查询节点执行记录）
+                    String workflowSteps = null;
+                    if (response.getRuntimeId() != null) {
+                        try {
+                            workflowSteps = aiConversationContentService.buildWorkflowStepsJson(response.getRuntimeId());
+                        } catch (Exception e) {
+                            log.warn("构建工作流思考步骤失败, runtimeId={}", response.getRuntimeId(), e);
                         }
                     }
-                } catch (Exception e) {
-                    log.error("保存对话内容失败: conversationId={}", conversationId, e);
+
+                    var aiContentVo = aiConversationContentService.saveContent(
+                        conversationId, 2, finalAiResponse, operatorId, runtimeUuid, response.getAi_open_dialog_para(), workflowSteps
+                    );
+                    if (aiContentVo != null && aiContentVo.getMessage_id() != null) {
+                        response.setMessageId(aiContentVo.getMessage_id());
+                    }
                 }
+            } catch (Exception e) {
+                log.error("保存对话内容失败: conversationId={}", conversationId, e);
             }
         }
         return response;
-    }
-
-    /**
-     * 判断用户输入是否为人机交互反馈（第二轮 resume）
-     * 用于区分普通对话和 HumanFeedback 节点中断后的 resume 请求
-     */
-    private boolean isInteractionFeedback(String userPrompt) {
-        if (userPrompt == null || userPrompt.isEmpty()) return false;
-        try {
-            JSONObject json = JSONObject.parseObject(userPrompt);
-            if (json == null) return false;
-            return "ai_interaction_feedback".equals(json.getString("type"));
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     /**
