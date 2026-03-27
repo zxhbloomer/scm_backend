@@ -418,7 +418,7 @@ public class AiConversationController {
                 .map(response -> {
                     // 在每次map操作前确保数据源上下文正确
                     DataSourceHelper.use(tenantId);
-                    return handleResponse(response, conversationId, userPrompt, operatorId, aiResponseAccumulator, workflowStateRef.get());
+                    return handleResponse(response, conversationId, userPrompt, operatorId, aiResponseAccumulator, workflowStateRef);
                 })
                 .timeout(Duration.ofMinutes(30))
                 .onErrorResume(e -> handleError(e, conversationId, tenantId))
@@ -458,7 +458,7 @@ public class AiConversationController {
      */
     private ChatResponseVo handleResponse(ChatResponseVo response, String conversationId,
             String userPrompt, Long operatorId, AtomicReference<String> aiResponseAccumulator,
-            String workflowState) {
+            AtomicReference<String> workflowStateRef) {
         // 累积AI回复内容 (使用AtomicReference保证线程安全)
         if (!Boolean.TRUE.equals(response.getIsComplete())) {
             if (response.getResults() != null && !response.getResults().isEmpty()) {
@@ -470,6 +470,9 @@ public class AiConversationController {
                 }
             }
         }
+
+        // 每次调用时读取最新状态
+        String workflowState = workflowStateRef.get();
 
         if (Boolean.TRUE.equals(response.getIsWaitingInput())) {
             aiConversationService.updateWorkflowState(
@@ -486,13 +489,16 @@ public class AiConversationController {
                     aiConversationContentService.saveContent(
                         conversationId, 1, userPrompt, operatorId, null, null, null
                     );
+                    // 更新 workflowStateRef，防止后续 isWaitingInput=true 事件重复保存用户消息
+                    workflowStateRef.set(WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT);
                 }
             } catch (Exception e) {
                 log.error("保存用户消息失败(中断场景): conversationId={}", conversationId, e);
             }
         }
 
-        if (Boolean.TRUE.equals(response.getIsComplete())) {
+        // isWaitingInput=true 时工作流尚未真正完成（中断等待输入），跳过完成处理
+        if (Boolean.TRUE.equals(response.getIsComplete()) && !Boolean.TRUE.equals(response.getIsWaitingInput())) {
             String fullContent = "";
             if (response.getResults() != null && !response.getResults().isEmpty()) {
                 ChatResponseVo.Generation generation = response.getResults().get(0);

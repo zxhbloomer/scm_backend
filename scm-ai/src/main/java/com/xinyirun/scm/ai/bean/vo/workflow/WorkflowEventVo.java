@@ -119,12 +119,14 @@ public class WorkflowEventVo {
      */
     public static WorkflowEventVo createInterruptDataWithInteraction(
             String nodeUuid, String tip, String interactionType,
-            JSONObject interactionRequest) {
+            JSONObject interactionRequest, String runtimeUuid, String workflowUuid) {
         JSONObject json = new JSONObject();
         json.put("type", "interrupt");
         json.put("node", nodeUuid);
         json.put("tip", tip != null ? tip : "请输入您的反馈");
         json.put("interactionType", interactionType);
+        json.put("runtimeUuid", runtimeUuid);
+        json.put("workflowUuid", workflowUuid);
         if (interactionRequest != null) {
             json.put("interaction_request", interactionRequest);
         }
@@ -187,7 +189,8 @@ public class WorkflowEventVo {
      * @return 工作流输出数据事件
      */
     public static WorkflowEventVo createAiOpenDialogParaEvent(
-            String outputData, String openPageCommand, String interactionRequest) {
+            String outputData, String openPageCommand, String interactionRequest,
+            String runtimeUuid, Long runtimeId) {
         JSONObject json = new JSONObject();
         json.put("type", "workflow_output_data");
         json.put("data", outputData);
@@ -197,6 +200,12 @@ public class WorkflowEventVo {
         if (interactionRequest != null) {
             json.put("interaction_request", interactionRequest);
             json.put("waiting_interaction", true);
+        }
+        if (runtimeUuid != null) {
+            json.put("runtimeUuid", runtimeUuid);
+        }
+        if (runtimeId != null) {
+            json.put("runtimeId", runtimeId);
         }
         return WorkflowEventVo.builder().data(json.toJSONString()).build();
     }

@@ -67,23 +67,26 @@ public class WorkflowEventAdapter {
                     break;
 
                 case "output":
-                    // 节点完整输出：提取output变量的值
-                    JSONObject outputData = dataJson.getJSONObject("data");
-                    if (outputData != null) {
-                        for (String key : outputData.keySet()) {
-                            Object outputItem = outputData.get(key);
-                            if (outputItem instanceof JSONObject) {
-                                JSONObject itemJson = (JSONObject) outputItem;
-                                if ("output".equals(itemJson.getString("name"))) {
-                                    JSONObject content = itemJson.getJSONObject("content");
-                                    if (content != null && content.containsKey("value")) {
-                                        builder.results(List.of(
-                                            ChatResponseVo.Generation.builder()
-                                                .output(ChatResponseVo.AssistantMessage.builder()
-                                                    .content(content.getString("value"))
-                                                    .build())
-                                                .build()
-                                        ));
+                    // 节点完整输出：只渲染 End 节点的 output 变量值（其他节点的 output 是中间数据，不显示给用户）
+                    String outputNodeName = dataJson.getString("nodeName");
+                    if ("End".equals(outputNodeName)) {
+                        JSONObject outputData = dataJson.getJSONObject("data");
+                        if (outputData != null) {
+                            for (String key : outputData.keySet()) {
+                                Object outputItem = outputData.get(key);
+                                if (outputItem instanceof JSONObject) {
+                                    JSONObject itemJson = (JSONObject) outputItem;
+                                    if ("output".equals(itemJson.getString("name"))) {
+                                        JSONObject content = itemJson.getJSONObject("content");
+                                        if (content != null && content.containsKey("value")) {
+                                            builder.results(List.of(
+                                                ChatResponseVo.Generation.builder()
+                                                    .output(ChatResponseVo.AssistantMessage.builder()
+                                                        .content(content.getString("value"))
+                                                        .build())
+                                                    .build()
+                                            ));
+                                        }
                                     }
                                 }
                             }
@@ -95,6 +98,8 @@ public class WorkflowEventAdapter {
                     // 人机交互中断：解析node、tip、交互类型和交互请求
                     ChatResponseVo interruptResponse = builder.build();
                     interruptResponse.setIsWaitingInput(true);
+                    interruptResponse.setRuntimeUuid(dataJson.getString("runtimeUuid"));
+                    interruptResponse.setWorkflowUuid(dataJson.getString("workflowUuid"));
                     String interruptNode = dataJson.getString("node");
                     String interruptTip = dataJson.getString("tip");
                     // 传递tip文本作为消息内容
@@ -143,6 +148,32 @@ public class WorkflowEventAdapter {
                         nodeCompleteResp.setNodeSummary(summaryMap);
                     }
                     return nodeCompleteResp;
+                }
+
+                case "workflow_output_data": {
+                    // 工作流完成输出：包含open_page_command和interaction_request
+                    ChatResponseVo outputResp = builder.build();
+                    outputResp.setIsComplete(true);
+                    String openPageCmd = dataJson.getString("open_page_command");
+                    if (openPageCmd != null) {
+                        outputResp.setOpen_page_command(openPageCmd);
+                    }
+                    String interactionReqStr = dataJson.getString("interaction_request");
+                    if (interactionReqStr != null) {
+                        outputResp.setInteraction_request(interactionReqStr);
+                        outputResp.setIsComplete(false); // 有人机交互时不算真正完成
+                        outputResp.setIsWaitingInput(true);
+                    }
+                    // 传递runtimeUuid和runtimeId，用于保存AI消息时关联思考步骤
+                    String outputRuntimeUuid = dataJson.getString("runtimeUuid");
+                    if (outputRuntimeUuid != null) {
+                        outputResp.setRuntimeUuid(outputRuntimeUuid);
+                    }
+                    Long outputRuntimeId = dataJson.getLong("runtimeId");
+                    if (outputRuntimeId != null) {
+                        outputResp.setRuntimeId(outputRuntimeId);
+                    }
+                    return outputResp;
                 }
 
                 default:

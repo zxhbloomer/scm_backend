@@ -25,6 +25,7 @@ import reactor.core.Disposable;
 import com.alibaba.cloud.ai.graph.*;
 import com.alibaba.cloud.ai.graph.action.AsyncMultiCommandAction;
 import com.alibaba.cloud.ai.graph.action.AsyncEdgeAction;
+import com.alibaba.cloud.ai.graph.state.strategy.ReplaceStrategy;
 import static com.alibaba.cloud.ai.graph.StateGraph.END;
 import static com.alibaba.cloud.ai.graph.StateGraph.START;
 
@@ -87,6 +88,12 @@ public class WorkflowEngine {
      * SSE事件流Sink，executeWorkflow()赋值，NodeEventListener读取
      */
     private volatile reactor.core.publisher.FluxSink<WorkflowEventVo> eventSink;
+
+    /**
+     * resume时由updateState()返回的config（含checkPointId和HUMAN_FEEDBACK元数据）
+     * 用于graphResponseStream从checkpoint恢复执行，而非从头开始
+     */
+    private volatile RunnableConfig resumeConfig;
 
     /**
      * 条件分支节点UUID集合（Switcher/Classifier），buildStateGraph 阶段填充
@@ -274,7 +281,11 @@ public class WorkflowEngine {
                 }
 
                 // 4. 构建 StateGraph 并编译
-                StateGraph mainStateGraph = new StateGraph();
+                // 注册 HUMAN_FEEDBACK_KEY 的 keyStrategy，确保 resume 时该 key 能通过 OverAllState.input() 的过滤
+                // 否则 initializeFromResume() 调用 initialState.input(checkpoint.getState()) 时会丢失该 key
+                StateGraph mainStateGraph = new StateGraph(
+                    () -> Map.of(HUMAN_FEEDBACK_KEY, new ReplaceStrategy())
+                );
                 buildStateGraph(mainStateGraph, startNode);
                 CompileConfig compileConfig = CompileConfig.builder()
                     .withLifecycleListener(new NodeEventListener())
@@ -328,7 +339,11 @@ public class WorkflowEngine {
                 // 创建OverAllState
                 OverAllState initialState = createOverAllState(resume);
                 log.info("[WorkflowEngine] OverAllState创建完成, data={}", initialState.data());
-                RunnableConfig invokeConfig = RunnableConfig.builder().build();
+                // resume时使用resumeConfig（含checkPointId），让GraphRunnerContext.initializeFromResume()从checkpoint恢复
+                // 否则GraphRunnerContext.initializeFromStart()会从头执行工作流
+                RunnableConfig invokeConfig = resume && resumeConfig != null
+                        ? resumeConfig
+                        : RunnableConfig.builder().build();
 
                 // 使用Spring AI Alibaba的graphResponseStream API
                 log.info("[WorkflowEngine] 准备调用app.graphResponseStream()...");
@@ -358,14 +373,19 @@ public class WorkflowEngine {
                             // 工作流完成时更新状态
                             updateWorkflowComplete();
                             // OpenPage节点：将JSON数据通过事件流传递给前端
+                            // 注意：interaction_request 已通过 interrupt 事件发出，此处不再重复发送
                             if (wfState.getAi_open_dialog_para() != null
-                                    || wfState.getOpen_page_command() != null
-                                    || wfState.getInteraction_request() != null) {
+                                    || wfState.getOpen_page_command() != null) {
+                                Long completedRuntimeId = this.conversationRuntimeResp != null
+                                        ? this.conversationRuntimeResp.getId()
+                                        : (this.wfRuntimeResp != null ? this.wfRuntimeResp.getId() : null);
                                 fluxSink.next(
                                     WorkflowEventVo.createAiOpenDialogParaEvent(
                                         wfState.getAi_open_dialog_para(),
                                         wfState.getOpen_page_command(),
-                                        wfState.getInteraction_request())
+                                        null,
+                                        wfState.getUuid(),
+                                        completedRuntimeId)
                                 );
                             }
                             fluxSink.complete();
@@ -852,8 +872,11 @@ public class WorkflowEngine {
 
             // 发送SSE事件（带交互信息或降级为基础中断）
             if (interactionRequest != null) {
+                // 标记wfState正在等待人机交互，updateWorkflowComplete()据此保留RUNTIME_TO_GRAPH
+                wfState.setInteraction_request(interactionRequest.toJSONString());
                 return Flux.just(WorkflowEventVo.createInterruptDataWithInteraction(
-                    nextInterruptNode, tip, interactionType, interactionRequest));
+                    nextInterruptNode, tip, interactionType, interactionRequest,
+                    wfState.getUuid(), wfState.getWorkflowUuid()));
             } else {
                 return Flux.just(WorkflowEventVo.createInterruptData(nextInterruptNode, tip));
             }
@@ -918,10 +941,16 @@ public class WorkflowEngine {
             }
 
             if (eventSink != null) {
-                WorkflowEventVo interruptEvent = interactionRequest != null
-                    ? WorkflowEventVo.createInterruptDataWithInteraction(
-                        interruptNodeUuid, tip, interactionType, interactionRequest)
-                    : WorkflowEventVo.createInterruptData(interruptNodeUuid, tip);
+                WorkflowEventVo interruptEvent;
+                if (interactionRequest != null) {
+                    // 标记wfState正在等待人机交互，updateWorkflowComplete()据此保留RUNTIME_TO_GRAPH
+                    wfState.setInteraction_request(interactionRequest.toJSONString());
+                    interruptEvent = WorkflowEventVo.createInterruptDataWithInteraction(
+                        interruptNodeUuid, tip, interactionType, interactionRequest,
+                        wfState.getUuid(), wfState.getWorkflowUuid());
+                } else {
+                    interruptEvent = WorkflowEventVo.createInterruptData(interruptNodeUuid, tip);
+                }
                 eventSink.next(interruptEvent);
                 log.info("并行路径中断事件已发送, nodeUuid={}", interruptNodeUuid);
             }
@@ -974,24 +1003,39 @@ public class WorkflowEngine {
 
     /**
      * 解析select选项
-     * 优先从节点输入参数（ref_inputs映射）中读取名为"options"的参数
+     * 从节点的 ref_inputs 中找到 name="options" 的引用，直接读取上游已完成节点的输出
      * 回退到静态配置的options列表
+     *
+     * 注意：interruptsBefore语义下，handleInterruption在HumanFeedbackNode执行前调用，
+     * pendingNodeInputs此时为空，必须直接从completedNodes读取上游输出
      */
     private List<HumanFeedbackNodeConfig.SelectOption> resolveSelectOptions(
             HumanFeedbackNodeConfig config, String nodeUuid) {
-        // 从节点暂存的 inputs 中读取（通过 ref_inputs 连线映射进来的）
-        List<NodeIOData> inputs = wfState.getPendingNodeInputs(nodeUuid);
-        for (NodeIOData input : inputs) {
-            if ("options".equals(input.getName())) {
-                try {
-                    String jsonStr = input.valueToString();
-                    List<HumanFeedbackNodeConfig.SelectOption> result =
-                        com.alibaba.fastjson2.JSON.parseArray(jsonStr, HumanFeedbackNodeConfig.SelectOption.class);
-                    if (result != null && !result.isEmpty()) {
-                        return result;
+        // 从 wfNodes 找到该节点的 inputConfig.refInputs，定位 name="options" 的引用
+        AiWfNodeParamRefVo optionsRef = wfNodes.stream()
+                .filter(n -> nodeUuid.equals(n.getUuid()))
+                .findFirst()
+                .map(n -> n.getInputConfig() != null ? n.getInputConfig().getRefInputs() : null)
+                .filter(refs -> refs != null)
+                .flatMap(refs -> refs.stream().filter(r -> "options".equals(r.getName())).findFirst())
+                .orElse(null);
+
+        if (optionsRef != null) {
+            // 从上游已完成节点的输出中读取
+            List<NodeIOData> upstreamIO = wfState.getIOByNodeUuid(optionsRef.getNodeUuid());
+            for (NodeIOData io : upstreamIO) {
+                if (optionsRef.getNodeParamName().equals(io.getName())) {
+                    try {
+                        String jsonStr = io.valueToString();
+                        List<HumanFeedbackNodeConfig.SelectOption> result =
+                            com.alibaba.fastjson2.JSON.parseArray(jsonStr, HumanFeedbackNodeConfig.SelectOption.class);
+                        if (result != null && !result.isEmpty()) {
+                            log.info("从上游节点输出解析到{}条选项, refNodeUuid={}", result.size(), optionsRef.getNodeUuid());
+                            return result;
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析上游选项失败, nodeUuid={}, error={}", nodeUuid, e.getMessage());
                     }
-                } catch (Exception e) {
-                    log.warn("解析输入选项失败, nodeUuid={}, error={}", nodeUuid, e.getMessage());
                 }
             }
         }
@@ -1016,8 +1060,12 @@ public class WorkflowEngine {
             conversationRuntimeService.updateOutput(conversationRuntimeResp.getId(), wfState);
         }
 
-        InterruptedFlow.RUNTIME_TO_GRAPH.remove(wfState.getUuid());
-        log.info("WorkflowEngine执行完成 - runtime_uuid: {}", wfState.getUuid());
+        // 有人机交互等待时，保留RUNTIME_TO_GRAPH中的实例，以便用户反馈后恢复执行
+        if (wfState.getInteraction_request() == null) {
+            InterruptedFlow.RUNTIME_TO_GRAPH.remove(wfState.getUuid());
+        }
+        log.info("WorkflowEngine执行完成 - runtime_uuid: {}, 保留RUNTIME_TO_GRAPH: {}",
+                wfState.getUuid(), wfState.getInteraction_request() != null);
     }
 
     /**
@@ -1084,7 +1132,9 @@ public class WorkflowEngine {
         return Flux.defer(() -> {
             try {
                 RunnableConfig invokeConfig = RunnableConfig.builder().build();
-                app.updateState(invokeConfig, Map.of(HUMAN_FEEDBACK_KEY, userInput), null);
+                // updateState()返回含checkPointId的新config，必须保存并传给graphResponseStream
+                // 否则graphResponseStream会从头执行而非从checkpoint恢复
+                this.resumeConfig = app.updateState(invokeConfig, Map.of(HUMAN_FEEDBACK_KEY, userInput), null);
                 return executeWorkflow(true);
             } catch (Exception e) {
                 log.error("工作流恢复执行失败", e);

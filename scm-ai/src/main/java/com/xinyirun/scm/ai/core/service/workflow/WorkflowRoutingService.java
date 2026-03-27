@@ -905,7 +905,24 @@ public class WorkflowRoutingService {
         log.info("【resumeWorkflow】恢复工作流执行, runtimeUuid={}, workflowUuid={}, conversationId={}, userInput={}",
                 runtimeUuid, workflowUuid, conversationId, userInput);
 
-        return workflowStarter.resumeFlowAsFlux(
+        final String[] capturedRuntimeUuid = {runtimeUuid}; // resume场景runtimeUuid已知
+        final Long[] capturedRuntimeId = {null};
+        // resume场景：runtimeUuid已知，提前查询runtimeId用于workflow_steps构建
+        try {
+            AiConversationRuntimeEntity runtimeEntity = conversationRuntimeMapper.selectByRuntimeUuid(runtimeUuid);
+            if (runtimeEntity != null) {
+                capturedRuntimeId[0] = runtimeEntity.getId();
+                log.info("【resumeWorkflow】预查询runtimeId={} for runtimeUuid={}", capturedRuntimeId[0], runtimeUuid);
+            }
+        } catch (Exception e) {
+            log.warn("【resumeWorkflow】预查询runtimeId失败: {}", e.getMessage());
+        }
+        final String[] capturedAiOpenDialogPara = {null};
+        final String[] capturedOpenPageCommand = {null};
+        final String[] capturedInteractionRequest = {null};
+        final boolean[] capturedWaitingInteraction = {false};
+
+        Flux<ChatResponseVo> contentFlux = workflowStarter.resumeFlowAsFlux(
             runtimeUuid,
             workflowUuid,
             userInput,
@@ -915,7 +932,52 @@ public class WorkflowRoutingService {
         )
         .doOnError(e -> log.error("【resumeWorkflow】恢复工作流失败: runtimeUuid={}, workflowUuid={}, error={}",
             runtimeUuid, workflowUuid, e.getMessage(), e))
-        .map(event -> workflowEventAdapter.convert(event));
+        .map(event -> {
+            JSONObject eventData = JSON.parseObject(event.getData());
+            String type = eventData != null ? eventData.getString("type") : null;
+            if ("runtime".equals(type)) {
+                capturedRuntimeUuid[0] = eventData.getString("runtimeUuid");
+                capturedRuntimeId[0] = eventData.getLong("runtimeId");
+            } else if ("workflow_output_data".equals(type)) {
+                capturedAiOpenDialogPara[0] = eventData.getString("data");
+                capturedOpenPageCommand[0] = eventData.getString("open_page_command");
+                capturedInteractionRequest[0] = eventData.getString("interaction_request");
+                capturedWaitingInteraction[0] = Boolean.TRUE.equals(eventData.getBoolean("waiting_interaction"));
+                // 不让 workflow_output_data 触发 isComplete，由追加的完成事件统一处理
+                return ChatResponseVo.createContentChunk("");
+            } else if ("interrupt".equals(type)) {
+                capturedWaitingInteraction[0] = true;
+                JSONObject interactionReq = eventData.getJSONObject("interaction_request");
+                if (interactionReq != null) {
+                    capturedInteractionRequest[0] = interactionReq.toJSONString();
+                }
+            }
+            ChatResponseVo resp = workflowEventAdapter.convert(event);
+            if ("interrupt".equals(type)) {
+                resp.setRuntimeUuid(capturedRuntimeUuid[0]);
+                resp.setWorkflowUuid(workflowUuid);
+            }
+            return resp;
+        });
+
+        final String wfUuid = workflowUuid;
+        return Flux.concat(contentFlux, Flux.defer(() -> {
+            ChatResponseVo completeResponse = ChatResponseVo.builder()
+                .isComplete(true)
+                .runtimeUuid(capturedRuntimeUuid[0])
+                .runtimeId(capturedRuntimeId[0])
+                .workflowUuid(wfUuid)
+                .ai_open_dialog_para(capturedAiOpenDialogPara[0])
+                .open_page_command(capturedOpenPageCommand[0])
+                .interaction_request(capturedInteractionRequest[0])
+                .build();
+            if (capturedWaitingInteraction[0]) {
+                completeResponse.setIsWaitingInput(true);
+                completeResponse.setIsComplete(false);
+            }
+            log.info("【resumeWorkflow】追加完成事件, runtimeUuid={}, isWaiting={}", capturedRuntimeUuid[0], capturedWaitingInteraction[0]);
+            return Flux.just(completeResponse);
+        }));
     }
 
     /**
@@ -1099,8 +1161,22 @@ public class WorkflowRoutingService {
                 capturedInteractionRequest[0] = eventData.getString("interaction_request");
                 capturedWaitingInteraction[0] = Boolean.TRUE.equals(eventData.getBoolean("waiting_interaction"));
                 return ChatResponseVo.createContentChunk("");
+            } else if ("interrupt".equals(type)) {
+                // interrupt事件：同步捕获等待状态，确保isComplete事件携带isWaitingInput=true
+                // 防止handleResponse()误判为正常完成，把workflowState重置为IDLE
+                capturedWaitingInteraction[0] = true;
+                JSONObject interactionReq = eventData.getJSONObject("interaction_request");
+                if (interactionReq != null) {
+                    capturedInteractionRequest[0] = interactionReq.toJSONString();
+                }
             }
-            return convertWorkflowEventToChatResponse(event);
+            ChatResponseVo resp = convertWorkflowEventToChatResponse(event);
+            // interrupt响应补充runtimeUuid/workflowUuid，供handleResponse()存入WORKFLOW_WAITING_INPUT状态
+            if ("interrupt".equals(type)) {
+                resp.setRuntimeUuid(capturedRuntimeUuid[0]);
+                resp.setWorkflowUuid(workflowUuid);
+            }
+            return resp;
         });
 
         // 追加完成事件（前端依赖isComplete触发onComplete回调，包括弹窗检测、步骤持久化等）
@@ -1435,37 +1511,22 @@ public class WorkflowRoutingService {
                     return ChatResponseVo.createContentChunk(chunk != null ? chunk : "");
 
                 case "output": {
-                    // 仅Answer/LLM终端节点的output作为content，其他节点output忽略
-                    String outputNodeName = eventData.getString("nodeName");
-                    log.debug("output事件: nodeName={}", outputNodeName);
-                    if ("Answer".equals(outputNodeName) || "LLM".equals(outputNodeName)) {
-                        JSONObject outputData = eventData.getJSONObject("data");
-                        if (outputData != null) {
-                            for (String key : outputData.keySet()) {
-                                Object outputItem = outputData.get(key);
-                                if (outputItem instanceof JSONObject) {
-                                    JSONObject itemJson = (JSONObject) outputItem;
-                                    if ("output".equals(itemJson.getString("name"))) {
-                                        JSONObject content = itemJson.getJSONObject("content");
-                                        if (content != null && content.containsKey("value")) {
-                                            String value = content.getString("value");
-                                            // 剥除LLM可能添加的markdown代码围栏，避免前端渲染丢失首字符
-                                            value = stripMarkdownCodeFence(value);
-                                            return ChatResponseVo.createContentChunk(value);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    // output事件是节点完整输出快照，仅用于内部记录，不渲染为聊天内容
+                    // LLM流式输出通过chunk事件传递（getEmbedFlux机制），不经过此处
+                    log.debug("output事件(忽略): nodeName={}", eventData.getString("nodeName"));
                     return ChatResponseVo.createContentChunk("");
                 }
 
-                case "interrupt":
-                    // 人机交互中断
+                case "interrupt": {
+                    // 人机交互中断：立即将interaction_request发送给前端，不等isComplete
                     ChatResponseVo interruptResponse = ChatResponseVo.createContentChunk("");
                     interruptResponse.setIsWaitingInput(true);
+                    JSONObject interactionReq = eventData.getJSONObject("interaction_request");
+                    if (interactionReq != null) {
+                        interruptResponse.setInteraction_request(interactionReq.toJSONString());
+                    }
                     return interruptResponse;
+                }
 
                 case "node_running": {
                     // 节点开始执行事件

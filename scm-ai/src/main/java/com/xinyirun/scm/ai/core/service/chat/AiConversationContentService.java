@@ -354,7 +354,8 @@ public class AiConversationContentService {
         for (AiConversationRuntimeNodeVo node : nodes) {
             JSONObject step = new JSONObject();
             step.put("nodeUuid", node.getRuntimeNodeUuid());
-            step.put("nodeName", workflowNodeService.getComponentNameByNodeId(node.getNodeId()));
+            String componentName = workflowNodeService.getComponentNameByNodeId(node.getNodeId());
+            step.put("nodeName", componentName);
             step.put("nodeTitle", node.getNodeTitle());
             // 执行状态：3=成功→done，其他→running
             step.put("status", node.getStatus() != null && node.getStatus() == 3 ? "done" : "running");
@@ -364,10 +365,50 @@ public class AiConversationContentService {
                 duration = java.time.Duration.between(node.getC_time(), node.getU_time()).toMillis();
             }
             step.put("duration", duration);
+            // 从outputData重建summary，与实时流式执行时createNodeCompleteData的格式保持一致
+            JSONObject summary = buildSummaryFromOutputData(componentName, node.getOutputData(), node.getInputData());
+            if (summary != null && !summary.isEmpty()) {
+                step.put("summary", summary);
+            }
             stepsArray.add(step);
         }
 
         return stepsArray.toJSONString();
+    }
+
+    /**
+     * 从outputData/inputData重建节点summary，与实时流式执行时createNodeCompleteData的格式保持一致
+     * outputData格式: {"output":{"type":"1","title":"","value":"..."}, "result":{"type":"1","title":"","value":"..."}, ...}
+     */
+    private JSONObject buildSummaryFromOutputData(String componentName, JSONObject outputData, JSONObject inputData) {
+        if (outputData == null) return null;
+        JSONObject summary = new JSONObject();
+        // 提取output.value作为outputText（大多数节点类型通用）
+        JSONObject outputField = outputData.getJSONObject("output");
+        String outputValue = outputField != null ? outputField.getString("value") : null;
+        // Classifier节点：提取result字段
+        if ("Classifier".equals(componentName)) {
+            JSONObject resultField = outputData.getJSONObject("result");
+            String resultValue = resultField != null ? resultField.getString("value") : null;
+            if (resultValue == null) resultValue = outputValue;
+            if (resultValue != null) {
+                summary.put("result", resultValue);
+                summary.put("outputText", resultValue);
+            }
+        } else if ("KnowledgeRetrieval".equals(componentName)) {
+            JSONObject matchCountField = outputData.getJSONObject("matchCount");
+            String matchCount = matchCountField != null ? matchCountField.getString("value") : null;
+            if (matchCount != null) summary.put("matchCount", matchCount);
+        } else if ("McpTool".equals(componentName)) {
+            JSONObject toolNameField = outputData.getJSONObject("toolName");
+            String toolName = toolNameField != null ? toolNameField.getString("value") : null;
+            if (toolName != null) summary.put("toolName", toolName);
+            if (outputValue != null) summary.put("outputText", outputValue);
+        } else {
+            // Answer/LLM/Template/SubWorkflow/OpenPage/HumanFeedback等：直接用output.value
+            if (outputValue != null) summary.put("outputText", outputValue);
+        }
+        return summary.isEmpty() ? null : summary;
     }
 
     /**

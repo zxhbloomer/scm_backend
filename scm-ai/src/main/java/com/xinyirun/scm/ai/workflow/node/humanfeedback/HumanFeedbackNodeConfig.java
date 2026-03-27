@@ -46,19 +46,9 @@ public class HumanFeedbackNodeConfig {
     // --- select 类型参数 ---
 
     /**
-     * 选项来源: static / dynamic，默认static
-     */
-    private String optionsSource;
-
-    /**
-     * 静态选项列表
+     * 静态选项列表（optionsSource=static时使用）
      */
     private List<SelectOption> options;
-
-    /**
-     * 动态选项: 上游节点输出参数名
-     */
-    private String dynamicOptionsParam;
 
     // --- form 类型参数 ---
 

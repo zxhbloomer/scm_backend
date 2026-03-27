@@ -52,8 +52,17 @@ public class WorkflowUtil {
      * @return 渲染后的字符串
      */
     public static String renderTemplate(String template, List<NodeIOData> values) {
+        if (template == null) {
+            return "";
+        }
+        if (values == null || values.isEmpty()) {
+            return template;
+        }
         String result = template;
         for (NodeIOData next : values) {
+            if (next == null || next.getName() == null || next.getContent() == null) {
+                continue;
+            }
             String name = next.getName();
             NodeIODataContent<?> dataContent = (NodeIODataContent<?>) next.getContent();
 

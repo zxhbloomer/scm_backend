@@ -50,6 +50,9 @@ public class AiConversationService {
     @Resource
     private com.xinyirun.scm.ai.core.service.workflow.AiConversationRuntimeService conversationRuntimeService;
 
+    @Resource
+    private AiConversationContentService aiConversationContentService;
+
     /**
      * 获取默认系统提示词
      * @return 默认系统提示词，如果不存在返回null
@@ -294,6 +297,24 @@ public class AiConversationService {
             log.info("【AI-Chat-查询】消息[{}]: messageId={}, type={}, runtime_uuid={}, content前20字={}",
                 i, msg.getMessage_id(), msg.getType(), msg.getRuntime_uuid(),
                 msg.getContent() != null && msg.getContent().length() > 20 ? msg.getContent().substring(0, 20) : msg.getContent());
+            // 对旧数据动态重建workflow_steps（旧数据节点没有summary字段）
+            if ("assistant".equals(msg.getType())
+                    && StringUtils.isNotBlank(msg.getRuntime_uuid())
+                    && StringUtils.isNotBlank(msg.getWorkflow_steps())
+                    && !msg.getWorkflow_steps().contains("\"summary\"")) {
+                try {
+                    com.xinyirun.scm.ai.bean.entity.workflow.AiConversationRuntimeEntity runtime =
+                            conversationRuntimeService.getByUuid(msg.getRuntime_uuid());
+                    if (runtime != null && runtime.getId() != null) {
+                        String rebuilt = aiConversationContentService.buildWorkflowStepsJson(runtime.getId());
+                        if (StringUtils.isNotBlank(rebuilt)) {
+                            msg.setWorkflow_steps(rebuilt);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("动态重建workflow_steps失败, messageId={}", msg.getMessage_id(), e);
+                }
+            }
         }
 
         return result;
