@@ -351,7 +351,87 @@ public class AiConversationContentService {
         }
 
         JSONArray stepsArray = new JSONArray();
+
+        // 检测是否存在虚拟节点（新格式：workerType="virtual_analysis" 或 "virtual_agent_call"）
+        // 或旧格式（workerType="orchestrator" 或 "workflow"）
+        boolean hasVirtualNodes = nodes.stream()
+                .anyMatch(n -> {
+                    JSONObject od = n.getOutputData();
+                    if (od == null) return false;
+                    String workerType = od.getString("workerType");
+                    return "virtual_analysis".equals(workerType) || "virtual_agent_call".equals(workerType);
+                });
+
+        // 向后兼容：如果没有新格式虚拟节点，检查是否有旧格式 Orchestrator 节点
+        boolean hasOldFormatNodes = !hasVirtualNodes && nodes.stream()
+                .anyMatch(n -> Long.valueOf(0L).equals(n.getNodeId()));
+
+        if (hasVirtualNodes) {
+            // 新格式：直接遍历所有虚拟节点，按 c_time 顺序添加（已在 Mapper 中 ORDER BY c_time ASC）
+            nodes.stream()
+                .filter(n -> {
+                    JSONObject od = n.getOutputData();
+                    if (od == null) return false;
+                    String workerType = od.getString("workerType");
+                    return "virtual_analysis".equals(workerType) || "virtual_agent_call".equals(workerType);
+                })
+                .forEach(virtualNode -> {
+                    JSONObject step = new JSONObject();
+                    step.put("nodeUuid", virtualNode.getRuntimeNodeUuid());
+
+                    String workerType = virtualNode.getOutputData().getString("workerType");
+                    if ("virtual_analysis".equals(workerType)) {
+                        step.put("nodeName", "Classifier");
+                    } else {
+                        step.put("nodeName", "AgentCall");
+                    }
+
+                    step.put("nodeTitle", virtualNode.getOutputData().getString("nodeTitle"));
+                    // 状态：3=成功→done，2=运行中→running，其他→running
+                    step.put("status", virtualNode.getStatus() != null && virtualNode.getStatus() == 3 ? "done" : "running");
+                    // 耗时：u_time - c_time（毫秒）
+                    long duration = 0;
+                    if (virtualNode.getC_time() != null && virtualNode.getU_time() != null) {
+                        duration = java.time.Duration.between(virtualNode.getC_time(), virtualNode.getU_time()).toMillis();
+                    }
+                    step.put("duration", duration);
+                    stepsArray.add(step);
+                });
+        } else if (hasOldFormatNodes) {
+            // 旧格式兼容：保留原有逻辑
+            // 补充 __virtual_analysis__ 虚拟步骤
+            JSONObject analysisStep = new JSONObject();
+            analysisStep.put("nodeUuid", "__virtual_analysis__");
+            analysisStep.put("nodeName", "Classifier");
+            analysisStep.put("nodeTitle", "问题分析");
+            analysisStep.put("status", "done");
+            analysisStep.put("duration", 0);
+            stepsArray.add(analysisStep);
+
+            // 补充 __agent_call__ 虚拟步骤
+            nodes.stream()
+                    .filter(n -> Long.valueOf(0L).equals(n.getNodeId()))
+                    .filter(n -> {
+                        JSONObject od = n.getOutputData();
+                        return od != null && "workflow".equals(od.getString("workerType"));
+                    })
+                    .forEach(workerNode -> {
+                        String workflowTitle = workerNode.getOutputData().getString("title");
+                        JSONObject agentCallStep = new JSONObject();
+                        agentCallStep.put("nodeUuid", "__agent_call__");
+                        agentCallStep.put("nodeName", "AgentCall");
+                        agentCallStep.put("nodeTitle", workflowTitle != null ? workflowTitle : "工作流");
+                        agentCallStep.put("status", "done");
+                        agentCallStep.put("duration", 0);
+                        stepsArray.add(agentCallStep);
+                    });
+        }
+
+        // 遍历真实节点（跳过 nodeId=0 的所有节点，包括虚拟节点和旧格式 Orchestrator 节点）
         for (AiConversationRuntimeNodeVo node : nodes) {
+            if (Long.valueOf(0L).equals(node.getNodeId())) {
+                continue; // Orchestrator 节点已通过虚拟步骤处理，此处跳过
+            }
             JSONObject step = new JSONObject();
             step.put("nodeUuid", node.getRuntimeNodeUuid());
             String componentName = workflowNodeService.getComponentNameByNodeId(node.getNodeId());

@@ -69,7 +69,7 @@ public interface AiConversationRuntimeNodeMapper extends BaseMapper<AiConversati
             dbversion
         FROM ai_conversation_runtime_node
         WHERE conversation_workflow_runtime_id = #{runtimeId}
-        ORDER BY id ASC
+        ORDER BY c_time ASC, id ASC
     """)
     List<AiConversationRuntimeNodeEntity> selectListByRuntimeId(@Param("runtimeId") Long runtimeId);
 }

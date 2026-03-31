@@ -71,8 +71,16 @@ try {
         errorMsg = resultJson.getString("error");
     }
 } catch (Exception e) {
-    // result 不是 JSON 或解析失败，默认认为成功
-    log.debug("【Worker】result 不是 JSON 格式，默认认为成功: {}", result);
+    // result 不是 JSON 格式，检查是否包含错误关键字
+    if (result != null && (result.contains("Exception") || result.contains("Error") ||
+        result.toLowerCase().contains("failed") || result.toLowerCase().contains("error"))) {
+        success = false;
+        errorMsg = "执行失败: " + StringUtils.substring(result, 0, 200);
+        log.warn("【Worker】result 包含错误关键字，标记为失败: {}", result);
+    } else {
+        // 默认认为成功，但记录警告日志
+        log.warn("【Worker】result 不是 JSON 格式，默认认为成功: {}", result);
+    }
 }
 updateWorkerNodeRecord(nodeRecordId, result, success, errorMsg, tenantCode);
 ```
@@ -86,16 +94,18 @@ updateWorkerNodeRecord(nodeRecordId, result, success, errorMsg, tenantCode);
 **改动**：
 ```java
 // 第390行之后插入
-// 【虚拟节点】创建"问题分析完成"节点
+// 【虚拟节点】创建"问题分析完成"节点（初始状态为运行中）
 Long virtualAnalysisNodeId = createVirtualAnalysisNodeRecord(runtimeId, userId, tenantCode);
 log.info("【日志记录】创建虚拟分析节点: nodeId={}", virtualAnalysisNodeId);
 
-// 【虚拟节点】为每个 workflow 类型的子任务创建"调用agent"节点
+// 【虚拟节点】为每个 workflow 类型的子任务创建"调用agent"节点（初始状态为运行中）
+List<Long> virtualAgentCallNodeIds = new ArrayList<>();
 int agentCallIndex = 0;
 for (SubTask task : orchestratorResponse.tasks()) {
     if ("workflow".equals(task.type())) {
         Long virtualAgentCallNodeId = createVirtualAgentCallNodeRecord(
             runtimeId, task.description(), agentCallIndex, userId, tenantCode);
+        virtualAgentCallNodeIds.add(virtualAgentCallNodeId);
         log.info("【日志记录】创建虚拟AgentCall节点: nodeId={}, title={}",
             virtualAgentCallNodeId, task.description());
         agentCallIndex++;
@@ -103,7 +113,18 @@ for (SubTask task : orchestratorResponse.tasks()) {
 }
 ```
 
-**新增两个私有方法**（在 `createOrchestratorNodeRecord()` 方法后面）：
+然后在第422行 `updateOrchestratorRuntime` 成功后，更新虚拟节点状态为成功：
+
+```java
+// 第422行之后插入
+// 【虚拟节点】更新虚拟节点状态为成功
+updateVirtualNodeStatus(virtualAnalysisNodeId, WorkflowConstants.NODE_PROCESS_STATUS_SUCCESS, tenantCode);
+for (Long nodeId : virtualAgentCallNodeIds) {
+    updateVirtualNodeStatus(nodeId, WorkflowConstants.NODE_PROCESS_STATUS_SUCCESS, tenantCode);
+}
+```
+
+**新增三个私有方法**（在 `createOrchestratorNodeRecord()` 方法后面）：
 
 ```java
 /**
@@ -118,7 +139,8 @@ private Long createVirtualAnalysisNodeRecord(Long runtimeId, Long userId, String
     DataSourceHelper.use(tenantCode);
 
     AiConversationRuntimeNodeEntity nodeRecord = new AiConversationRuntimeNodeEntity();
-    nodeRecord.setRuntimeNodeUuid("__virtual_analysis__");
+    // 使用 runtimeId 避免 UUID 冲突
+    nodeRecord.setRuntimeNodeUuid("__virtual_analysis__" + "_" + runtimeId);
     nodeRecord.setConversationWorkflowRuntimeId(runtimeId);
     nodeRecord.setNodeId(ORCHESTRATOR_MODE_WORKFLOW_ID);
 
@@ -127,7 +149,8 @@ private Long createVirtualAnalysisNodeRecord(Long runtimeId, Long userId, String
     outputData.put("workerType", "virtual_analysis");
     nodeRecord.setOutputData(outputData.toJSONString());
 
-    nodeRecord.setStatus(WorkflowConstants.NODE_PROCESS_STATUS_SUCCESS);
+    // 初始状态为运行中，成功后再更新为成功
+    nodeRecord.setStatus(WorkflowConstants.WORKFLOW_PROCESS_STATUS_RUNNING);
     nodeRecord.setC_id(userId);
     nodeRecord.setU_id(userId);
 
@@ -150,7 +173,8 @@ private Long createVirtualAgentCallNodeRecord(Long runtimeId, String workflowTit
     DataSourceHelper.use(tenantCode);
 
     AiConversationRuntimeNodeEntity nodeRecord = new AiConversationRuntimeNodeEntity();
-    nodeRecord.setRuntimeNodeUuid("__agent_call__" + (index > 0 ? "_" + index : ""));
+    // 使用 runtimeId + index 避免 UUID 冲突
+    nodeRecord.setRuntimeNodeUuid("__agent_call__" + "_" + runtimeId + "_" + index);
     nodeRecord.setConversationWorkflowRuntimeId(runtimeId);
     nodeRecord.setNodeId(ORCHESTRATOR_MODE_WORKFLOW_ID);
 
@@ -159,12 +183,30 @@ private Long createVirtualAgentCallNodeRecord(Long runtimeId, String workflowTit
     outputData.put("workerType", "virtual_agent_call");
     nodeRecord.setOutputData(outputData.toJSONString());
 
-    nodeRecord.setStatus(WorkflowConstants.NODE_PROCESS_STATUS_SUCCESS);
+    // 初始状态为运行中，成功后再更新为成功
+    nodeRecord.setStatus(WorkflowConstants.WORKFLOW_PROCESS_STATUS_RUNNING);
     nodeRecord.setC_id(userId);
     nodeRecord.setU_id(userId);
 
     conversationRuntimeNodeMapper.insert(nodeRecord);
     return nodeRecord.getId();
+}
+
+/**
+ * 更新虚拟节点状态
+ *
+ * @param nodeId 节点ID
+ * @param status 状态
+ * @param tenantCode 租户代码
+ */
+private void updateVirtualNodeStatus(Long nodeId, Integer status, String tenantCode) {
+    DataSourceHelper.use(tenantCode);
+
+    AiConversationRuntimeNodeEntity nodeRecord = conversationRuntimeNodeMapper.selectById(nodeId);
+    if (nodeRecord != null) {
+        nodeRecord.setStatus(status);
+        conversationRuntimeNodeMapper.updateById(nodeRecord);
+    }
 }
 ```
 
@@ -214,8 +256,9 @@ if (hasOrchestratorNode) {
             });
 }
 
-// 改为：
-// 检测是否存在虚拟节点（workerType="virtual_analysis" 或 "virtual_agent_call"）
+// 改为（支持新旧两种格式，向后兼容）：
+// 检测是否存在虚拟节点（新格式：workerType="virtual_analysis" 或 "virtual_agent_call"）
+// 或旧格式（workerType="orchestrator" 或 "workflow"）
 boolean hasVirtualNodes = nodes.stream()
         .anyMatch(n -> {
             JSONObject od = n.getOutputData();
@@ -224,8 +267,12 @@ boolean hasVirtualNodes = nodes.stream()
             return "virtual_analysis".equals(workerType) || "virtual_agent_call".equals(workerType);
         });
 
+// 向后兼容：如果没有新格式虚拟节点，检查是否有旧格式 Orchestrator 节点
+boolean hasOldFormatNodes = !hasVirtualNodes && nodes.stream()
+        .anyMatch(n -> Long.valueOf(0L).equals(n.getNodeId()));
+
 if (hasVirtualNodes) {
-    // 直接遍历所有虚拟节点，按 c_time 顺序添加（已在 Mapper 中 ORDER BY c_time ASC）
+    // 新格式：直接遍历所有虚拟节点，按 c_time 顺序添加（已在 Mapper 中 ORDER BY c_time ASC）
     nodes.stream()
         .filter(n -> {
             JSONObject od = n.getOutputData();
@@ -245,7 +292,8 @@ if (hasVirtualNodes) {
             }
 
             step.put("nodeTitle", virtualNode.getOutputData().getString("nodeTitle"));
-            step.put("status", "done");
+            // 状态：3=成功→done，2=运行中→running，其他→running
+            step.put("status", virtualNode.getStatus() != null && virtualNode.getStatus() == 3 ? "done" : "running");
             // 耗时：u_time - c_time（毫秒）
             long duration = 0;
             if (virtualNode.getC_time() != null && virtualNode.getU_time() != null) {
@@ -254,6 +302,34 @@ if (hasVirtualNodes) {
             step.put("duration", duration);
             stepsArray.add(step);
         });
+} else if (hasOldFormatNodes) {
+    // 旧格式兼容：保留原有逻辑（已在之前的 Fix 中实现）
+    // 补充 __virtual_analysis__ 虚拟步骤
+    JSONObject analysisStep = new JSONObject();
+    analysisStep.put("nodeUuid", "__virtual_analysis__");
+    analysisStep.put("nodeName", "Classifier");
+    analysisStep.put("nodeTitle", "问题分析");
+    analysisStep.put("status", "done");
+    analysisStep.put("duration", 0);
+    stepsArray.add(analysisStep);
+
+    // 补充 __agent_call__ 虚拟步骤
+    nodes.stream()
+            .filter(n -> Long.valueOf(0L).equals(n.getNodeId()))
+            .filter(n -> {
+                JSONObject od = n.getOutputData();
+                return od != null && "workflow".equals(od.getString("workerType"));
+            })
+            .forEach(workerNode -> {
+                String workflowTitle = workerNode.getOutputData().getString("title");
+                JSONObject agentCallStep = new JSONObject();
+                agentCallStep.put("nodeUuid", "__agent_call__");
+                agentCallStep.put("nodeName", "AgentCall");
+                agentCallStep.put("nodeTitle", workflowTitle != null ? workflowTitle : "工作流");
+                agentCallStep.put("status", "done");
+                agentCallStep.put("duration", 0);
+                stepsArray.add(agentCallStep);
+            });
 }
 ```
 
