@@ -395,6 +395,24 @@ public class WorkflowRoutingService {
                 recordOrchestratorTokenUsage(orchestratorUsage, conversationId, orchestratorNodeId, userId, tenantCode, orchestratorStartTime);
             }
 
+            // 【虚拟节点】创建"问题分析完成"节点（初始状态为运行中）
+            Long virtualAnalysisNodeId = createVirtualAnalysisNodeRecord(runtimeId, userId, tenantCode);
+            log.info("【日志记录】创建虚拟分析节点: nodeId={}", virtualAnalysisNodeId);
+
+            // 【虚拟节点】为每个 workflow 类型的子任务创建"调用agent"节点（初始状态为运行中）
+            List<Long> virtualAgentCallNodeIds = new ArrayList<>();
+            int agentCallIndex = 0;
+            for (SubTask task : orchestratorResponse.tasks()) {
+                if ("workflow".equals(task.type())) {
+                    Long virtualAgentCallNodeId = createVirtualAgentCallNodeRecord(
+                        runtimeId, task.description(), agentCallIndex, userId, tenantCode);
+                    virtualAgentCallNodeIds.add(virtualAgentCallNodeId);
+                    log.info("【日志记录】创建虚拟AgentCall节点: nodeId={}, title={}",
+                        virtualAgentCallNodeId, task.description());
+                    agentCallIndex++;
+                }
+            }
+
             // Step 4: 顺序执行所有Workers (同步执行,无并发问题)
             List<String> workerResults = new ArrayList<>();
             int taskIndex = 0;
@@ -409,8 +427,30 @@ public class WorkflowRoutingService {
                 String result = executeWorker(task, userId, tenantCode, pageContext, userInput);
                 workerResults.add(result);
 
-                // 【日志记录】更新节点记录(执行后)
-                updateWorkerNodeRecord(nodeRecordId, result, true, null, tenantCode);
+                // 【日志记录】更新节点记录(执行后) - 解析 result JSON 提取 success 字段
+                boolean success = true;
+                String errorMsg = null;
+                try {
+                    JSONObject resultJson = JSON.parseObject(result);
+                    if (resultJson.containsKey("success")) {
+                        success = resultJson.getBooleanValue("success");
+                    }
+                    if (!success && resultJson.containsKey("error")) {
+                        errorMsg = resultJson.getString("error");
+                    }
+                } catch (Exception e) {
+                    // result 不是 JSON 格式，检查是否包含错误关键字
+                    if (result != null && (result.contains("Exception") || result.contains("Error") ||
+                        result.toLowerCase().contains("failed") || result.toLowerCase().contains("error"))) {
+                        success = false;
+                        errorMsg = "执行失败: " + StringUtils.substring(result, 0, 200);
+                        log.warn("【Worker】result 包含错误关键字，标记为失败: {}", result);
+                    } else {
+                        // 默认认为成功，但记录警告日志
+                        log.warn("【Worker】result 不是 JSON 格式，默认认为成功: {}", result);
+                    }
+                }
+                updateWorkerNodeRecord(nodeRecordId, result, success, errorMsg, tenantCode);
 
                 log.info("【Worker】执行完成: type={}, target={}, result={}",
                     task.type(), task.target(), result);
@@ -420,6 +460,12 @@ public class WorkflowRoutingService {
             // 【日志记录】更新主记录状态为完成
             // 状态: 3-成功(WORKFLOW_PROCESS_STATUS_SUCCESS)
             updateOrchestratorRuntime(runtimeId, WorkflowConstants.WORKFLOW_PROCESS_STATUS_SUCCESS, "执行完成", workerResults, tenantCode);
+
+            // 【虚拟节点】更新虚拟节点状态为成功
+            updateVirtualNodeStatus(virtualAnalysisNodeId, WorkflowConstants.NODE_PROCESS_STATUS_SUCCESS, tenantCode);
+            for (Long nodeId : virtualAgentCallNodeIds) {
+                updateVirtualNodeStatus(nodeId, WorkflowConstants.NODE_PROCESS_STATUS_SUCCESS, tenantCode);
+            }
 
             // Step 5: 返回最终结果(包含runtimeUuid用于前端显示执行详情icon, runtimeId用于Token记录)
             OrchestratorFinalResponse finalResponse = new OrchestratorFinalResponse(
@@ -683,6 +729,88 @@ public class WorkflowRoutingService {
     }
 
     /**
+     * 创建虚拟"问题分析完成"节点
+     *
+     * @param runtimeId 主运行记录ID
+     * @param userId 用户ID
+     * @param tenantCode 租户代码
+     * @return 节点记录ID
+     */
+    private Long createVirtualAnalysisNodeRecord(Long runtimeId, Long userId, String tenantCode) {
+        DataSourceHelper.use(tenantCode);
+
+        AiConversationRuntimeNodeEntity nodeRecord = new AiConversationRuntimeNodeEntity();
+        // 使用 runtimeId 避免 UUID 冲突
+        nodeRecord.setRuntimeNodeUuid("__virtual_analysis__" + "_" + runtimeId);
+        nodeRecord.setConversationWorkflowRuntimeId(runtimeId);
+        nodeRecord.setNodeId(ORCHESTRATOR_MODE_WORKFLOW_ID);
+
+        JSONObject outputData = new JSONObject();
+        outputData.put("nodeTitle", "问题分析");
+        outputData.put("workerType", "virtual_analysis");
+        nodeRecord.setOutputData(outputData.toJSONString());
+
+        // 初始状态为运行中，成功后再更新为成功
+        nodeRecord.setStatus(WorkflowConstants.WORKFLOW_PROCESS_STATUS_RUNNING);
+        nodeRecord.setC_id(userId);
+        nodeRecord.setU_id(userId);
+
+        conversationRuntimeNodeMapper.insert(nodeRecord);
+        return nodeRecord.getId();
+    }
+
+    /**
+     * 创建虚拟"调用agent"节点
+     *
+     * @param runtimeId 主运行记录ID
+     * @param workflowTitle 工作流标题
+     * @param index 索引（用于多个 workflow 时区分）
+     * @param userId 用户ID
+     * @param tenantCode 租户代码
+     * @return 节点记录ID
+     */
+    private Long createVirtualAgentCallNodeRecord(Long runtimeId, String workflowTitle,
+                                                    int index, Long userId, String tenantCode) {
+        DataSourceHelper.use(tenantCode);
+
+        AiConversationRuntimeNodeEntity nodeRecord = new AiConversationRuntimeNodeEntity();
+        // 使用 runtimeId + index 避免 UUID 冲突
+        nodeRecord.setRuntimeNodeUuid("__agent_call__" + "_" + runtimeId + "_" + index);
+        nodeRecord.setConversationWorkflowRuntimeId(runtimeId);
+        nodeRecord.setNodeId(ORCHESTRATOR_MODE_WORKFLOW_ID);
+
+        JSONObject outputData = new JSONObject();
+        outputData.put("nodeTitle", workflowTitle != null ? workflowTitle : "工作流");
+        outputData.put("workerType", "virtual_agent_call");
+        nodeRecord.setOutputData(outputData.toJSONString());
+
+        // 初始状态为运行中，成功后再更新为成功
+        nodeRecord.setStatus(WorkflowConstants.WORKFLOW_PROCESS_STATUS_RUNNING);
+        nodeRecord.setC_id(userId);
+        nodeRecord.setU_id(userId);
+
+        conversationRuntimeNodeMapper.insert(nodeRecord);
+        return nodeRecord.getId();
+    }
+
+    /**
+     * 更新虚拟节点状态
+     *
+     * @param nodeId 节点ID
+     * @param status 状态
+     * @param tenantCode 租户代码
+     */
+    private void updateVirtualNodeStatus(Long nodeId, Integer status, String tenantCode) {
+        DataSourceHelper.use(tenantCode);
+
+        AiConversationRuntimeNodeEntity nodeRecord = conversationRuntimeNodeMapper.selectById(nodeId);
+        if (nodeRecord != null) {
+            nodeRecord.setStatus(status);
+            conversationRuntimeNodeMapper.updateById(nodeRecord);
+        }
+    }
+
+    /**
      * 创建Synthesizer节点执行记录
      *
      * <p>Synthesizer是结果合成阶段的LLM调用,需要创建对应的节点记录用于Token关联</p>
@@ -905,8 +1033,20 @@ public class WorkflowRoutingService {
         log.info("【resumeWorkflow】恢复工作流执行, runtimeUuid={}, workflowUuid={}, conversationId={}, userInput={}",
                 runtimeUuid, workflowUuid, conversationId, userInput);
 
-        final String[] capturedRuntimeUuid = {runtimeUuid}; // resume场景runtimeUuid已知
+        final String[] capturedRuntimeUuid = {runtimeUuid};
         final Long[] capturedRuntimeId = {null};
+        final String[] capturedWorkflowTitle = {null};
+
+        // resume 场景：提前查询 workflowTitle（因为 resume 不会再发送 runtime 事件）
+        try {
+            AiWorkflowVo workflow = aiWorkflowService.getDtoByUuid(workflowUuid);
+            if (workflow != null) {
+                capturedWorkflowTitle[0] = workflow.getTitle();
+            }
+        } catch (Exception e) {
+            log.warn("【resumeWorkflow】查询 workflowTitle 失败: {}", e.getMessage());
+        }
+
         // resume场景：runtimeUuid已知，提前查询runtimeId用于workflow_steps构建
         try {
             AiConversationRuntimeEntity runtimeEntity = conversationRuntimeMapper.selectByRuntimeUuid(runtimeUuid);
@@ -938,6 +1078,7 @@ public class WorkflowRoutingService {
             if ("runtime".equals(type)) {
                 capturedRuntimeUuid[0] = eventData.getString("runtimeUuid");
                 capturedRuntimeId[0] = eventData.getLong("runtimeId");
+                capturedWorkflowTitle[0] = eventData.getString("workflowTitle");
             } else if ("workflow_output_data".equals(type)) {
                 capturedAiOpenDialogPara[0] = eventData.getString("data");
                 capturedOpenPageCommand[0] = eventData.getString("open_page_command");
@@ -962,15 +1103,15 @@ public class WorkflowRoutingService {
 
         final String wfUuid = workflowUuid;
         return Flux.concat(contentFlux, Flux.defer(() -> {
-            ChatResponseVo completeResponse = ChatResponseVo.builder()
-                .isComplete(true)
-                .runtimeUuid(capturedRuntimeUuid[0])
-                .runtimeId(capturedRuntimeId[0])
-                .workflowUuid(wfUuid)
-                .ai_open_dialog_para(capturedAiOpenDialogPara[0])
-                .open_page_command(capturedOpenPageCommand[0])
-                .interaction_request(capturedInteractionRequest[0])
-                .build();
+            ChatResponseVo completeResponse = ChatResponseVo.createContentChunk("");
+            completeResponse.setIsComplete(true);
+            completeResponse.setRuntimeUuid(capturedRuntimeUuid[0]);
+            completeResponse.setRuntimeId(capturedRuntimeId[0]);
+            completeResponse.setWorkflowUuid(wfUuid);
+            completeResponse.setWorkflowTitle(capturedWorkflowTitle[0]);  // 【修复】补充workflowTitle，前端用于关闭"调用agent"loading状态
+            completeResponse.setAi_open_dialog_para(capturedAiOpenDialogPara[0]);
+            completeResponse.setOpen_page_command(capturedOpenPageCommand[0]);
+            completeResponse.setInteraction_request(capturedInteractionRequest[0]);
             if (capturedWaitingInteraction[0]) {
                 completeResponse.setIsWaitingInput(true);
                 completeResponse.setIsComplete(false);
@@ -1144,6 +1285,7 @@ public class WorkflowRoutingService {
         // 捕获runtime事件中的runtimeUuid和runtimeId，用于完成事件
         final String[] capturedRuntimeUuid = {null};
         final Long[] capturedRuntimeId = {null};
+        final String[] capturedWorkflowTitle = {null};  // 【修复】捕获workflowTitle用于isComplete事件
         final String[] capturedAiOpenDialogPara = {null};
         final String[] capturedOpenPageCommand = {null};
         final String[] capturedInteractionRequest = {null};
@@ -1155,6 +1297,7 @@ public class WorkflowRoutingService {
             if ("runtime".equals(type)) {
                 capturedRuntimeUuid[0] = eventData.getString("runtimeUuid");
                 capturedRuntimeId[0] = eventData.getLong("runtimeId");
+                capturedWorkflowTitle[0] = eventData.getString("workflowTitle");
             } else if ("workflow_output_data".equals(type)) {
                 capturedAiOpenDialogPara[0] = eventData.getString("data");
                 capturedOpenPageCommand[0] = eventData.getString("open_page_command");
@@ -1187,12 +1330,14 @@ public class WorkflowRoutingService {
             completeResponse.setRuntimeUuid(capturedRuntimeUuid[0]);
             completeResponse.setRuntimeId(capturedRuntimeId[0]);
             completeResponse.setWorkflowUuid(wfUuid);
+            completeResponse.setWorkflowTitle(capturedWorkflowTitle[0]);
             completeResponse.setAi_open_dialog_para(capturedAiOpenDialogPara[0]);
             completeResponse.setOpen_page_command(capturedOpenPageCommand[0]);
             completeResponse.setInteraction_request(capturedInteractionRequest[0]);
             if (capturedWaitingInteraction[0]) {
                 completeResponse.setIsWaitingInput(true);
             }
+
             return Flux.just(completeResponse);
         }));
     }
