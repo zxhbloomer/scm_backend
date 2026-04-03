@@ -67,28 +67,34 @@ public class WorkflowEventAdapter {
                     break;
 
                 case "output":
-                    // 节点完整输出：只渲染 End 节点的 output 变量值（其他节点的 output 是中间数据，不显示给用户）
+                    // 节点完整输出：只渲染 End 节点的输出变量值（其他节点的 output 是中间数据，不显示给用户）
                     String outputNodeName = dataJson.getString("nodeName");
                     if ("End".equals(outputNodeName)) {
                         JSONObject outputData = dataJson.getJSONObject("data");
                         if (outputData != null) {
+                            StringBuilder sb = new StringBuilder();
                             for (String key : outputData.keySet()) {
                                 Object outputItem = outputData.get(key);
                                 if (outputItem instanceof JSONObject) {
                                     JSONObject itemJson = (JSONObject) outputItem;
-                                    if ("output".equals(itemJson.getString("name"))) {
-                                        JSONObject content = itemJson.getJSONObject("content");
-                                        if (content != null && content.containsKey("value")) {
-                                            builder.results(List.of(
-                                                ChatResponseVo.Generation.builder()
-                                                    .output(ChatResponseVo.AssistantMessage.builder()
-                                                        .content(content.getString("value"))
-                                                        .build())
-                                                    .build()
-                                            ));
+                                    JSONObject content = itemJson.getJSONObject("content");
+                                    if (content != null && content.containsKey("value")) {
+                                        String val = content.getString("value");
+                                        if (val != null && !val.isBlank()) {
+                                            if (sb.length() > 0) sb.append("\n\n");
+                                            sb.append(val);
                                         }
                                     }
                                 }
+                            }
+                            if (sb.length() > 0) {
+                                builder.results(List.of(
+                                    ChatResponseVo.Generation.builder()
+                                        .output(ChatResponseVo.AssistantMessage.builder()
+                                            .content(sb.toString())
+                                            .build())
+                                        .build()
+                                ));
                             }
                         }
                     }

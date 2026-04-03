@@ -84,9 +84,21 @@ public abstract class AbstractWfNode {
         // 参照Spring AI Alibaba方式：通过state.data()获取，框架自动合并并行节点输出
         Map<String, Object> stateData = state.data();
 
+        // 找到当前节点的直接上游节点uuid集合（用于 ${input} 默认引用时精确取值）
+        String currentNodeUuid = node.getUuid();
+        Set<String> directUpstreamUuids = wfState.getEdges().entrySet().stream()
+            .filter(e -> e.getValue().contains(currentNodeUuid))
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+
         for (Map.Entry<String, Object> entry : stateData.entrySet()) {
             String key = entry.getKey();
             if (key.startsWith(NODE_OUTPUT_KEY_PREFIX)) {
+                String outputNodeUuid = key.substring(NODE_OUTPUT_KEY_PREFIX.length());
+                // 有直接上游时，只收集直接上游节点的输出，避免取到更远上游的同名参数
+                if (!directUpstreamUuids.isEmpty() && !directUpstreamUuids.contains(outputNodeUuid)) {
+                    continue;
+                }
                 Object value = entry.getValue();
                 if (value instanceof List) {
                     @SuppressWarnings("unchecked")

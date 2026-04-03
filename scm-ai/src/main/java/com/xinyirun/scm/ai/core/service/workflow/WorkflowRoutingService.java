@@ -1116,7 +1116,9 @@ public class WorkflowRoutingService {
                 completeResponse.setIsWaitingInput(true);
                 completeResponse.setIsComplete(false);
             }
-            log.info("【resumeWorkflow】追加完成事件, runtimeUuid={}, isWaiting={}", capturedRuntimeUuid[0], capturedWaitingInteraction[0]);
+            log.info("【resumeWorkflow】追加完成事件, runtimeUuid={}, isWaiting={}, workflowTitle={}, isComplete={}",
+                capturedRuntimeUuid[0], capturedWaitingInteraction[0], capturedWorkflowTitle[0], completeResponse.getIsComplete());
+            log.info("【resumeWorkflow】completeResponse详情: {}", JSON.toJSONString(completeResponse));
             return Flux.just(completeResponse);
         }));
     }
@@ -1338,6 +1340,9 @@ public class WorkflowRoutingService {
                 completeResponse.setIsWaitingInput(true);
             }
 
+            log.info("【executeWorkflowByUuid】追加完成事件, runtimeUuid={}, isWaiting={}, workflowTitle={}, isComplete={}",
+                capturedRuntimeUuid[0], capturedWaitingInteraction[0], capturedWorkflowTitle[0], completeResponse.getIsComplete());
+            log.info("【executeWorkflowByUuid】completeResponse详情: {}", JSON.toJSONString(completeResponse));
             return Flux.just(completeResponse);
         }));
     }
@@ -1656,9 +1661,33 @@ public class WorkflowRoutingService {
                     return ChatResponseVo.createContentChunk(chunk != null ? chunk : "");
 
                 case "output": {
-                    // output事件是节点完整输出快照，仅用于内部记录，不渲染为聊天内容
-                    // LLM流式输出通过chunk事件传递（getEmbedFlux机制），不经过此处
-                    log.debug("output事件(忽略): nodeName={}", eventData.getString("nodeName"));
+                    // End节点输出：将result值推送到气泡（支持多个并行End节点依次追加）
+                    // 其他节点的output是中间数据快照，忽略不渲染
+                    String outputNodeName = eventData.getString("nodeName");
+                    if ("End".equals(outputNodeName)) {
+                        JSONObject outputData = eventData.getJSONObject("data");
+                        if (outputData != null) {
+                            StringBuilder sb = new StringBuilder();
+                            for (String key : outputData.keySet()) {
+                                Object item = outputData.get(key);
+                                if (item instanceof JSONObject itemJson) {
+                                    JSONObject itemContent = itemJson.getJSONObject("content");
+                                    if (itemContent != null) {
+                                        String val = itemContent.getString("value");
+                                        if (val != null && !val.isBlank()) {
+                                            if (sb.length() > 0) sb.append("\n\n");
+                                            sb.append(val);
+                                        }
+                                    }
+                                }
+                            }
+                            if (sb.length() > 0) {
+                                log.debug("End节点output推送内容: nodeName={}, length={}", outputNodeName, sb.length());
+                                return ChatResponseVo.createContentChunk(sb.toString());
+                            }
+                        }
+                    }
+                    log.debug("output事件(忽略): nodeName={}", outputNodeName);
                     return ChatResponseVo.createContentChunk("");
                 }
 
