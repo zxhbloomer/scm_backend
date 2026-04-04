@@ -81,4 +81,28 @@ public interface ExtAiConversationContentMapper {
         """)
     int updateWorkflowStepsByMessageId(@Param("messageId") String messageId,
                                        @Param("workflowSteps") String workflowSteps);
+
+    /**
+     * 根据runtimeUuid查询AI消息（type=ASSISTANT）
+     */
+    @Select("""
+        SELECT message_id, content
+        FROM ai_conversation_content
+        WHERE runtime_uuid = #{runtimeUuid}
+          AND type = 'assistant'
+        ORDER BY c_time ASC
+        LIMIT 1
+        """)
+    AiConversationContentVo selectByRuntimeUuid(@Param("runtimeUuid") String runtimeUuid);
+
+    /**
+     * 根据messageId更新消息内容
+     */
+    @Update("""
+        UPDATE ai_conversation_content
+        SET content = #{content}
+        WHERE message_id = #{messageId}
+        """)
+    int updateContentByMessageId(@Param("messageId") String messageId,
+                                 @Param("content") String content);
 }

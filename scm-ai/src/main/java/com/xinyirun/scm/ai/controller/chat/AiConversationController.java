@@ -491,6 +491,16 @@ public class AiConversationController {
                     );
                     // 更新 workflowStateRef，防止后续 isWaitingInput=true 事件重复保存用户消息
                     workflowStateRef.set(WorkflowStateConstant.STATE_WORKFLOW_WAITING_INPUT);
+
+                    // 中断前已执行节点（如结束1）的输出内容保存为AI消息中间状态
+                    // resume完成时会追加后续内容，确保再次打开时内容完整
+                    String interimContent = aiResponseAccumulator.get();
+                    if (!interimContent.isEmpty()) {
+                        aiConversationContentService.saveContent(
+                            conversationId, 2, interimContent, operatorId,
+                            response.getRuntimeUuid(), null, null
+                        );
+                    }
                 }
             } catch (Exception e) {
                 log.error("保存用户消息失败(中断场景): conversationId={}", conversationId, e);
@@ -509,15 +519,23 @@ public class AiConversationController {
             if (fullContent.isEmpty()) {
                 fullContent = aiResponseAccumulator.get();
             }
-            // OpenPage工作流：LLM不生成文本，用open_page_command生成结果文字持久化
-            if (fullContent.isEmpty() && response.getOpen_page_command() != null) {
+            // OpenPage工作流：追加"已为您打开页面"文字，与前端navigateToPage追加的文字保持一致
+            if (response.getOpen_page_command() != null) {
                 try {
                     JSONObject cmd = JSON.parseObject(response.getOpen_page_command());
                     String pageMode = cmd.getString("page_mode");
                     String modeLabel = "new".equals(pageMode) ? "新增页面" : ("edit".equals(pageMode) ? "编辑页面" : "页面");
-                    fullContent = "已为您打开" + modeLabel;
+                    if (fullContent.isEmpty()) {
+                        fullContent = "已为您打开" + modeLabel;
+                    } else {
+                        fullContent = fullContent + "\n\n已为您打开" + modeLabel;
+                    }
                 } catch (Exception e) {
-                    fullContent = "已为您打开页面";
+                    if (fullContent.isEmpty()) {
+                        fullContent = "已为您打开页面";
+                    } else {
+                        fullContent = fullContent + "\n\n已为您打开页面";
+                    }
                 }
             }
 
@@ -547,6 +565,7 @@ public class AiConversationController {
                 // 保存 AI 消息（普通对话和 resume 都保存）
                 if (!finalAiResponse.isEmpty()) {
                     // 构建工作流思考步骤JSON（根据runtimeId查询节点执行记录）
+                    // 作为兜底数据，前端 updateWorkflowSteps 会用含tokens的完整版本覆盖
                     String workflowSteps = null;
                     if (response.getRuntimeId() != null) {
                         try {
@@ -556,9 +575,29 @@ public class AiConversationController {
                         }
                     }
 
-                    var aiContentVo = aiConversationContentService.saveContent(
-                        conversationId, 2, finalAiResponse, operatorId, runtimeUuid, response.getAi_open_dialog_para(), workflowSteps
-                    );
+                    AiConversationContentVo aiContentVo;
+                    if (isResume) {
+                        // resume场景：追加内容到第一次执行时保存的AI消息（含结束1的内容）
+                        String mergedContent = aiConversationContentService.appendContentByRuntimeUuid(
+                            runtimeUuid, finalAiResponse);
+                        if (mergedContent != null) {
+                            // 找到已有消息并追加成功，查询messageId用于返回
+                            aiContentVo = aiConversationContentService.findByRuntimeUuid(runtimeUuid);
+                            // 同步更新workflowSteps
+                            if (workflowSteps != null && aiContentVo != null) {
+                                aiConversationContentService.updateWorkflowSteps(aiContentVo.getMessage_id(), workflowSteps);
+                            }
+                        } else {
+                            // 未找到已有消息（第一次执行时没有内容），新建
+                            aiContentVo = aiConversationContentService.saveContent(
+                                conversationId, 2, finalAiResponse, operatorId, runtimeUuid, response.getAi_open_dialog_para(), workflowSteps
+                            );
+                        }
+                    } else {
+                        aiContentVo = aiConversationContentService.saveContent(
+                            conversationId, 2, finalAiResponse, operatorId, runtimeUuid, response.getAi_open_dialog_para(), workflowSteps
+                        );
+                    }
                     if (aiContentVo != null && aiContentVo.getMessage_id() != null) {
                         response.setMessageId(aiContentVo.getMessage_id());
                     }

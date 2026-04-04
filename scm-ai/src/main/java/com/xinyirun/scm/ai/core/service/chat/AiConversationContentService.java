@@ -499,4 +499,33 @@ public class AiConversationContentService {
         extAiConversationContentMapper.updateWorkflowStepsByMessageId(messageId, workflowSteps);
     }
 
+    /**
+     * 根据runtimeUuid查询AI消息
+     */
+    public AiConversationContentVo findByRuntimeUuid(String runtimeUuid) {
+        return extAiConversationContentMapper.selectByRuntimeUuid(runtimeUuid);
+    }
+
+    /**
+     * resume场景：将新内容追加到已有AI消息后面
+     * 通过runtimeUuid找到第一次执行时保存的AI消息，追加resume执行的内容
+     *
+     * @param runtimeUuid 工作流运行时UUID
+     * @param appendContent 要追加的内容
+     * @return 更新后的完整内容，若未找到已有消息则返回null
+     */
+    public String appendContentByRuntimeUuid(String runtimeUuid, String appendContent) {
+        if (StringUtils.isBlank(runtimeUuid) || StringUtils.isBlank(appendContent)) {
+            return null;
+        }
+        AiConversationContentVo existing = extAiConversationContentMapper.selectByRuntimeUuid(runtimeUuid);
+        if (existing == null || StringUtils.isBlank(existing.getMessage_id())) {
+            return null;
+        }
+        String existingContent = StringUtils.defaultString(existing.getContent(), "");
+        String newContent = existingContent.isEmpty() ? appendContent : existingContent + "\n\n" + appendContent;
+        extAiConversationContentMapper.updateContentByMessageId(existing.getMessage_id(), newContent);
+        return newContent;
+    }
+
 }
