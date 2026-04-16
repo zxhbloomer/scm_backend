@@ -50,6 +50,8 @@ import com.xinyirun.scm.core.system.mapper.business.project.BProjectGoodsMapper;
 import com.xinyirun.scm.core.system.mapper.business.project.BProjectAttachMapper;
 import com.xinyirun.scm.core.system.mapper.business.so.socontract.BSoContractMapper;
 import com.xinyirun.scm.core.system.mapper.business.po.pocontract.BPoContractMapper;
+import com.xinyirun.scm.core.system.mapper.master.enterpise.MEnterpriseMapper;
+import com.xinyirun.scm.bean.entity.master.enterprise.MEnterpriseEntity;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileMapper;
 import com.xinyirun.scm.core.system.service.business.project.IBProjectService;
@@ -71,8 +73,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import com.xinyirun.scm.bean.entity.master.goods.MGoodsSpecEntity;
+import com.xinyirun.scm.core.system.mapper.master.goods.MGoodsSpecMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 
 /**
  * <p>
@@ -149,6 +157,12 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
 
     @Autowired
     private BPoContractMapper bPoContractMapper;
+
+    @Autowired
+    private MEnterpriseMapper mEnterpriseMapper;
+
+    @Autowired
+    private MGoodsSpecMapper mGoodsSpecMapper;
 
     /**
      * 分页查询项目管理列表
@@ -319,6 +333,22 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
         BProjectEntity bProjectEntity = new BProjectEntity();
         BeanUtilsSupport.copyProperties(vo, bProjectEntity);
         bProjectEntity.setStatus(DictConstant.DICT_B_PROJECT_STATUS_ONE);
+
+        // AI预填场景：supplier_id/purchaser_id 为空但名称有值时，根据名称自动补全id和code
+        if (bProjectEntity.getSupplier_id() == null && !StringUtils.isEmpty(vo.getSupplier_name())) {
+            MEnterpriseEntity supplier = mEnterpriseMapper.selectByName(vo.getSupplier_name());
+            if (supplier != null) {
+                bProjectEntity.setSupplier_id(supplier.getId());
+                bProjectEntity.setSupplier_code(supplier.getCode());
+            }
+        }
+        if (bProjectEntity.getPurchaser_id() == null && !StringUtils.isEmpty(vo.getPurchaser_name())) {
+            MEnterpriseEntity purchaser = mEnterpriseMapper.selectByName(vo.getPurchaser_name());
+            if (purchaser != null) {
+                bProjectEntity.setPurchaser_id(purchaser.getId());
+                bProjectEntity.setPurchaser_code(purchaser.getCode());
+            }
+        }
         
         // 根据项目编号是否为空决定是否自动生成编号
         if (StringUtils.isEmpty(vo.getCode())) {
@@ -426,6 +456,7 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
             orgUserVo.setName(SecurityUtil.getUserSession().getStaff_info().getName());
             orgUserVo.setCode(SecurityUtil.getUserSession().getStaff_info().getCode());
             orgUserVo.setType("user");
+            orgUserVo.setAvatar(SecurityUtil.getLoginUserEntity().getAvatar());
             bBpmProcessVo.setOrgUserVo(orgUserVo);
 
             // 启动审批流
@@ -702,6 +733,74 @@ public class BProjectServiceImpl extends ServiceImpl<BProjectMapper, BProjectEnt
                 List<BProjectEntity> duplicateNameList = mapper.validateDuplicateProjectName(null, bean.getName());
                 if (!duplicateNameList.isEmpty()) {
                     return CheckResultUtil.NG("项目名称[" + bean.getName() + "]已存在，请使用其他名称");
+                }
+                // 校验上游供应商
+                if (StringUtils.isEmpty(bean.getSupplier_name())) {
+                    return CheckResultUtil.NG("上游供应商不能为空");
+                }
+                // 校验下游客户
+                if (StringUtils.isEmpty(bean.getPurchaser_name())) {
+                    return CheckResultUtil.NG("下游客户不能为空");
+                }
+                // 商品明细校验（不为空时逐行校验）
+                List<BProjectGoodsVo> checkDetailList = bean.getDetailListData();
+                if (checkDetailList != null && !checkDetailList.isEmpty()) {
+                    // 批量收集非空 sku_id，一次查库，避免 N+1
+                    List<Integer> skuIds = checkDetailList.stream()
+                            .map(BProjectGoodsVo::getSku_id)
+                            .filter(Objects::nonNull)
+                            .distinct()
+                            .collect(Collectors.toList());
+                    // key=sku_id, value=goods_id（用于校验 sku 属于对应 goods）
+                    Map<Integer, Integer> validSkuGoodsMap = Collections.emptyMap();
+                    if (!skuIds.isEmpty()) {
+                        validSkuGoodsMap = mGoodsSpecMapper.selectList(
+                                new LambdaQueryWrapper<MGoodsSpecEntity>()
+                                        .select(MGoodsSpecEntity::getId, MGoodsSpecEntity::getGoods_id)
+                                        .in(MGoodsSpecEntity::getId, skuIds)
+                                        .eq(MGoodsSpecEntity::getIs_del, false)
+                                        .eq(MGoodsSpecEntity::getEnable, true)
+                        ).stream().collect(Collectors.toMap(
+                                MGoodsSpecEntity::getId,
+                                MGoodsSpecEntity::getGoods_id,
+                                (a, b) -> a
+                        ));
+                    }
+                    for (int i = 0; i < checkDetailList.size(); i++) {
+                        BProjectGoodsVo detail = checkDetailList.get(i);
+                        int rowNum = i + 1;
+                        String goodsLabel = StringUtils.isEmpty(detail.getGoods_name())
+                                ? "第" + rowNum + "行"
+                                : "第" + rowNum + "行（" + detail.getGoods_name() + "）";
+                        if (detail.getGoods_id() == null) {
+                            return CheckResultUtil.NG(goodsLabel + "商品ID不能为空");
+                        }
+                        if (StringUtils.isEmpty(detail.getGoods_name())) {
+                            return CheckResultUtil.NG(goodsLabel + "商品名称不能为空");
+                        }
+                        if (detail.getSku_id() == null) {
+                            return CheckResultUtil.NG(goodsLabel + "规格ID不能为空");
+                        }
+                        if (StringUtils.isEmpty(detail.getSku_name())) {
+                            return CheckResultUtil.NG(goodsLabel + "规格名称不能为空");
+                        }
+                        // 存在性：sku_id 必须存在且属于对应 goods_id
+                        Integer validGoodsId = validSkuGoodsMap.get(detail.getSku_id());
+                        if (validGoodsId == null || !validGoodsId.equals(detail.getGoods_id())) {
+                            return CheckResultUtil.NG(goodsLabel + "商品规格不存在或已停用");
+                        }
+                        if (detail.getQty() == null || detail.getQty().compareTo(BigDecimal.ZERO) <= 0) {
+                            return CheckResultUtil.NG(goodsLabel + "合同数量必须大于0");
+                        }
+                        if (detail.getPrice() == null || detail.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+                            return CheckResultUtil.NG(goodsLabel + "单价必须大于0");
+                        }
+                        if (detail.getTax_rate() == null
+                                || detail.getTax_rate().compareTo(BigDecimal.ZERO) < 0
+                                || detail.getTax_rate().compareTo(new BigDecimal("100")) > 0) {
+                            return CheckResultUtil.NG(goodsLabel + "税率须在0-100之间");
+                        }
+                    }
                 }
                 break;            case CheckResultAo.UPDATE_CHECK_TYPE:
                 // 更新校验逻辑

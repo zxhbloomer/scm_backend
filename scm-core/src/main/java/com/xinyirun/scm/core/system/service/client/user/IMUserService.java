@@ -134,4 +134,10 @@ public interface IMUserService extends IService<MUserEntity> , UserDetailsServic
      */
     void updateUserAiConversationUuid(Long userId);
 
+    /**
+     * 为当前登录用户生成默认头像（按姓名生成文字头像并上传）
+     * @return 头像URL
+     */
+    String generateCurrentUserAvatar();
+
 }

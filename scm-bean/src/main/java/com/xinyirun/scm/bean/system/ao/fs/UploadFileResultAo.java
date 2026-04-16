@@ -1,5 +1,6 @@
 package com.xinyirun.scm.bean.system.ao.fs;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import com.xinyirun.scm.bean.system.config.base.BaseVo;
 
 // import io.swagger.annotations.ApiModel;
@@ -22,6 +23,7 @@ public class UploadFileResultAo extends BaseVo {
     /**
      * 文件ID
      */
+    @JSONField(name = "fileId")
     private String fileUuid;
     /**
      * 文件名

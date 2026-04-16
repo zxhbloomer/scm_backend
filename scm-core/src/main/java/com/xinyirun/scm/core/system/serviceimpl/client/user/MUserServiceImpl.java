@@ -463,6 +463,26 @@ public class MUserServiceImpl extends BaseServiceImpl<MUserMapper, MUserEntity> 
         }
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String generateCurrentUserAvatar() {
+        MStaffVo staffVo = imStaffService.selectByid(SecurityUtil.getStaff_id());
+        MUserVo mUserVo = mUserMapper.getDataById(staffVo.getUser_id());
+        String staffName = staffVo.getName();
+        try {
+            CreateAvatarByUserNameUtil.generateImg(staffName, avatarTempDir, staffName);
+            String avatarUrl = uploadFile(avatarTempDir + File.separator + staffName + ".jpg", staffName + ".jpg", 0);
+            MUserEntity userEntity = new MUserEntity();
+            userEntity.setId(mUserVo.getId());
+            userEntity.setAvatar(avatarUrl);
+            mUserMapper.updateById(userEntity);
+            return avatarUrl;
+        } catch (Exception e) {
+            log.error("generateCurrentUserAvatar error", e);
+            throw new BusinessException(e.getMessage());
+        }
+    }
+
     /**
      * 根据登录的username获取entity
      *

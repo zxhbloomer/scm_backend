@@ -27,6 +27,12 @@ public interface MEnterpriseMapper extends BaseMapper<MEnterpriseEntity> {
 
 
     /**
+     * 根据企业名称精确查询（用于AI预填时补全id/code）
+     */
+    @Select("SELECT id, code, name FROM m_enterprise WHERE name = #{name} AND is_del = false LIMIT 1")
+    MEnterpriseEntity selectByName(@Param("name") String name);
+
+    /**
      * 页面查询列表
      * SQL中使用的常量: m_enterprise_status(企业状态), m_enterprise_type(企业类型)
      * @param page

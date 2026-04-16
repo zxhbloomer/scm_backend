@@ -68,6 +68,10 @@ public class WorkflowEngine {
     private AiWorkflowRuntimeVo wfRuntimeResp;
     private AiConversationRuntimeVo conversationRuntimeResp;
 
+    public String getConversationId() {
+        return wfState != null ? wfState.getConversationId() : null;
+    }
+
     /**
      * 页面上下文 (前端传递的当前页面信息，用于MCP工具)
      */

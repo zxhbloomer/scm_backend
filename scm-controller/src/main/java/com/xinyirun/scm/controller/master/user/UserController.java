@@ -218,4 +218,13 @@ public class UserController extends SystemBaseController {
         MUserVo mUserVo = service.getUserPwdWarning(SecurityUtil.getLoginUser_id());
         return ResponseEntity.ok().body(ResultUtil.OK(mUserVo));
     }
+
+    @SysLogAnnotion("生成当前用户默认头像")
+    @PostMapping("/avatar/generate")
+    @ResponseBody
+    @RepeatSubmitAnnotion
+    public ResponseEntity<JsonResultAo<String>> generateAvatar() {
+        String avatarUrl = service.generateCurrentUserAvatar();
+        return ResponseEntity.ok().body(ResultUtil.OK(avatarUrl));
+    }
 }

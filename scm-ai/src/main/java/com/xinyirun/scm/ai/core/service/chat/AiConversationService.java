@@ -13,6 +13,8 @@ import com.xinyirun.scm.ai.config.adapter.AiStreamHandler;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationContentMapper;
 import com.xinyirun.scm.ai.core.mapper.chat.AiConversationMapper;
 import com.xinyirun.scm.ai.core.mapper.chat.ExtAiConversationContentMapper;
+import com.xinyirun.scm.ai.workflow.InterruptedFlow;
+import com.xinyirun.scm.ai.common.constant.WorkflowStateConstant;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -201,6 +203,19 @@ public class AiConversationService {
     public void clearConversationContent(String conversationId, String userId) {
         try {
             log.info("🧹【清空对话】开始清空对话内容 - conversationId: {}, userId: {}", conversationId, userId);
+
+            // 0. 清理正在等待 resume 的 WorkflowEngine（避免删数据后 workflow 继续执行导致 NPE）
+            InterruptedFlow.RUNTIME_TO_GRAPH.entrySet().removeIf(entry -> {
+                try {
+                    String wfConversationId = entry.getValue().getConversationId();
+                    return conversationId.equals(wfConversationId);
+                } catch (Exception e) {
+                    return false;
+                }
+            });
+            // 重置 workflow_state 为 IDLE，避免下次发消息被误判为 resume
+            updateWorkflowState(conversationId, WorkflowStateConstant.STATE_IDLE, null, null);
+            log.info("🧹【清空对话】步骤0-清理运行中workflow完成 - conversationId: {}", conversationId);
 
             // 1. 删除workflow运行记录(包括ai_conversation_runtime和ai_conversation_runtime_node)
             int workflowCount = conversationRuntimeService.deleteByConversationId(conversationId);

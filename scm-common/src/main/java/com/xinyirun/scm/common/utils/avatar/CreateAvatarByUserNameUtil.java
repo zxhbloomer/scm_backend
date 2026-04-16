@@ -111,7 +111,7 @@ public class CreateAvatarByUserNameUtil {
 
         }
 
-        BufferedImage rounded = makeRoundedCorner(bi, 30);
+        BufferedImage rounded = makeRoundedCorner(bi, 0);
         ImageIO.write(rounded, "png", file);
     }
 
