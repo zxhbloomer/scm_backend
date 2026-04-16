@@ -61,25 +61,16 @@ public class BaseMqConsumer {
 
 
     /**
-     * 拼接中台同步数据url
+     * 拼接文件系统url
      * @param uri
      * @return
      */
     protected String getFileUrl(String uri, String url) {
-        try {
-            String app_key= systemConfigProperies.getApp_key();
-            String secret_key = systemConfigProperies.getSecret_key();
-
-            return url + uri + "?app_key="+app_key+"&secret_key="+secret_key;
-
-        } catch (Exception e) {
-            log.error("getFileUrl error", e);
-        }
-        return "";
+        return url + uri;
     }
 
-    protected String getApp_key() {
-        return systemConfigProperies.getApp_key();
+    protected String getSecret_key() {
+        return systemConfigProperies.getSecret_key();
     }
 
     /**

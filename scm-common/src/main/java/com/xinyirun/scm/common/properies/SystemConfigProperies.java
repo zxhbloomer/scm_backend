@@ -40,7 +40,6 @@ public class SystemConfigProperies {
      */
     private String domainName;
 
-    private String app_key;
     private String secret_key;
 
     public String getEnv() {
@@ -89,14 +88,6 @@ public class SystemConfigProperies {
 
     public void setFsUrl(String fsUrl) {
         this.fsUrl = fsUrl;
-    }
-
-    public String getApp_key() {
-        return app_key;
-    }
-
-    public void setApp_key(String app_key) {
-        this.app_key = app_key;
     }
 
     public String getSecret_key() {

@@ -242,13 +242,12 @@ public class SystemBaseController {
         FileSystemResource resource = new FileSystemResource(fileUrl);
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         param.add("file", resource);
-        param.add("app_key", systemConfigProperies.getApp_key());
-        param.add("secret_key", systemConfigProperies.getSecret_key());
         /**
          * request 头信息
          */
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
         HttpEntity<MultiValueMap<String, Object>> httpEntity = new HttpEntity<>(param, headers);
         ResponseEntity<Map> re = restTemplate.exchange(uploadFileUrl, HttpMethod.POST, httpEntity, Map.class);
         if (re.getStatusCode().value() != HttpStatus.OK.value()) {
@@ -298,36 +297,16 @@ public class SystemBaseController {
     }
 
     /**
-     * 拼接fs api url
-     * @return
-     */
-    public String getFileSystemUrl(String urlWithoutKey) {
-
-        return urlWithoutKey+"?app_key="+systemConfigProperies.getApp_key()+"&secret_key="+systemConfigProperies.getSecret_key();
-//        return urlWithoutKey;
-    }
-
-    /**
      * 调用fs接口
      * @param paraMap
      * @param urlWithoutKey
      * @return
      */
     public Object executeFileSystemDownloadUrlLogic(Map<String, Object> paraMap, String urlWithoutKey) {
-
-        // 获取fs api url
-        String url = getFileSystemUrl(urlWithoutKey);
-
-        //postForEntity  -》 直接传递map参数
-        ResponseEntity<String> response = restTemplate.postForEntity(url, paraMap, String.class);
-
-//        JSONObject jsonObject = JSONObject.parseObject(response);
-//        Boolean status = jsonObject.getBoolean("success");
-//        if (response.getsta == Boolean.FALSE) {
-//            throw new BusinessException(jsonObject.getString("message"));
-//        }
-
-        // 返回
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
+        HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(paraMap, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(urlWithoutKey, httpEntity, String.class);
         return response.getBody();
     }
 

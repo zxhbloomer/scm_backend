@@ -280,7 +280,6 @@ scm:
     simple-model: true
     # 文件上传url
     fs-url: http://file.xinyirunscm.com/fs/api/service/v1/upload
-    app_key: 8a90e44e-2a14-5c02-b3a5-95a1ce3a9eb6
     secret_key: 1d7ee618-2fcb-5ec3-b0b2-d6df9115301d
     # 文件备份 webclient baseurl 设置
     fs-webclient-baseurl: http://127.0.0.1:8089

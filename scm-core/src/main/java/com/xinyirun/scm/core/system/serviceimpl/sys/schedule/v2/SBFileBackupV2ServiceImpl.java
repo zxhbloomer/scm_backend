@@ -48,11 +48,12 @@ public class SBFileBackupV2ServiceImpl extends BaseServiceImpl<SFileInfoMapper, 
 
         SConfigEntity delete_backup_uri = isConfigService.selectByKey(SystemConstants.DELETE_BACKUP_URI);
 
-        String uri = delete_backup_uri.getValue() + "?app_key="+systemConfigProperies.getApp_key()+"&secret_key="+systemConfigProperies.getSecret_key();
+        String uri = delete_backup_uri.getValue();
 
         Mono<String> mono = webClient
                 .post() // 发送POST 请求
                 .uri(uri) // 服务请求路径，基于baseurl
+                .header("Authorization", "Bearer " + systemConfigProperies.getSecret_key())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue("{}"))
                 .retrieve() // 获取响应体

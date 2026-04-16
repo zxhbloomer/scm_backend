@@ -215,13 +215,12 @@ public class AppBaseController {
         FileSystemResource resource = new FileSystemResource(fileUrl);
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         param.add("file", resource);
-        param.add("app_key", systemConfigProperies.getApp_key());
-        param.add("secret_key", systemConfigProperies.getSecret_key());
         /**
          * request 头信息
          */
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
         HttpEntity<MultiValueMap<String, Object>> httpEntity = new HttpEntity<>(param, headers);
         ResponseEntity<Map> re = restTemplate.exchange(uploadFileUrl, HttpMethod.POST, httpEntity, Map.class);
         if (re.getStatusCode().value() != HttpStatus.OK.value()) {

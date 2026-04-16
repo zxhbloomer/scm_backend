@@ -32,13 +32,13 @@ public class AppBaseServiceImpl <M extends BaseMapper<T>, T> extends ServiceImpl
         URLConnection connection = url.openConnection();
         InputStream inputStream = connection.getInputStream();
 
-        String uploadUrl = systemConfigProperies.getFsUrl() + "?app_key="+systemConfigProperies.getApp_key()+"&secret_key="+systemConfigProperies.getSecret_key();
-//        String uploadUrl = "http://file.xinyirunscm.com/fs/api/service/v1/upload" + "?app_key="+"8a90e44e-2a14-5c02-b3a5-95a1ce3a9eb6"+"&secret_key="+"1d7ee618-2fcb-5ec3-b0b2-d6df9115301d";
+        String uploadUrl = systemConfigProperies.getFsUrl();
         // 1、封装请求头
         HttpHeaders headers = new HttpHeaders();
         MediaType type = MediaType.parseMediaType("multipart/form-data");
         headers.setContentType(type);
         headers.setContentDispositionFormData("media", fileName);
+        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
         // 2、封装请求体
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         InputStreamResource resource = new InputStreamResource(inputStream){
@@ -58,9 +58,6 @@ public class AppBaseServiceImpl <M extends BaseMapper<T>, T> extends ServiceImpl
         ResponseEntity<String> data = restTemplate.postForEntity(uploadUrl, formEntity, String.class);
         // 5、请求结果处理
         JSONObject result = JSONObject.parseObject(data.getBody());
-
-        System.out.println(result);
-
 
         return JSONObject.parseObject(result.getString("data")).getString("url");
     }

@@ -21,6 +21,9 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -78,10 +81,12 @@ public class FileBackupConsumer extends BaseMqConsumer {
 
             BackupFileVo backupFileVo = new BackupFileVo();
             backupFileVo.setItems(Lists.newArrayList(item));
-            backupFileVo.setApp_key(getApp_key());
 
             String fileUrl = getFileUrl(item.getUri(), item.getUrl());
-            ResponseEntity<String> response = restTemplate.postForEntity(fileUrl, backupFileVo, String.class);
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.set("Authorization", "Bearer " + getSecret_key());
+            HttpEntity<BackupFileVo> httpEntity = new HttpEntity<>(backupFileVo, httpHeaders);
+            ResponseEntity<String> response = restTemplate.exchange(fileUrl, HttpMethod.POST, httpEntity, String.class);
 
             log.debug(response.getBody());
 
