@@ -71,3 +71,10 @@ mvn exec:java -Dexec.mainClass="CodeGenerator"
 2. `scm-core` — 创建 Mapper 接口 + XML + Service 接口/实现
 3. `scm-controller` — 继承 `SystemBaseController`，添加 `@RestController`
 4. 或直接用代码生成器生成 1-2 步的骨架代码
+
+注意
+1、访问数据库mysql方法
+D:\2025_project\00_docker\mysql\docker-compose.yml 
+你直接登录到docker的mysql中去，访问数据库scm_tenant_20250519_001，windows环境，使用的是mysqlsh，建议直接登录到docker来操作mysql
+2、向量数据库，D:\2025_project\00_docker\Milvus\docker-compose.yml ，
+你可以直接登录到docker中，去确认，
