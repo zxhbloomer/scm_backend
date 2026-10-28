@@ -410,6 +410,8 @@ public class SystemConstants  {
         public static final String WMS = "00";
         /** 中台 */
         public static final String ZT = "10";
+        /** 文件系统 */
+        public static final String SCM_FILESYSTEM = "SCM_FILESYSTEM";
     }
 
     /**

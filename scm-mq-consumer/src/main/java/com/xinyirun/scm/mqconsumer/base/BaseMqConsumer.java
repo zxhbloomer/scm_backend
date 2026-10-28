@@ -3,7 +3,6 @@ package com.xinyirun.scm.mqconsumer.base;
 import cn.hutool.core.net.url.UrlBuilder;
 import com.xinyirun.scm.bean.entity.sys.config.config.SAppConfigEntity;
 import com.xinyirun.scm.bean.system.ao.mqsender.MqSenderAo;
-import com.xinyirun.scm.common.properies.SystemConfigProperies;
 import com.xinyirun.scm.common.utils.datasource.DataSourceHelper;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISAppConfigService;
 import lombok.extern.slf4j.Slf4j;
@@ -27,9 +26,6 @@ public class BaseMqConsumer {
 
     @Autowired
     private ISAppConfigService isAppConfigService;
-
-    @Autowired
-    private SystemConfigProperies systemConfigProperies;
 
     /**
      * 拼接中台同步数据url
@@ -70,7 +66,7 @@ public class BaseMqConsumer {
     }
 
     protected String getSecret_key() {
-        return systemConfigProperies.getSecret_key();
+        return isAppConfigService.getFsConfig().getSecret_key();
     }
 
     /**

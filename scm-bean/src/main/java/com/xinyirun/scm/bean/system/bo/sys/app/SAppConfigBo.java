@@ -54,6 +54,11 @@ public class SAppConfigBo implements Serializable {
     private String fs_config;
 
     /**
+     * 上传地址
+     */
+    private String url;
+
+    /**
      * 创建时间
      */
     private LocalDateTime c_time;

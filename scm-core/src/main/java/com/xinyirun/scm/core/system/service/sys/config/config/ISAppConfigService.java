@@ -26,4 +26,9 @@ public interface ISAppConfigService extends IService<SAppConfigEntity> {
      */
     List<SAppConfigVo> getListData(SAppConfigVo searchCondition) ;
 
+    /**
+     * 获取文件系统配置
+     */
+    SAppConfigEntity getFsConfig();
+
 }

@@ -1,7 +1,5 @@
 package com.xinyirun.scm.framework.config.webclient;
 
-import com.xinyirun.scm.common.properies.SystemConfigProperies;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -18,9 +16,6 @@ import java.time.Duration;
  */
 @Configuration
 public class WebClientConfig {
-
-    @Autowired
-    private SystemConfigProperies systemConfigProperies;
 
     @Bean
     public WebClient webClient() {
@@ -39,7 +34,6 @@ public class WebClientConfig {
 
         return builder
                 .exchangeStrategies(exchangeStrategies)
-                .baseUrl(systemConfigProperies.getFsWebclientBaseurl())
                 .build();
     }
 }

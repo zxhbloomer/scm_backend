@@ -3,8 +3,8 @@ package com.xinyirun.scm.core.system.serviceimpl.sys.schedule.v2;
 import com.xinyirun.scm.bean.entity.sys.config.config.SConfigEntity;
 import com.xinyirun.scm.bean.entity.sys.file.SFileInfoEntity;
 import com.xinyirun.scm.common.constant.SystemConstants;
-import com.xinyirun.scm.common.properies.SystemConfigProperies;
 import com.xinyirun.scm.core.system.mapper.sys.file.SFileInfoMapper;
+import com.xinyirun.scm.core.system.service.sys.config.config.ISAppConfigService;
 import com.xinyirun.scm.core.system.service.sys.config.config.ISConfigService;
 import com.xinyirun.scm.core.system.service.sys.file.ISFileInfoService;
 import com.xinyirun.scm.core.system.service.sys.schedule.v2.ISFileBackupV2Service;
@@ -33,7 +33,7 @@ public class SBFileBackupV2ServiceImpl extends BaseServiceImpl<SFileInfoMapper, 
     private ISConfigService isConfigService;
 
     @Autowired
-    private SystemConfigProperies systemConfigProperies;
+    private ISAppConfigService isAppConfigService;
 
     @Autowired
     private WebClient webClient;
@@ -53,7 +53,7 @@ public class SBFileBackupV2ServiceImpl extends BaseServiceImpl<SFileInfoMapper, 
         Mono<String> mono = webClient
                 .post() // 发送POST 请求
                 .uri(uri) // 服务请求路径，基于baseurl
-                .header("Authorization", "Bearer " + systemConfigProperies.getSecret_key())
+                .header("Authorization", "Bearer " + isAppConfigService.getFsConfig().getSecret_key())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue("{}"))
                 .retrieve() // 获取响应体

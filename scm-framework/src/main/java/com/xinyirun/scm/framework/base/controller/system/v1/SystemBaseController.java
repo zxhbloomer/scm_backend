@@ -197,6 +197,15 @@ public class SystemBaseController {
         /** 设置2：系统参数  */
         userSessionBo.setSys_Info(sysInfoBo);
 
+        /** 设置3：filesystem配置  */
+        SAppConfigEntity fsConfig = isAppConfigService.getFsConfig();
+        if (fsConfig != null) {
+            com.xinyirun.scm.bean.system.bo.sys.app.SAppConfigBo appConfigBo = new com.xinyirun.scm.bean.system.bo.sys.app.SAppConfigBo();
+            appConfigBo.setSecret_key(fsConfig.getSecret_key());
+            appConfigBo.setUrl(fsConfig.getUrl());
+            userSessionBo.setAppConfigBo(appConfigBo);
+        }
+
         /** 设置session id */
         userSessionBo.setSession_id(sessionId);
 
@@ -237,8 +246,9 @@ public class SystemBaseController {
      * @return
      */
     public <T> T uploadFile(String fileUrl, Class<T> classOfT) throws IllegalAccessException, InstantiationException {
-        // 上传的url
-        String uploadFileUrl = systemConfigProperies.getFsUrl();
+        // 上传的url（从动态配置读取）
+        SAppConfigEntity fsConfig = isAppConfigService.getFsConfig();
+        String uploadFileUrl = fsConfig.getUrl();
         FileSystemResource resource = new FileSystemResource(fileUrl);
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         param.add("file", resource);
@@ -247,7 +257,7 @@ public class SystemBaseController {
          */
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
+        headers.set("Authorization", "Bearer " + fsConfig.getSecret_key());
         HttpEntity<MultiValueMap<String, Object>> httpEntity = new HttpEntity<>(param, headers);
         ResponseEntity<Map> re = restTemplate.exchange(uploadFileUrl, HttpMethod.POST, httpEntity, Map.class);
         if (re.getStatusCode().value() != HttpStatus.OK.value()) {
@@ -304,7 +314,7 @@ public class SystemBaseController {
      */
     public Object executeFileSystemDownloadUrlLogic(Map<String, Object> paraMap, String urlWithoutKey) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
+        headers.set("Authorization", "Bearer " + isAppConfigService.getFsConfig().getSecret_key());
         HttpEntity<Map<String, Object>> httpEntity = new HttpEntity<>(paraMap, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(urlWithoutKey, httpEntity, String.class);
         return response.getBody();

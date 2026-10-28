@@ -67,6 +67,12 @@ public class SAppConfigEntity implements Serializable {
     private String fs_config;
 
     /**
+     * 上传地址
+     */
+    @TableField("url")
+    private String url;
+
+    /**
      * 创建时间
      */
     @TableField(value="c_time", fill = FieldFill.INSERT, updateStrategy = FieldStrategy.NOT_EMPTY)

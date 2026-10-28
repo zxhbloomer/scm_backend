@@ -346,12 +346,6 @@ scm:
     operate-log-all: true
     # 错误日志输出简单模式
     simple-model: true
-    # 文件上传url
-    fs-url: http://file.xinyirunscm.com/fs/api/service/v1/upload
-    secret_key: 1d7ee618-2fcb-5ec3-b0b2-d6df9115301d
-    # 文件备份 webclient baseurl 设置
-    fs-webclient-baseurl: http://127.0.0.1:8089
-
     # redis 缓存过期时间min
     redis-cache-expired-min: 60
     # 当前环境

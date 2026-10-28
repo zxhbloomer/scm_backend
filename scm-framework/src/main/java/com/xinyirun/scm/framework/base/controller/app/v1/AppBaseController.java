@@ -11,6 +11,7 @@ import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.common.exception.app.AppBusinessException;
 import com.xinyirun.scm.common.exception.system.BusinessException;
 import com.xinyirun.scm.common.properies.SystemConfigProperies;
+import com.xinyirun.scm.core.system.service.sys.config.config.ISAppConfigService;
 import com.xinyirun.scm.common.utils.CommonUtil;
 import com.xinyirun.scm.common.utils.bean.BeanUtilsSupport;
 import com.xinyirun.scm.core.app.service.cilent.user.AppIMUserService;
@@ -50,6 +51,9 @@ public class AppBaseController {
 
     @Autowired
     private SystemConfigProperies systemConfigProperies;
+
+    @Autowired
+    private ISAppConfigService appConfigService;
 
     @Autowired
     private AppIMUserService service;
@@ -211,7 +215,8 @@ public class AppBaseController {
      */
     public <T> T uploadFile(String fileUrl, Class<T> classOfT) throws IllegalAccessException, InstantiationException {
         // 上传的url
-        String uploadFileUrl = systemConfigProperies.getFsUrl();
+        com.xinyirun.scm.bean.entity.sys.config.config.SAppConfigEntity fsConfig = appConfigService.getFsConfig();
+        String uploadFileUrl = fsConfig.getUrl();
         FileSystemResource resource = new FileSystemResource(fileUrl);
         MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
         param.add("file", resource);
@@ -220,7 +225,7 @@ public class AppBaseController {
          */
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-        headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
+        headers.set("Authorization", "Bearer " + fsConfig.getSecret_key());
         HttpEntity<MultiValueMap<String, Object>> httpEntity = new HttpEntity<>(param, headers);
         ResponseEntity<Map> re = restTemplate.exchange(uploadFileUrl, HttpMethod.POST, httpEntity, Map.class);
         if (re.getStatusCode().value() != HttpStatus.OK.value()) {

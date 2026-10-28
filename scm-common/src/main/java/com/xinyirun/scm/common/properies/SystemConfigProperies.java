@@ -21,16 +21,6 @@ public class SystemConfigProperies {
     private boolean operateLogAll;
 
     /**
-     * 上传url
-     */
-    private String fsUrl;
-
-    /**
-     * 文件备份 webclient baseurl 设置
-     */
-    private String fsWebclientBaseurl;
-
-    /**
      *  本系统环境
      */
     private String env;
@@ -39,8 +29,6 @@ public class SystemConfigProperies {
      *  本系统域名
      */
     private String domainName;
-
-    private String secret_key;
 
     public String getEnv() {
         return env;
@@ -82,22 +70,6 @@ public class SystemConfigProperies {
         this.sysLog = sysLog;
     }
 
-    public String getFsUrl() {
-        return fsUrl;
-    }
-
-    public void setFsUrl(String fsUrl) {
-        this.fsUrl = fsUrl;
-    }
-
-    public String getSecret_key() {
-        return secret_key;
-    }
-
-    public void setSecret_key(String secret_key) {
-        this.secret_key = secret_key;
-    }
-
     public int getRedisCacheExpiredMin() {
         return redisCacheExpiredMin;
     }
@@ -120,14 +92,6 @@ public class SystemConfigProperies {
 
     public void setOperateLogAll(boolean operateLogAll) {
         this.operateLogAll = operateLogAll;
-    }
-
-    public String getFsWebclientBaseurl() {
-        return fsWebclientBaseurl;
-    }
-
-    public void setFsWebclientBaseurl(String fsWebclientBaseurl) {
-        this.fsWebclientBaseurl = fsWebclientBaseurl;
     }
 
     public String getDomainName() {

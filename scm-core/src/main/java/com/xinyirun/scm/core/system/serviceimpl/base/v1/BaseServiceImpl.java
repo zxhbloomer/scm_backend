@@ -4,8 +4,9 @@ import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.xinyirun.scm.common.properies.SystemConfigProperies;
+import com.xinyirun.scm.core.system.service.sys.config.config.ISAppConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,8 +31,9 @@ public class BaseServiceImpl<M extends BaseMapper<T>, T> extends ServiceImpl<M, 
     @Autowired
     private RestTemplate restTemplate;
 
+    @Lazy
     @Autowired
-    private SystemConfigProperies systemConfigProperies;
+    private ISAppConfigService appConfigService;
 
     public String uploadFile(String fileUrl, String fileName, long contentLength) throws Exception {
         InputStream inputStream = null;
@@ -47,13 +49,14 @@ public class BaseServiceImpl<M extends BaseMapper<T>, T> extends ServiceImpl<M, 
 //            throw new Exception("文件不存在");
             return "";
         } else {
-            String uploadUrl = systemConfigProperies.getFsUrl();
+            com.xinyirun.scm.bean.entity.sys.config.config.SAppConfigEntity fsConfig = appConfigService.getFsConfig();
+            String uploadUrl = fsConfig.getUrl();
             // 1、封装请求头
             HttpHeaders headers = new HttpHeaders();
             MediaType type = MediaType.parseMediaType("multipart/form-data");
             headers.setContentType(type);
             headers.setContentDispositionFormData("media", fileName);
-            headers.set("Authorization", "Bearer " + systemConfigProperies.getSecret_key());
+            headers.set("Authorization", "Bearer " + fsConfig.getSecret_key());
             // 2、封装请求体
             MultiValueMap<String, Object> param = new LinkedMultiValueMap<>();
             InputStreamResource resource = new InputStreamResource(inputStream){

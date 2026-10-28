@@ -1,6 +1,8 @@
 package com.xinyirun.scm.core.system.serviceimpl.sys.config.config;
 
+import com.baomidou.dynamic.datasource.annotation.DS;
 import com.xinyirun.scm.bean.entity.sys.config.config.SAppConfigEntity;
+import com.xinyirun.scm.common.constant.SystemConstants;
 import com.xinyirun.scm.bean.system.vo.sys.config.config.SAppConfigVo;
 import com.xinyirun.scm.bean.system.vo.sys.config.config.SConfigVo;
 import com.xinyirun.scm.core.system.mapper.sys.app.SAppConfigMapper;
@@ -41,6 +43,12 @@ public class SAppConfigServiceImpl extends BaseServiceImpl<SAppConfigMapper, SAp
     @Override
     public List<SAppConfigVo> getListData(SAppConfigVo searchCondition) {
         return mapper.getListData(searchCondition);
+    }
+
+    @DS("#header.X-Tenant-ID")
+    @Override
+    public SAppConfigEntity getFsConfig() {
+        return mapper.getDataByCode(SystemConstants.APP_CODE.SCM_FILESYSTEM);
     }
 
 }
